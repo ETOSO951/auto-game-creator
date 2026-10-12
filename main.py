@@ -2,6 +2,7 @@ import os
 import json
 import subprocess
 import google.generativeai as genai
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 # APIキーの存在チェック（設定されていなければここで止まるようにします）
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -34,28 +35,43 @@ prompt = f"""
 
 print(f"Issue #{issue_number} を処理します: {issue_title}")
 
-# 2. Gemini APIを呼び出してコードを生成する
+# 2. リトライ付きのAPI呼び出し関数
+# 通信エラーなどで失敗しても、待機時間を倍々に増やしながら最大3回まで再挑戦します。
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10)
+)
+def call_gemini_api(prompt_text, key):
+    print("Gemini APIを呼び出しています...")
+    genai.configure(api_key=key)
+    model = genai.GenerativeModel("gemini-flash-latest")
+    
+    # タイムアウトを明示的に設定（ゲームコード生成なので少し長めの60秒に設定）
+    response = model.generate_content(
+        prompt_text,
+        request_options={"timeout": 60}
+    )
+    return response.text
+
+# 3. AIにコードを作らせる（リトライ機能付き）
 try:
-    genai.configure(api_key=api_key)
-    # あなたの環境で動作確認が取れた最新のモデル名を指定します
-    model = genai.GenerativeModel("gemini-flash-latest") 
-    response = model.generate_content(prompt)
-    html_content = response.text
+    html_content = call_gemini_api(prompt, api_key)
 except Exception as e:
     print("【あなたのAPIキーで使えるモデル一覧】")
     try:
+        genai.configure(api_key=api_key)
         for m in genai.list_models():
             if 'generateContent' in m.supported_generation_methods:
                 print(m.name)
     except Exception:
         pass
-    raise RuntimeError(f"【エラー】Gemini APIの呼び出しに失敗しました: {e}")
+    raise RuntimeError(f"【エラー】Gemini APIの呼び出しに3回失敗しました: {e}")
 
 # 生成結果が空っぽの場合はエラーにする
 if not html_content or html_content.strip() == "":
     raise RuntimeError("【エラー】Geminiからコードが生成されませんでした。")
 
-# 3. AIの返答から余計な文字（```html などのマークダウン）を取り除く
+# 4. AIの返答から余計な文字（```html などのマークダウン）を取り除く
 html_content = html_content.strip()
 if html_content.startswith("```html"):
     html_content = html_content.replace("```html", "", 1)
@@ -66,13 +82,13 @@ if html_content.endswith("```"):
 
 html_content = html_content.strip()
 
-# 4. 生成されたコードを「index.html」という名前で保存する
+# 5. 生成されたコードを「index.html」という名前で保存する
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
 print("index.html を作成しました。GitHubへ保存します。")
 
-# 5. 完成したファイルをGitHubのリポジトリに自動で上書き保存（コミット＆プッシュ）する
+# 6. 完成したファイルをGitHubのリポジトリに自動で上書き保存（コミット＆プッシュ）する
 try:
     subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
     subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
