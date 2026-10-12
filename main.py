@@ -14,10 +14,11 @@ MAX_BUGFIX_LOOPS = 4      # エラーが出た場合の自己修正を最大何�
 
 # 【新機能】モデルの優先順位リスト（上が優先。制限にかかると自動で下へ切り替えます）
 FALLBACK_MODELS = [
-    "gemini-flash-latest",
-    "gemini-2.5-flash",
-    "gemini-3.5-flash",
-    "gemini-1.5-flash"
+    "gemini-3.8-flash",       # 現在のフラグシップ最速・高知能モデル（エージェント・コーディングに最適）
+    "gemini-3.6-flash",       # 安定性と実績のあるGemini 3ファミリーのFlashモデル
+    "gemini-3.5-flash",       # 前世代の高速モデル（フォールバック用として優秀）
+    "gemini-2.5-pro",         # 2.5世代のProモデル。推論力・コード生成力が高い
+    "gemini-2.5-flash-lite"   # 最終手段：超高速・軽量なフォールバック用モデル
 ]
 
 # --- 1. 初期設定 ---
