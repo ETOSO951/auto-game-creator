@@ -49,10 +49,10 @@ with open("index.html", "w", encoding="utf-8") as f:
 print("index.html を作成しました。GitHubへ保存します。")
 
 # 5. 完成したファイルをGitHubのリポジトリに自動で上書き保存（コミット＆プッシュ）する
-subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"])
-subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"])
-subprocess.run(["git", "add", "index.html"])
-subprocess.run(["git", "commit", "-m", f"AIがゲームを作成: Issue #{issue_number}"])
-subprocess.run(["git", "push"])
+subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
+subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
+subprocess.run(["git", "add", "index.html"], check=True)
+subprocess.run(["git", "commit", "-m", f"AIがゲームを作成: Issue #{issue_number}"], check=True)
+subprocess.run(["git", "push"], check=True)
 
 print("完了しました！")
