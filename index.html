@@ -45,7 +45,7 @@
   .overlay {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(10, 14, 25, 0.9);
+    background: rgba(10, 14, 25, 0.92);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -120,49 +120,45 @@
     font-size: 1.2rem;
   }
 
-  /* スマホ用タッチコントローラー */
+  /* スマホ用タッチコントローラー（ボタン大型化・押しやすさ改善） */
   #touch-controls {
     position: absolute;
-    bottom: 12px;
+    bottom: 16px;
     left: 0;
     width: 100%;
-    height: 120px;
+    height: 130px;
     display: flex;
     justify-content: space-between;
-    padding: 0 20px;
+    padding: 0 12px;
     pointer-events: none;
     z-index: 10;
   }
-  .d-pad {
+  .d-pad, .action-pad {
     display: flex;
-    gap: 14px;
-    pointer-events: auto;
+    gap: 12px;
     align-items: center;
-  }
-  .action-pad {
-    display: flex;
-    gap: 14px;
-    pointer-events: auto;
-    align-items: center;
+    pointer-events: none;
   }
   .ctrl-btn {
-    width: 60px;
-    height: 60px;
-    background: rgba(255, 255, 255, 0.15);
-    border: 2px solid rgba(255, 255, 255, 0.4);
+    pointer-events: auto;
+    width: 72px;
+    height: 72px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.5);
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: bold;
     color: #fff;
     touch-action: none;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    transition: background 0.05s, transform 0.05s;
   }
-  .ctrl-btn:active, .ctrl-btn.active {
-    background: rgba(255, 208, 0, 0.5);
-    border-color: #ffd000;
+  .ctrl-btn.active {
+    background: rgba(255, 208, 0, 0.6) !important;
+    border-color: #ffd000 !important;
     transform: scale(0.92);
   }
 </style>
@@ -188,12 +184,12 @@
   <!-- タッチコントローラー -->
   <div id="touch-controls">
     <div class="d-pad">
-      <div class="ctrl-btn" id="btn-left">◀</div>
-      <div class="ctrl-btn" id="btn-right">▶</div>
+      <div class="ctrl-btn" id="btn-left" data-key="left">◀</div>
+      <div class="ctrl-btn" id="btn-right" data-key="right">▶</div>
     </div>
     <div class="action-pad">
-      <div class="ctrl-btn" id="btn-attack" style="font-size: 1.1rem; background: rgba(255,80,80,0.3); border-color:#ff5050;">⚔</div>
-      <div class="ctrl-btn" id="btn-jump" style="font-size: 1.1rem; background: rgba(0,255,200,0.3); border-color:#00ffcc;">JUMP</div>
+      <div class="ctrl-btn" id="btn-attack" data-key="attack" style="font-size: 1.4rem; background: rgba(255,80,80,0.35); border-color:#ff5050;">⚔</div>
+      <div class="ctrl-btn" id="btn-jump" data-key="jump" style="font-size: 1.1rem; background: rgba(0,255,200,0.35); border-color:#00ffcc;">JUMP</div>
     </div>
   </div>
 
@@ -205,9 +201,9 @@
       ◀ / ▶: 左右移動<br>
       JUMP: ジャンプ<br>
       ⚔: 剣攻撃 (敵を踏んでも倒せます)<br>
+      ※ボタンの同時押しに対応しています！<br>
       <br>
-      敵やトゲを避けてゴールポールを目指そう！<br>
-      (キーボード: A/D または 矢印キー, W/Spaceでジャンプ, J/Zで攻撃)
+      敵やトゲを避けてゴールポールを目指そう！
     </p>
     <button class="btn" id="btn-start">GAME START</button>
   </div>
@@ -239,7 +235,6 @@
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
 
-  // 解像度（横幅360, 縦幅640のスマホ縦画面）
   const V_WIDTH = 360;
   const V_HEIGHT = 640;
   canvas.width = V_WIDTH;
@@ -253,9 +248,101 @@
   const screenAllClear = document.getElementById('screen-allclear');
   const screenGameOver = document.getElementById('screen-gameover');
 
-  let gameState = 'START'; // START, PLAYING, CLEAR, ALLCLEAR, GAMEOVER
+  let gameState = 'START';
   let currentStageIndex = 0;
   let totalCoins = 0;
+
+  // Web Audio APIによる効果音システム
+  let audioCtx = null;
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  const Sound = {
+    play(type) {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'jump') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(480, now + 0.14);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.14);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === 'coin') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(987.77, now); // B5
+        osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.28);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === 'attack') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.11);
+      } else if (type === 'hit') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.16);
+      } else if (type === 'damage') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(60, now + 0.25);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.26);
+      } else if (type === 'clear') {
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
+        notes.forEach((freq, idx) => {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.connect(g);
+          g.connect(audioCtx.destination);
+          o.type = 'triangle';
+          o.frequency.setValueAtTime(freq, now + idx * 0.1);
+          g.gain.setValueAtTime(0.2, now + idx * 0.1);
+          g.gain.linearRampToValueAtTime(0.01, now + idx * 0.1 + 0.18);
+          o.start(now + idx * 0.1);
+          o.stop(now + idx * 0.1 + 0.2);
+        });
+      } else if (type === 'gameover') {
+        const notes = [280, 240, 200, 160];
+        notes.forEach((freq, idx) => {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.connect(g);
+          g.connect(audioCtx.destination);
+          o.type = 'sawtooth';
+          o.frequency.setValueAtTime(freq, now + idx * 0.12);
+          g.gain.setValueAtTime(0.2, now + idx * 0.12);
+          g.gain.linearRampToValueAtTime(0.01, now + idx * 0.12 + 0.18);
+          o.start(now + idx * 0.12);
+          o.stop(now + idx * 0.12 + 0.2);
+        });
+      }
+    }
+  };
 
   // 入力状態
   const input = {
@@ -265,62 +352,101 @@
     attack: false
   };
 
-  // タッチ入力設定
-  function bindTouchBtn(elementId, key) {
-    const el = document.getElementById(elementId);
-    const startHandler = (e) => {
-      e.preventDefault();
-      input[key] = true;
-      el.classList.add('active');
-    };
-    const endHandler = (e) => {
-      e.preventDefault();
-      input[key] = false;
-      el.classList.remove('active');
-    };
-    el.addEventListener('touchstart', startHandler, { passive: false });
-    el.addEventListener('touchend', endHandler, { passive: false });
-    el.addEventListener('touchcancel', endHandler, { passive: false });
-    el.addEventListener('mousedown', startHandler);
-    el.addEventListener('mouseup', endHandler);
-    el.addEventListener('mouseleave', endHandler);
+  // マルチタッチ対応コントローラー処理 (複数指での完全な同時押しに対応)
+  const buttons = Array.from(document.querySelectorAll('.ctrl-btn'));
+  const activeTouches = new Map(); // identifier -> key
+
+  function updateTouchInputs() {
+    const pressedKeys = new Set(activeTouches.values());
+    input.left = pressedKeys.has('left') || keyboardInput.left;
+    input.right = pressedKeys.has('right') || keyboardInput.right;
+    input.jump = pressedKeys.has('jump') || keyboardInput.jump;
+    input.attack = pressedKeys.has('attack') || keyboardInput.attack;
+
+    buttons.forEach(btn => {
+      const k = btn.dataset.key;
+      if (input[k]) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
   }
 
-  bindTouchBtn('btn-left', 'left');
-  bindTouchBtn('btn-right', 'right');
-  bindTouchBtn('btn-jump', 'jump');
-  bindTouchBtn('btn-attack', 'attack');
+  function getKeyFromTouch(touch) {
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (el && el.classList.contains('ctrl-btn')) {
+      return el.dataset.key;
+    }
+    return null;
+  }
+
+  window.addEventListener('touchstart', (e) => {
+    initAudio();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      const key = getKeyFromTouch(touch);
+      if (key) {
+        activeTouches.set(touch.identifier, key);
+      }
+    }
+    updateTouchInputs();
+  }, { passive: false });
+
+  window.addEventListener('touchmove', (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      const key = getKeyFromTouch(touch);
+      if (key) {
+        activeTouches.set(touch.identifier, key);
+      } else {
+        activeTouches.delete(touch.identifier);
+      }
+    }
+    updateTouchInputs();
+  }, { passive: false });
+
+  function onTouchEnd(e) {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      activeTouches.delete(e.changedTouches[i].identifier);
+    }
+    updateTouchInputs();
+  }
+  window.addEventListener('touchend', onTouchEnd, { passive: false });
+  window.addEventListener('touchcancel', onTouchEnd, { passive: false });
 
   // キーボード入力
+  const keyboardInput = { left: false, right: false, jump: false, attack: false };
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') input.left = true;
-    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = true;
-    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') input.jump = true;
-    if (e.key === 'z' || e.key === 'Z' || e.key === 'j' || e.key === 'J') input.attack = true;
+    initAudio();
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keyboardInput.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keyboardInput.right = true;
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') keyboardInput.jump = true;
+    if (e.key === 'z' || e.key === 'Z' || e.key === 'j' || e.key === 'J') keyboardInput.attack = true;
+    updateTouchInputs();
   });
 
   window.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') input.left = false;
-    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = false;
-    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') input.jump = false;
-    if (e.key === 'z' || e.key === 'Z' || e.key === 'j' || e.key === 'J') input.attack = false;
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keyboardInput.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keyboardInput.right = false;
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') keyboardInput.jump = false;
+    if (e.key === 'z' || e.key === 'Z' || e.key === 'j' || e.key === 'J') keyboardInput.attack = false;
+    updateTouchInputs();
   });
 
   // カメラ
   const camera = { x: 0, y: 0 };
 
-  // ステージデータ定義
-  // 1マス = 32px
-  // T: 地形(Tile), S: トゲ(Spike), C: コイン(Coin), E: 敵(Slime), F: 敵(Flyer), G: ゴール(Goal), P: プレイヤー初期
+  // ステージデータ（クリア不能にならないようジャンプ可能幅・高さに徹底調整）
+  const TILE_SIZE = 32;
   const STAGES = [
-    // ステージ 1: 基本操作・チュートリアル
     {
       name: "1-1 緑の平原",
       map: [
         "..................................................",
         "..................................................",
-        "..................................................",
         "...............................................G..",
+        "..............................................TT..",
         "......................CCC.....................TT..",
         "....................TTTTTTT...................TT..",
         ".............C.C..............C.C.............TT..",
@@ -331,7 +457,6 @@
         "TTTTTTTSSSSTTTTTTTTTSSSTTTTTTTTTTTTTTTTTTTTTTTTT..",
       ]
     },
-    // ステージ 2: 空中足場とトゲ
     {
       name: "1-2 浮島のアスレチック",
       map: [
@@ -340,16 +465,15 @@
         ".....................................................G..",
         "....................................................TT..",
         "..........................C..C...C..................TT..",
-        "...................TTT...TTTTTTTTTT.................TT..",
+        "...................TTTT..TTTTTTTTT..................TT..",
         "............C.C......................TTT............TT..",
         "..........TTTTTT........E..................E........TT..",
-        "...P...............TTTTTTTT..............TTTTTT.....TT..",
+        "...P...............TTTTTTT.....TTTT......TTTTTT.....TT..",
         "TTTTTT..............................................TT..",
         "TTTTTTSSSTTTTTTTSSSSSSSSSSSSSTTTTTTTSSSSSSSSSSSSSSSSSTTT",
         "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
       ]
     },
-    // ステージ 3: 難関ステージ
     {
       name: "1-3 危険な要塞",
       map: [
@@ -361,17 +485,14 @@
         ".............C.C......TTTT.TTTT...TTTTT........TTTT...........TT..",
         "...........TTTTTT.............................................TT..",
         "...................E..........E...........E.........E.........TT..",
-        "...P.............TTTTTT.....TTTTTT......TTTTT....TTTTTT.......TT..",
-        "TTTTT...TTT...................................................TT..",
-        "TTTTTSSSTTTSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSTTT.",
+        "...P......TTTT...TTTTTT.....TTTTTT......TTTTT....TTTTTT.......TT..",
+        "TTTTT...TTTTTT................................................TT..",
+        "TTTTTSSSTTTTTTSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSTTT.",
         "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.",
       ]
     }
   ];
 
-  const TILE_SIZE = 32;
-
-  // ゲーム内オブジェクト
   let platforms = [];
   let spikes = [];
   let coins = [];
@@ -379,7 +500,7 @@
   let goal = { x: 0, y: 0, w: 24, h: 48 };
   let particles = [];
 
-  // プレイヤークラス
+  // プレイヤー
   const player = {
     x: 0,
     y: 0,
@@ -387,16 +508,16 @@
     h: 30,
     vx: 0,
     vy: 0,
-    speed: 3.5,
-    jumpPower: -8.8,
+    speed: 3.8,
+    jumpPower: -9.5, // 安定して2〜3マス上れるジャンプ力
     isGrounded: false,
-    facing: 1, // 1: 右, -1: 左
+    facing: 1,
     hp: 3,
     maxHp: 3,
     invincibleTimer: 0,
     isAttacking: false,
     attackTimer: 0,
-    attackBox: { x: 0, y: 0, w: 28, h: 26 },
+    attackBox: { x: 0, y: 0, w: 32, h: 26 },
 
     reset(x, y) {
       this.x = x;
@@ -414,10 +535,11 @@
     takeDamage(amount = 1) {
       if (this.invincibleTimer > 0) return;
       this.hp -= amount;
-      this.invincibleTimer = 60; // 1秒無敵
-      this.vy = -5;
+      this.invincibleTimer = 60;
+      this.vy = -6;
       this.vx = -this.facing * 3;
       spawnParticles(this.x + this.w/2, this.y + this.h/2, '#ff3366', 10);
+      Sound.play('damage');
       updateHUD();
       if (this.hp <= 0) {
         gameOver("体力がなくなりました");
@@ -425,11 +547,9 @@
     },
 
     update() {
-      // 左右移動
       if (input.left) {
         this.vx = -this.speed;
         this.facing = -1;
-
       } else if (input.right) {
         this.vx = this.speed;
         this.facing = 1;
@@ -438,51 +558,45 @@
         if (Math.abs(this.vx) < 0.1) this.vx = 0;
       }
 
-      // ジャンプ
       if (input.jump && this.isGrounded) {
         this.vy = this.jumpPower;
         this.isGrounded = false;
+        Sound.play('jump');
         spawnParticles(this.x + this.w/2, this.y + this.h, '#fff', 5);
       }
 
-      // 攻撃処理
       if (input.attack && !this.isAttacking && this.attackTimer === 0) {
         this.isAttacking = true;
-        this.attackTimer = 18; // フレーム数
+        this.attackTimer = 16;
+        Sound.play('attack');
         spawnParticles(this.x + (this.facing === 1 ? this.w + 10 : -10), this.y + this.h / 2, '#ffd000', 6);
       }
 
       if (this.attackTimer > 0) {
         this.attackTimer--;
-        if (this.attackTimer < 8) {
+        if (this.attackTimer < 6) {
           this.isAttacking = false;
         }
       }
 
-      // 重力
-      this.vy += 0.38;
-      if (this.vy > 10) this.vy = 10;
+      this.vy += 0.42;
+      if (this.vy > 11) this.vy = 11;
 
-      // X方向の移動と衝突
       this.x += this.vx;
       this.checkCollisionX();
 
-      // Y方向の移動と衝突
       this.y += this.vy;
       this.isGrounded = false;
       this.checkCollisionY();
 
-      // 画面外落下死
-      if (this.y > V_HEIGHT + 200) {
+      if (this.y > V_HEIGHT + 150) {
         this.takeDamage(3);
       }
 
-      // 無敵時間カウント
       if (this.invincibleTimer > 0) {
         this.invincibleTimer--;
       }
 
-      // 攻撃判定ボックス更新
       this.attackBox.x = this.facing === 1 ? this.x + this.w : this.x - this.attackBox.w;
       this.attackBox.y = this.y + 2;
     },
@@ -517,31 +631,27 @@
 
     draw() {
       if (this.invincibleTimer > 0 && Math.floor(this.invincibleTimer / 4) % 2 === 0) {
-        return; // 点滅
+        return;
       }
 
       const drawX = Math.round(this.x - camera.x);
       const drawY = Math.round(this.y - camera.y);
 
       ctx.save();
-      // 胴体
       ctx.fillStyle = '#00ffcc';
       ctx.fillRect(drawX, drawY + 8, this.w, this.h - 8);
 
-      // 頭部
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(drawX + 3, drawY, this.w - 6, 8);
 
-      // 目
       ctx.fillStyle = '#111';
       const eyeX = this.facing === 1 ? drawX + this.w - 7 : drawX + 4;
       ctx.fillRect(eyeX, drawY + 3, 3, 3);
 
-      // 剣攻撃エフェクト
       if (this.isAttacking) {
         ctx.fillStyle = '#ffd000';
         ctx.shadowColor = '#ffd000';
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 10;
         const atkX = Math.round(this.attackBox.x - camera.x);
         const atkY = Math.round(this.attackBox.y - camera.y);
         ctx.fillRect(atkX, atkY, this.attackBox.w, this.attackBox.h);
@@ -550,7 +660,6 @@
     }
   };
 
-  // 矩形判定ヘルパー
   function checkRectOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
     return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
   }
@@ -563,7 +672,6 @@
       this.w = 26;
       this.h = 24;
       this.vx = -1.2;
-      this.vy = 0;
       this.alive = true;
       this.patrolRange = 90;
       this.startX = x;
@@ -577,7 +685,6 @@
         this.vx *= -1;
       }
 
-      // 地形ブロック衝突による反転
       platforms.forEach(p => {
         if (checkRectOverlap(this.x, this.y, this.w, this.h, p.x, p.y, p.w, p.h)) {
           this.vx *= -1;
@@ -585,7 +692,6 @@
         }
       });
 
-      // プレイヤーの剣攻撃との判定
       if (player.isAttacking) {
         if (checkRectOverlap(this.x, this.y, this.w, this.h, player.attackBox.x, player.attackBox.y, player.attackBox.w, player.attackBox.h)) {
           this.defeat();
@@ -593,11 +699,9 @@
         }
       }
 
-      // プレイヤーとの接触判定
       if (checkRectOverlap(this.x, this.y, this.w, this.h, player.x, player.y, player.w, player.h)) {
-        // 踏みつけ判定 (プレイヤーが落下中かつ足元が敵の上半分)
         if (player.vy > 0 && player.y + player.h - player.vy <= this.y + 12) {
-          player.vy = player.jumpPower * 0.75; // バウンド
+          player.vy = player.jumpPower * 0.8;
           this.defeat();
         } else {
           player.takeDamage(1);
@@ -607,6 +711,7 @@
 
     defeat() {
       this.alive = false;
+      Sound.play('hit');
       spawnParticles(this.x + this.w/2, this.y + this.h/2, '#ff4444', 12);
       totalCoins += 2;
       updateHUD();
@@ -619,14 +724,12 @@
 
       ctx.save();
       ctx.fillStyle = '#ff3366';
-      // スライム風ドーム
       ctx.beginPath();
       ctx.arc(drawX + this.w / 2, drawY + this.h - 8, this.w / 2, Math.PI, 0);
       ctx.lineTo(drawX + this.w, drawY + this.h);
       ctx.lineTo(drawX, drawY + this.h);
       ctx.fill();
 
-      // 目
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(drawX + 5, drawY + 8, 4, 4);
       ctx.fillRect(drawX + 16, drawY + 8, 4, 4);
@@ -672,7 +775,6 @@
     }
   }
 
-  // ステージロード
   function loadStage(index) {
     const stageData = STAGES[index];
     platforms = [];
@@ -682,7 +784,7 @@
     particles = [];
 
     const map = stageData.map;
-    const startOffsetY = V_HEIGHT - (map.length * TILE_SIZE) - 60; // 画面下部寄り配置
+    const startOffsetY = V_HEIGHT - (map.length * TILE_SIZE) - 60;
 
     for (let row = 0; row < map.length; row++) {
       const line = map[row];
@@ -694,7 +796,7 @@
         if (char === 'T') {
           platforms.push({ x, y, w: TILE_SIZE, h: TILE_SIZE });
         } else if (char === 'S') {
-          spikes.push({ x, y: y + 12, w: TILE_SIZE, h: 20 });
+          spikes.push({ x, y: y + 14, w: TILE_SIZE, h: 18 });
         } else if (char === 'C') {
           coins.push({ x: x + 8, y: y + 8, w: 16, h: 16, taken: false });
         } else if (char === 'E') {
@@ -726,12 +828,14 @@
 
   function gameOver(msg) {
     gameState = 'GAMEOVER';
+    Sound.play('gameover');
     document.getElementById('gameover-msg').innerText = msg;
     screenGameOver.classList.remove('hidden');
   }
 
   function stageClear() {
     gameState = 'CLEAR';
+    Sound.play('clear');
     if (currentStageIndex < STAGES.length - 1) {
       document.getElementById('clear-msg').innerText = `${STAGES[currentStageIndex].name} をクリア！`;
       screenClear.classList.remove('hidden');
@@ -742,17 +846,10 @@
     }
   }
 
-  // メインループ
-  let lastTime = performance.now();
-  function gameLoop(now) {
-    const dt = (now - lastTime) / 1000;
-    lastTime = now;
-
-    // 背景描画
+  function gameLoop() {
     ctx.fillStyle = '#171b26';
     ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
 
-    // 背景装飾（パララックス風山並み）
     ctx.fillStyle = '#22293a';
     for (let i = 0; i < 6; i++) {
       const bx = i * 140 - (camera.x * 0.2) % 140;
@@ -766,53 +863,46 @@
     if (gameState === 'PLAYING') {
       player.update();
 
-      // カメラ追従 (横方向中央に補間)
       const targetCamX = player.x - V_WIDTH / 2 + player.w / 2;
       camera.x += (targetCamX - camera.x) * 0.1;
       if (camera.x < 0) camera.x = 0;
 
-      // 敵更新
       enemies.forEach(e => e.update());
 
-      // コイン収集判定
       coins.forEach(c => {
         if (!c.taken && checkRectOverlap(player.x, player.y, player.w, player.h, c.x, c.y, c.w, c.h)) {
           c.taken = true;
           totalCoins++;
+          Sound.play('coin');
           spawnParticles(c.x + c.w/2, c.y + c.h/2, '#ffd000', 8);
           updateHUD();
         }
       });
 
-      // トゲ接触判定
       spikes.forEach(s => {
         if (checkRectOverlap(player.x, player.y, player.w, player.h, s.x, s.y, s.w, s.h)) {
           player.takeDamage(1);
         }
       });
 
-      // ゴール判定
       if (checkRectOverlap(player.x, player.y, player.w, player.h, goal.x, goal.y, goal.w, goal.h)) {
         stageClear();
       }
     }
 
-    // 地形描画
     platforms.forEach(p => {
       const px = Math.round(p.x - camera.x);
       const py = Math.round(p.y - camera.y);
       if (px + p.w < -20 || px > V_WIDTH + 20) return;
 
-      // ブロック描画
       ctx.fillStyle = '#3e4a61';
       ctx.fillRect(px, py, p.w, p.h);
       ctx.fillStyle = '#5c6b8a';
-      ctx.fillRect(px, py, p.w, 4); // 上面ハイライト
+      ctx.fillRect(px, py, p.w, 4);
       ctx.strokeStyle = '#272f3d';
       ctx.strokeRect(px, py, p.w, p.h);
     });
 
-    // トゲ描画
     spikes.forEach(s => {
       const sx = Math.round(s.x - camera.x);
       const sy = Math.round(s.y - camera.y);
@@ -828,7 +918,6 @@
       }
     });
 
-    // コイン描画
     coins.forEach(c => {
       if (c.taken) return;
       const cx = Math.round(c.x - camera.x);
@@ -843,25 +932,20 @@
       ctx.restore();
     });
 
-    // ゴールフラッグ描画
     const gx = Math.round(goal.x - camera.x);
     const gy = Math.round(goal.y - camera.y);
     ctx.fillStyle = '#888';
-    ctx.fillRect(gx, gy, 4, goal.h); // ポール
+    ctx.fillRect(gx, gy, 4, goal.h);
     ctx.fillStyle = '#00ffcc';
     ctx.beginPath();
     ctx.moveTo(gx + 4, gy);
     ctx.lineTo(gx + 26, gy + 12);
     ctx.lineTo(gx + 4, gy + 24);
-    ctx.fill(); // 旗
+    ctx.fill();
 
-    // 敵描画
     enemies.forEach(e => e.draw());
-
-    // プレイヤー描画
     player.draw();
 
-    // パーティクル更新・描画
     for (let i = particles.length - 1; i >= 0; i--) {
       if (particles[i].update()) {
         particles[i].draw();
@@ -875,6 +959,7 @@
 
   // ボタン設定
   document.getElementById('btn-start').onclick = () => {
+    initAudio();
     currentStageIndex = 0;
     totalCoins = 0;
     loadStage(currentStageIndex);
@@ -883,12 +968,14 @@
   };
 
   document.getElementById('btn-retry').onclick = () => {
+    initAudio();
     loadStage(currentStageIndex);
     screenGameOver.classList.add('hidden');
     gameState = 'PLAYING';
   };
 
   document.getElementById('btn-next').onclick = () => {
+    initAudio();
     currentStageIndex++;
     loadStage(currentStageIndex);
     screenClear.classList.add('hidden');
@@ -896,6 +983,7 @@
   };
 
   document.getElementById('btn-title').onclick = () => {
+    initAudio();
     screenAllClear.classList.add('hidden');
     screenStart.classList.remove('hidden');
     gameState = 'START';
