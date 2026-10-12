@@ -6,6 +6,10 @@ import google.generativeai as genai
 from tenacity import retry, stop_after_attempt, wait_exponential
 from playwright.sync_api import sync_playwright
 import re
+from google import genai
+from google.genai import types
+import random
+from google.api_core.exceptions import ResourceExhausted
 
 # ========================================================
 # ⚙️ AIエージェントの設定
@@ -17,13 +21,11 @@ MAX_BUGFIX_LOOPS = 4      # エラーが出た場合の自己修正を最大何�
 FALLBACK_MODELS = [
     "gemini-3.8-flash",       # 現在のフラグシップ最速・高知能モデル（エージェント・コーディングに最適）
     "gemini-3.6-flash",       # 安定性と実績のあるGemini 3ファミリーのFlashモデル
-    "gemini-3.5-flash",       # 前世代の高速モデル（フォールバック用として優秀）
-    "gemini-2.5-pro",         # 2.5世代のProモデル。推論力・コード生成力が高い
-    "gemini-2.5-flash-lite"   # 最終手段：超高速・軽量なフォールバック用モデル
+    "gemini-3.5-flash-lite"   # 超高速・軽量なフォールバック用モデル
 ]
 
 # システムプロンプト（AIに天才クリエイターのペルソナを固定）
-SYSTEM_INSTRUCTION = """あなたは世界的な天才フロントエンドエンジニア兼ゲームクリエイターです。
+SYSTEM_INSTRUCTION = """あなたは世界的な天才フロントエンドエンジニア兼ゲームクリエイターです。事実に基づき、厳密で決定論的な回答を提供してください。
 出力するHTML5ゲームは以下の要件を必ず満たしてください：
 - モダンで洗練されたCSSデザイン（アニメーション、グラデーション、影の活用）
 - スムーズなアニメーション（requestAnimationFrameの活用）
@@ -34,7 +36,9 @@ SYSTEM_INSTRUCTION = """あなたは世界的な天才フロントエンドエ�
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
     raise RuntimeError("【エラー】GEMINI_API_KEY が設定されていません。")
-genai.configure(api_key=api_key)
+
+# 新しいSDKのクライアント初期化
+client = genai.Client(api_key=api_key)
 
 event_path = os.environ.get('GITHUB_EVENT_PATH')
 with open(event_path, 'r', encoding='utf-8') as f:
@@ -45,53 +49,63 @@ issue_body = event_data['issue'].get('body') or ""
 issue_number = event_data['issue']['number']
 
 # --- 2. AI呼び出し関数（自動切り替え＆パラメータ最適化機能付き） ---
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-def _call_model_with_retry(prompt_text, model_name, extract_html, temperature):
-    print(f"🤖 [{model_name}] と通信中... (Temperature: {temperature})")
+def _call_model_with_retry(prompt_text, model_name, extract_html, max_retries=4):
+    print(f"🤖 [{model_name}] と通信中...")
+    wait_time = 1
+    
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt_text,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION
+                )
+            )
+            
+            if not extract_html:
+                return response.text.strip()
+                
+            text = response.text
+            # 正規表現でHTMLコードブロックを抽出
+            match = re.search(r'```html\n(.*?)\n```', text, re.DOTALL)
+            if match:
+                code = match.group(1).strip()
+            else:
+                match_any = re.search(r'```(?:.*?)\n(.*?)\n```', text, re.DOTALL)
+                if match_any:
+                    code = match_any.group(1).strip()
+                else:
+                    code = text.strip()
+                    
+            html_match = re.search(r'(<!DOCTYPE html>.*?</html>|<html>.*?</html>)', code, re.IGNORECASE | re.DOTALL)
+            if html_match:
+                code = html_match.group(1).strip()
 
-    # システムプロンプトと生成パラメータ（Temperature）を設定
-    model = genai.GenerativeModel(
-        model_name,
-        system_instruction=SYSTEM_INSTRUCTION
-    )
-    generation_config = genai.types.GenerationConfig(temperature=temperature)
+            return code
+            
+        except ResourceExhausted:
+            if attempt == max_retries - 1:
+                print(f"⚠️ [{model_name}] で上限到達。次のモデルに切り替えます...")
+                raise # 最大リトライ回数に達したら例外を投げて次のモデルへ
+                
+            sleep_time = wait_time + random.uniform(0, 0.5)
+            print(f"⏳ レート制限到達。{sleep_time:.2f}秒待機してリトライします (試行 {attempt + 1}/{max_retries})")
+            time.sleep(sleep_time)
+            wait_time *= 2
 
-    response = model.generate_content(
-        prompt_text, 
-        generation_config=generation_config,
-        request_options={"timeout": 300}
-    )
+        except Exception as e:
+            print(f"⚠️ [{model_name}] でエラー発生: {e}。次のモデルに切り替えます...")
+            raise # その他のエラーも例外を投げて次のモデルへ
 
-    if not extract_html:
-        return response.text.strip()
-
-    text = response.text
-    # 正規表現でHTMLコードブロックを抽出
-    match = re.search(r'```html\n(.*?)\n```', text, re.DOTALL)
-    if match:
-        code = match.group(1).strip()
-    else:
-        match_any = re.search(r'```(?:.*?)\n(.*?)\n```', text, re.DOTALL)
-        if match_any:
-            code = match_any.group(1).strip()
-        else:
-            code = text.strip()
-
-    html_match = re.search(r'(<!DOCTYPE html>.*?</html>|<html>.*?</html>)', code, re.IGNORECASE | re.DOTALL)
-    if html_match:
-        code = html_match.group(1).strip()
-
-    return code
-
-def call_gemini_api(prompt_text, extract_html=True, temperature=0.2):
+def call_gemini_api(prompt_text, extract_html=True):
     # 優先順位リストの上から順番にモデルを試す（フォールバック機構）
     for model_name in FALLBACK_MODELS:
         try:
-            return _call_model_with_retry(prompt_text, model_name, extract_html, temperature)
+            return _call_model_with_retry(prompt_text, model_name, extract_html)
         except Exception as e:
-            print(f"⚠️ [{model_name}] で上限到達またはエラー発生。自動的に次のモデルに切り替えます... ({e})")
             continue 
-
+            
     raise RuntimeError("【エラー】利用可能なすべてのAIモデルで制限に達したか、応答がありません。")
 
 # --- 3. 自動テスト関数 ---
@@ -148,8 +162,7 @@ if not existing_code:
 1. いきなりコードを書かず、まずは `<thinking>` タグを使って、どのように実装すれば面白くなるか、どのようなCSS演出を入れるかの設計思考を記述してください。
 2. その後、HTML、CSS、JavaScriptを完全に1つのファイルに統合したコードを ```html ... ``` で出力してください。分割・省略厳禁。
 """
-    # コーディングは堅実に進めるため temperature=0.2 (デフォルト)
-    html_content = call_gemini_api(prompt_p1, temperature=0.2)
+    html_content = call_gemini_api(prompt_p1)
 else:
     print(f"Issue #{issue_number}: 【フェーズ1】ユーザー指示の反映（既存コードの修正）")
     prompt_p1 = f"""
@@ -166,43 +179,41 @@ else:
 
 ルール:
 いきなりコードを書かず、まずは <thinking> タグを使って、どのように修正・拡張すればゲームがより面白くなるか設計思考を記述してください。
-その後、HTML、CSS、JavaScriptを完全に1つのファイルに統合したコードを html ...  で出力してください。分割・省略厳禁。
+その後、HTML、CSS、JavaScriptを完全に1つのファイルに統合したコードを ```html ... ``` で出力してください。分割・省略厳禁。
 """
-    html_content = call_gemini_api(prompt_p1, temperature=0.2)
+    html_content = call_gemini_api(prompt_p1)
 
-#========================================================
-#フェーズ2: 自律的クオリティアップループ
-#========================================================
+# ========================================================
+# フェーズ2: 自律的クオリティアップループ
+# ========================================================
 print(f"\n--- 🌟 自律クオリティアップループ開始（全{QUALITY_UP_ITERATIONS}回） ---")
 for i in range(1, QUALITY_UP_ITERATIONS + 1):
     time.sleep(3) # API制限回避のための待機
     print(f"\n【ループ {i}/{QUALITY_UP_ITERATIONS}】AI自身による改善案の作成中...")
     prompt_idea = f"""
 あなたは天才ゲームクリエイターです。現在、以下のゲームコードまで完成しています。
-【現在のコード】\nhtml\n{html_content}\n
+【現在のコード】\n```html\n{html_content}\n```
 このゲームをさらに洗練させ、「もっと面白く」「もっとグラフィックや演出をリッチに」するための、具体的な追加アイデアを2〜3つ挙げてください。
 ※コードは書かず、アイデアの文章だけを出力してください。
 """
-    # アイデア出しは創造性を高くするため temperature=0.9
-    ideas = call_gemini_api(prompt_idea, extract_html=False, temperature=0.9)
+    ideas = call_gemini_api(prompt_idea, extract_html=False)
     print(f"💡 改善アイデア:\n{ideas}\n")
     time.sleep(3) # API制限回避のための待機
 
     print(f"【ループ {i}/{QUALITY_UP_ITERATIONS}】改善アイデアの実装中...")
     prompt_apply = f"""
 現在のゲームコードに、あなたが提案した以下の【改善アイデア】をすべて実装し、さらにクオリティを上げた完成版のコードを出力してください。
-【現在のコード】\nhtml\n{html_content}\n
+【現在のコード】\n```html\n{html_content}\n```
 【実装する改善アイデア】\n{ideas}\n
 ルール:
 まずは <thinking> タグ内で、アイデアをどのようにコードへ落とし込むか論理的に記述してください。
-その後、最初から最後まで1つの完全なHTMLコードとして html ...  で出力してください。絶対にコードを分割・省略しないでください。不要なコメントアウトによる省略も禁止です。
+その後、最初から最後まで1つの完全なHTMLコードとして ```html ... ``` で出力してください。絶対にコードを分割・省略しないでください。不要なコメントアウトによる省略も禁止です。
 """
-    # 実装はバグを避けるため temperature=0.2
-    html_content = call_gemini_api(prompt_apply, temperature=0.2)
+    html_content = call_gemini_api(prompt_apply)
 
-#========================================================
-#フェーズ3: 自己修正（バグ取り）ループ
-#========================================================
+# ========================================================
+# フェーズ3: 自己修正（バグ取り）ループ
+# ========================================================
 print(f"\n--- 🛠 バグ監視・自己修正ループ開始（最大{MAX_BUGFIX_LOOPS}回） ---")
 final_code = ""
 success = False
@@ -224,13 +235,12 @@ for attempt in range(1, MAX_BUGFIX_LOOPS + 1):
             prompt_fix = f"""
 作成したコードで以下のJavaScriptエラーが発生しました。エラーの原因を特定・修正した完全なコードを出力してください。
 【発生したエラー】\n{error_text}\n
-【エラーが出たコード】\nhtml\n{html_content}\n
+【エラーが出たコード】\n```html\n{html_content}\n```
 ルール:
 <thinking> タグを使って、なぜエラーが起きたのか原因分析と修正方針を記述してください。
 最初から最後まで1つの完全なHTMLコードとして出力し、分割や省略はしないでください。
 """
-            # バグ修正は厳密性が命のため temperature=0.1
-            html_content = call_gemini_api(prompt_fix, temperature=0.1)
+            html_content = call_gemini_api(prompt_fix)
         else:
             print("⚠️ 最大修正回数に達しましたが、現状のコードを保存します。")
             final_code = html_content
