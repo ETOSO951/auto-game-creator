@@ -37,10 +37,18 @@ print(f"Issue #{issue_number} を処理します: {issue_title}")
 # 2. Gemini APIを呼び出してコードを生成する
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-pro-latest")
+    # 最も安定している汎用的な名前「gemini-pro」を指定します
+    model = genai.GenerativeModel("gemini-pro") 
     response = model.generate_content(prompt)
     html_content = response.text
 except Exception as e:
+    print("【あなたのAPIキーで使えるモデル一覧】")
+    try:
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                print(m.name)
+    except Exception:
+        pass
     raise RuntimeError(f"【エラー】Gemini APIの呼び出しに失敗しました: {e}")
 
 # 生成結果が空っぽの場合はエラーにする
