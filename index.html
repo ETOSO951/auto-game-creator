@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ローグライクブロック崩し</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body {
+    background: #0f111a;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    touch-action: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  #game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    max-width: 480px;
+    max-height: 850px;
+    background: #16192b;
+    box-shadow: 0 0 20px rgba(0,255,200,0.2);
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  /* UI オーバーレイ */
+  .overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(10, 12, 24, 0.88);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    z-index: 10;
+  }
+  .hidden { display: none !important; }
+
+  h1 {
+    font-size: 2.2rem;
+    color: #00ffcc;
+    text-shadow: 0 0 10px rgba(0,255,204,0.6);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  h2 {
+    font-size: 1.5rem;
+    color: #ff0077;
+    margin-bottom: 15px;
+    text-shadow: 0 0 8px rgba(255,0,119,0.5);
+  }
+  p {
+    color: #ccc;
+    font-size: 0.95rem;
+    text-align: center;
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+  .btn {
+    background: linear-gradient(45deg, #00ffcc, #0099ff);
+    border: none;
+    color: #050b14;
+    font-weight: bold;
+    font-size: 1.1rem;
+    padding: 14px 28px;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(0,255,204,0.4);
+    transition: transform 0.1s;
+  }
+  .btn:active {
+    transform: scale(0.95);
+  }
+
+  /* アップグレードカード */
+  .card-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
+  }
+  .card {
+    background: #202538;
+    border: 2px solid #3d4668;
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+  }
+  .card:active {
+    border-color: #00ffcc;
+    background: #2b324c;
+    transform: scale(0.98);
+  }
+  .card-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #00ffcc;
+    display: flex;
+    justify-content: space-between;
+  }
+  .card-rarity {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .rarity-common { background: #555; color: #eee; }
+  .rarity-rare { background: #0088ff; color: #fff; }
+  .rarity-epic { background: #aa00ff; color: #fff; }
+  .rarity-legend { background: #ffaa00; color: #000; font-weight: bold; }
+  .card-desc {
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-top: 6px;
+  }
+
+  /* 上部ステータスバー */
+  #hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 44px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    background: rgba(15, 17, 26, 0.75);
+    border-bottom: 1px solid #23283e;
+    font-size: 0.85rem;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .hud-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .hp-bar-bg {
+    width: 70px;
+    height: 10px;
+    background: #333;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid #555;
+  }
+  .hp-bar-fill {
+    height: 100%;
+    background: #ff3366;
+    width: 100%;
+    transition: width 0.2s;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-item">
+      <span>FLOOR:</span> <span id="hud-floor" style="color:#00ffcc">1</span>
+    </div>
+    <div class="hud-item">
+      <span>HP</span>
+      <div class="hp-bar-bg">
+        <div id="hud-hp-fill" class="hp-bar-fill"></div>
+      </div>
+      <span id="hud-hp-txt">3/3</span>
+    </div>
+    <div class="hud-item">
+      <span>SCORE:</span> <span id="hud-score" style="color:#ffcc00">0</span>
+    </div>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- スタート画面 -->
+  <div id="screen-start" class="overlay">
+    <h1>ROGUE<br>BRICK</h1>
+    <p>画面をスワイプしてパドルを操作<br>ブロックを全滅させてフロアを進め！<br>フロア毎にアーティファクトを獲得。</p>
+    <button class="btn" id="btn-start">GAME START</button>
+  </div>
+
+  <!-- レベルアップ(カード選択)画面 -->
+  <div id="screen-reward" class="overlay hidden">
+    <h2>FLOOR CLEAR!</h2>
+    <p>アーティファクトを1つ選択して強化:</p>
+    <div class="card-container" id="reward-cards"></div>
+  </div>
+
+  <!-- ゲームオーバー画面 -->
+  <div id="screen-gameover" class="overlay hidden">
+    <h2 style="color:#ff3366">GAME OVER</h2>
+    <p id="gameover-stats">FLOOR: 1<br>SCORE: 0</p>
+    <button class="btn" id="btn-restart">RETRY</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // 内部解像度（縦画面アスペクト比）
+  const V_WIDTH = 360;
+  const V_HEIGHT = 640;
+
+  // UI要素
+  const hudFloor = document.getElementById('hud-floor');
+  const hudHpFill = document.getElementById('hud-hp-fill');
+  const hudHpTxt = document.getElementById('hud-hp-txt');
+  const hudScore = document.getElementById('hud-score');
+  const screenStart = document.getElementById('screen-start');
+  const screenReward = document.getElementById('screen-reward');
+  const screenGameOver = document.getElementById('screen-gameover');
+  const rewardCards = document.getElementById('reward-cards');
+  const gameoverStats = document.getElementById('gameover-stats');
+
+  // ゲーム状態
+  let gameState = 'START'; // START, PLAYING, REWARD, GAMEOVER
+  let floor = 1;
+  let score = 0;
+
+  // プレイヤー・パドル
+  const player = {
+    x: V_WIDTH / 2 - 40,
+    y: V_HEIGHT - 55,
+    width: 80,
+    height: 12,
+    baseWidth: 80,
+    maxHp: 3,
+    hp: 3,
+    speed: 0,
+    targetX: V_WIDTH / 2 - 40,
+    laserTimer: 0,
+    // パッシブ効果
+    damage: 1,
+    pierceRate: 0,       // 貫通確率
+    explosive: false,    // 爆発属性
+    laserLevel: 0,      // レーザー射撃
+    multiBallOnFloor: 1, // 初期ボール数
+    bouncePower: 0,      // バウンド毎の追加攻撃力
+    vampireRate: 0,      // 破壊時回復確率
+  };
+
+  // オブジェクト配列
+  let balls = [];
+  let bricks = [];
+  let particles = [];
+  let lasers = [];
+
+  // カードプール定義
+  const CARD_POOL = [
+    { id: 'multiball', name: 'マルチボール', desc: '発射するボールの基本数 +1', rarity: 'rare', apply: () => player.multiBallOnFloor++ },
+    { id: 'power', name: 'ヘビーボール', desc: 'ボールの基本攻撃力 +1', rarity: 'common', apply: () => player.damage++ },
+    { id: 'wide', name: 'ワイドパドル', desc: 'パドルの横幅が 20% 拡大', rarity: 'common', apply: () => { player.baseWidth = Math.min(150, player.baseWidth * 1.2); player.width = player.baseWidth; } },
+    { id: 'laser', name: 'パルスレーザー', desc: '定期的にパドルから貫通レーザーを発射', rarity: 'rare', apply: () => player.laserLevel++ },
+    { id: 'bomb', name: '榴弾バースト', desc: 'ボール衝突時に周囲を巻き込む小爆発が発生', rarity: 'epic', apply: () => player.explosive = true },
+    { id: 'pierce', name: '貫通ドリル', desc: 'ボールが30%の確率でブロックを貫通', rarity: 'rare', apply: () => player.pierceRate = Math.min(0.8, player.pierceRate + 0.3) },
+    { id: 'bounce_pow', name: 'チャージバウンド', desc: '壁・パドルにバウンドする毎にダメージ+0.2蓄積', rarity: 'epic', apply: () => player.bouncePower += 0.2 },
+    { id: 'repair', name: '緊急リペア', desc: 'パドルHPが全回復し、最大HP +1', rarity: 'common', apply: () => { player.maxHp++; player.hp = player.maxHp; } },
+    { id: 'vampire', name: 'ナノドレイン', desc: 'ブロック破壊時 5%の確率でHPを1回復', rarity: 'legend', apply: () => player.vampireRate += 0.05 },
+    { id: 'heal', name: 'ファーストエイド', desc: 'HPを最大値まで即座に回復', rarity: 'common', apply: () => { player.hp = player.maxHp; } }
+  ];
+
+  // リサイズ制御
+  function resize() {
+    const cont = document.getElementById('game-container');
+    canvas.width = V_WIDTH;
+    canvas.height = V_HEIGHT;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // 入力処理（タッチ＆マウス）
+  let isDragging = false;
+  function getCanvasPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - rect.left) * (V_WIDTH / rect.width),
+      y: (clientY - rect.top) * (V_HEIGHT / rect.height)
+    };
+  }
+
+  function handlePointerDown(e) {
+    if (gameState !== 'PLAYING') return;
+    isDragging = true;
+    const pos = getCanvasPos(e);
+    player.targetX = pos.x - player.width / 2;
+
+    // ボール待機中なら発射
+    balls.forEach(b => {
+      if (b.stuck) b.launch();
+    });
+  }
+
+  function handlePointerMove(e) {
+    if (!isDragging || gameState !== 'PLAYING') return;
+    const pos = getCanvasPos(e);
+    player.targetX = pos.x - player.width / 2;
+  }
+
+  function handlePointerUp() {
+    isDragging = false;
+  }
+
+  window.addEventListener('mousedown', handlePointerDown);
+  window.addEventListener('mousemove', handlePointerMove);
+  window.addEventListener('mouseup', handlePointerUp);
+  window.addEventListener('touchstart', handlePointerDown, { passive: false });
+  window.addEventListener('touchmove', (e) => { e.preventDefault(); handlePointerMove(e); }, { passive: false });
+  window.addEventListener('touchend', handlePointerUp);
+
+  // ボールクラス
+  class Ball {
+    constructor(x, y) {
+      this.radius = 5.5;
+      this.reset(x, y);
+    }
+    reset(x, y) {
+      this.x = x ?? (player.x + player.width / 2);
+      this.y = y ?? (player.y - this.radius - 2);
+      this.vx = 0;
+      this.vy = 0;
+      this.speed = 5.0;
+      this.stuck = true;
+      this.bonusDamage = 0;
+    }
+    launch() {
+      if (!this.stuck) return;
+      this.stuck = false;
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.7; // ややランダムな上向き
+      this.vx = Math.cos(angle) * this.speed;
+      this.vy = Math.sin(angle) * this.speed;
+    }
+    update() {
+      if (this.stuck) {
+        this.x = player.x + player.width / 2;
+        this.y = player.y - this.radius - 2;
+        return;
+      }
+
+      this.x += this.vx;
+      this.y += this.vy;
+
+      // 左右壁
+      if (this.x - this.radius < 0) {
+        this.x = this.radius;
+        this.vx *= -1;
+        this.onBounce();
+      } else if (this.x + this.radius > V_WIDTH) {
+        this.x = V_WIDTH - this.radius;
+        this.vx *= -1;
+        this.onBounce();
+      }
+
+      // 天井
+      if (this.y - this.radius < 44) { // HUD分オフセット
+        this.y = 44 + this.radius;
+        this.vy *= -1;
+        this.onBounce();
+      }
+
+      // パドル衝突
+      if (
+        this.y + this.radius >= player.y &&
+        this.y - this.radius <= player.y + player.height &&
+        this.x >= player.x &&
+        this.x <= player.x + player.width &&
+        this.vy > 0
+      ) {
+        this.y = player.y - this.radius;
+        // 打点による角度変化
+        const hitOffset = (this.x - (player.x + player.width / 2)) / (player.width / 2);
+        const maxAngle = Math.PI * 0.42; // 最大75度
+        const angle = hitOffset * maxAngle - Math.PI / 2;
+        
+        const speed = Math.min(8.5, this.speed + 0.05); // 徐々に加速
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.onBounce();
+        spawnParticles(this.x, this.y, '#00ffcc', 6);
+      }
+
+      // 落下判定
+      if (this.y - this.radius > V_HEIGHT) {
+        return false; // ロスト
+      }
+      return true;
+    }
+    onBounce() {
+      if (player.bouncePower > 0) {
+        this.bonusDamage += player.bouncePower;
+      }
+    }
+    draw() {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.fillStyle = player.explosive ? '#ff9900' : '#00ffff';
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // ブロッククラス
+  class Brick {
+    constructor(x, y, w, h, hp, isBoss = false) {
+      this.x = x;
+      this.y = y;
+      this.w = w;
+      this.h = h;
+      this.maxHp = hp;
+      this.hp = hp;
+      this.isBoss = isBoss;
+    }
+    draw() {
+      const ratio = Math.max(0, this.hp / this.maxHp);
+      let col = this.isBoss ? `hsl(0, 100%, ${30 + ratio * 30}%)` : `hsl(${180 + (1 - ratio) * 120}, 80%, 45%)`;
+
+      ctx.save();
+      ctx.fillStyle = col;
+      ctx.fillRect(this.x + 1, this.y + 1, this.w - 2, this.h - 2);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(this.x + 1, this.y + 1, this.w - 2, this.h - 2);
+
+      // HPテキスト
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(Math.ceil(this.hp), this.x + this.w / 2, this.y + this.h / 2);
+      ctx.restore();
+    }
+  }
+
+  // パーティクル
+  class Particle {
+    constructor(x, y, color) {
+      this.x = x;
+      this.y = y;
+      const angle = Math.random() * Math.PI * 2;
+      const spd = Math.random() * 3 + 1;
+      this.vx = Math.cos(angle) * spd;
+      this.vy = Math.sin(angle) * spd;
+      this.life = 1.0;
+      this.decay = Math.random() * 0.04 + 0.02;
+      this.color = color;
+      this.size = Math.random() * 3 + 2;
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.life -= this.decay;
+      return this.life > 0;
+    }
+    draw() {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, this.life);
+      ctx.fillStyle = this.color;
+      ctx.fillRect(this.x, this.y, this.size, this.size);
+      ctx.restore();
+    }
+  }
+
+  function spawnParticles(x, y, color, count = 8) {
+    for (let i = 0; i < count; i++) {
+      particles.push(new Particle(x, y, color));
+    }
+  }
+
+  // レーザー
+  class Laser {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+      this.w = 4;
+      this.h = 16;
+      this.vy = -10;
+      this.dmg = 1.5;
+    }
+    update() {
+      this.y += this.vy;
+      return this.y > 40;
+    }
+    draw() {
+      ctx.save();
+      ctx.fillStyle = '#ff00aa';
+      ctx.shadowColor = '#ff00aa';
+      ctx.shadowBlur = 6;
+      ctx.fillRect(this.x - this.w / 2, this.y, this.w, this.h);
+      ctx.restore();
+    }
+  }
+
+  // ステージ生成
+  function setupFloor(lvl) {
+    bricks = [];
+    const isBoss = (lvl % 5 === 0);
+    const rows = isBoss ? 4 : Math.min(8, 4 + Math.floor(lvl / 2));
+    const cols = isBoss ? 5 : 7;
+    const padding = 4;
+    const totalW = V_WIDTH - 20;
+    const brickW = (totalW - (cols - 1) * padding) / cols;
+    const brickH = 20;
+    const startY = 80;
+
+    const baseHp = lvl * 2 + Math.floor(lvl * lvl * 0.2);
+
+    if (isBoss) {
+      // ボスステージ配置: 中央に超大型ボス
+      const bossW = totalW * 0.65;
+      const bossH = 45;
+      bricks.push(new Brick((V_WIDTH - bossW)/2, startY + 20, bossW, bossH, baseHp * 8, true));
+      // 周囲の取り巻き
+      for (let c = 0; c < 5; c++) {
+        const bx = 10 + c * (brickW + padding);
+        bricks.push(new Brick(bx, startY + 80, brickW, brickH, baseHp * 1.5));
+      }
+    } else {
+      // 通常配置
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (Math.random() < 0.15 && r > 0) continue; // ランダム欠落でバリエーション
+          const bx = 10 + c * (brickW + padding);
+          const by = startY + r * (brickH + padding);
+          const hp = Math.max(1, Math.round(baseHp * (1 - r * 0.1) * (0.8 + Math.random() * 0.5)));
+          bricks.push(new Brick(bx, by, brickW, brickH, hp));
+        }
+      }
+    }
+
+    // ボール準備
+    balls = [];
+    for (let i = 0; i < player.multiBallOnFloor; i++) {
+      const b = new Ball();
+      balls.push(b);
+    }
+
+    updateHud();
+  }
+
+  // ダメージ処理＆破壊時判定
+  function hitBrick(brick, dmg, hitX, hitY) {
+    brick.hp -= dmg;
+    score += Math.round(dmg * 10);
+    spawnParticles(hitX, hitY, '#ffdd55', 4);
+
+    if (player.explosive) {
+      // 周囲へ範囲ダメージ
+      const blastRadius = 35;
+      bricks.forEach(b => {
+        if (b !== brick) {
+          const dx = (b.x + b.w / 2) - hitX;
+          const dy = (b.y + b.h / 2) - hitY;
+          if (Math.hypot(dx, dy) < blastRadius) {
+            b.hp -= dmg * 0.5;
+            spawnParticles(b.x + b.w/2, b.y + b.h/2, '#ff6600', 3);
+          }
+        }
+      });
+    }
+
+    if (brick.hp <= 0) {
+      score += brick.isBoss ? 500 : 50;
+      spawnParticles(brick.x + brick.w / 2, brick.y + brick.h / 2, '#00ffcc', 14);
+
+      // 吸血パッシブ
+      if (player.vampireRate > 0 && Math.random() < player.vampireRate) {
+        if (player.hp < player.maxHp) {
+          player.hp = Math.min(player.maxHp, player.hp + 1);
+          updateHud();
+        }
+      }
+    }
+    updateHud();
+  }
+
+  function updateHud() {
+    hudFloor.innerText = floor;
+    hudHpTxt.innerText = `${player.hp}/${player.maxHp}`;
+    hudHpFill.style.width = `${Math.max(0, (player.hp / player.maxHp) * 100)}%`;
+    hudScore.innerText = score;
+  }
+
+  // 報酬カード生成と表示
+  function showRewardScreen() {
+    gameState = 'REWARD';
+    rewardCards.innerHTML = '';
+
+    // ランダムに3枚選出（重複なし）
+    const shuffled = [...CARD_POOL].sort(() => 0.5 - Math.random());
+    const choices = shuffled.slice(0, 3);
+
+    choices.forEach(cardData => {
+      const cardEl = document.createElement('div');
+      cardEl.className = 'card';
+      cardEl.innerHTML = `
+        <div class="card-title">
+          <span>${cardData.name}</span>
+          <span class="card-rarity rarity-${cardData.rarity}">${cardData.rarity}</span>
+        </div>
+        <div class="card-desc">${cardData.desc}</div>
+      `;
+      cardEl.onclick = () => {
+        cardData.apply();
+        screenReward.classList.add('hidden');
+        floor++;
+        setupFloor(floor);
+        gameState = 'PLAYING';
+      };
+      rewardCards.appendChild(cardEl);
+    });
+
+    screenReward.classList.remove('hidden');
+  }
+
+  function checkGameOver() {
+    gameState = 'GAMEOVER';
+    gameoverStats.innerHTML = `到達フロア: ${floor}<br>最終スコア: ${score}`;
+    screenGameOver.classList.remove('hidden');
+  }
+
+  // ゲームリセット
+  function resetGame() {
+    floor = 1;
+    score = 0;
+    player.maxHp = 3;
+    player.hp = 3;
+    player.damage = 1;
+    player.baseWidth = 80;
+    player.width = 80;
+    player.multiBallOnFloor = 1;
+    player.pierceRate = 0;
+    player.explosive = false;
+    player.laserLevel = 0;
+    player.bouncePower = 0;
+    player.vampireRate = 0;
+    setupFloor(floor);
+    gameState = 'PLAYING';
+    screenGameOver.classList.add('hidden');
+    screenStart.classList.add('hidden');
+  }
+
+  // メインループ
+  let lastTime = performance.now();
+  function gameLoop(now) {
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+
+    // 画面クリア
+    ctx.fillStyle = '#101322';
+    ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+
+    // グリッド背景の描画
+    ctx.strokeStyle = '#181d33';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < V_WIDTH; x += 30) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, V_HEIGHT); ctx.stroke();
+    }
+    for (let y = 44; y < V_HEIGHT; y += 30) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(V_WIDTH, y); ctx.stroke();
+    }
+
+    if (gameState === 'PLAYING') {
+      // パドル追従（スムーズ補間）
+      player.x += (player.targetX - player.x) * 0.25;
+      player.x = Math.max(0, Math.min(V_WIDTH - player.width, player.x));
+
+      // レーザー射撃
+      if (player.laserLevel > 0) {
+        player.laserTimer += dt;
+        if (player.laserTimer >= Math.max(0.4, 1.2 - player.laserLevel * 0.2)) {
+          player.laserTimer = 0;
+          lasers.push(new Laser(player.x + 8, player.y));
+          lasers.push(new Laser(player.x + player.width - 8, player.y));
+        }
+      }
+
+      // レーザー更新
+      for (let i = lasers.length - 1; i >= 0; i--) {
+        const l = lasers[i];
+        if (!l.update()) {
+          lasers.splice(i, 1);
+          continue;
+        }
+        l.draw();
+
+        // レーザーとブロックの判定
+        for (let j = 0; j < bricks.length; j++) {
+          const b = bricks[j];
+          if (l.x >= b.x && l.x <= b.x + b.w && l.y >= b.y && l.y <= b.y + b.h) {
+            hitBrick(b, l.dmg, l.x, l.y);
+            lasers.splice(i, 1);
+            break;
+          }
+        }
+      }
+
+      // ボール更新＆衝突
+      for (let i = balls.length - 1; i >= 0; i--) {
+        const b = balls[i];
+        const alive = b.update();
+        if (!alive) {
+          balls.splice(i, 1);
+          continue;
+        }
+
+        // ブロック衝突
+        if (!b.stuck) {
+          for (let j = bricks.length - 1; j >= 0; j--) {
+            const br = bricks[j];
+            // 簡易AABB & 球衝突
+            const closestX = Math.max(br.x, Math.min(b.x, br.x + br.w));
+            const closestY = Math.max(br.y, Math.min(b.y, br.y + br.h));
+            const distX = b.x - closestX;
+            const distY = b.y - closestY;
+
+            if (distX * distX + distY * distY < b.radius * b.radius) {
+              const totalDmg = player.damage + b.bonusDamage;
+              hitBrick(br, totalDmg, closestX, closestY);
+
+              // 貫通判定
+              const pierced = (Math.random() < player.pierceRate);
+              if (!pierced) {
+                // 反射処理
+                const overlapX = Math.abs(distX);
+                const overlapY = Math.abs(distY);
+                if (overlapX > overlapY) {
+                  b.vx *= -1;
+                } else {
+                  b.vy *= -1;
+                }
+              }
+              break; // 1フレームに複数同時接触による急激な挙動変化を防止
+            }
+          }
+        }
+
+        b.draw();
+      }
+
+      // 死亡したブロック除去
+      bricks = bricks.filter(b => b.hp > 0);
+
+      // ボール全滅判定
+      if (balls.length === 0) {
+        player.hp--;
+        updateHud();
+        if (player.hp <= 0) {
+          checkGameOver();
+        } else {
+          // 残機があればボール再装填
+          balls.push(new Ball());
+        }
+      }
+
+      // フロアクリア判定
+      if (bricks.length === 0) {
+        showRewardScreen();
+      }
+    }
+
+    // ブロック描画
+    bricks.forEach(b => b.draw());
+
+    // パーティクル更新・描画
+    for (let i = particles.length - 1; i >= 0; i--) {
+      if (particles[i].update()) {
+        particles[i].draw();
+      } else {
+        particles.splice(i, 1);
+      }
+    }
+
+    // パドル描画
+    ctx.save();
+    ctx.fillStyle = '#00ffcc';
+    ctx.shadowColor = '#00ffcc';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.roundRect(player.x, player.y, player.width, player.height, 6);
+    ctx.fill();
+
+    // パドル内部コアデザイン
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(player.x + player.width * 0.2, player.y + 3, player.width * 0.6, player.height - 6);
+    ctx.restore();
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  // ボタンイベント
+  document.getElementById('btn-start').onclick = () => resetGame();
+  document.getElementById('btn-restart').onclick = () => resetGame();
+
+  requestAnimationFrame(gameLoop);
+})();
+</script>
+</body>
+</html>
