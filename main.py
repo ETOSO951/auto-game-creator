@@ -46,10 +46,10 @@ def call_gemini_api(prompt_text, key):
     genai.configure(api_key=key)
     model = genai.GenerativeModel("gemini-flash-latest")
     
-    # タイムアウトを明示的に設定（ゲームコード生成なので少し長めの60秒に設定）
+    # タイムアウトを明示的に設定（ゲームコード生成なので少し長めの300秒に設定）
     response = model.generate_content(
         prompt_text,
-        request_options={"timeout": 60}
+        request_options={"timeout": 300}
     )
     return response.text
 
