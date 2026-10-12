@@ -38,7 +38,7 @@ print(f"Issue #{issue_number} を処理します: {issue_title}")
 try:
     genai.configure(api_key=api_key)
     # あなたの環境で動作確認が取れた最新のモデル名を指定します
-    model = genai.GenerativeModel("gemini-pro-latest") 
+    model = genai.GenerativeModel("gemini-flash-latest") 
     response = model.generate_content(prompt)
     html_content = response.text
 except Exception as e:
