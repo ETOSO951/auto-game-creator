@@ -37,7 +37,7 @@ print(f"Issue #{issue_number} を処理します: {issue_title}")
 # 2. Gemini APIを呼び出してコードを生成する
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash") 
+    model = genai.GenerativeModel("gemini-1.5-pro-latest")
     response = model.generate_content(prompt)
     html_content = response.text
 except Exception as e:
