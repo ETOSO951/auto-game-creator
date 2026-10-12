@@ -36,8 +36,8 @@ issue_number = event_data['issue']['number']
 
 # --- 2. API呼び出し関数（リトライ強化・指数バックオフ） ---
 def call_gemini_api(prompt_text, max_retries=5):
-    # 最新のモデルリスト
-    models = ["gemini-3.5-flash", "gemini-2.5-pro", "gemini-2.5-flash"]
+    # 最新の推奨モデルリストに更新 (2.5系は廃止されたため最新の3.8と3.1に変更)
+    models = ["gemini-3.8-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash"]
     
     for model_name in models:
         print(f"🤖 [{model_name}] と通信中...")
@@ -166,9 +166,9 @@ for i in range(1, QUALITY_UP_ITERATIONS + 1):
         print(f"\n【ループ {i}/{QUALITY_UP_ITERATIONS}】改善案の作成中...")
         prompt_idea = f"現在のコード:\n```html\n{html_content}\n```\nこのゲームをさらに面白く、リッチにする追加アイデアを3つ文章で挙げてください。コードは書かないでください。"
         
-        # アイデア出しはHTML抽出不要なため直接APIを叩く（簡略化）
+        # アイデア出しのモデルも最新の3.8-flashに更新
         ideas_response = client.models.generate_content(
-            model="gemini-3.5-flash",
+            model="gemini-3.8-flash",
             contents=prompt_idea,
             config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION)
         )
