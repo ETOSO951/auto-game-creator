@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ローグライクブロック崩し</title>
+<title>ステージクリア型2Dアクションゲーム</title>
 <style>
   * {
     box-sizing: border-box;
@@ -13,7 +13,7 @@
     -webkit-user-select: none;
   }
   body {
-    background: #0f111a;
+    background: #111;
     color: #fff;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     overflow: hidden;
@@ -29,110 +29,67 @@
     height: 100vh;
     max-width: 480px;
     max-height: 850px;
-    background: #16192b;
-    box-shadow: 0 0 20px rgba(0,255,200,0.2);
+    background: #1a1e29;
+    box-shadow: 0 0 25px rgba(0,0,0,0.8);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   canvas {
     display: block;
     width: 100%;
     height: 100%;
+    image-rendering: pixelated;
   }
   /* UI オーバーレイ */
   .overlay {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(10, 12, 24, 0.88);
+    background: rgba(10, 14, 25, 0.9);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 20px;
-    z-index: 10;
+    padding: 24px;
+    z-index: 20;
   }
   .hidden { display: none !important; }
 
   h1 {
     font-size: 2.2rem;
-    color: #00ffcc;
-    text-shadow: 0 0 10px rgba(0,255,204,0.6);
-    margin-bottom: 20px;
+    color: #ffd000;
+    text-shadow: 0 0 12px rgba(255,208,0,0.6);
+    margin-bottom: 16px;
     text-align: center;
   }
   h2 {
-    font-size: 1.5rem;
-    color: #ff0077;
-    margin-bottom: 15px;
-    text-shadow: 0 0 8px rgba(255,0,119,0.5);
+    font-size: 1.8rem;
+    color: #00ffcc;
+    margin-bottom: 12px;
+    text-shadow: 0 0 8px rgba(0,255,204,0.5);
   }
   p {
-    color: #ccc;
+    color: #ddd;
     font-size: 0.95rem;
     text-align: center;
-    margin-bottom: 20px;
-    line-height: 1.4;
+    margin-bottom: 24px;
+    line-height: 1.6;
   }
   .btn {
-    background: linear-gradient(45deg, #00ffcc, #0099ff);
+    background: linear-gradient(135deg, #ffcc00, #ff8800);
     border: none;
-    color: #050b14;
-    font-weight: bold;
+    color: #111;
+    font-weight: 800;
     font-size: 1.1rem;
-    padding: 14px 28px;
+    padding: 14px 32px;
     border-radius: 30px;
     cursor: pointer;
-    box-shadow: 0 0 15px rgba(0,255,204,0.4);
+    box-shadow: 0 4px 15px rgba(255,160,0,0.4);
     transition: transform 0.1s;
+    margin: 6px;
   }
   .btn:active {
     transform: scale(0.95);
-  }
-
-  /* アップグレードカード */
-  .card-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-    max-width: 320px;
-  }
-  .card {
-    background: #202538;
-    border: 2px solid #3d4668;
-    border-radius: 12px;
-    padding: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-  }
-  .card:active {
-    border-color: #00ffcc;
-    background: #2b324c;
-    transform: scale(0.98);
-  }
-  .card-title {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #00ffcc;
-    display: flex;
-    justify-content: space-between;
-  }
-  .card-rarity {
-    font-size: 0.75rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    text-transform: uppercase;
-  }
-  .rarity-common { background: #555; color: #eee; }
-  .rarity-rare { background: #0088ff; color: #fff; }
-  .rarity-epic { background: #aa00ff; color: #fff; }
-  .rarity-legend { background: #ffaa00; color: #000; font-weight: bold; }
-  .card-desc {
-    font-size: 0.85rem;
-    color: #aaa;
-    margin-top: 6px;
   }
 
   /* 上部ステータスバー */
@@ -141,36 +98,72 @@
     top: 0;
     left: 0;
     width: 100%;
-    height: 44px;
+    height: 48px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 16px;
-    background: rgba(15, 17, 26, 0.75);
-    border-bottom: 1px solid #23283e;
-    font-size: 0.85rem;
+    background: rgba(16, 20, 32, 0.85);
+    border-bottom: 2px solid #2d3748;
+    font-size: 0.95rem;
     font-weight: bold;
     pointer-events: none;
-    z-index: 5;
+    z-index: 10;
   }
   .hud-item {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
   }
-  .hp-bar-bg {
-    width: 70px;
-    height: 10px;
-    background: #333;
-    border-radius: 5px;
-    overflow: hidden;
-    border: 1px solid #555;
+  .heart {
+    color: #ff3366;
+    font-size: 1.2rem;
   }
-  .hp-bar-fill {
-    height: 100%;
-    background: #ff3366;
+
+  /* スマホ用タッチコントローラー */
+  #touch-controls {
+    position: absolute;
+    bottom: 12px;
+    left: 0;
     width: 100%;
-    transition: width 0.2s;
+    height: 120px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .d-pad {
+    display: flex;
+    gap: 14px;
+    pointer-events: auto;
+    align-items: center;
+  }
+  .action-pad {
+    display: flex;
+    gap: 14px;
+    pointer-events: auto;
+    align-items: center;
+  }
+  .ctrl-btn {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fff;
+    touch-action: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .ctrl-btn:active, .ctrl-btn.active {
+    background: rgba(255, 208, 0, 0.5);
+    border-color: #ffd000;
+    transform: scale(0.92);
   }
 </style>
 </head>
@@ -180,41 +173,64 @@
   <!-- HUD -->
   <div id="hud">
     <div class="hud-item">
-      <span>FLOOR:</span> <span id="hud-floor" style="color:#00ffcc">1</span>
+      <span>STAGE:</span> <span id="hud-stage" style="color:#00ffcc">1</span>
+    </div>
+    <div class="hud-item" id="hud-hearts">
+      <span class="heart">♥</span><span class="heart">♥</span><span class="heart">♥</span>
     </div>
     <div class="hud-item">
-      <span>HP</span>
-      <div class="hp-bar-bg">
-        <div id="hud-hp-fill" class="hp-bar-fill"></div>
-      </div>
-      <span id="hud-hp-txt">3/3</span>
-    </div>
-    <div class="hud-item">
-      <span>SCORE:</span> <span id="hud-score" style="color:#ffcc00">0</span>
+      <span>COIN:</span> <span id="hud-coins" style="color:#ffd000">0</span>
     </div>
   </div>
 
   <canvas id="gameCanvas"></canvas>
 
+  <!-- タッチコントローラー -->
+  <div id="touch-controls">
+    <div class="d-pad">
+      <div class="ctrl-btn" id="btn-left">◀</div>
+      <div class="ctrl-btn" id="btn-right">▶</div>
+    </div>
+    <div class="action-pad">
+      <div class="ctrl-btn" id="btn-attack" style="font-size: 1.1rem; background: rgba(255,80,80,0.3); border-color:#ff5050;">⚔</div>
+      <div class="ctrl-btn" id="btn-jump" style="font-size: 1.1rem; background: rgba(0,255,200,0.3); border-color:#00ffcc;">JUMP</div>
+    </div>
+  </div>
+
   <!-- スタート画面 -->
   <div id="screen-start" class="overlay">
-    <h1>ROGUE<br>BRICK</h1>
-    <p>画面をスワイプしてパドルを操作<br>ブロックを全滅させてフロアを進め！<br>フロア毎にアーティファクトを獲得。</p>
+    <h1>STAGE ACTION 2D</h1>
+    <p>
+      【操作方法】<br>
+      ◀ / ▶: 左右移動<br>
+      JUMP: ジャンプ<br>
+      ⚔: 剣攻撃 (敵を踏んでも倒せます)<br>
+      <br>
+      敵やトゲを避けてゴールポールを目指そう！<br>
+      (キーボード: A/D または 矢印キー, W/Spaceでジャンプ, J/Zで攻撃)
+    </p>
     <button class="btn" id="btn-start">GAME START</button>
   </div>
 
-  <!-- レベルアップ(カード選択)画面 -->
-  <div id="screen-reward" class="overlay hidden">
-    <h2>FLOOR CLEAR!</h2>
-    <p>アーティファクトを1つ選択して強化:</p>
-    <div class="card-container" id="reward-cards"></div>
+  <!-- ステージクリア画面 -->
+  <div id="screen-clear" class="overlay hidden">
+    <h2>STAGE CLEAR!</h2>
+    <p id="clear-msg">ステージ踏破完了！</p>
+    <button class="btn" id="btn-next">NEXT STAGE</button>
+  </div>
+
+  <!-- 全クリ画面 -->
+  <div id="screen-allclear" class="overlay hidden">
+    <h1 style="color:#00ffcc;">ALL STAGES CLEARED!</h1>
+    <p id="allclear-msg">おめでとうございます！<br>すべてのステージを制覇しました！</p>
+    <button class="btn" id="btn-title">TITLE TO PLAY AGAIN</button>
   </div>
 
   <!-- ゲームオーバー画面 -->
   <div id="screen-gameover" class="overlay hidden">
     <h2 style="color:#ff3366">GAME OVER</h2>
-    <p id="gameover-stats">FLOOR: 1<br>SCORE: 0</p>
-    <button class="btn" id="btn-restart">RETRY</button>
+    <p id="gameover-msg">トラップまたは敵に倒されました…</p>
+    <button class="btn" id="btn-retry">RETRY STAGE</button>
   </div>
 </div>
 
@@ -223,240 +239,400 @@
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
 
-  // 内部解像度（縦画面アスペクト比）
+  // 解像度（横幅360, 縦幅640のスマホ縦画面）
   const V_WIDTH = 360;
   const V_HEIGHT = 640;
+  canvas.width = V_WIDTH;
+  canvas.height = V_HEIGHT;
 
-  // UI要素
-  const hudFloor = document.getElementById('hud-floor');
-  const hudHpFill = document.getElementById('hud-hp-fill');
-  const hudHpTxt = document.getElementById('hud-hp-txt');
-  const hudScore = document.getElementById('hud-score');
+  const hudStage = document.getElementById('hud-stage');
+  const hudHearts = document.getElementById('hud-hearts');
+  const hudCoins = document.getElementById('hud-coins');
   const screenStart = document.getElementById('screen-start');
-  const screenReward = document.getElementById('screen-reward');
+  const screenClear = document.getElementById('screen-clear');
+  const screenAllClear = document.getElementById('screen-allclear');
   const screenGameOver = document.getElementById('screen-gameover');
-  const rewardCards = document.getElementById('reward-cards');
-  const gameoverStats = document.getElementById('gameover-stats');
 
-  // ゲーム状態
-  let gameState = 'START'; // START, PLAYING, REWARD, GAMEOVER
-  let floor = 1;
-  let score = 0;
+  let gameState = 'START'; // START, PLAYING, CLEAR, ALLCLEAR, GAMEOVER
+  let currentStageIndex = 0;
+  let totalCoins = 0;
 
-  // プレイヤー・パドル
-  const player = {
-    x: V_WIDTH / 2 - 40,
-    y: V_HEIGHT - 55,
-    width: 80,
-    height: 12,
-    baseWidth: 80,
-    maxHp: 3,
-    hp: 3,
-    speed: 0,
-    targetX: V_WIDTH / 2 - 40,
-    laserTimer: 0,
-    // パッシブ効果
-    damage: 1,
-    pierceRate: 0,       // 貫通確率
-    explosive: false,    // 爆発属性
-    laserLevel: 0,      // レーザー射撃
-    multiBallOnFloor: 1, // 初期ボール数
-    bouncePower: 0,      // バウンド毎の追加攻撃力
-    vampireRate: 0,      // 破壊時回復確率
+  // 入力状態
+  const input = {
+    left: false,
+    right: false,
+    jump: false,
+    attack: false
   };
 
-  // オブジェクト配列
-  let balls = [];
-  let bricks = [];
-  let particles = [];
-  let lasers = [];
+  // タッチ入力設定
+  function bindTouchBtn(elementId, key) {
+    const el = document.getElementById(elementId);
+    const startHandler = (e) => {
+      e.preventDefault();
+      input[key] = true;
+      el.classList.add('active');
+    };
+    const endHandler = (e) => {
+      e.preventDefault();
+      input[key] = false;
+      el.classList.remove('active');
+    };
+    el.addEventListener('touchstart', startHandler, { passive: false });
+    el.addEventListener('touchend', endHandler, { passive: false });
+    el.addEventListener('touchcancel', endHandler, { passive: false });
+    el.addEventListener('mousedown', startHandler);
+    el.addEventListener('mouseup', endHandler);
+    el.addEventListener('mouseleave', endHandler);
+  }
 
-  // カードプール定義
-  const CARD_POOL = [
-    { id: 'multiball', name: 'マルチボール', desc: '発射するボールの基本数 +1', rarity: 'rare', apply: () => player.multiBallOnFloor++ },
-    { id: 'power', name: 'ヘビーボール', desc: 'ボールの基本攻撃力 +1', rarity: 'common', apply: () => player.damage++ },
-    { id: 'wide', name: 'ワイドパドル', desc: 'パドルの横幅が 20% 拡大', rarity: 'common', apply: () => { player.baseWidth = Math.min(150, player.baseWidth * 1.2); player.width = player.baseWidth; } },
-    { id: 'laser', name: 'パルスレーザー', desc: '定期的にパドルから貫通レーザーを発射', rarity: 'rare', apply: () => player.laserLevel++ },
-    { id: 'bomb', name: '榴弾バースト', desc: 'ボール衝突時に周囲を巻き込む小爆発が発生', rarity: 'epic', apply: () => player.explosive = true },
-    { id: 'pierce', name: '貫通ドリル', desc: 'ボールが30%の確率でブロックを貫通', rarity: 'rare', apply: () => player.pierceRate = Math.min(0.8, player.pierceRate + 0.3) },
-    { id: 'bounce_pow', name: 'チャージバウンド', desc: '壁・パドルにバウンドする毎にダメージ+0.2蓄積', rarity: 'epic', apply: () => player.bouncePower += 0.2 },
-    { id: 'repair', name: '緊急リペア', desc: 'パドルHPが全回復し、最大HP +1', rarity: 'common', apply: () => { player.maxHp++; player.hp = player.maxHp; } },
-    { id: 'vampire', name: 'ナノドレイン', desc: 'ブロック破壊時 5%の確率でHPを1回復', rarity: 'legend', apply: () => player.vampireRate += 0.05 },
-    { id: 'heal', name: 'ファーストエイド', desc: 'HPを最大値まで即座に回復', rarity: 'common', apply: () => { player.hp = player.maxHp; } }
+  bindTouchBtn('btn-left', 'left');
+  bindTouchBtn('btn-right', 'right');
+  bindTouchBtn('btn-jump', 'jump');
+  bindTouchBtn('btn-attack', 'attack');
+
+  // キーボード入力
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') input.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = true;
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') input.jump = true;
+    if (e.key === 'z' || e.key === 'Z' || e.key === 'j' || e.key === 'J') input.attack = true;
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') input.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = false;
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') input.jump = false;
+    if (e.key === 'z' || e.key === 'Z' || e.key === 'j' || e.key === 'J') input.attack = false;
+  });
+
+  // カメラ
+  const camera = { x: 0, y: 0 };
+
+  // ステージデータ定義
+  // 1マス = 32px
+  // T: 地形(Tile), S: トゲ(Spike), C: コイン(Coin), E: 敵(Slime), F: 敵(Flyer), G: ゴール(Goal), P: プレイヤー初期
+  const STAGES = [
+    // ステージ 1: 基本操作・チュートリアル
+    {
+      name: "1-1 緑の平原",
+      map: [
+        "..................................................",
+        "..................................................",
+        "..................................................",
+        "...............................................G..",
+        "......................CCC.....................TT..",
+        "....................TTTTTTT...................TT..",
+        ".............C.C..............C.C.............TT..",
+        "...........TTTTTT............TTTTT............TT..",
+        "...P...................E..............E.......TT..",
+        "TTTTTTT...TTTTTTTTTT...TTTTTTTTTTTTTTTTTTTTTTTTT..",
+        "TTTTTTT...TTTTTTTTTT...TTTTTTTTTTTTTTTTTTTTTTTTT..",
+        "TTTTTTTSSSSTTTTTTTTTSSSTTTTTTTTTTTTTTTTTTTTTTTTT..",
+      ]
+    },
+    // ステージ 2: 空中足場とトゲ
+    {
+      name: "1-2 浮島のアスレチック",
+      map: [
+        "........................................................",
+        "........................................................",
+        ".....................................................G..",
+        "....................................................TT..",
+        "..........................C..C...C..................TT..",
+        "...................TTT...TTTTTTTTTT.................TT..",
+        "............C.C......................TTT............TT..",
+        "..........TTTTTT........E..................E........TT..",
+        "...P...............TTTTTTTT..............TTTTTT.....TT..",
+        "TTTTTT..............................................TT..",
+        "TTTTTTSSSTTTTTTTSSSSSSSSSSSSSTTTTTTTSSSSSSSSSSSSSSSSSTTT",
+        "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+      ]
+    },
+    // ステージ 3: 難関ステージ
+    {
+      name: "1-3 危険な要塞",
+      map: [
+        "..................................................................",
+        "..................................................................",
+        "...............................................................G..",
+        "..............................................................TT..",
+        "........................C...C.......C.........................TT..",
+        ".............C.C......TTTT.TTTT...TTTTT........TTTT...........TT..",
+        "...........TTTTTT.............................................TT..",
+        "...................E..........E...........E.........E.........TT..",
+        "...P.............TTTTTT.....TTTTTT......TTTTT....TTTTTT.......TT..",
+        "TTTTT...TTT...................................................TT..",
+        "TTTTTSSSTTTSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSTTT.",
+        "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.",
+      ]
+    }
   ];
 
-  // リサイズ制御
-  function resize() {
-    const cont = document.getElementById('game-container');
-    canvas.width = V_WIDTH;
-    canvas.height = V_HEIGHT;
-  }
-  window.addEventListener('resize', resize);
-  resize();
+  const TILE_SIZE = 32;
 
-  // 入力処理（タッチ＆マウス）
-  let isDragging = false;
-  function getCanvasPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {
-      x: (clientX - rect.left) * (V_WIDTH / rect.width),
-      y: (clientY - rect.top) * (V_HEIGHT / rect.height)
-    };
-  }
+  // ゲーム内オブジェクト
+  let platforms = [];
+  let spikes = [];
+  let coins = [];
+  let enemies = [];
+  let goal = { x: 0, y: 0, w: 24, h: 48 };
+  let particles = [];
 
-  function handlePointerDown(e) {
-    if (gameState !== 'PLAYING') return;
-    isDragging = true;
-    const pos = getCanvasPos(e);
-    player.targetX = pos.x - player.width / 2;
+  // プレイヤークラス
+  const player = {
+    x: 0,
+    y: 0,
+    w: 24,
+    h: 30,
+    vx: 0,
+    vy: 0,
+    speed: 3.5,
+    jumpPower: -8.8,
+    isGrounded: false,
+    facing: 1, // 1: 右, -1: 左
+    hp: 3,
+    maxHp: 3,
+    invincibleTimer: 0,
+    isAttacking: false,
+    attackTimer: 0,
+    attackBox: { x: 0, y: 0, w: 28, h: 26 },
 
-    // ボール待機中なら発射
-    balls.forEach(b => {
-      if (b.stuck) b.launch();
-    });
-  }
-
-  function handlePointerMove(e) {
-    if (!isDragging || gameState !== 'PLAYING') return;
-    const pos = getCanvasPos(e);
-    player.targetX = pos.x - player.width / 2;
-  }
-
-  function handlePointerUp() {
-    isDragging = false;
-  }
-
-  window.addEventListener('mousedown', handlePointerDown);
-  window.addEventListener('mousemove', handlePointerMove);
-  window.addEventListener('mouseup', handlePointerUp);
-  window.addEventListener('touchstart', handlePointerDown, { passive: false });
-  window.addEventListener('touchmove', (e) => { e.preventDefault(); handlePointerMove(e); }, { passive: false });
-  window.addEventListener('touchend', handlePointerUp);
-
-  // ボールクラス
-  class Ball {
-    constructor(x, y) {
-      this.radius = 5.5;
-      this.reset(x, y);
-    }
     reset(x, y) {
-      this.x = x ?? (player.x + player.width / 2);
-      this.y = y ?? (player.y - this.radius - 2);
-      this.vx = 0;
-      this.vy = 0;
-      this.speed = 5.0;
-      this.stuck = true;
-      this.bonusDamage = 0;
-    }
-    launch() {
-      if (!this.stuck) return;
-      this.stuck = false;
-      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.7; // ややランダムな上向き
-      this.vx = Math.cos(angle) * this.speed;
-      this.vy = Math.sin(angle) * this.speed;
-    }
-    update() {
-      if (this.stuck) {
-        this.x = player.x + player.width / 2;
-        this.y = player.y - this.radius - 2;
-        return;
-      }
-
-      this.x += this.vx;
-      this.y += this.vy;
-
-      // 左右壁
-      if (this.x - this.radius < 0) {
-        this.x = this.radius;
-        this.vx *= -1;
-        this.onBounce();
-      } else if (this.x + this.radius > V_WIDTH) {
-        this.x = V_WIDTH - this.radius;
-        this.vx *= -1;
-        this.onBounce();
-      }
-
-      // 天井
-      if (this.y - this.radius < 44) { // HUD分オフセット
-        this.y = 44 + this.radius;
-        this.vy *= -1;
-        this.onBounce();
-      }
-
-      // パドル衝突
-      if (
-        this.y + this.radius >= player.y &&
-        this.y - this.radius <= player.y + player.height &&
-        this.x >= player.x &&
-        this.x <= player.x + player.width &&
-        this.vy > 0
-      ) {
-        this.y = player.y - this.radius;
-        // 打点による角度変化
-        const hitOffset = (this.x - (player.x + player.width / 2)) / (player.width / 2);
-        const maxAngle = Math.PI * 0.42; // 最大75度
-        const angle = hitOffset * maxAngle - Math.PI / 2;
-        
-        const speed = Math.min(8.5, this.speed + 0.05); // 徐々に加速
-        this.vx = Math.cos(angle) * speed;
-        this.vy = Math.sin(angle) * speed;
-        this.onBounce();
-        spawnParticles(this.x, this.y, '#00ffcc', 6);
-      }
-
-      // 落下判定
-      if (this.y - this.radius > V_HEIGHT) {
-        return false; // ロスト
-      }
-      return true;
-    }
-    onBounce() {
-      if (player.bouncePower > 0) {
-        this.bonusDamage += player.bouncePower;
-      }
-    }
-    draw() {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-      ctx.fillStyle = player.explosive ? '#ff9900' : '#00ffff';
-      ctx.shadowColor = ctx.fillStyle;
-      ctx.shadowBlur = 8;
-      ctx.fill();
-      ctx.restore();
-    }
-  }
-
-  // ブロッククラス
-  class Brick {
-    constructor(x, y, w, h, hp, isBoss = false) {
       this.x = x;
       this.y = y;
-      this.w = w;
-      this.h = h;
-      this.maxHp = hp;
-      this.hp = hp;
-      this.isBoss = isBoss;
-    }
+      this.vx = 0;
+      this.vy = 0;
+      this.isGrounded = false;
+      this.facing = 1;
+      this.hp = this.maxHp;
+      this.invincibleTimer = 0;
+      this.isAttacking = false;
+      this.attackTimer = 0;
+    },
+
+    takeDamage(amount = 1) {
+      if (this.invincibleTimer > 0) return;
+      this.hp -= amount;
+      this.invincibleTimer = 60; // 1秒無敵
+      this.vy = -5;
+      this.vx = -this.facing * 3;
+      spawnParticles(this.x + this.w/2, this.y + this.h/2, '#ff3366', 10);
+      updateHUD();
+      if (this.hp <= 0) {
+        gameOver("体力がなくなりました");
+      }
+    },
+
+    update() {
+      // 左右移動
+      if (input.left) {
+        this.vx = -this.speed;
+        this.facing = -1;
+
+      } else if (input.right) {
+        this.vx = this.speed;
+        this.facing = 1;
+      } else {
+        this.vx *= 0.7;
+        if (Math.abs(this.vx) < 0.1) this.vx = 0;
+      }
+
+      // ジャンプ
+      if (input.jump && this.isGrounded) {
+        this.vy = this.jumpPower;
+        this.isGrounded = false;
+        spawnParticles(this.x + this.w/2, this.y + this.h, '#fff', 5);
+      }
+
+      // 攻撃処理
+      if (input.attack && !this.isAttacking && this.attackTimer === 0) {
+        this.isAttacking = true;
+        this.attackTimer = 18; // フレーム数
+        spawnParticles(this.x + (this.facing === 1 ? this.w + 10 : -10), this.y + this.h / 2, '#ffd000', 6);
+      }
+
+      if (this.attackTimer > 0) {
+        this.attackTimer--;
+        if (this.attackTimer < 8) {
+          this.isAttacking = false;
+        }
+      }
+
+      // 重力
+      this.vy += 0.38;
+      if (this.vy > 10) this.vy = 10;
+
+      // X方向の移動と衝突
+      this.x += this.vx;
+      this.checkCollisionX();
+
+      // Y方向の移動と衝突
+      this.y += this.vy;
+      this.isGrounded = false;
+      this.checkCollisionY();
+
+      // 画面外落下死
+      if (this.y > V_HEIGHT + 200) {
+        this.takeDamage(3);
+      }
+
+      // 無敵時間カウント
+      if (this.invincibleTimer > 0) {
+        this.invincibleTimer--;
+      }
+
+      // 攻撃判定ボックス更新
+      this.attackBox.x = this.facing === 1 ? this.x + this.w : this.x - this.attackBox.w;
+      this.attackBox.y = this.y + 2;
+    },
+
+    checkCollisionX() {
+      platforms.forEach(p => {
+        if (checkRectOverlap(this.x, this.y, this.w, this.h, p.x, p.y, p.w, p.h)) {
+          if (this.vx > 0) {
+            this.x = p.x - this.w;
+          } else if (this.vx < 0) {
+            this.x = p.x + p.w;
+          }
+          this.vx = 0;
+        }
+      });
+    },
+
+    checkCollisionY() {
+      platforms.forEach(p => {
+        if (checkRectOverlap(this.x, this.y, this.w, this.h, p.x, p.y, p.w, p.h)) {
+          if (this.vy > 0) {
+            this.y = p.y - this.h;
+            this.vy = 0;
+            this.isGrounded = true;
+          } else if (this.vy < 0) {
+            this.y = p.y + p.h;
+            this.vy = 0;
+          }
+        }
+      });
+    },
+
     draw() {
-      const ratio = Math.max(0, this.hp / this.maxHp);
-      let col = this.isBoss ? `hsl(0, 100%, ${30 + ratio * 30}%)` : `hsl(${180 + (1 - ratio) * 120}, 80%, 45%)`;
+      if (this.invincibleTimer > 0 && Math.floor(this.invincibleTimer / 4) % 2 === 0) {
+        return; // 点滅
+      }
+
+      const drawX = Math.round(this.x - camera.x);
+      const drawY = Math.round(this.y - camera.y);
 
       ctx.save();
-      ctx.fillStyle = col;
-      ctx.fillRect(this.x + 1, this.y + 1, this.w - 2, this.h - 2);
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(this.x + 1, this.y + 1, this.w - 2, this.h - 2);
+      // 胴体
+      ctx.fillStyle = '#00ffcc';
+      ctx.fillRect(drawX, drawY + 8, this.w, this.h - 8);
 
-      // HPテキスト
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(Math.ceil(this.hp), this.x + this.w / 2, this.y + this.h / 2);
+      // 頭部
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(drawX + 3, drawY, this.w - 6, 8);
+
+      // 目
+      ctx.fillStyle = '#111';
+      const eyeX = this.facing === 1 ? drawX + this.w - 7 : drawX + 4;
+      ctx.fillRect(eyeX, drawY + 3, 3, 3);
+
+      // 剣攻撃エフェクト
+      if (this.isAttacking) {
+        ctx.fillStyle = '#ffd000';
+        ctx.shadowColor = '#ffd000';
+        ctx.shadowBlur = 8;
+        const atkX = Math.round(this.attackBox.x - camera.x);
+        const atkY = Math.round(this.attackBox.y - camera.y);
+        ctx.fillRect(atkX, atkY, this.attackBox.w, this.attackBox.h);
+      }
+      ctx.restore();
+    }
+  };
+
+  // 矩形判定ヘルパー
+  function checkRectOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
+    return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+  }
+
+  // 敵クラス
+  class Enemy {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+      this.w = 26;
+      this.h = 24;
+      this.vx = -1.2;
+      this.vy = 0;
+      this.alive = true;
+      this.patrolRange = 90;
+      this.startX = x;
+    }
+
+    update() {
+      if (!this.alive) return;
+
+      this.x += this.vx;
+      if (Math.abs(this.x - this.startX) > this.patrolRange) {
+        this.vx *= -1;
+      }
+
+      // 地形ブロック衝突による反転
+      platforms.forEach(p => {
+        if (checkRectOverlap(this.x, this.y, this.w, this.h, p.x, p.y, p.w, p.h)) {
+          this.vx *= -1;
+          this.x += this.vx * 2;
+        }
+      });
+
+      // プレイヤーの剣攻撃との判定
+      if (player.isAttacking) {
+        if (checkRectOverlap(this.x, this.y, this.w, this.h, player.attackBox.x, player.attackBox.y, player.attackBox.w, player.attackBox.h)) {
+          this.defeat();
+          return;
+        }
+      }
+
+      // プレイヤーとの接触判定
+      if (checkRectOverlap(this.x, this.y, this.w, this.h, player.x, player.y, player.w, player.h)) {
+        // 踏みつけ判定 (プレイヤーが落下中かつ足元が敵の上半分)
+        if (player.vy > 0 && player.y + player.h - player.vy <= this.y + 12) {
+          player.vy = player.jumpPower * 0.75; // バウンド
+          this.defeat();
+        } else {
+          player.takeDamage(1);
+        }
+      }
+    }
+
+    defeat() {
+      this.alive = false;
+      spawnParticles(this.x + this.w/2, this.y + this.h/2, '#ff4444', 12);
+      totalCoins += 2;
+      updateHUD();
+    }
+
+    draw() {
+      if (!this.alive) return;
+      const drawX = Math.round(this.x - camera.x);
+      const drawY = Math.round(this.y - camera.y);
+
+      ctx.save();
+      ctx.fillStyle = '#ff3366';
+      // スライム風ドーム
+      ctx.beginPath();
+      ctx.arc(drawX + this.w / 2, drawY + this.h - 8, this.w / 2, Math.PI, 0);
+      ctx.lineTo(drawX + this.w, drawY + this.h);
+      ctx.lineTo(drawX, drawY + this.h);
+      ctx.fill();
+
+      // 目
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(drawX + 5, drawY + 8, 4, 4);
+      ctx.fillRect(drawX + 16, drawY + 8, 4, 4);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(drawX + 6, drawY + 9, 2, 2);
+      ctx.fillRect(drawX + 17, drawY + 9, 2, 2);
       ctx.restore();
     }
   }
@@ -467,13 +643,13 @@
       this.x = x;
       this.y = y;
       const angle = Math.random() * Math.PI * 2;
-      const spd = Math.random() * 3 + 1;
+      const spd = Math.random() * 4 + 1;
       this.vx = Math.cos(angle) * spd;
       this.vy = Math.sin(angle) * spd;
       this.life = 1.0;
-      this.decay = Math.random() * 0.04 + 0.02;
+      this.decay = Math.random() * 0.05 + 0.03;
       this.color = color;
-      this.size = Math.random() * 3 + 2;
+      this.size = Math.random() * 4 + 2;
     }
     update() {
       this.x += this.vx;
@@ -485,7 +661,7 @@
       ctx.save();
       ctx.globalAlpha = Math.max(0, this.life);
       ctx.fillStyle = this.color;
-      ctx.fillRect(this.x, this.y, this.size, this.size);
+      ctx.fillRect(this.x - camera.x, this.y - camera.y, this.size, this.size);
       ctx.restore();
     }
   }
@@ -496,177 +672,74 @@
     }
   }
 
-  // レーザー
-  class Laser {
-    constructor(x, y) {
-      this.x = x;
-      this.y = y;
-      this.w = 4;
-      this.h = 16;
-      this.vy = -10;
-      this.dmg = 1.5;
-    }
-    update() {
-      this.y += this.vy;
-      return this.y > 40;
-    }
-    draw() {
-      ctx.save();
-      ctx.fillStyle = '#ff00aa';
-      ctx.shadowColor = '#ff00aa';
-      ctx.shadowBlur = 6;
-      ctx.fillRect(this.x - this.w / 2, this.y, this.w, this.h);
-      ctx.restore();
-    }
-  }
+  // ステージロード
+  function loadStage(index) {
+    const stageData = STAGES[index];
+    platforms = [];
+    spikes = [];
+    coins = [];
+    enemies = [];
+    particles = [];
 
-  // ステージ生成
-  function setupFloor(lvl) {
-    bricks = [];
-    const isBoss = (lvl % 5 === 0);
-    const rows = isBoss ? 4 : Math.min(8, 4 + Math.floor(lvl / 2));
-    const cols = isBoss ? 5 : 7;
-    const padding = 4;
-    const totalW = V_WIDTH - 20;
-    const brickW = (totalW - (cols - 1) * padding) / cols;
-    const brickH = 20;
-    const startY = 80;
+    const map = stageData.map;
+    const startOffsetY = V_HEIGHT - (map.length * TILE_SIZE) - 60; // 画面下部寄り配置
 
-    const baseHp = lvl * 2 + Math.floor(lvl * lvl * 0.2);
+    for (let row = 0; row < map.length; row++) {
+      const line = map[row];
+      for (let col = 0; col < line.length; col++) {
+        const char = line[col];
+        const x = col * TILE_SIZE;
+        const y = startOffsetY + row * TILE_SIZE;
 
-    if (isBoss) {
-      // ボスステージ配置: 中央に超大型ボス
-      const bossW = totalW * 0.65;
-      const bossH = 45;
-      bricks.push(new Brick((V_WIDTH - bossW)/2, startY + 20, bossW, bossH, baseHp * 8, true));
-      // 周囲の取り巻き
-      for (let c = 0; c < 5; c++) {
-        const bx = 10 + c * (brickW + padding);
-        bricks.push(new Brick(bx, startY + 80, brickW, brickH, baseHp * 1.5));
-      }
-    } else {
-      // 通常配置
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          if (Math.random() < 0.15 && r > 0) continue; // ランダム欠落でバリエーション
-          const bx = 10 + c * (brickW + padding);
-          const by = startY + r * (brickH + padding);
-          const hp = Math.max(1, Math.round(baseHp * (1 - r * 0.1) * (0.8 + Math.random() * 0.5)));
-          bricks.push(new Brick(bx, by, brickW, brickH, hp));
+        if (char === 'T') {
+          platforms.push({ x, y, w: TILE_SIZE, h: TILE_SIZE });
+        } else if (char === 'S') {
+          spikes.push({ x, y: y + 12, w: TILE_SIZE, h: 20 });
+        } else if (char === 'C') {
+          coins.push({ x: x + 8, y: y + 8, w: 16, h: 16, taken: false });
+        } else if (char === 'E') {
+          enemies.push(new Enemy(x, y + 8));
+        } else if (char === 'G') {
+          goal = { x: x + 6, y: y - 24, w: 20, h: 56 };
+        } else if (char === 'P') {
+          player.reset(x, y);
         }
       }
     }
 
-    // ボール準備
-    balls = [];
-    for (let i = 0; i < player.multiBallOnFloor; i++) {
-      const b = new Ball();
-      balls.push(b);
+    camera.x = 0;
+    camera.y = 0;
+    updateHUD();
+  }
+
+  function updateHUD() {
+    hudStage.innerText = STAGES[currentStageIndex].name.split(' ')[0];
+    hudCoins.innerText = totalCoins;
+    hudHearts.innerHTML = '';
+    for (let i = 0; i < player.maxHp; i++) {
+      const span = document.createElement('span');
+      span.className = 'heart';
+      span.innerText = i < player.hp ? '♥' : '♡';
+      hudHearts.appendChild(span);
     }
-
-    updateHud();
   }
 
-  // ダメージ処理＆破壊時判定
-  function hitBrick(brick, dmg, hitX, hitY) {
-    brick.hp -= dmg;
-    score += Math.round(dmg * 10);
-    spawnParticles(hitX, hitY, '#ffdd55', 4);
-
-    if (player.explosive) {
-      // 周囲へ範囲ダメージ
-      const blastRadius = 35;
-      bricks.forEach(b => {
-        if (b !== brick) {
-          const dx = (b.x + b.w / 2) - hitX;
-          const dy = (b.y + b.h / 2) - hitY;
-          if (Math.hypot(dx, dy) < blastRadius) {
-            b.hp -= dmg * 0.5;
-            spawnParticles(b.x + b.w/2, b.y + b.h/2, '#ff6600', 3);
-          }
-        }
-      });
-    }
-
-    if (brick.hp <= 0) {
-      score += brick.isBoss ? 500 : 50;
-      spawnParticles(brick.x + brick.w / 2, brick.y + brick.h / 2, '#00ffcc', 14);
-
-      // 吸血パッシブ
-      if (player.vampireRate > 0 && Math.random() < player.vampireRate) {
-        if (player.hp < player.maxHp) {
-          player.hp = Math.min(player.maxHp, player.hp + 1);
-          updateHud();
-        }
-      }
-    }
-    updateHud();
-  }
-
-  function updateHud() {
-    hudFloor.innerText = floor;
-    hudHpTxt.innerText = `${player.hp}/${player.maxHp}`;
-    hudHpFill.style.width = `${Math.max(0, (player.hp / player.maxHp) * 100)}%`;
-    hudScore.innerText = score;
-  }
-
-  // 報酬カード生成と表示
-  function showRewardScreen() {
-    gameState = 'REWARD';
-    rewardCards.innerHTML = '';
-
-    // ランダムに3枚選出（重複なし）
-    const shuffled = [...CARD_POOL].sort(() => 0.5 - Math.random());
-    const choices = shuffled.slice(0, 3);
-
-    choices.forEach(cardData => {
-      const cardEl = document.createElement('div');
-      cardEl.className = 'card';
-      cardEl.innerHTML = `
-        <div class="card-title">
-          <span>${cardData.name}</span>
-          <span class="card-rarity rarity-${cardData.rarity}">${cardData.rarity}</span>
-        </div>
-        <div class="card-desc">${cardData.desc}</div>
-      `;
-      cardEl.onclick = () => {
-        cardData.apply();
-        screenReward.classList.add('hidden');
-        floor++;
-        setupFloor(floor);
-        gameState = 'PLAYING';
-      };
-      rewardCards.appendChild(cardEl);
-    });
-
-    screenReward.classList.remove('hidden');
-  }
-
-  function checkGameOver() {
+  function gameOver(msg) {
     gameState = 'GAMEOVER';
-    gameoverStats.innerHTML = `到達フロア: ${floor}<br>最終スコア: ${score}`;
+    document.getElementById('gameover-msg').innerText = msg;
     screenGameOver.classList.remove('hidden');
   }
 
-  // ゲームリセット
-  function resetGame() {
-    floor = 1;
-    score = 0;
-    player.maxHp = 3;
-    player.hp = 3;
-    player.damage = 1;
-    player.baseWidth = 80;
-    player.width = 80;
-    player.multiBallOnFloor = 1;
-    player.pierceRate = 0;
-    player.explosive = false;
-    player.laserLevel = 0;
-    player.bouncePower = 0;
-    player.vampireRate = 0;
-    setupFloor(floor);
-    gameState = 'PLAYING';
-    screenGameOver.classList.add('hidden');
-    screenStart.classList.add('hidden');
+  function stageClear() {
+    gameState = 'CLEAR';
+    if (currentStageIndex < STAGES.length - 1) {
+      document.getElementById('clear-msg').innerText = `${STAGES[currentStageIndex].name} をクリア！`;
+      screenClear.classList.remove('hidden');
+    } else {
+      gameState = 'ALLCLEAR';
+      document.getElementById('allclear-msg').innerHTML = `全ステージ踏破達成！<br>獲得コイン数: ${totalCoins}`;
+      screenAllClear.classList.remove('hidden');
+    }
   }
 
   // メインループ
@@ -675,121 +748,118 @@
     const dt = (now - lastTime) / 1000;
     lastTime = now;
 
-    // 画面クリア
-    ctx.fillStyle = '#101322';
+    // 背景描画
+    ctx.fillStyle = '#171b26';
     ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
 
-    // グリッド背景の描画
-    ctx.strokeStyle = '#181d33';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < V_WIDTH; x += 30) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, V_HEIGHT); ctx.stroke();
-    }
-    for (let y = 44; y < V_HEIGHT; y += 30) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(V_WIDTH, y); ctx.stroke();
+    // 背景装飾（パララックス風山並み）
+    ctx.fillStyle = '#22293a';
+    for (let i = 0; i < 6; i++) {
+      const bx = i * 140 - (camera.x * 0.2) % 140;
+      ctx.beginPath();
+      ctx.moveTo(bx - 30, V_HEIGHT);
+      ctx.lineTo(bx + 70, V_HEIGHT - 180);
+      ctx.lineTo(bx + 170, V_HEIGHT);
+      ctx.fill();
     }
 
     if (gameState === 'PLAYING') {
-      // パドル追従（スムーズ補間）
-      player.x += (player.targetX - player.x) * 0.25;
-      player.x = Math.max(0, Math.min(V_WIDTH - player.width, player.x));
+      player.update();
 
-      // レーザー射撃
-      if (player.laserLevel > 0) {
-        player.laserTimer += dt;
-        if (player.laserTimer >= Math.max(0.4, 1.2 - player.laserLevel * 0.2)) {
-          player.laserTimer = 0;
-          lasers.push(new Laser(player.x + 8, player.y));
-          lasers.push(new Laser(player.x + player.width - 8, player.y));
+      // カメラ追従 (横方向中央に補間)
+      const targetCamX = player.x - V_WIDTH / 2 + player.w / 2;
+      camera.x += (targetCamX - camera.x) * 0.1;
+      if (camera.x < 0) camera.x = 0;
+
+      // 敵更新
+      enemies.forEach(e => e.update());
+
+      // コイン収集判定
+      coins.forEach(c => {
+        if (!c.taken && checkRectOverlap(player.x, player.y, player.w, player.h, c.x, c.y, c.w, c.h)) {
+          c.taken = true;
+          totalCoins++;
+          spawnParticles(c.x + c.w/2, c.y + c.h/2, '#ffd000', 8);
+          updateHUD();
         }
-      }
+      });
 
-      // レーザー更新
-      for (let i = lasers.length - 1; i >= 0; i--) {
-        const l = lasers[i];
-        if (!l.update()) {
-          lasers.splice(i, 1);
-          continue;
+      // トゲ接触判定
+      spikes.forEach(s => {
+        if (checkRectOverlap(player.x, player.y, player.w, player.h, s.x, s.y, s.w, s.h)) {
+          player.takeDamage(1);
         }
-        l.draw();
+      });
 
-        // レーザーとブロックの判定
-        for (let j = 0; j < bricks.length; j++) {
-          const b = bricks[j];
-          if (l.x >= b.x && l.x <= b.x + b.w && l.y >= b.y && l.y <= b.y + b.h) {
-            hitBrick(b, l.dmg, l.x, l.y);
-            lasers.splice(i, 1);
-            break;
-          }
-        }
-      }
-
-      // ボール更新＆衝突
-      for (let i = balls.length - 1; i >= 0; i--) {
-        const b = balls[i];
-        const alive = b.update();
-        if (!alive) {
-          balls.splice(i, 1);
-          continue;
-        }
-
-        // ブロック衝突
-        if (!b.stuck) {
-          for (let j = bricks.length - 1; j >= 0; j--) {
-            const br = bricks[j];
-            // 簡易AABB & 球衝突
-            const closestX = Math.max(br.x, Math.min(b.x, br.x + br.w));
-            const closestY = Math.max(br.y, Math.min(b.y, br.y + br.h));
-            const distX = b.x - closestX;
-            const distY = b.y - closestY;
-
-            if (distX * distX + distY * distY < b.radius * b.radius) {
-              const totalDmg = player.damage + b.bonusDamage;
-              hitBrick(br, totalDmg, closestX, closestY);
-
-              // 貫通判定
-              const pierced = (Math.random() < player.pierceRate);
-              if (!pierced) {
-                // 反射処理
-                const overlapX = Math.abs(distX);
-                const overlapY = Math.abs(distY);
-                if (overlapX > overlapY) {
-                  b.vx *= -1;
-                } else {
-                  b.vy *= -1;
-                }
-              }
-              break; // 1フレームに複数同時接触による急激な挙動変化を防止
-            }
-          }
-        }
-
-        b.draw();
-      }
-
-      // 死亡したブロック除去
-      bricks = bricks.filter(b => b.hp > 0);
-
-      // ボール全滅判定
-      if (balls.length === 0) {
-        player.hp--;
-        updateHud();
-        if (player.hp <= 0) {
-          checkGameOver();
-        } else {
-          // 残機があればボール再装填
-          balls.push(new Ball());
-        }
-      }
-
-      // フロアクリア判定
-      if (bricks.length === 0) {
-        showRewardScreen();
+      // ゴール判定
+      if (checkRectOverlap(player.x, player.y, player.w, player.h, goal.x, goal.y, goal.w, goal.h)) {
+        stageClear();
       }
     }
 
-    // ブロック描画
-    bricks.forEach(b => b.draw());
+    // 地形描画
+    platforms.forEach(p => {
+      const px = Math.round(p.x - camera.x);
+      const py = Math.round(p.y - camera.y);
+      if (px + p.w < -20 || px > V_WIDTH + 20) return;
+
+      // ブロック描画
+      ctx.fillStyle = '#3e4a61';
+      ctx.fillRect(px, py, p.w, p.h);
+      ctx.fillStyle = '#5c6b8a';
+      ctx.fillRect(px, py, p.w, 4); // 上面ハイライト
+      ctx.strokeStyle = '#272f3d';
+      ctx.strokeRect(px, py, p.w, p.h);
+    });
+
+    // トゲ描画
+    spikes.forEach(s => {
+      const sx = Math.round(s.x - camera.x);
+      const sy = Math.round(s.y - camera.y);
+      ctx.fillStyle = '#e53e3e';
+      const spikeCount = 3;
+      const spikeW = s.w / spikeCount;
+      for (let i = 0; i < spikeCount; i++) {
+        ctx.beginPath();
+        ctx.moveTo(sx + i * spikeW, sy + s.h);
+        ctx.lineTo(sx + (i + 0.5) * spikeW, sy);
+        ctx.lineTo(sx + (i + 1) * spikeW, sy + s.h);
+        ctx.fill();
+      }
+    });
+
+    // コイン描画
+    coins.forEach(c => {
+      if (c.taken) return;
+      const cx = Math.round(c.x - camera.x);
+      const cy = Math.round(c.y - camera.y);
+      ctx.save();
+      ctx.fillStyle = '#ffd000';
+      ctx.shadowColor = '#ffd000';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(cx + c.w / 2, cy + c.h / 2, c.w / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // ゴールフラッグ描画
+    const gx = Math.round(goal.x - camera.x);
+    const gy = Math.round(goal.y - camera.y);
+    ctx.fillStyle = '#888';
+    ctx.fillRect(gx, gy, 4, goal.h); // ポール
+    ctx.fillStyle = '#00ffcc';
+    ctx.beginPath();
+    ctx.moveTo(gx + 4, gy);
+    ctx.lineTo(gx + 26, gy + 12);
+    ctx.lineTo(gx + 4, gy + 24);
+    ctx.fill(); // 旗
+
+    // 敵描画
+    enemies.forEach(e => e.draw());
+
+    // プレイヤー描画
+    player.draw();
 
     // パーティクル更新・描画
     for (let i = particles.length - 1; i >= 0; i--) {
@@ -800,26 +870,36 @@
       }
     }
 
-    // パドル描画
-    ctx.save();
-    ctx.fillStyle = '#00ffcc';
-    ctx.shadowColor = '#00ffcc';
-    ctx.shadowBlur = 10;
-    ctx.beginPath();
-    ctx.roundRect(player.x, player.y, player.width, player.height, 6);
-    ctx.fill();
-
-    // パドル内部コアデザイン
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(player.x + player.width * 0.2, player.y + 3, player.width * 0.6, player.height - 6);
-    ctx.restore();
-
     requestAnimationFrame(gameLoop);
   }
 
-  // ボタンイベント
-  document.getElementById('btn-start').onclick = () => resetGame();
-  document.getElementById('btn-restart').onclick = () => resetGame();
+  // ボタン設定
+  document.getElementById('btn-start').onclick = () => {
+    currentStageIndex = 0;
+    totalCoins = 0;
+    loadStage(currentStageIndex);
+    screenStart.classList.add('hidden');
+    gameState = 'PLAYING';
+  };
+
+  document.getElementById('btn-retry').onclick = () => {
+    loadStage(currentStageIndex);
+    screenGameOver.classList.add('hidden');
+    gameState = 'PLAYING';
+  };
+
+  document.getElementById('btn-next').onclick = () => {
+    currentStageIndex++;
+    loadStage(currentStageIndex);
+    screenClear.classList.add('hidden');
+    gameState = 'PLAYING';
+  };
+
+  document.getElementById('btn-title').onclick = () => {
+    screenAllClear.classList.add('hidden');
+    screenStart.classList.remove('hidden');
+    gameState = 'START';
+  };
 
   requestAnimationFrame(gameLoop);
 })();
