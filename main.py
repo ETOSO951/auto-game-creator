@@ -6,7 +6,7 @@ import random
 import re
 from google import genai
 from google.genai import types
-from google.api_core.exceptions import ResourceExhausted
+from google.genai import errors
 from playwright.sync_api import sync_playwright
 
 # ========================================================
@@ -70,20 +70,22 @@ def call_gemini_api(prompt_text, max_retries=5):
                 
                 return code
 
-            except ResourceExhausted:
-                if attempt == max_retries - 1:
-                    print(f"⚠️ [{model_name}] で上限到達。次のモデルへ...")
-                    break
-                sleep_time = wait_time + random.uniform(0, 1.0)
-                print(f"⏳ レート制限到達。{sleep_time:.2f}秒待機してリトライします (試行 {attempt + 1}/{max_retries})")
-                time.sleep(sleep_time)
-                wait_time *= 2.0 
+            except errors.APIError as e:
+                # 429エラー (Resource Exhausted / レート制限) の判定
+                if e.code == 429:
+                    if attempt == max_retries - 1:
+                        print(f"⚠️ [{model_name}] で上限到達。次のモデルへ...")
+                        break
+                    sleep_time = wait_time + random.uniform(0, 1.0)
+                    print(f"⏳ レート制限到達(429)。{sleep_time:.2f}秒待機してリトライします (試行 {attempt + 1}/{max_retries})")
+                    time.sleep(sleep_time)
+                    wait_time *= 2.0 
+                else:
+                    print(f"⚠️ [{model_name}] APIエラー発生({e.code}): {e.message}。次のモデルへ...")
+                    break 
                 
             except Exception as e:
-                if "503" in str(e):
-                    print(f"⚠️ [{model_name}] サーバー高負荷(503)。次のモデルへ... ({e})")
-                else:
-                    print(f"⚠️ [{model_name}] エラー発生: {e}。次のモデルへ...")
+                print(f"⚠️ [{model_name}] 予期せぬエラー発生: {e}。次のモデルへ...")
                 break 
 
     # すべてのモデル・リトライが失敗した場合は独自の例外を投げてループを安全に抜けさせる
@@ -96,22 +98,22 @@ def test_game_code(html_code):
         f.write(html_code)
     
     file_url = f"file://{os.path.abspath('temp_test.html')}"
-    errors = []
+    errors_list = []
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
-        page.on("pageerror", lambda err: errors.append(err.message))
-        page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
+        page.on("pageerror", lambda err: errors_list.append(err.message))
+        page.on("console", lambda msg: errors_list.append(msg.text) if msg.type == "error" else None)
         try:
             page.goto(file_url)
             page.wait_for_timeout(3000)
         except Exception as e:
-            errors.append(str(e))
+            errors_list.append(str(e))
         finally:
             browser.close()
             if os.path.exists("temp_test.html"):
                 os.remove("temp_test.html")
-    return errors
+    return errors_list
 
 # --- 4. 既存コードの確認 ---
 existing_code = ""
