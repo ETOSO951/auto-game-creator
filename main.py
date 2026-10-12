@@ -7,10 +7,18 @@ from playwright.sync_api import sync_playwright
 import re
 
 # ========================================================
-# ⚙️ AIエージェントの設定（ループ回数）
+# ⚙️ AIエージェントの設定
 # ========================================================
-QUALITY_UP_ITERATIONS = 3 # クオリティを上げるアイデア出し＆実装を何回繰り返すか（2〜3推奨）
+QUALITY_UP_ITERATIONS = 3 # クオリティを上げるアイデア出し＆実装のループ回数
 MAX_BUGFIX_LOOPS = 4      # エラーが出た場合の自己修正を最大何回まで粘るか
+
+# 【新機能】モデルの優先順位リスト（上が優先。制限にかかると自動で下へ切り替えます）
+FALLBACK_MODELS = [
+    "gemini-flash-latest",
+    "gemini-2.5-flash",
+    "gemini-3.5-flash",
+    "gemini-1.5-flash"
+]
 
 # --- 1. 初期設定 ---
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -26,11 +34,11 @@ issue_title = event_data['issue'].get('title', '無題のゲーム')
 issue_body = event_data['issue'].get('body') or "" 
 issue_number = event_data['issue']['number']
 
-# --- 2. AI呼び出し関数（強力なHTML抽出機能付き） ---
+# --- 2. AI呼び出し関数（自動切り替え＆強力HTML抽出機能付き） ---
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-def call_gemini_api(prompt_text, extract_html=True):
-    print("🤖 Gemini APIと通信中...")
-    model = genai.GenerativeModel("gemini-flash-latest")
+def _call_model_with_retry(prompt_text, model_name, extract_html):
+    print(f"🤖 [{model_name}] と通信中...")
+    model = genai.GenerativeModel(model_name)
     response = model.generate_content(prompt_text, request_options={"timeout": 300})
     
     if not extract_html:
@@ -52,6 +60,18 @@ def call_gemini_api(prompt_text, extract_html=True):
         code = html_match.group(1).strip()
 
     return code
+
+def call_gemini_api(prompt_text, extract_html=True):
+    # 優先順位リストの上から順番にモデルを試す（フォールバック機構）
+    for model_name in FALLBACK_MODELS:
+        try:
+            return _call_model_with_retry(prompt_text, model_name, extract_html)
+        except Exception as e:
+            print(f"⚠️ [{model_name}] で上限到達またはエラー発生。自動的に次のモデルに切り替えます...")
+            continue # 失敗したらループを継続して次のモデルへ
+            
+    # すべてのモデルが全滅した場合
+    raise RuntimeError("【エラー】利用可能なすべてのAIモデルで制限に達したか、応答がありません。明日の朝など、時間を置いて再度お試しください。")
 
 # --- 3. 自動テスト関数 ---
 def test_game_code(html_code):
