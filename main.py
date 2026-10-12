@@ -48,23 +48,23 @@ issue_number = event_data['issue']['number']
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
 def _call_model_with_retry(prompt_text, model_name, extract_html, temperature):
     print(f"🤖 [{model_name}] と通信中... (Temperature: {temperature})")
-    
+
     # システムプロンプトと生成パラメータ（Temperature）を設定
     model = genai.GenerativeModel(
         model_name,
         system_instruction=SYSTEM_INSTRUCTION
     )
     generation_config = genai.types.GenerationConfig(temperature=temperature)
-    
+
     response = model.generate_content(
         prompt_text, 
         generation_config=generation_config,
         request_options={"timeout": 300}
     )
-    
+
     if not extract_html:
         return response.text.strip()
-        
+
     text = response.text
     # 正規表現でHTMLコードブロックを抽出
     match = re.search(r'```html\n(.*?)\n```', text, re.DOTALL)
@@ -76,7 +76,7 @@ def _call_model_with_retry(prompt_text, model_name, extract_html, temperature):
             code = match_any.group(1).strip()
         else:
             code = text.strip()
-            
+
     html_match = re.search(r'(<!DOCTYPE html>.*?</html>|<html>.*?</html>)', code, re.IGNORECASE | re.DOTALL)
     if html_match:
         code = html_match.group(1).strip()
@@ -91,7 +91,7 @@ def call_gemini_api(prompt_text, extract_html=True, temperature=0.2):
         except Exception as e:
             print(f"⚠️ [{model_name}] で上限到達またはエラー発生。自動的に次のモデルに切り替えます... ({e})")
             continue 
-            
+
     raise RuntimeError("【エラー】利用可能なすべてのAIモデルで制限に達したか、応答がありません。")
 
 # --- 3. 自動テスト関数 ---
@@ -99,7 +99,7 @@ def test_game_code(html_code):
     print("🧪 自動テスト（エラー監視）を実行中...")
     with open("temp_test.html", "w", encoding="utf-8") as f:
         f.write(html_code)
-    
+
     file_url = f"file://{os.path.abspath('temp_test.html')}"
     errors = []
     with sync_playwright() as p:
@@ -162,31 +162,34 @@ else:
 【現在のコード】
 ```html
 {existing_code}
+```
+
 ルール:
 いきなりコードを書かず、まずは <thinking> タグを使って、どのように修正・拡張すればゲームがより面白くなるか設計思考を記述してください。
 その後、HTML、CSS、JavaScriptを完全に1つのファイルに統合したコードを html ...  で出力してください。分割・省略厳禁。
 """
-html_content = call_gemini_api(prompt_p1, temperature=0.2)
+    html_content = call_gemini_api(prompt_p1, temperature=0.2)
+
 #========================================================
 #フェーズ2: 自律的クオリティアップループ
 #========================================================
 print(f"\n--- 🌟 自律クオリティアップループ開始（全{QUALITY_UP_ITERATIONS}回） ---")
 for i in range(1, QUALITY_UP_ITERATIONS + 1):
-time.sleep(3) # API制限回避のための待機
-print(f"\n【ループ {i}/{QUALITY_UP_ITERATIONS}】AI自身による改善案の作成中...")
-prompt_idea = f"""
+    time.sleep(3) # API制限回避のための待機
+    print(f"\n【ループ {i}/{QUALITY_UP_ITERATIONS}】AI自身による改善案の作成中...")
+    prompt_idea = f"""
 あなたは天才ゲームクリエイターです。現在、以下のゲームコードまで完成しています。
 【現在のコード】\nhtml\n{html_content}\n
 このゲームをさらに洗練させ、「もっと面白く」「もっとグラフィックや演出をリッチに」するための、具体的な追加アイデアを2〜3つ挙げてください。
 ※コードは書かず、アイデアの文章だけを出力してください。
 """
-# アイデア出しは創造性を高くするため temperature=0.9
-ideas = call_gemini_api(prompt_idea, extract_html=False, temperature=0.9)
-print(f"💡 改善アイデア:\n{ideas}\n")
-time.sleep(3) # API制限回避のための待機
+    # アイデア出しは創造性を高くするため temperature=0.9
+    ideas = call_gemini_api(prompt_idea, extract_html=False, temperature=0.9)
+    print(f"💡 改善アイデア:\n{ideas}\n")
+    time.sleep(3) # API制限回避のための待機
 
-print(f"【ループ {i}/{QUALITY_UP_ITERATIONS}】改善アイデアの実装中...")
-prompt_apply = f"""
+    print(f"【ループ {i}/{QUALITY_UP_ITERATIONS}】改善アイデアの実装中...")
+    prompt_apply = f"""
 現在のゲームコードに、あなたが提案した以下の【改善アイデア】をすべて実装し、さらにクオリティを上げた完成版のコードを出力してください。
 【現在のコード】\nhtml\n{html_content}\n
 【実装する改善アイデア】\n{ideas}\n
@@ -194,8 +197,9 @@ prompt_apply = f"""
 まずは <thinking> タグ内で、アイデアをどのようにコードへ落とし込むか論理的に記述してください。
 その後、最初から最後まで1つの完全なHTMLコードとして html ...  で出力してください。絶対にコードを分割・省略しないでください。不要なコメントアウトによる省略も禁止です。
 """
-実装はバグを避けるため temperature=0.2
-html_content = call_gemini_api(prompt_apply, temperature=0.2)
+    # 実装はバグを避けるため temperature=0.2
+    html_content = call_gemini_api(prompt_apply, temperature=0.2)
+
 #========================================================
 #フェーズ3: 自己修正（バグ取り）ループ
 #========================================================
@@ -203,21 +207,21 @@ print(f"\n--- 🛠 バグ監視・自己修正ループ開始（最大{MAX_BUGFI
 final_code = ""
 success = False
 for attempt in range(1, MAX_BUGFIX_LOOPS + 1):
-print(f"--- テスト実行 {attempt}/{MAX_BUGFIX_LOOPS} ---")
-js_errors = test_game_code(html_content)
-if not js_errors:
-    print("✅ テスト合格！バグはありません。")
-    final_code = html_content
-    success = True
-    break
-else:
-    print(f"❌ エラーを検知: {js_errors[:2]} (他略)")
-    if attempt < MAX_BUGFIX_LOOPS:
-        print("🔄 エラーの自己修正を行います...")
-        time.sleep(3) # API制限回避のための待機
-        
-        error_text = "\n".join(js_errors[:5])
-        prompt_fix = f"""
+    print(f"--- テスト実行 {attempt}/{MAX_BUGFIX_LOOPS} ---")
+    js_errors = test_game_code(html_content)
+    if not js_errors:
+        print("✅ テスト合格！バグはありません。")
+        final_code = html_content
+        success = True
+        break
+    else:
+        print(f"❌ エラーを検知: {js_errors[:2]} (他略)")
+        if attempt < MAX_BUGFIX_LOOPS:
+            print("🔄 エラーの自己修正を行います...")
+            time.sleep(3) # API制限回避のための待機
+
+            error_text = "\n".join(js_errors[:5])
+            prompt_fix = f"""
 作成したコードで以下のJavaScriptエラーが発生しました。エラーの原因を特定・修正した完全なコードを出力してください。
 【発生したエラー】\n{error_text}\n
 【エラーが出たコード】\nhtml\n{html_content}\n
@@ -225,26 +229,28 @@ else:
 <thinking> タグを使って、なぜエラーが起きたのか原因分析と修正方針を記述してください。
 最初から最後まで1つの完全なHTMLコードとして出力し、分割や省略はしないでください。
 """
-# バグ修正は厳密性が命のため temperature=0.1
-html_content = call_gemini_api(prompt_fix, temperature=0.1)
-else:
-print("⚠️ 最大修正回数に達しましたが、現状のコードを保存します。")
-final_code = html_content
---- 7. 保存とPush ---
+            # バグ修正は厳密性が命のため temperature=0.1
+            html_content = call_gemini_api(prompt_fix, temperature=0.1)
+        else:
+            print("⚠️ 最大修正回数に達しましたが、現状のコードを保存します。")
+            final_code = html_content
+
+# --- 7. 保存とPush ---
 with open("index.html", "w", encoding="utf-8") as f:
-f.write(final_code)
+    f.write(final_code)
+
 try:
-subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
-subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
-subprocess.run(["git", "add", "index.html"], check=True)
-status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
-if "index.html" in status.stdout:
-    subprocess.run(["git", "commit", "-m", f"AI自律改善版 (合格:{success}) Issue #{issue_number}"], check=True)
-    # Push前に最新状態を取得して競合を防ぐ (rebase)
-    subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=False)
-    subprocess.run(["git", "push", "origin", "HEAD:main"], check=True)
-    print("🎉 完了しました！")
-else:
-    print("変更なしのためPushをスキップしました。")
+    subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
+    subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
+    subprocess.run(["git", "add", "index.html"], check=True)
+    status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+    if "index.html" in status.stdout:
+        subprocess.run(["git", "commit", "-m", f"AI自律改善版 (合格:{success}) Issue #{issue_number}"], check=True)
+        # Push前に最新状態を取得して競合を防ぐ (rebase)
+        subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=False)
+        subprocess.run(["git", "push", "origin", "HEAD:main"], check=True)
+        print("🎉 完了しました！")
+    else:
+        print("変更なしのためPushをスキップしました。")
 except subprocess.CalledProcessError as e:
-raise RuntimeError(f"【エラー】Git操作失敗: {e}")
+    raise RuntimeError(f"【エラー】Git操作失敗: {e}")
