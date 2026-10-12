@@ -2,14 +2,12 @@ import os
 import json
 import subprocess
 import time
-import google.generativeai as genai
-from tenacity import retry, stop_after_attempt, wait_exponential
-from playwright.sync_api import sync_playwright
 import re
+import random
+from playwright.sync_api import sync_playwright
 from google import genai
 from google.genai import types
-import random
-from google.api_core.exceptions import ResourceExhausted
+from google.genai.errors import APIError
 
 # ========================================================
 # ⚙️ AIエージェントの設定
@@ -25,6 +23,7 @@ FALLBACK_MODELS = [
 ]
 
 # システムプロンプト（AIに天才クリエイターのペルソナを固定）
+# ※ temperature を使わない代わりに、ここで「決定論的な回答」を強く指示します
 SYSTEM_INSTRUCTION = """あなたは世界的な天才フロントエンドエンジニア兼ゲームクリエイターです。事実に基づき、厳密で決定論的な回答を提供してください。
 出力するHTML5ゲームは以下の要件を必ず満たしてください：
 - モダンで洗練されたCSSデザイン（アニメーション、グラデーション、影の活用）
@@ -84,18 +83,23 @@ def _call_model_with_retry(prompt_text, model_name, extract_html, max_retries=4)
 
             return code
             
-        except ResourceExhausted:
-            if attempt == max_retries - 1:
-                print(f"⚠️ [{model_name}] で上限到達。次のモデルに切り替えます...")
-                raise # 最大リトライ回数に達したら例外を投げて次のモデルへ
+        except APIError as e:
+            # レート制限 (429) の場合は指数バックオフでリトライ
+            if getattr(e, "code", None) == 429:
+                if attempt == max_retries - 1:
+                    print(f"⚠️ [{model_name}] で上限到達。次のモデルに切り替えます...")
+                    raise # 最大リトライ回数に達したら例外を投げて次のモデルへ
+                    
+                sleep_time = wait_time + random.uniform(0, 0.5)
+                print(f"⏳ レート制限到達。{sleep_time:.2f}秒待機してリトライします (試行 {attempt + 1}/{max_retries})")
+                time.sleep(sleep_time)
+                wait_time *= 2
+            else:
+                print(f"⚠️ [{model_name}] でAPIエラー発生 ({getattr(e, 'code', 'Unknown')}): {e}。次のモデルに切り替えます...")
+                raise # 429以外のエラーは即時次のモデルへ
                 
-            sleep_time = wait_time + random.uniform(0, 0.5)
-            print(f"⏳ レート制限到達。{sleep_time:.2f}秒待機してリトライします (試行 {attempt + 1}/{max_retries})")
-            time.sleep(sleep_time)
-            wait_time *= 2
-
         except Exception as e:
-            print(f"⚠️ [{model_name}] でエラー発生: {e}。次のモデルに切り替えます...")
+            print(f"⚠️ [{model_name}] で予期せぬエラー発生: {e}。次のモデルに切り替えます...")
             raise # その他のエラーも例外を投げて次のモデルへ
 
 def call_gemini_api(prompt_text, extract_html=True):
@@ -113,7 +117,7 @@ def test_game_code(html_code):
     print("🧪 自動テスト（エラー監視）を実行中...")
     with open("temp_test.html", "w", encoding="utf-8") as f:
         f.write(html_code)
-
+    
     file_url = f"file://{os.path.abspath('temp_test.html')}"
     errors = []
     with sync_playwright() as p:
@@ -230,7 +234,7 @@ for attempt in range(1, MAX_BUGFIX_LOOPS + 1):
         if attempt < MAX_BUGFIX_LOOPS:
             print("🔄 エラーの自己修正を行います...")
             time.sleep(3) # API制限回避のための待機
-
+            
             error_text = "\n".join(js_errors[:5])
             prompt_fix = f"""
 作成したコードで以下のJavaScriptエラーが発生しました。エラーの原因を特定・修正した完全なコードを出力してください。
@@ -254,6 +258,7 @@ try:
     subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
     subprocess.run(["git", "add", "index.html"], check=True)
     status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+    
     if "index.html" in status.stdout:
         subprocess.run(["git", "commit", "-m", f"AI自律改善版 (合格:{success}) Issue #{issue_number}"], check=True)
         # Push前に最新状態を取得して競合を防ぐ (rebase)
