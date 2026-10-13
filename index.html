@@ -606,7 +606,7 @@
       </div>
     </div>
 
-    <div style="font-size: 11px; letter-spacing: 2px; color: #ffaa00; margin-bottom: 8px; font-weight: 800;">【 属性モジュール選択 】</div>
+    <div style="font-size: 11px; letter-spacing: 2px; color: #ffaa00; margin-bottom: 8px; font-weight: 800;">【 サブウェポン＆属性選択 】</div>
     <div class="selector-grid" id="element-selector">
       <div class="card-item selected" data-val="plasma" data-group="element">
         <div class="card-title" style="color: #00ffcc;">プラズマ電撃</div>
@@ -838,15 +838,17 @@
       skillCooldown: 0,
       skillMaxCooldown: 8.0,
       weaponType: 'saber',
-      elementType: 'plasma', // 'plasma', 'thermal', 'gravity'
-      currentModifier: null
+      elementType: 'plasma',
+      currentModifier: null,
+      consecKills: 0
     };
 
     let enemies = [];
     let particles = [];
     let platforms = [];
     let hazards = [];
-    let terminals = []; // Hacking terminals
+    let terminals = [];
+    let enemyBullets = [];
     let boss = null;
     let portal = null;
     let cameraShake = 0;
@@ -947,22 +949,24 @@
       hazards.forEach(h => scene.remove(h.mesh)); hazards = [];
       terminals.forEach(t => scene.remove(t.mesh)); terminals = [];
       enemies.forEach(e => scene.remove(e.group)); enemies = [];
+      enemyBullets.forEach(b => scene.remove(b.mesh)); enemyBullets = [];
       if (boss) { scene.remove(boss.group); boss = null; document.getElementById('boss-hud').classList.remove('active'); }
       if (portal) { scene.remove(portal); portal = null; }
     }
 
-    function createPlatform(x, y, z, w, h, d, color = 0x111c34) {
+    function createPlatform(x, y, z, w, h, d, color = 0x111c34, isConveyor = false) {
       const group = new THREE.Group();
       group.position.set(x, y, z);
       const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(w, h, d),
-        new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.75 })
+        new THREE.MeshStandardMaterial({ color: isConveyor ? 0x1a2844 : color, roughness: 0.25, metalness: 0.75 })
       );
       mesh.receiveShadow = true; mesh.castShadow = true;
+      mesh.userData = { isConveyor };
       group.add(mesh);
 
       const edgeGeom = new THREE.EdgesGeometry(mesh.geometry);
-      const edgeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.65 });
+      const edgeMat = new THREE.LineBasicMaterial({ color: isConveyor ? 0xffaa00 : 0x00ffcc, transparent: true, opacity: 0.65 });
       group.add(new THREE.LineSegments(edgeGeom, edgeMat));
 
       scene.add(group);
@@ -981,7 +985,6 @@
       scene.fog.density = 0.022;
       dirLight.color.set(biome.lightColor);
 
-      // Random Nightmare Modifier for floors >= 3
       if (floorNumber >= 3 && Math.random() < 0.6) {
         stats.currentModifier = MODIFIERS[Math.floor(Math.random() * MODIFIERS.length)];
         stats.currentModifier.apply();
@@ -1019,9 +1022,10 @@
 
           const w = 6.5 + Math.random() * 5;
           const d = 6.5 + Math.random() * 5;
-          createPlatform(currPos.x, currPos.y, currPos.z, w, 1, d, biome.color);
+          const isConv = (i % 4 === 2);
+          createPlatform(currPos.x, currPos.y, currPos.z, w, 1, d, biome.color, isConv);
 
-          // Spawn Hacking Terminal
+          // Hacking Terminal
           if (i % 3 === 1) {
             const tMesh = new THREE.Mesh(
               new THREE.BoxGeometry(0.8, 1.4, 0.8),
@@ -1032,23 +1036,24 @@
             terminals.push({ mesh: tMesh, position: tMesh.position, hacked: false });
           }
 
-          // Spawn Hazards
-          if (Math.random() < 0.45) {
+          // Environmental Hazards (Plasma Geyser or Explosive Tank)
+          if (Math.random() < 0.5) {
+            const isGeyser = Math.random() < 0.5;
             const hMesh = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.6, 0.6, 1.2, 12),
-              new THREE.MeshBasicMaterial({ color: 0xff0055, wireframe: true })
+              isGeyser ? new THREE.CylinderGeometry(0.5, 0.5, 0.3, 12) : new THREE.CylinderGeometry(0.6, 0.6, 1.2, 12),
+              new THREE.MeshBasicMaterial({ color: isGeyser ? 0x00ffcc : 0xff0055, wireframe: true })
             );
-            hMesh.position.set(currPos.x - 2, currPos.y + 0.8, currPos.z);
+            hMesh.position.set(currPos.x - 2, currPos.y + (isGeyser ? 0.6 : 0.8), currPos.z);
             scene.add(hMesh);
-            hazards.push({ type: 'explosive', mesh: hMesh, position: hMesh.position, active: true });
+            hazards.push({ type: isGeyser ? 'geyser' : 'explosive', mesh: hMesh, position: hMesh.position, active: true, timer: 0 });
           }
 
-          // Spawn Enemies
+          // Spawn Enemies with advanced types (Sniper, Protector)
           if (i > 0) {
             const enemyCount = Math.floor(1 + Math.random() * 2.8);
             for (let e = 0; e < enemyCount; e++) {
-              const types = ['normal', 'gunner', 'guardian', 'assassin'];
-              const typeWeights = [0.4, 0.25, 0.2, 0.15];
+              const types = ['normal', 'gunner', 'guardian', 'assassin', 'sniper', 'protector'];
+              const typeWeights = [0.3, 0.2, 0.15, 0.15, 0.1, 0.1];
               let r = Math.random(), accum = 0, chosenType = 'normal';
               for (let t = 0; t < types.length; t++) {
                 accum += typeWeights[t];
@@ -1089,6 +1094,10 @@
         geom = new THREE.BoxGeometry(1.1, 1.1, 1.1); colorVal = 0xffaa00; hpVal *= 1.6; speedVal = 3.5;
       } else if (type === 'assassin') {
         geom = new THREE.TetrahedronGeometry(0.8, 0); colorVal = 0xaa00ff; hpVal *= 0.7; speedVal = 7.5;
+      } else if (type === 'sniper') {
+        geom = new THREE.CylinderGeometry(0.4, 0.6, 1.4, 6); colorVal = 0xff00ff; hpVal *= 0.75; speedVal = 3.0;
+      } else if (type === 'protector') {
+        geom = new THREE.DodecahedronGeometry(0.9, 0); colorVal = 0x00ffcc; hpVal *= 2.0; speedVal = 2.5;
       } else {
         geom = new THREE.OctahedronGeometry(0.85, 0); colorVal = 0xff0055;
       }
@@ -1101,7 +1110,7 @@
       group.add(mesh);
 
       let shieldMesh = null;
-      if (hasShield) {
+      if (hasShield || type === 'protector') {
         shieldMesh = new THREE.Mesh(
           new THREE.BoxGeometry(1.6, 1.8, 0.2),
           new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true, transparent: true, opacity: 0.8 })
@@ -1118,7 +1127,8 @@
         hp: hpVal, maxHp: hpVal,
         speed: (stats.currentModifier && stats.currentModifier.id === 'hyper_speed') ? speedVal * 1.3 : speedVal,
         velocity: new THREE.Vector3(),
-        stunnedTimer: 0
+        stunnedTimer: 0,
+        shootCooldown: Math.random() * 2.0
       });
     }
 
@@ -1191,7 +1201,6 @@
       });
 
       if (hackedCount > 0) {
-        // Stun all enemies on map
         enemies.forEach(e => e.stunnedTimer = 4.0);
         showKillFeed("【ハッキング成功】 敵全機体が麻痺状態に！");
         stats.score += 500;
@@ -1209,7 +1218,6 @@
         samplePoints.push(playerPos.clone().add(forward.clone().multiplyScalar(stats.slashRange * (i / 10))));
       }
 
-      // Check Boss
       if (boss) {
         let hitDetected = false;
         for (let pt of samplePoints) {
@@ -1229,6 +1237,15 @@
           document.getElementById('boss-hp-bar').style.width = `${hpPct}%`;
           document.getElementById('boss-hp-val').textContent = `${Math.round(hpPct)}%`;
 
+          // Phase 2 transition
+          if (boss.phase === 1 && boss.hp <= boss.maxHp * 0.5) {
+            boss.phase = 2;
+            boss.speed *= 1.5;
+            boss.mesh.material.color.set(0xffaa00);
+            boss.mesh.material.emissive.set(0xffaa00);
+            showKillFeed("【警告】 ボスがフェーズ2（狂暴化）に移行！");
+          }
+
           if (boss.hp <= 0) {
             stats.score += 2500; updateHUD();
             showKillFeed("BOSS DESTROYED! +2500");
@@ -1244,7 +1261,6 @@
         }
       }
 
-      // Check Enemies
       enemies.forEach((enemy, idx) => {
         if (Math.abs(enemy.position.y - playerPos.y) < 3.2) {
           let hitDetected = false;
@@ -1267,10 +1283,9 @@
               }
             }
 
-            const isCrit = Math.random() < stats.critChance;
+            const isCrit = Math.random() < stats.critChance || stats.consecKills >= 3;
             let damage = stats.slashDamage * (isCrit ? 2.5 : 1.0);
             if (stats.elementType === 'gravity') {
-              // Pull enemy toward player
               enemy.velocity.add(playerPos.clone().sub(enemy.position).normalize().multiplyScalar(18));
             }
             if (stats.elementType === 'plasma' && Math.random() < 0.35) {
@@ -1285,7 +1300,8 @@
             spawnParticles(enemy.position.clone(), isCrit ? 0x00ffcc : 0xff0055);
 
             if (enemy.hp <= 0) {
-              stats.score += 120 * stats.floor;
+              stats.consecKills++;
+              stats.score += 120 * stats.floor * (stats.consecKills > 3 ? 1.5 : 1.0);
               updateHUD();
               showKillFeed(isCrit ? "CRITICAL SLASH! +240" : "SLASHED! +120");
               scene.remove(enemy.group);
@@ -1295,9 +1311,8 @@
         }
       });
 
-      // Check Hazards
       hazards.forEach(h => {
-        if (h.active && h.position.distanceTo(playerPos) <= stats.slashRange) {
+        if (h.active && h.type === 'explosive' && h.position.distanceTo(playerPos) <= stats.slashRange) {
           h.active = false;
           scene.remove(h.mesh);
           audio.playExplosion();
@@ -1360,7 +1375,6 @@
     document.getElementById('btn-skill').addEventListener('touchstart', (e) => { e.stopPropagation(); inputSys.push('skill'); });
     document.getElementById('btn-hack').addEventListener('touchstart', (e) => { e.stopPropagation(); inputSys.push('hack'); });
 
-    // Selector Card Setup
     let selectedWeapon = 'saber';
     let selectedElement = 'plasma';
 
@@ -1441,7 +1455,7 @@
 
     function resetGame() {
       stats.hp = 100; stats.maxHp = 100; stats.score = 0; stats.floor = 1;
-      stats.moveSpeed = 13.0; stats.skillCooldown = 0; stats.skillMaxCooldown = 8.0;
+      stats.moveSpeed = 13.0; stats.skillCooldown = 0; stats.skillMaxCooldown = 8.0; stats.consecKills = 0;
 
       applyLoadout(selectedWeapon, selectedElement);
       inputSys.clear();
@@ -1512,6 +1526,7 @@
       playerPhysics.velocity.y -= 38.0 * delta;
       playerPhysics.position.addScaledVector(playerPhysics.velocity, delta);
 
+      // Raycast platforms & conveyors
       playerPhysics.isGrounded = false;
       raycaster.set(playerPhysics.position.clone().add(new THREE.Vector3(0, 0.5, 0)), new THREE.Vector3(0, -1, 0));
       const intersects = raycaster.intersectObjects(platforms);
@@ -1521,6 +1536,9 @@
           playerPhysics.position.y = hit.point.y + 0.6;
           playerPhysics.velocity.y = 0;
           playerPhysics.isGrounded = true;
+          if (hit.object.userData.isConveyor) {
+            playerPhysics.position.z -= 4.5 * delta; // Conveyor belt push
+          }
         }
       }
 
@@ -1547,6 +1565,37 @@
         }
       }
 
+      // Hazards Update (Geysers)
+      hazards.forEach(h => {
+        if (h.type === 'geyser' && h.active) {
+          h.timer += delta;
+          if (h.timer > 3.0) {
+            h.timer = 0;
+            if (h.position.distanceTo(playerPhysics.position) < 1.8 && playerPhysics.position.y - h.position.y < 1.0) {
+              stats.hp -= 15; cameraShake = 0.4; updateHUD();
+              audio.playHit();
+              if (stats.hp <= 0) triggerGameOver();
+            }
+          }
+        }
+      });
+
+      // Enemy Bullets Update
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const b = enemyBullets[i];
+        b.position.addScaledVector(b.vel, delta);
+        b.mesh.position.copy(b.position);
+        b.life -= delta;
+        if (b.position.distanceTo(playerPhysics.position) < 1.2) {
+          stats.hp -= 18; cameraShake = 0.5; updateHUD();
+          audio.playHit();
+          scene.remove(b.mesh); enemyBullets.splice(i, 1);
+          if (stats.hp <= 0) triggerGameOver();
+          continue;
+        }
+        if (b.life <= 0) { scene.remove(b.mesh); enemyBullets.splice(i, 1); }
+      }
+
       // Boss logic
       if (boss) {
         const dir = playerPhysics.position.clone().sub(boss.position);
@@ -1555,7 +1604,7 @@
         boss.ring.rotation.z += delta * 3.0;
         boss.position.add(dir.multiplyScalar(boss.speed * delta));
         if (dist < 2.2) {
-          stats.hp -= 35 * delta; cameraShake = 0.6; updateHUD();
+          stats.hp -= (boss.phase === 2 ? 45 : 35) * delta; cameraShake = 0.6; updateHUD();
           if (stats.hp <= 0) triggerGameOver();
         }
       }
@@ -1579,9 +1628,21 @@
           const targetRot = Math.atan2(dir.x, dir.z);
           enemy.group.rotation.y = THREE.MathUtils.lerp(enemy.group.rotation.y, targetRot, Math.min(1.0, delta * 18));
 
-          if (enemy.type === 'gunner') {
-            if (dist > 12) enemy.position.add(dir.multiplyScalar(enemy.speed * delta));
-            else if (dist < 8) enemy.position.add(dir.multiplyScalar(-enemy.speed * delta));
+          if (enemy.type === 'sniper' || enemy.type === 'gunner') {
+            if (dist > 14) enemy.position.add(dir.multiplyScalar(enemy.speed * delta));
+            else if (dist < 9) enemy.position.add(dir.multiplyScalar(-enemy.speed * delta));
+
+            enemy.shootCooldown += delta;
+            if (enemy.shootCooldown > 2.5) {
+              enemy.shootCooldown = 0;
+              const bGeom = new THREE.SphereGeometry(0.2, 8, 8);
+              const bMat = new THREE.MeshBasicMaterial({ color: enemy.type === 'sniper' ? 0xff00ff : 0x0088ff });
+              const bMesh = new THREE.Mesh(bGeom, bMat);
+              bMesh.position.copy(enemy.position);
+              scene.add(bMesh);
+              const bVel = playerPhysics.position.clone().sub(enemy.position).normalize().multiplyScalar(enemy.type === 'sniper' ? 24 : 16);
+              enemyBullets.push({ mesh: bMesh, position: enemy.position.clone(), vel: bVel, life: 3.0 });
+            }
           } else {
             enemy.position.add(dir.multiplyScalar(enemy.speed * delta));
           }
