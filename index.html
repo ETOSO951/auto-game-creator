@@ -184,7 +184,7 @@
 
     .boss-hud {
       position: absolute;
-      top: 18px;
+      top: 90px;
       left: 50%;
       transform: translateX(-50%);
       width: 420px;
@@ -202,6 +202,28 @@
       z-index: 60;
       animation: bossHudPulse 1.2s ease infinite alternate;
     }
+====
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
+====
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
     @keyframes bossHudPulse {
       0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
       100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
@@ -1145,6 +1167,7 @@
         hp: maxHpVal,
         maxHp: maxHpVal,
         shieldActive: type === 'guardian' || type === 'parrier',
+        parryable: type === 'parrier' || Math.random() < 0.35,
         speed: type === 'phantom' ? 4.6 : (type === 'stealth' ? 5.0 : (type === 'bomber' ? 5.2 : (type === 'striker' ? 3.4 : 2.6))),
         attackCooldown: 0.8 + Math.random() * 0.4,
         isWarning: false,
@@ -1599,16 +1622,16 @@
     }, { passive: false });
 
     const PERKS = [
-      { name: '【進撃】オーバークロック・セイバー', desc: '斬撃ダメージが60%増加し、さらに刃のリーチと衝撃範囲が拡大する。武器オーラが真紅に進化', synergy: 'ASSAULT BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.6); stats.slashRange *= 1.3; bladeMat.color.set(0xff0055); bladeMat.emissive.set(0xff0055); } },
-      { name: '【機動】クアンタム・リープ', desc: '移動速度が45%上昇し、スキルのクールダウンがさらに高速化する', synergy: 'AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.45; stats.skillMaxCooldown = Math.max(0.8, stats.skillMaxCooldown * 0.45); } },
-      { name: '【再生】ナノマシン・リジェネ', desc: '最大HPが100増加し、即座にバイタル（HP）が完全回復する', synergy: 'SURVIVAL BUILD', apply: () => { stats.maxHp += 100; stats.hp = stats.maxHp; } },
-      { name: '【吸血】サイバー・ヴァンパイア', desc: '敵撃破時にHPが60回復し、さらに攻撃範囲・スピードがシナジー強化される', synergy: 'VAMPIRIC BUILD', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 60); stats.perks.vampirism = true; stats.slashDamage = Math.round(stats.slashDamage * 1.25); } },
-      { name: '【爆発】プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む超強力チェインプラズマ爆発が発生する', synergy: 'EXPLOSIVE BUILD', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.4); } },
-      { name: '【追尾】ホーミング・プラズマブレード', desc: '斬撃時に前方に敵をどこまでも自動追尾するプラズマエナジー弾が連続放射される', synergy: 'HOMING BUILD', apply: () => { stats.perks.homingBlade = true; stats.slashDamage = Math.round(stats.slashDamage * 1.15); } },
-      { name: '【急降下】メテオ・スラッシュ・ドライブ', desc: '空中ジャンプからの急降下下方向斬撃が、全画面級の巨大メテオスマッシュに進化する', synergy: 'METEOR BUILD', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.4; } },
-      { name: '【防御】ネクサス・シールドバリア', desc: '受けるダメージを50%軽減し、さらに敵の弾丸を高確率で自動弾き返すシールドを展開', synergy: 'SHIELD BUILD', apply: () => { stats.maxHp += 50; stats.hp = Math.min(stats.maxHp, stats.hp + 50); stats.perks.shieldReflect = true; } },
-      { name: '【支援】デュアル・オービタルドローン', desc: 'プレイヤーの周囲を高速旋回し、接近する敵を全自動レーザーで連続迎撃するドローンが2機に増加', synergy: 'DRONE BUILD', apply: () => { stats.perks.orbitalDrone = true; const dg = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 3.5})); scene.add(dg); orbitalDroneMesh = dg; } },
-      { name: '【神速】サイバー・オーバードライブ', desc: '全ステータス（攻撃力・機動力・スキル回転率）が限界突破し、無類の強さを誇る。武器オーラが金色に輝く', synergy: 'OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.5); stats.moveSpeed *= 1.35; stats.skillMaxCooldown = Math.max(0.6, stats.skillMaxCooldown * 0.4); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); } }
+      { name: '【進撃】オーバークロック・セイバー', desc: '斬撃ダメージが60%増加し、さらに刃のリーチと衝撃範囲が拡大する。武器オーラが真紅に進化', synergy: '🔥 ASSAULT BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.6); stats.slashRange *= 1.3; bladeMat.color.set(0xff0055); bladeMat.emissive.set(0xff0055); } },
+      { name: '【機動】クアンタム・リープ', desc: '移動速度が45%上昇し、スキルのクールダウンがさらに高速化する', synergy: '⚡ AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.45; stats.skillMaxCooldown = Math.max(0.8, stats.skillMaxCooldown * 0.45); } },
+      { name: '【再生】ナノマシン・リジェネ', desc: '最大HPが100増加し、即座にバイタル（HP）が完全回復する', synergy: '🛡️ SURVIVAL BUILD', apply: () => { stats.maxHp += 100; stats.hp = stats.maxHp; } },
+      { name: '【吸血】サイバー・ヴァンパイア', desc: '敵撃破時にHPが60回復し、さらに攻撃範囲・スピードがシナジー強化される', synergy: '🧛 VAMPIRIC BUILD', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 60); stats.perks.vampirism = true; stats.slashDamage = Math.round(stats.slashDamage * 1.25); } },
+      { name: '【爆発】プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む超強力チェインプラズマ爆発が発生する', synergy: '💥 EXPLOSIVE BUILD', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.4); } },
+      { name: '【追尾】ホーミング・プラズマブレード', desc: '斬撃時に前方に敵をどこまでも自動追尾するプラズマエナジー弾が連続放射される', synergy: '🎯 HOMING BUILD', apply: () => { stats.perks.homingBlade = true; stats.slashDamage = Math.round(stats.slashDamage * 1.15); } },
+      { name: '【急降下】メテオ・スラッシュ・ドライブ', desc: '空中ジャンプからの急降下下方向斬撃が、全画面級の巨大メテオスマッシュに進化する', synergy: '☄️ METEOR BUILD', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.4; } },
+      { name: '【防御】ネクサス・シールドバリア', desc: '受けるダメージを50%軽減し、さらに敵の弾丸を高確率で自動弾き返すシールドを展開', synergy: '🛡️ SHIELD BUILD', apply: () => { stats.maxHp += 50; stats.hp = Math.min(stats.maxHp, stats.hp + 50); stats.perks.shieldReflect = true; } },
+      { name: '【支援】デュアル・オービタルドローン', desc: 'プレイヤーの周囲を高速旋回し、接近する敵を全自動レーザーで連続迎撃するドローンが2機に増加', synergy: '🤖 DRONE BUILD', apply: () => { stats.perks.orbitalDrone = true; const dg = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 3.5})); scene.add(dg); orbitalDroneMesh = dg; } },
+      { name: '【神速】サイバー・オーバードライブ', desc: '全ステータス（攻撃力・機動力・スキル回転率）が限界突破し、無類の強さを誇る。武器オーラが金色に輝く', synergy: '🌟 OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.5); stats.moveSpeed *= 1.35; stats.skillMaxCooldown = Math.max(0.6, stats.skillMaxCooldown * 0.4); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); } }
     ];
 
     function showPerkScreen() {
@@ -1617,7 +1640,7 @@
       const list = document.getElementById('perk-list');
       list.innerHTML = '';
 
-      // ランダムに3つのパークをピックアップして提示（ビルド構築の楽しさを向上）
+      // ランダムに3つのパークをピックアップして提示（シナジービルドのシナジーバッジを強調）
       const shuffled = [...PERKS].sort(() => 0.5 - Math.random());
       const selectedPerks = shuffled.slice(0, 3);
 
@@ -1625,7 +1648,7 @@
         const card = document.createElement('div');
         card.className = 'perk-card';
         card.innerHTML = `
-          <div style="font-size: 9px; color: var(--accent); letter-spacing: 2px; font-weight: 800; margin-bottom: 4px;">${perk.synergy || 'MODULE'}</div>
+          <div style="font-size: 10px; color: var(--accent); letter-spacing: 2px; font-weight: 900; margin-bottom: 6px; background: rgba(0,255,204,0.15); padding: 3px 8px; border-radius: 6px; display: inline-block;">${perk.synergy || 'MODULE'}</div>
           <div class="perk-title">${perk.name}</div>
           <div class="perk-desc">${perk.desc}</div>
         `;
@@ -1635,6 +1658,7 @@
           screen.classList.add('hidden');
           generateStage(stats.floor);
           state = GAME_STATE.PLAYING;
+          showFeed(`MODULE INSTALLED: ${perk.synergy}`);
         };
         list.appendChild(card);
       });
