@@ -98,7 +98,7 @@
       width: 100%;
       height: 100%;
       background: linear-gradient(90deg, var(--danger), var(--accent));
-      transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: width 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .score-container {
@@ -441,7 +441,6 @@
         osc.start(now);
         osc.stop(now + 0.15);
 
-        // Noise element
         const bufSize = this.ctx.sampleRate * 0.12;
         const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
         const data = buf.getChannelData(0);
@@ -618,7 +617,8 @@
       velocity: new THREE.Vector3(),
       isGrounded: false,
       isSlashing: false,
-      slashTime: 0
+      slashTime: 0,
+      slashHitTriggered: false
     };
 
     /* ========================================================
@@ -654,7 +654,6 @@
     function generateStage(floorNumber) {
       clearLevel();
 
-      // Start Platform
       createPlatform(0, -0.5, 0, 12, 1, 12, 0x161e33);
       playerGroup.position.set(0, 2, 0);
       playerPhysics.velocity.set(0, 0, 0);
@@ -675,7 +674,6 @@
         const d = 6 + Math.random() * 4;
         createPlatform(currPos.x, currPos.y, currPos.z, w, 1, d);
 
-        // Spawn Enemies
         if (i > 0) {
           const enemyCount = Math.floor(1 + Math.random() * 2.2);
           for (let e = 0; e < enemyCount; e++) {
@@ -688,7 +686,6 @@
         }
       }
 
-      // Goal Platform & Portal
       currPos.z -= 11;
       createPlatform(currPos.x, currPos.y, currPos.z, 8, 1, 8, 0x1e304f);
 
@@ -716,7 +713,6 @@
       mesh.castShadow = true;
       group.add(mesh);
 
-      // Eye
       const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
       const eye = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), eyeMat);
       eye.position.set(0, 0, 0.5);
@@ -734,21 +730,23 @@
     }
 
     /* ========================================================
-       Slash & Particle System
+       Slash & Hitbox Sync System
        ======================================================== */
     function triggerSlash() {
       if (playerPhysics.isSlashing) return;
       playerPhysics.isSlashing = true;
       playerPhysics.slashTime = 0.22;
+      playerPhysics.slashHitTriggered = false;
 
       audio.playSlash();
 
-      // Visual sweep
       slashArcMat.opacity = 0.85;
       slashArc.scale.set(stats.slashRange * 0.55, stats.slashRange * 0.55, 1);
       katanaGroup.rotation.y = -Math.PI * 0.7;
+    }
 
-      // 3D Sector & Capsule Hit Check
+    // Active Frame Slash Execution
+    function executeSlashHit() {
       const slashForward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerGroup.quaternion);
       const playerPos = playerGroup.position;
 
@@ -761,18 +759,15 @@
           const angle = slashForward.angleTo(dirToEnemy);
           const heightDiff = Math.abs(enemyPos.y - playerPos.y);
 
-          // 130-degree front arc & vertical tolerance
           if (angle < Math.PI * 0.7 && heightDiff < 2.0) {
             const isCrit = Math.random() < stats.critChance;
             const damage = stats.slashDamage * (isCrit ? 2.2 : 1.0);
             enemy.hp -= damage;
 
             audio.playHit();
-            hitStopFrames = 5; // Hitstop effect
+            hitStopFrames = 5;
             cameraShake = 0.45;
             spawnBloodParticles(enemyPos.clone(), isCrit ? 0x00ffcc : 0xff0055);
-
-            // Knockback impulse
             enemy.velocity.add(dirToEnemy.multiplyScalar(6.0));
 
             if (enemy.hp <= 0) {
@@ -834,7 +829,6 @@
       }
     });
 
-    // Touch Virtual Joystick
     const stick = { active: false, x: 0, y: 0 };
     const stickArea = document.getElementById('stick-area');
     const stickNub = document.getElementById('stick-nub');
@@ -870,7 +864,6 @@
       stickNub.style.transform = 'translate(-50%, -50%)';
     });
 
-    // Mobile Action Buttons
     document.getElementById('btn-slash').addEventListener('touchstart', (e) => {
       e.stopPropagation();
       triggerSlash();
@@ -964,184 +957,193 @@
     });
 
     /* ========================================================
-       Main Game Loop
+       Fixed Timestep Main Game Loop
        ======================================================== */
+    const FIXED_TIME_STEP = 1 / 60;
+    let accumulator = 0;
     let lastTime = performance.now();
+
+    function updateSimulation(delta) {
+      if (state !== GAME_STATE.PLAYING) return;
+
+      // 1. Movement & Input
+      let moveX = 0;
+      let moveZ = 0;
+
+      if (keys['KeyW'] || keys['ArrowUp']) moveZ -= 1;
+      if (keys['KeyS'] || keys['ArrowDown']) moveZ += 1;
+      if (keys['KeyA'] || keys['ArrowLeft']) moveX -= 1;
+      if (keys['KeyD'] || keys['ArrowRight']) moveX += 1;
+
+      if (stick.active) {
+        moveX = stick.x;
+        moveZ = stick.y;
+      }
+
+      const moveVec = new THREE.Vector2(moveX, moveZ);
+      if (moveVec.length() > 0.1) {
+        moveVec.normalize();
+        const targetAngle = Math.atan2(moveVec.x, moveVec.y) + Math.PI;
+        
+        let currRot = playerGroup.rotation.y;
+        let diff = targetAngle - currRot;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        playerGroup.rotation.y += diff * Math.min(1.0, delta * 18);
+
+        playerPhysics.velocity.x = moveVec.x * stats.moveSpeed;
+        playerPhysics.velocity.z = moveVec.y * stats.moveSpeed;
+      } else {
+        playerPhysics.velocity.x *= 0.8;
+        playerPhysics.velocity.z *= 0.8;
+      }
+
+      // Gravity & Position update
+      playerPhysics.velocity.y -= 32.0 * delta;
+      playerGroup.position.x += playerPhysics.velocity.x * delta;
+      playerGroup.position.y += playerPhysics.velocity.y * delta;
+      playerGroup.position.z += playerPhysics.velocity.z * delta;
+
+      // Raycasting Ground Collision Detection
+      playerPhysics.isGrounded = false;
+      raycaster.set(playerGroup.position.clone().add(new THREE.Vector3(0, 0.5, 0)), new THREE.Vector3(0, -1, 0));
+      const intersects = raycaster.intersectObjects(platforms);
+
+      if (intersects.length > 0) {
+        const hit = intersects[0];
+        const distToFloor = hit.distance;
+        if (playerPhysics.velocity.y <= 0 && distToFloor <= 0.75) {
+          playerGroup.position.y = hit.point.y + 0.6;
+          playerPhysics.velocity.y = 0;
+          playerPhysics.isGrounded = true;
+        }
+      }
+
+      if (playerGroup.position.y < -15) {
+        stats.hp = 0;
+        updateHUD();
+        triggerGameOver();
+      }
+
+      // Slash Animation & Active Frame Check
+      if (playerPhysics.isSlashing) {
+        playerPhysics.slashTime -= delta;
+        const progress = 1.0 - (playerPhysics.slashTime / 0.22);
+        katanaGroup.rotation.y = -Math.PI * 0.7 + progress * Math.PI * 1.4;
+
+        // Active frame trigger (around 30% to 60% of animation)
+        if (!playerPhysics.slashHitTriggered && progress >= 0.25 && progress <= 0.65) {
+          executeSlashHit();
+          playerPhysics.slashHitTriggered = true;
+        }
+
+        if (playerPhysics.slashTime <= 0) {
+          playerPhysics.isSlashing = false;
+          slashArcMat.opacity = 0;
+          katanaGroup.rotation.y = 0;
+        }
+      }
+
+      // Enemies Pursuit AI
+      enemies.forEach(enemy => {
+        const enemyPos = enemy.group.position;
+        const dir = playerGroup.position.clone().sub(enemyPos);
+        const dist = dir.length();
+
+        enemy.mesh.rotation.y += delta * 2.2;
+        enemy.mesh.rotation.x += delta * 1.6;
+
+        enemy.group.position.addScaledVector(enemy.velocity, delta);
+        enemy.velocity.multiplyScalar(0.9);
+
+        if (dist < 20) {
+          dir.y = 0;
+          dir.normalize();
+
+          const targetRot = Math.atan2(dir.x, dir.z);
+          let diff = targetRot - enemy.group.rotation.y;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          enemy.group.rotation.y += diff * Math.min(1.0, delta * 10);
+
+          enemy.group.position.add(dir.multiplyScalar(enemy.speed * delta));
+
+          if (dist < 1.3) {
+            stats.hp -= 22 * delta;
+            cameraShake = 0.35;
+            updateHUD();
+            if (stats.hp <= 0) triggerGameOver();
+          }
+        }
+      });
+
+      // Portal Check
+      if (portal) {
+        portal.rotation.z += delta * 1.8;
+        if (playerGroup.position.distanceTo(portal.position) < 2.2) {
+          showPerkSelection();
+        }
+      }
+
+      // Particles Update
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.mesh.position.addScaledVector(p.vel, delta);
+        p.vel.y -= 28.0 * delta;
+        p.life -= delta;
+        p.mesh.scale.multiplyScalar(0.94);
+
+        if (p.life <= 0) {
+          scene.remove(p.mesh);
+          particles.splice(i, 1);
+        }
+      }
+    }
 
     function animate(now) {
       requestAnimationFrame(animate);
-      const delta = Math.min((now - lastTime) / 1000, 0.1);
+      const rawDelta = (now - lastTime) / 1000;
       lastTime = now;
 
-      // Hitstop logic
       if (hitStopFrames > 0) {
         hitStopFrames--;
+        renderer.render(scene, camera);
         return;
       }
 
+      // Fixed timestep accumulation to guarantee robust physics across devices
+      accumulator += Math.min(rawDelta, 0.1);
+      while (accumulator >= FIXED_TIME_STEP) {
+        updateSimulation(FIXED_TIME_STEP);
+        accumulator -= FIXED_TIME_STEP;
+      }
+
       if (state === GAME_STATE.PLAYING) {
-        // --- 1. Movement & Input Processing ---
-        let moveX = 0;
-        let moveZ = 0;
-
-        if (keys['KeyW'] || keys['ArrowUp']) moveZ -= 1;
-        if (keys['KeyS'] || keys['ArrowDown']) moveZ += 1;
-        if (keys['KeyA'] || keys['ArrowLeft']) moveX -= 1;
-        if (keys['KeyD'] || keys['ArrowRight']) moveX += 1;
-
-        if (stick.active) {
-          moveX = stick.x;
-          moveZ = stick.y;
-        }
-
-        const moveVec = new THREE.Vector2(moveX, moveZ);
-        if (moveVec.length() > 0.1) {
-          moveVec.normalize();
-          const targetAngle = Math.atan2(moveVec.x, moveVec.y) + Math.PI;
-          
-          // Smooth rotation (Slerp-like angle interpolation)
-          let currRot = playerGroup.rotation.y;
-          let diff = targetAngle - currRot;
-          while (diff < -Math.PI) diff += Math.PI * 2;
-          while (diff > Math.PI) diff -= Math.PI * 2;
-          playerGroup.rotation.y += diff * Math.min(1.0, delta * 15);
-
-          playerPhysics.velocity.x = moveVec.x * stats.moveSpeed;
-          playerPhysics.velocity.z = moveVec.y * stats.moveSpeed;
-        } else {
-          playerPhysics.velocity.x *= 0.82;
-          playerPhysics.velocity.z *= 0.82;
-        }
-
-        // Gravity & Position update
-        playerPhysics.velocity.y -= 30.0 * delta;
-        playerGroup.position.x += playerPhysics.velocity.x * delta;
-        playerGroup.position.y += playerPhysics.velocity.y * delta;
-        playerGroup.position.z += playerPhysics.velocity.z * delta;
-
-        // --- 2. Raycasting Ground Collision Detection ---
-        playerPhysics.isGrounded = false;
-        raycaster.set(playerGroup.position.clone().add(new THREE.Vector3(0, 0.5, 0)), new THREE.Vector3(0, -1, 0));
-        const intersects = raycaster.intersectObjects(platforms);
-
-        if (intersects.length > 0) {
-          const hit = intersects[0];
-          const distToFloor = hit.distance;
-          // If falling and close enough to platform top surface
-          if (playerPhysics.velocity.y <= 0 && distToFloor <= 0.75) {
-            playerGroup.position.y = hit.point.y + 0.6;
-            playerPhysics.velocity.y = 0;
-            playerPhysics.isGrounded = true;
-          }
-        }
-
-        // Abyss Death Check
-        if (playerGroup.position.y < -15) {
-          stats.hp = 0;
-          updateHUD();
-          triggerGameOver();
-        }
-
-        // --- 3. Slash Animation ---
-        if (playerPhysics.isSlashing) {
-          playerPhysics.slashTime -= delta;
-          const progress = 1.0 - (playerPhysics.slashTime / 0.22);
-          katanaGroup.rotation.y = -Math.PI * 0.7 + progress * Math.PI * 1.4;
-
-          if (playerPhysics.slashTime <= 0) {
-            playerPhysics.isSlashing = false;
-            slashArcMat.opacity = 0;
-            katanaGroup.rotation.y = 0;
-          }
-        }
-
-        // --- 4. Enemies Momentum & Pursuit AI ---
-        enemies.forEach(enemy => {
-          const enemyPos = enemy.group.position;
-          const dir = playerGroup.position.clone().sub(enemyPos);
-          const dist = dir.length();
-
-          // Float animation
-          enemy.mesh.rotation.y += delta * 2.2;
-          enemy.mesh.rotation.x += delta * 1.6;
-
-          // Apply velocity momentum
-          enemy.group.position.addScaledVector(enemy.velocity, delta);
-          enemy.velocity.multiplyScalar(0.9); // friction
-
-          if (dist < 20) {
-            dir.y = 0;
-            dir.normalize();
-
-            // Smooth enemy rotation towards player
-            const targetRot = Math.atan2(dir.x, dir.z);
-            let diff = targetRot - enemy.group.rotation.y;
-            while (diff < -Math.PI) diff += Math.PI * 2;
-            while (diff > Math.PI) diff -= Math.PI * 2;
-            enemy.group.rotation.y += diff * Math.min(1.0, delta * 8);
-
-            enemy.group.position.add(dir.multiplyScalar(enemy.speed * delta));
-
-            // Enemy Attack collision
-            if (dist < 1.3) {
-              stats.hp -= 22 * delta;
-              cameraShake = 0.35;
-              updateHUD();
-              if (stats.hp <= 0) triggerGameOver();
-            }
-          }
-        });
-
-        // --- 5. Portal Check ---
-        if (portal) {
-          portal.rotation.z += delta * 1.8;
-          if (playerGroup.position.distanceTo(portal.position) < 2.2) {
-            showPerkSelection();
-          }
-        }
-
-        // --- 6. Particles Update ---
-        for (let i = particles.length - 1; i >= 0; i--) {
-          const p = particles[i];
-          p.mesh.position.addScaledVector(p.vel, delta);
-          p.vel.y -= 28.0 * delta;
-          p.life -= delta;
-          p.mesh.scale.multiplyScalar(0.94);
-
-          if (p.life <= 0) {
-            scene.remove(p.mesh);
-            particles.splice(i, 1);
-          }
-        }
-
-        // --- 7. Camera Follow & Dynamic Shake ---
+        // Camera Follow & Dynamic Shake
         const idealOffset = new THREE.Vector3(0, 7.5, 9.5);
         const camTarget = playerGroup.position.clone().add(idealOffset);
-        camera.position.lerp(camTarget, 0.1);
+        camera.position.lerp(camTarget, 0.12);
 
         let lookAtTarget = playerGroup.position.clone();
         if (cameraShake > 0) {
           camera.position.x += (Math.random() - 0.5) * cameraShake;
           camera.position.y += (Math.random() - 0.5) * cameraShake;
-          cameraShake = Math.max(0, cameraShake - delta * 2.5);
+          cameraShake = Math.max(0, cameraShake - rawDelta * 2.5);
         }
         camera.lookAt(lookAtTarget);
 
-        // Dynamic light follows player
         pointLight.position.copy(playerGroup.position).add(new THREE.Vector3(0, 2, 0));
       }
 
       renderer.render(scene, camera);
     }
 
-    // Window Resize Handler
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Run Render Loop
     requestAnimationFrame(animate);
   </script>
 </body>
