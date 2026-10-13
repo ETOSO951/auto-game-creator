@@ -184,7 +184,7 @@
 
     .boss-hud {
       position: absolute;
-      top: 135px;
+      top: 155px;
       left: 50%;
       transform: translateX(-50%);
       width: 480px;
@@ -1349,49 +1349,56 @@
       triggerGlitchEffect();
       triggerHitFlash();
       
-      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：極上演出＆多重重力ブラックホール全画面一掃・全弾薬消去・HP大回復
-      stats.invulnerableTimer = 5.0;
-      stats.hp = Math.min(stats.maxHp, stats.hp + 120);
+      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：圧倒的演出・全画面一掃・完全無敵＆HP大回復
+      stats.invulnerableTimer = 6.0;
+      stats.hp = Math.min(stats.maxHp, stats.hp + 150);
+      updateHUD();
       const pPos = playerPhysics.position.clone();
       
-      for (let k = 0; k < 12; k++) {
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*6, 0, (Math.random()-0.5)*6)), 0x00ffff);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*6, 0, (Math.random()-0.5)*6)), 0xff0055);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*6, 0, (Math.random()-0.5)*6)), 0xffaa00);
+      for (let k = 0; k < 18; k++) {
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*8, 0, (Math.random()-0.5)*8)), 0x00ffff);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*8, 0, (Math.random()-0.5)*8)), 0xff0055);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*8, 0, (Math.random()-0.5)*8)), 0xffaa00);
       }
 
-      cameraShake = 8.0;
-      hitStopFrames = 90; // さらにドラマチックなヒットストップ
+      cameraShake = 10.0;
+      hitStopFrames = 100;
 
-      const novaGeo = new THREE.RingGeometry(0.5, 75, 64);
+      const novaGeo = new THREE.RingGeometry(0.5, 90, 64);
       novaGeo.rotateX(-Math.PI / 2);
       const novaMesh = new THREE.Mesh(novaGeo, new THREE.MeshBasicMaterial({
-        color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.98
+        color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.99
       }));
       novaMesh.position.set(pPos.x, pPos.y + 0.15, pPos.z);
       scene.add(novaMesh);
-      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 120.0, speed: 90.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 140.0, speed: 110.0, platform: playerPhysics.currentPlatform });
 
-      const novaGeo2 = new THREE.RingGeometry(0.5, 55, 48);
+      const novaGeo2 = new THREE.RingGeometry(0.5, 70, 48);
       novaGeo2.rotateX(-Math.PI / 2);
       const novaMesh2 = new THREE.Mesh(novaGeo2, new THREE.MeshBasicMaterial({
-        color: 0xff0077, side: THREE.DoubleSide, transparent: true, opacity: 0.95
+        color: 0xff0077, side: THREE.DoubleSide, transparent: true, opacity: 0.98
       }));
       novaMesh2.position.set(pPos.x, pPos.y + 0.2, pPos.z);
       scene.add(novaMesh2);
-      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 95.0, speed: 75.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 110.0, speed: 90.0, platform: playerPhysics.currentPlatform });
 
       enemies.forEach((e, idx) => {
         const dist = e.position.distanceTo(pPos);
-        if (dist <= 75.0) {
+        if (dist <= 90.0) {
           const pullDir = pPos.clone().sub(e.position);
           pullDir.y = 0;
           e.position.add(pullDir.multiplyScalar(0.99));
+          // プラットフォーム上の範囲内に確実にクランプ
+          const u = e.platform;
+          if (u) {
+            e.position.x = Math.max(u.x - u.w / 2 + 0.6, Math.min(u.x + u.w / 2 - 0.6, e.position.x));
+            e.position.z = Math.max(u.z - u.d / 2 + 0.6, Math.min(u.z + u.d / 2 - 0.6, e.position.z));
+          }
 
-          e.hp -= stats.slashDamage * 18.0;
+          e.hp -= stats.slashDamage * 25.0;
           spawnParticles(e.position, 0x00ffcc);
           if (e.hp <= 0) {
-            stats.score += 2000;
+            stats.score += 2500;
             scene.remove(e.group);
             enemies.splice(idx, 1);
           }
@@ -1400,15 +1407,15 @@
 
       if (boss) {
         const bDist = boss.position.distanceTo(pPos);
-        if (bDist <= 80.0) {
-          boss.hp -= stats.slashDamage * 12.5;
+        if (bDist <= 100.0) {
+          boss.hp -= stats.slashDamage * 16.0;
           const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
           document.getElementById('boss-hp-bar').style.width = `${pct}%`;
           document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
 
           if (boss.hp <= 0) {
-            stats.score += 8000;
-            showFeed('BOSS ANNIHILATED +8000');
+            stats.score += 10000;
+            showFeed('BOSS ANNIHILATED +10000');
             scene.remove(boss.group);
             boss = null;
             document.getElementById('boss-hud').classList.remove('active');
@@ -2227,6 +2234,11 @@
         e.position.y = e.floorY + 0.75 + Math.sin(performance.now() * 0.008 + e.position.x) * 0.22;
         e.mesh.rotation.y += delta * 3.0;
         e.mesh.rotation.x += delta * 1.5;
+        // プラットフォームから絶対にはみ出さないよう厳密にクランプ処理
+        if (u) {
+          e.position.x = Math.max(u.x - u.w / 2 + 0.6, Math.min(u.x + u.w / 2 - 0.6, e.position.x));
+          e.position.z = Math.max(u.z - u.d / 2 + 0.6, Math.min(u.z + u.d / 2 - 0.6, e.position.z));
+        }
         e.group.position.copy(e.position);
       }
 
