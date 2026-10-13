@@ -184,35 +184,55 @@
 
     .boss-hud {
       position: absolute;
-      top: 90px;
+      top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      width: 420px;
-      max-width: 85%;
-      background: rgba(10, 5, 18, 0.95);
-      border: 2px solid rgba(255, 0, 85, 0.95);
-      border-radius: 12px;
-      padding: 8px 18px;
+      width: 480px;
+      max-width: 88%;
+      background: rgba(12, 6, 22, 0.96);
+      border: 2px solid rgba(255, 0, 85, 0.98);
+      border-radius: 14px;
+      padding: 10px 20px;
       display: none;
       flex-direction: column;
-      gap: 4px;
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      box-shadow: 0 12px 40px rgba(255, 0, 85, 0.7);
-      z-index: 60;
+      gap: 5px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 14px 45px rgba(255, 0, 85, 0.75);
+      z-index: 70;
       animation: bossHudPulse 1.2s ease infinite alternate;
     }
 ====
     @media (max-width: 768px) {
       .boss-hud {
-        top: 12px;
+        top: 140px;
         left: 50%;
         transform: translateX(-50%);
-        width: 92%;
-        max-width: 92%;
-        padding: 6px 12px;
-        z-index: 60;
+        width: 94%;
+        max-width: 94%;
+        padding: 6px 14px;
+        z-index: 70;
       }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        padding-top: 6px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 6px 10px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
 ====
     @media (max-width: 768px) {
       .boss-hud {
@@ -230,14 +250,34 @@
     }
     @media (max-width: 768px) {
       .boss-hud {
-        top: 12px;
+        top: 140px;
         left: 50%;
         transform: translateX(-50%);
-        width: 92%;
-        max-width: 92%;
-        padding: 6px 12px;
-        z-index: 60;
+        width: 94%;
+        max-width: 94%;
+        padding: 6px 14px;
+        z-index: 70;
       }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        padding-top: 6px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 6px 10px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
       .hud-top {
         flex-direction: column;
         align-items: stretch;
@@ -1461,20 +1501,31 @@
         const dot = fwd.dot(toEnemy.clone().normalize());
 
         if (dist <= stats.slashRange && dot > 0.05 && Math.abs(toEnemy.y) < 2.0) {
-          if (e.shieldActive) {
+          // ジャストパリィシステム：敵の攻撃警告中にタイミングよく斬撃を合わせるとカウンターパリィ発動！
+          if (e.isWarning && e.warningTimer > 0 && e.warningTimer < 0.2) {
+            audio.play('slash');
+            cameraShake = 0.8;
+            triggerGlitchEffect();
+            triggerHitFlash();
+            spawnParticles(e.position, 0xffaa00);
+            showFeed('✨ JUST PARRY COUNTER!');
+            e.hp -= currentDmg * 3.0;
+            e.isWarning = false;
+            e.shieldActive = false;
+          } else if (e.shieldActive) {
             audio.play('hit');
             spawnParticles(e.position.clone(), 0x0088ff);
             showFeed('SHIELD BLOCKED');
             e.shieldActive = false;
             continue;
+          } else {
+            e.hp -= currentDmg;
+            audio.play('hit');
+            hitStopFrames = stats.weaponType === 'odachi' ? 8 : 4;
+            cameraShake = 0.3;
+            triggerGlitchEffect();
+            spawnParticles(e.position.clone(), 0x00ffcc);
           }
-
-          e.hp -= currentDmg;
-          audio.play('hit');
-          hitStopFrames = stats.weaponType === 'odachi' ? 8 : 4;
-          cameraShake = 0.3;
-          triggerGlitchEffect();
-          spawnParticles(e.position.clone(), 0x00ffcc);
 
           // プラズマ爆発Perkによるチェイン爆発効果
           if (stats.perks.plasmaExplosion) {
@@ -1622,16 +1673,16 @@
     }, { passive: false });
 
     const PERKS = [
-      { name: '【進撃】オーバークロック・セイバー', desc: '斬撃ダメージが60%増加し、さらに刃のリーチと衝撃範囲が拡大する。武器オーラが真紅に進化', synergy: '🔥 ASSAULT BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.6); stats.slashRange *= 1.3; bladeMat.color.set(0xff0055); bladeMat.emissive.set(0xff0055); } },
-      { name: '【機動】クアンタム・リープ', desc: '移動速度が45%上昇し、スキルのクールダウンがさらに高速化する', synergy: '⚡ AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.45; stats.skillMaxCooldown = Math.max(0.8, stats.skillMaxCooldown * 0.45); } },
-      { name: '【再生】ナノマシン・リジェネ', desc: '最大HPが100増加し、即座にバイタル（HP）が完全回復する', synergy: '🛡️ SURVIVAL BUILD', apply: () => { stats.maxHp += 100; stats.hp = stats.maxHp; } },
-      { name: '【吸血】サイバー・ヴァンパイア', desc: '敵撃破時にHPが60回復し、さらに攻撃範囲・スピードがシナジー強化される', synergy: '🧛 VAMPIRIC BUILD', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 60); stats.perks.vampirism = true; stats.slashDamage = Math.round(stats.slashDamage * 1.25); } },
-      { name: '【爆発】プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む超強力チェインプラズマ爆発が発生する', synergy: '💥 EXPLOSIVE BUILD', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.4); } },
-      { name: '【追尾】ホーミング・プラズマブレード', desc: '斬撃時に前方に敵をどこまでも自動追尾するプラズマエナジー弾が連続放射される', synergy: '🎯 HOMING BUILD', apply: () => { stats.perks.homingBlade = true; stats.slashDamage = Math.round(stats.slashDamage * 1.15); } },
-      { name: '【急降下】メテオ・スラッシュ・ドライブ', desc: '空中ジャンプからの急降下下方向斬撃が、全画面級の巨大メテオスマッシュに進化する', synergy: '☄️ METEOR BUILD', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.4; } },
-      { name: '【防御】ネクサス・シールドバリア', desc: '受けるダメージを50%軽減し、さらに敵の弾丸を高確率で自動弾き返すシールドを展開', synergy: '🛡️ SHIELD BUILD', apply: () => { stats.maxHp += 50; stats.hp = Math.min(stats.maxHp, stats.hp + 50); stats.perks.shieldReflect = true; } },
-      { name: '【支援】デュアル・オービタルドローン', desc: 'プレイヤーの周囲を高速旋回し、接近する敵を全自動レーザーで連続迎撃するドローンが2機に増加', synergy: '🤖 DRONE BUILD', apply: () => { stats.perks.orbitalDrone = true; const dg = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 3.5})); scene.add(dg); orbitalDroneMesh = dg; } },
-      { name: '【神速】サイバー・オーバードライブ', desc: '全ステータス（攻撃力・機動力・スキル回転率）が限界突破し、無類の強さを誇る。武器オーラが金色に輝く', synergy: '🌟 OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.5); stats.moveSpeed *= 1.35; stats.skillMaxCooldown = Math.max(0.6, stats.skillMaxCooldown * 0.4); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); } }
+      { id: 'assault', name: '【進撃】オーバークロック・セイバー', desc: '斬撃ダメージが60%増加し、さらに刃のリーチと衝撃範囲が拡大する。', synergy: '🔥 ASSAULT BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.6); stats.slashRange *= 1.3; bladeMat.color.set(0xff0055); bladeMat.emissive.set(0xff0055); } },
+      { id: 'agility', name: '【機動】クアンタム・リープ', desc: '移動速度が45%上昇し、スキルのクールダウンがさらに高速化する', synergy: '⚡ AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.45; stats.skillMaxCooldown = Math.max(0.8, stats.skillMaxCooldown * 0.45); } },
+      { id: 'survival', name: '【再生】ナノマシン・リジェネ', desc: '最大HPが100増加し、即座にバイタル（HP）が完全回復する', synergy: '🛡️ SURVIVAL BUILD', apply: () => { stats.maxHp += 100; stats.hp = stats.maxHp; } },
+      { id: 'vampirism', name: '【吸血】サイバー・ヴァンパイア', desc: '敵撃破時にHPが60回復し、さらに攻撃範囲・スピードがシナジー強化される', synergy: '🧛 VAMPIRIC BUILD', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 60); stats.perks.vampirism = true; stats.slashDamage = Math.round(stats.slashDamage * 1.25); } },
+      { id: 'plasma', name: '【爆発】プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む超強力チェインプラズマ爆発が発生する', synergy: '💥 EXPLOSIVE BUILD', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.4); } },
+      { id: 'homing', name: '【追尾】ホーミング・プラズマブレード', desc: '斬撃時に前方に敵をどこまでも自動追尾するプラズマエナジー弾が連続放射される', synergy: '🎯 HOMING BUILD', apply: () => { stats.perks.homingBlade = true; stats.slashDamage = Math.round(stats.slashDamage * 1.15); } },
+      { id: 'meteor', name: '【急降下】メテオ・スラッシュ・ドライブ', desc: '空中ジャンプからの急降下下方向斬撃が、全画面級の巨大メテオスマッシュに進化する', synergy: '☄️ METEOR BUILD', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.4; } },
+      { id: 'shield', name: '【防御】ネクサス・シールドバリア', desc: '受けるダメージを50%軽減し、さらに敵の弾丸を高確率で自動弾き返すシールドを展開', synergy: '🛡️ SHIELD BUILD', apply: () => { stats.maxHp += 50; stats.hp = Math.min(stats.maxHp, stats.hp + 50); stats.perks.shieldReflect = true; } },
+      { id: 'drone', name: '【支援】デュアル・オービタルドローン', desc: 'プレイヤーの周囲を高速旋回し、接近する敵を全自動レーザーで連続迎撃するドローンが2機に増加', synergy: '🤖 DRONE BUILD', apply: () => { stats.perks.orbitalDrone = true; const dg = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 3.5})); scene.add(dg); orbitalDroneMesh = dg; } },
+      { id: 'overdrive', name: '【神速】サイバー・オーバードライブ', desc: '全ステータス（攻撃力・機動力・スキル回転率）が限界突破し、無類の強さを誇る。', synergy: '🌟 OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.5); stats.moveSpeed *= 1.35; stats.skillMaxCooldown = Math.max(0.6, stats.skillMaxCooldown * 0.4); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); } }
     ];
 
     function showPerkScreen() {
@@ -1654,6 +1705,14 @@
         `;
         card.onclick = () => {
           perk.apply();
+          // シナジーコンボボーナス判定：特定パークの組み合わせで追加強力効果を発動
+          if (stats.perks.vampirism && stats.perks.plasmaExplosion) {
+            stats.slashDamage = Math.round(stats.slashDamage * 1.3);
+            showFeed('⚡ SYNERGY COMBO: BLOOD PLASMA OVERLOAD!');
+          } else if (stats.perks.homingBlade && stats.perks.meteorSlash) {
+            stats.slashRange *= 1.25;
+            showFeed('☄️ SYNERGY COMBO: METEOR HOMING STORM!');
+          }
           stats.floor++;
           screen.classList.add('hidden');
           generateStage(stats.floor);
