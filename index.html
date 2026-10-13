@@ -184,7 +184,7 @@
 
     .boss-hud {
       position: absolute;
-      top: 175px;
+      top: 135px;
       left: 50%;
       transform: translateX(-50%);
       width: 480px;
@@ -201,6 +201,16 @@
       box-shadow: 0 14px 45px rgba(255, 0, 85, 0.75);
       z-index: 70;
       animation: bossHudPulse 1.2s ease infinite alternate;
+      transition: top 0.3s ease;
+    }
+    /* ボス戦中のトップHUD干渉防止：ボス出現時は上部パネルをコンパクトにしHPバーが絶対に見切れないようにする */
+    body.boss-active .hud-top {
+      transform: scale(0.95);
+      transform-origin: top center;
+    }
+    body.boss-active .unified-panel {
+      width: 220px;
+      padding: 8px 12px;
     }
 ====
     @media (max-width: 768px) {
@@ -834,7 +844,7 @@
     let orbitalDroneMesh = null;
 
     let enemies = [], projectiles = [], shockwaves = [], particles = [], platforms = [], boss = null, portal = null;
-    let cameraShake = 0, hitStopFrames = 0;
+    let cameraShake = 0, hitStopFrames = 0, bulletTimeTimer = 0;
 
     const BIOMES = [
       { name: 'NEON GRID', color: 0x182642, basePlate: 0x283d65, lightColor: 0x00ffcc, edgeColor: 0x00ffcc },
