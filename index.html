@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>斬影 - ZANEI: 3D CYBER SLASH</title>
+  <title>斬影 - ZANEI: 3D CYBER SLASH (Remastered)</title>
   <style>
     :root {
       --bg: #060810;
@@ -415,7 +415,7 @@
 
   <script>
     /* ========================================================
-       Audio Synthesizer (Web Audio API)
+       1. SoundFX Synthesizer (Web Audio API)
        ======================================================== */
     class SoundFX {
       constructor() {
@@ -504,7 +504,42 @@
     const audio = new SoundFX();
 
     /* ========================================================
-       Game Engine & Three.js Setup
+       2. Input Buffer System (厳密なフレームベース先行入力キュー)
+       ======================================================== */
+    class InputBufferSystem {
+      constructor() {
+        this.actions = {
+          slash: 0,
+          jump: 0
+        };
+        this.framesValid = 9; // ~150ms at 60fps
+      }
+      push(actionName) {
+        this.actions[actionName] = this.framesValid;
+      }
+      consume(actionName) {
+        if (this.actions[actionName] > 0) {
+          this.actions[actionName] = 0;
+          return true;
+        }
+        return false;
+      }
+      update() {
+        for (let key in this.actions) {
+          if (this.actions[key] > 0) {
+            this.actions[key]--;
+          }
+        }
+      }
+      clear() {
+        this.actions.slash = 0;
+        this.actions.jump = 0;
+      }
+    }
+    const inputBuffer = new InputBufferSystem();
+
+    /* ========================================================
+       3. Game Engine Setup (Three.js & World States)
        ======================================================== */
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
@@ -519,7 +554,6 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
-    // Lightings
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
@@ -533,9 +567,6 @@
     const pointLight = new THREE.PointLight(0xff0055, 1.5, 30);
     scene.add(pointLight);
 
-    /* ========================================================
-       Game State & Rogue Attributes
-       ======================================================== */
     const GAME_STATE = {
       TITLE: 0,
       PLAYING: 1,
@@ -563,59 +594,37 @@
     let hitStopFrames = 0;
     const raycaster = new THREE.Raycaster();
 
-    // Input Buffer (先行入力システム)
-    const inputBuffer = {
-      slash: 0,
-      jump: 0,
-      bufferTime: 0.15 // 150ms buffering
-    };
-
     /* ========================================================
-       Player Mesh & Interpolation Setup
+       4. Player Mesh & Interpolated Physics Setup
        ======================================================== */
     const playerGroup = new THREE.Group();
     scene.add(playerGroup);
 
-    // Body
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a2233, roughness: 0.2, metalness: 0.8 });
-    const bodyGeom = new THREE.CylinderGeometry(0.3, 0.2, 1.2, 8);
-    const bodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
+    const bodyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.2, 1.2, 8), bodyMat);
     bodyMesh.castShadow = true;
     bodyMesh.position.y = 0.6;
     playerGroup.add(bodyMesh);
 
-    // Neon Core
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
-    const coreMesh = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), coreMat);
+    const coreMesh = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), new THREE.MeshBasicMaterial({ color: 0x00ffcc }));
     coreMesh.position.set(0, 0.7, 0.2);
     playerGroup.add(coreMesh);
 
-    // Katana Rig
     const katanaGroup = new THREE.Group();
     katanaGroup.position.set(0.4, 0.6, 0);
-    const bladeGeom = new THREE.BoxGeometry(0.04, 1.2, 0.08);
-    const bladeMat = new THREE.MeshStandardMaterial({
-      color: 0x00ffcc,
-      emissive: 0x00ffcc,
-      emissiveIntensity: 0.9,
-      roughness: 0.1
-    });
-    const bladeMesh = new THREE.Mesh(bladeGeom, bladeMat);
+    const bladeMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 1.2, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0x00ffcc, emissive: 0x00ffcc, emissiveIntensity: 0.9, roughness: 0.1 })
+    );
     bladeMesh.position.set(0, 0.5, 0.3);
     bladeMesh.rotation.x = Math.PI / 4;
     katanaGroup.add(bladeMesh);
     playerGroup.add(katanaGroup);
 
-    // Slash Arc Visual
-    const slashArcGeom = new THREE.RingGeometry(1.4, 3.6, 20, 1, 0, Math.PI * 0.95);
-    const slashArcMat = new THREE.MeshBasicMaterial({
-      color: 0x00ffcc,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0,
-      blending: THREE.AdditiveBlending
-    });
-    const slashArc = new THREE.Mesh(slashArcGeom, slashArcMat);
+    const slashArc = new THREE.Mesh(
+      new THREE.RingGeometry(1.4, 3.6, 20, 1, 0, Math.PI * 0.95),
+      new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0, blending: THREE.AdditiveBlending })
+    );
     slashArc.rotation.x = Math.PI / 2;
     slashArc.position.y = 0.6;
     playerGroup.add(slashArc);
@@ -633,14 +642,12 @@
     };
 
     /* ========================================================
-       Level Generator
+       5. Stage & Level Builder
        ======================================================== */
     function clearLevel() {
       platforms.forEach(p => scene.remove(p));
       platforms = [];
-      enemies.forEach(e => {
-        scene.remove(e.group);
-      });
+      enemies.forEach(e => scene.remove(e.group));
       enemies = [];
       if (portal) {
         scene.remove(portal);
@@ -649,13 +656,7 @@
     }
 
     function createPlatform(x, y, z, w, h, d, color = 0x131929) {
-      const geom = new THREE.BoxGeometry(w, h, d);
-      const mat = new THREE.MeshStandardMaterial({
-        color: color,
-        roughness: 0.5,
-        metalness: 0.5
-      });
-      const mesh = new THREE.Mesh(geom, mat);
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.5 }));
       mesh.position.set(x, y, z);
       mesh.receiveShadow = true;
       mesh.castShadow = true;
@@ -666,7 +667,6 @@
 
     function generateStage(floorNumber) {
       clearLevel();
-
       createPlatform(0, -0.5, 0, 12, 1, 12, 0x161e33);
       playerPhysics.position.set(0, 2, 0);
       playerPhysics.prevPosition.copy(playerPhysics.position);
@@ -704,40 +704,28 @@
       currPos.z -= 11;
       createPlatform(currPos.x, currPos.y, currPos.z, 8, 1, 8, 0x1e304f);
 
-      const portalGeom = new THREE.TorusGeometry(1.8, 0.25, 16, 32);
-      const portalMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
-      portal = new THREE.Mesh(portalGeom, portalMat);
+      portal = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.25, 16, 32), new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true }));
       portal.position.set(currPos.x, currPos.y + 2.6, currPos.z);
       scene.add(portal);
     }
 
-    /* ========================================================
-       Enemies & Interpolation Data
-       ======================================================== */
     function spawnEnemy(x, y, z) {
       const group = new THREE.Group();
       group.position.set(x, y, z);
 
-      const bodyMat = new THREE.MeshStandardMaterial({
-        color: 0xff0055,
-        roughness: 0.2,
-        metalness: 0.8
-      });
-      const geom = new THREE.OctahedronGeometry(0.75, 0);
-      const mesh = new THREE.Mesh(geom, bodyMat);
+      const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.75, 0), new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.2, metalness: 0.8 }));
       mesh.castShadow = true;
       group.add(mesh);
 
-      const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), eyeMat);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
       eye.position.set(0, 0, 0.5);
       group.add(eye);
 
       scene.add(group);
 
       enemies.push({
-        group: group,
-        mesh: mesh,
+        group,
+        mesh,
         position: new THREE.Vector3(x, y, z),
         prevPosition: new THREE.Vector3(x, y, z),
         hp: 60 + stats.floor * 18,
@@ -747,16 +735,8 @@
     }
 
     /* ========================================================
-       Slash & Dynamic Hitbox (Swept/Multi-sample Collision)
+       6. Advanced Swept Collision & Hitstop Pipeline
        ======================================================== */
-    function requestSlash() {
-      inputBuffer.slash = inputBuffer.bufferTime;
-    }
-
-    function requestJump() {
-      inputBuffer.jump = inputBuffer.bufferTime;
-    }
-
     function triggerSlash() {
       if (playerPhysics.isSlashing) return;
       playerPhysics.isSlashing = true;
@@ -765,33 +745,29 @@
 
       audio.playSlash();
 
-      slashArcMat.opacity = 0.85;
+      slashArc.material.opacity = 0.85;
       slashArc.scale.set(stats.slashRange * 0.55, stats.slashRange * 0.55, 1);
       katanaGroup.rotation.y = -Math.PI * 0.7;
     }
 
-    // Active Frame with Multi-point Swept Collision
     function executeSlashHit() {
       const playerPos = playerPhysics.position;
       const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerPhysics.rotationY);
 
-      // サンプリングポイント生成（プレイヤー前方から刀の先端にかけて複数の球体領域で当たり判定）
+      // Multi-sample Swept Spheres for precise hitbox coverage
       const samplePoints = [];
-      const numSamples = 4;
+      const numSamples = 5;
       for (let i = 1; i <= numSamples; i++) {
         const ratio = i / numSamples;
-        const pt = playerPos.clone().add(forward.clone().multiplyScalar(stats.slashRange * ratio));
-        samplePoints.push(pt);
+        samplePoints.push(playerPos.clone().add(forward.clone().multiplyScalar(stats.slashRange * ratio)));
       }
 
       enemies.forEach((enemy, idx) => {
         const enemyPos = enemy.position;
-        const heightDiff = Math.abs(enemyPos.y - playerPos.y);
-
-        if (heightDiff < 2.2) {
+        if (Math.abs(enemyPos.y - playerPos.y) < 2.5) {
           let hitDetected = false;
           for (let pt of samplePoints) {
-            if (pt.distanceTo(enemyPos) <= 1.5) {
+            if (pt.distanceTo(enemyPos) <= 1.6) {
               hitDetected = true;
               break;
             }
@@ -803,12 +779,12 @@
             enemy.hp -= damage;
 
             audio.playHit();
-            hitStopFrames = 5;
+            hitStopFrames = 6; // Hitstop frame duration
             cameraShake = 0.45;
             spawnBloodParticles(enemyPos.clone(), isCrit ? 0x00ffcc : 0xff0055);
             
-            const dirToEnemy = enemyPos.clone().sub(playerPos).normalize();
-            enemy.velocity.add(dirToEnemy.multiplyScalar(6.0));
+            const knockbackDir = enemyPos.clone().sub(playerPos).normalize();
+            enemy.velocity.add(knockbackDir.multiplyScalar(7.0));
 
             if (enemy.hp <= 0) {
               stats.score += 100 * stats.floor;
@@ -830,11 +806,10 @@
     }
 
     function spawnBloodParticles(pos, colorHex) {
-      const count = 20;
       const geom = new THREE.BoxGeometry(0.12, 0.12, 0.12);
       const mat = new THREE.MeshBasicMaterial({ color: colorHex });
 
-      for (let i = 0; i < count; i++) {
+      for (let i = 0; i < 20; i++) {
         const p = new THREE.Mesh(geom, mat);
         p.position.copy(pos);
         const vel = new THREE.Vector3(
@@ -843,25 +818,25 @@
           (Math.random() - 0.5) * 14
         );
         scene.add(p);
-        particles.push({ mesh: p, vel: vel, life: 0.65 });
+        particles.push({ mesh: p, vel, life: 0.65 });
       }
     }
 
     /* ========================================================
-       Inputs: Touch & Keyboard
+       7. Input Event Listeners & Touch Controls
        ======================================================== */
     const keys = {};
     window.addEventListener('keydown', e => {
       keys[e.code] = true;
       if (state === GAME_STATE.PLAYING) {
-        if (e.code === 'KeyJ' || e.code === 'KeyF') requestSlash();
-        if (e.code === 'Space') requestJump();
+        if (e.code === 'KeyJ' || e.code === 'KeyF') inputBuffer.push('slash');
+        if (e.code === 'Space') inputBuffer.push('jump');
       }
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
     window.addEventListener('pointerdown', e => {
       if (state === GAME_STATE.PLAYING && e.target.tagName !== 'BUTTON') {
-        requestSlash();
+        inputBuffer.push('slash');
       }
     });
 
@@ -902,19 +877,19 @@
 
     document.getElementById('btn-slash').addEventListener('touchstart', (e) => {
       e.stopPropagation();
-      requestSlash();
+      inputBuffer.push('slash');
     });
     document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
       e.stopPropagation();
-      requestJump();
+      inputBuffer.push('jump');
     });
 
     /* ========================================================
-       Roguelike Perks Pool
+       8. Roguelike Upgrades & HUD Management
        ======================================================== */
     const PERK_DEFINITIONS = [
       { id: 'dmg', name: '波動刃エンハンス', desc: '基本斬撃攻撃力が 25% 向上', apply: () => stats.slashDamage = Math.round(stats.slashDamage * 1.25) },
-      { id: 'range', name: 'サイバーレンジ拡大', desc: '斬撃リーチが +20% 拡大し巻き込みやすくなる', apply: () => stats.slashRange *= 1.2 },
+      { id: 'range', name: 'サイバーレンジ拡大', desc: '斬撃リーチが +20% 拡大', apply: () => stats.slashRange *= 1.2 },
       { id: 'speed', name: 'アクセラレータ', desc: '走行速度が 15% 上昇', apply: () => stats.moveSpeed *= 1.15 },
       { id: 'crit', name: 'フェイタルリンク', desc: 'クリティカル率 +15%', apply: () => stats.critChance += 0.15 },
       { id: 'heal', name: 'ナノリペア修復', desc: 'HPを 50 回復し、最大HP +25', apply: () => { stats.maxHp += 25; stats.hp = Math.min(stats.maxHp, stats.hp + 50); } }
@@ -925,8 +900,8 @@
       audio.playClear();
 
       const screen = document.getElementById('screen-perk');
-      const container = document.getElementById('perk-list');
-      container.innerHTML = '';
+      const perkContainer = document.getElementById('perk-list');
+      perkContainer.innerHTML = '';
 
       const shuffled = [...PERK_DEFINITIONS].sort(() => 0.5 - Math.random()).slice(0, 3);
       shuffled.forEach(perk => {
@@ -941,15 +916,12 @@
           updateHUD();
           state = GAME_STATE.PLAYING;
         };
-        container.appendChild(card);
+        perkContainer.appendChild(card);
       });
 
       screen.classList.remove('hidden');
     }
 
-    /* ========================================================
-       HUD & State Managers
-       ======================================================== */
     function updateHUD() {
       const hpPct = Math.max(0, (stats.hp / stats.maxHp) * 100);
       document.getElementById('hp-bar').style.width = `${hpPct}%`;
@@ -973,6 +945,7 @@
       stats.slashRange = 3.8;
       stats.critChance = 0.12;
 
+      inputBuffer.clear();
       updateHUD();
       generateStage(stats.floor);
       document.getElementById('screen-start').classList.add('hidden');
@@ -980,16 +953,11 @@
       state = GAME_STATE.PLAYING;
     }
 
-    document.getElementById('btn-start').addEventListener('click', () => {
-      audio.init();
-      resetGame();
-    });
-    document.getElementById('btn-restart').addEventListener('click', () => {
-      resetGame();
-    });
+    document.getElementById('btn-start').addEventListener('click', () => { audio.init(); resetGame(); });
+    document.getElementById('btn-restart').addEventListener('click', () => { resetGame(); });
 
     /* ========================================================
-       Fixed Timestep Simulation & Interpolation Main Loop
+       9. Main Game Loop with Fixed Timestep & Interpolation
        ======================================================== */
     const FIXED_TIME_STEP = 1 / 60;
     let accumulator = 0;
@@ -998,22 +966,16 @@
     function updateSimulation(delta) {
       if (state !== GAME_STATE.PLAYING) return;
 
-      // Decrement Input Buffers
-      if (inputBuffer.slash > 0) inputBuffer.slash -= delta;
-      if (inputBuffer.jump > 0) inputBuffer.jump -= delta;
+      inputBuffer.update();
 
-      // Store previous positions for interpolation
+      // Store previous states for precise interpolation
       playerPhysics.prevPosition.copy(playerPhysics.position);
       playerPhysics.prevRotationY = playerPhysics.rotationY;
+      enemies.forEach(e => e.prevPosition.copy(e.position));
 
-      enemies.forEach(e => {
-        e.prevPosition.copy(e.position);
-      });
-
-      // 1. Movement & Input
+      // Input Movement Vectors
       let moveX = 0;
       let moveZ = 0;
-
       if (keys['KeyW'] || keys['ArrowUp']) moveZ -= 1;
       if (keys['KeyS'] || keys['ArrowDown']) moveZ += 1;
       if (keys['KeyA'] || keys['ArrowLeft']) moveX -= 1;
@@ -1028,7 +990,6 @@
       if (moveVec.length() > 0.1) {
         moveVec.normalize();
         const targetAngle = Math.atan2(moveVec.x, moveVec.y) + Math.PI;
-        
         let diff = targetAngle - playerPhysics.rotationY;
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
@@ -1041,29 +1002,25 @@
         playerPhysics.velocity.z *= 0.8;
       }
 
-      // Process Buffered Jump
-      if (inputBuffer.jump > 0 && playerPhysics.isGrounded) {
+      // Buffered Jump Execution
+      if (inputBuffer.consume('jump') && playerPhysics.isGrounded) {
         playerPhysics.velocity.y = 12.5;
         playerPhysics.isGrounded = false;
         audio.playJump();
-        inputBuffer.jump = 0;
       }
 
-      // Gravity & Position update
+      // Gravity & Kinematics
       playerPhysics.velocity.y -= 32.0 * delta;
-      playerPhysics.position.x += playerPhysics.velocity.x * delta;
-      playerPhysics.position.y += playerPhysics.velocity.y * delta;
-      playerPhysics.position.z += playerPhysics.velocity.z * delta;
+      playerPhysics.position.addScaledVector(playerPhysics.velocity, delta);
 
-      // Raycasting Ground Collision Detection
+      // Ground Raycast Collision
       playerPhysics.isGrounded = false;
       raycaster.set(playerPhysics.position.clone().add(new THREE.Vector3(0, 0.5, 0)), new THREE.Vector3(0, -1, 0));
       const intersects = raycaster.intersectObjects(platforms);
 
       if (intersects.length > 0) {
         const hit = intersects[0];
-        const distToFloor = hit.distance;
-        if (playerPhysics.velocity.y <= 0 && distToFloor <= 0.75) {
+        if (playerPhysics.velocity.y <= 0 && hit.distance <= 0.75) {
           playerPhysics.position.y = hit.point.y + 0.6;
           playerPhysics.velocity.y = 0;
           playerPhysics.isGrounded = true;
@@ -1076,13 +1033,12 @@
         triggerGameOver();
       }
 
-      // Process Buffered Slash
-      if (inputBuffer.slash > 0 && !playerPhysics.isSlashing) {
+      // Buffered Slash Execution
+      if (inputBuffer.consume('slash') && !playerPhysics.isSlashing) {
         triggerSlash();
-        inputBuffer.slash = 0;
       }
 
-      // Slash Animation & Active Frame Check
+      // Slash Animation Frame Progression
       if (playerPhysics.isSlashing) {
         playerPhysics.slashTime -= delta;
         const progress = 1.0 - (playerPhysics.slashTime / 0.22);
@@ -1095,15 +1051,14 @@
 
         if (playerPhysics.slashTime <= 0) {
           playerPhysics.isSlashing = false;
-          slashArcMat.opacity = 0;
+          slashArc.material.opacity = 0;
           katanaGroup.rotation.y = 0;
         }
       }
 
-      // Enemies Pursuit AI
+      // AI Pursuit Logic
       enemies.forEach(enemy => {
-        const enemyPos = enemy.position;
-        const dir = playerPhysics.position.clone().sub(enemyPos);
+        const dir = playerPhysics.position.clone().sub(enemy.position);
         const dist = dir.length();
 
         enemy.mesh.rotation.y += delta * 2.2;
@@ -1133,7 +1088,6 @@
         }
       });
 
-      // Portal Check
       if (portal) {
         portal.rotation.z += delta * 1.8;
         if (playerPhysics.position.distanceTo(portal.position) < 2.2) {
@@ -1141,7 +1095,6 @@
         }
       }
 
-      // Particles Update
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.mesh.position.addScaledVector(p.vel, delta);
@@ -1167,18 +1120,16 @@
         return;
       }
 
-      // Fixed timestep loop
       accumulator += Math.min(rawDelta, 0.1);
       while (accumulator >= FIXED_TIME_STEP) {
         updateSimulation(FIXED_TIME_STEP);
         accumulator -= FIXED_TIME_STEP;
       }
 
-      // Interpolation alpha calculation
       const alpha = accumulator / FIXED_TIME_STEP;
 
       if (state === GAME_STATE.PLAYING) {
-        // Interpolate player position and rotation for silky smooth rendering
+        // Smooth Mathematical Interpolation for Sub-frame Rendering
         playerGroup.position.copy(playerPhysics.prevPosition).lerp(playerPhysics.position, alpha);
         
         let rotDiff = playerPhysics.rotationY - playerPhysics.prevRotationY;
@@ -1186,23 +1137,21 @@
         while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
         playerGroup.rotation.y = playerPhysics.prevRotationY + rotDiff * alpha;
 
-        // Interpolate enemies positions
         enemies.forEach(e => {
           e.group.position.copy(e.prevPosition).lerp(e.position, alpha);
         });
 
-        // Camera Follow & Dynamic Shake
+        // Dynamic Camera Follow & Shake
         const idealOffset = new THREE.Vector3(0, 7.5, 9.5);
         const camTarget = playerGroup.position.clone().add(idealOffset);
         camera.position.lerp(camTarget, 0.12);
 
-        let lookAtTarget = playerGroup.position.clone();
         if (cameraShake > 0) {
           camera.position.x += (Math.random() - 0.5) * cameraShake;
           camera.position.y += (Math.random() - 0.5) * cameraShake;
           cameraShake = Math.max(0, cameraShake - rawDelta * 2.5);
         }
-        camera.lookAt(lookAtTarget);
+        camera.lookAt(playerGroup.position);
 
         pointLight.position.copy(playerGroup.position).add(new THREE.Vector3(0, 2, 0));
       }
