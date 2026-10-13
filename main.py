@@ -12,7 +12,7 @@ from playwright.sync_api import sync_playwright
 # ========================================================
 # ⚙️ AIエージェントの設定
 # ========================================================
-QUALITY_UP_ITERATIONS = 300 # 限界まで回す設定
+QUALITY_UP_ITERATIONS = 20 # 限界まで回す設定
 MAX_BUGFIX_LOOPS = 4
 
 # システムプロンプト
@@ -34,14 +34,25 @@ issue_title = event_data['issue'].get('title', '無題のゲーム')
 issue_body = event_data['issue'].get('body') or "" 
 issue_number = event_data['issue']['number']
 
-# --- 2. API呼び出し関数（リトライ強化・指数バックオフ・HTML抽出トグル付き） ---
+# --- グローバルモデルリスト（使えないモデルはここから削っていく） ---
+ACTIVE_MODELS = [
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-pro-preview"
+]
+
+# --- 2. API呼び出し関数（リトライ強化・指数バックオフ・除外機能付き） ---
 def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
-    # 2026年10月現在利用可能な最新・軽量モデルのフォールバックリスト
-    models = ["gemini-3.8-flash","gemini-3.6-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash","gemini-3.5-flash-lite"]
+    global ACTIVE_MODELS
     
-    for model_name in models:
+    if not ACTIVE_MODELS:
+        raise RuntimeError("API_LIMIT_REACHED")
+        
+    # リストのコピーを使ってループ（ループ中の要素削除エラーを防ぐため）
+    for model_name in list(ACTIVE_MODELS):
         print(f"🤖 [{model_name}] と通信中...")
-        wait_time = 2.0 # 初期待機時間を少し長めに設定
+        wait_time = 2.0 
 
         for attempt in range(max_retries):
             try:
@@ -54,12 +65,9 @@ def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
                 )
                 
                 text = response.text
-                
-                # アイデア出し等、HTML抽出が不要な場合はそのまま返す
                 if not extract_html:
                     return text.strip()
 
-                # HTMLの抽出
                 match = re.search(r'```html\n(.*?)\n```', text, re.DOTALL)
                 if match:
                     code = match.group(1).strip()
@@ -76,15 +84,23 @@ def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
                 return code
 
             except errors.APIError as e:
-                # 429エラー (Resource Exhausted / レート制限) の判定
+                # 429エラー (Resource Exhausted / レート制限) 
                 if e.code == 429:
                     if attempt == max_retries - 1:
-                        print(f"⚠️ [{model_name}] で上限到達。次のモデルへ...")
+                        print(f"⚠️ [{model_name}] で上限到達(429)。リストから除外して次のモデルへ...")
+                        if model_name in ACTIVE_MODELS:
+                            ACTIVE_MODELS.remove(model_name)
                         break
                     sleep_time = wait_time + random.uniform(0, 1.0)
                     print(f"⏳ レート制限到達(429)。{sleep_time:.2f}秒待機してリトライします (試行 {attempt + 1}/{max_retries})")
                     time.sleep(sleep_time)
                     wait_time *= 2.0 
+                # 404や403など致命的なエラー
+                elif e.code in [404, 403, 400]:
+                    print(f"⚠️ [{model_name}] は利用不可(コード:{e.code})。リストから完全に除外します。")
+                    if model_name in ACTIVE_MODELS:
+                        ACTIVE_MODELS.remove(model_name)
+                    break
                 else:
                     print(f"⚠️ [{model_name}] APIエラー発生({e.code}): {e.message}。次のモデルへ...")
                     break 
@@ -93,8 +109,27 @@ def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
                 print(f"⚠️ [{model_name}] 予期せぬエラー発生: {e}。次のモデルへ...")
                 break 
 
-    # すべてのモデル・リトライが失敗した場合は独自の例外を投げてループを安全に抜けさせる
+    # すべてのモデル・リトライが失敗した場合は例外を投げて安全に抜けさせる
     raise RuntimeError("API_LIMIT_REACHED")
+
+# --- 2.5. 中間Push関数 ---
+def save_and_push(html_code, commit_msg):
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html_code)
+    try:
+        subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
+        subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
+        subprocess.run(["git", "add", "index.html"], check=True)
+        status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+        if "index.html" in status.stdout:
+            subprocess.run(["git", "commit", "-m", commit_msg], check=True)
+            subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=False)
+            subprocess.run(["git", "push", "origin", "HEAD:main"], check=True)
+            print(f"⬆️ GitHubへ中間Push完了: {commit_msg}")
+        else:
+            print("変更なしのためPushスキップ")
+    except Exception as e:
+        print(f"⚠️ Push失敗(実行は継続します): {e}")
 
 # --- 3. 自動テスト関数 ---
 def test_game_code(html_code):
@@ -153,9 +188,8 @@ try:
 """
         html_content = call_gemini_api(prompt_p1)
         
-    # フェーズ1完了時点で一旦セーブ
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(html_content)
+    # フェーズ1完了時点で一旦セーブ＆Push
+    save_and_push(html_content, f"✨ フェーズ1 プロトタイプ作成完了 (Issue #{issue_number})")
 
 except Exception as e:
     print(f"❌ フェーズ1で致命的なエラーが発生しました: {e}")
@@ -182,10 +216,9 @@ for i in range(1, QUALITY_UP_ITERATIONS + 1):
         # 実装
         html_content = call_gemini_api(prompt_apply)
         
-        # 💾 【重要】ループが成功するたびに中間セーブ
-        with open("index.html", "w", encoding="utf-8") as f:
-            f.write(html_content)
-        print(f"💾 ループ {i} の成果を index.html に中間保存しました。")
+        # 💾 【重要】ループ途中の漸進的更新（毎ループGitへPushしてブラウザで確認可能に）
+        print(f"💾 ループ {i} の成果を保存・Push中...")
+        save_and_push(html_content, f"🔄 自律改善ループ {i}/{QUALITY_UP_ITERATIONS} 完了")
         
     except Exception as e:
         if "API_LIMIT_REACHED" in str(e):
@@ -220,32 +253,13 @@ for attempt in range(1, MAX_BUGFIX_LOOPS + 1):
                 
                 final_code = call_gemini_api(prompt_fix)
                 
-                # バグ修正後も中間セーブ
-                with open("index.html", "w", encoding="utf-8") as f:
-                    f.write(final_code)
+                # バグ修正後も中間セーブ＆Push
+                save_and_push(final_code, f"🛠 バグ自己修正 試行 {attempt}/{MAX_BUGFIX_LOOPS}")
             except Exception as e:
                 print(f"⚠️ バグ修正中にAPI制限に到達しました。直前のコードを維持して終了します。")
                 break
         else:
             print("⚠️ 最大修正回数に達しました。現状のコードを保存します。")
 
-# --- 7. 保存とPush ---
-with open("index.html", "w", encoding="utf-8") as f:
-    f.write(final_code)
-
-try:
-    subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
-    subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
-    subprocess.run(["git", "add", "index.html"], check=True)
-    status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
-    
-    if "index.html" in status.stdout:
-        subprocess.run(["git", "commit", "-m", f"AI自律改善版 (限界突破完了 / 合格:{success}) Issue #{issue_number}"], check=True)
-        subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=False)
-        subprocess.run(["git", "push", "origin", "HEAD:main"], check=True)
-        print("🎉 完了しました！変更をPushしました。")
-    else:
-        print("変更なしのためPushをスキップしました。")
-except subprocess.CalledProcessError as e:
-    raise RuntimeError(f"【エラー】Git操作失敗: {e}")
-    
+# --- 7. 保存と最終Push ---
+save_and_push(final_code, f"🎉 AI自律改善版 (限界突破完了 / 合格:{success}) Issue #{issue_number}")
