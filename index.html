@@ -206,58 +206,64 @@
       0% { box-shadow: 0 4px 20px rgba(255, 0, 85, 0.35); }
       100% { box-shadow: 0 10px 38px rgba(255, 0, 85, 0.75); }
     }
-    /* ボス戦中のVITALおよびスコアパネルとの重なり・見切れを完全に解消する洗練された上下分離・高視認性レイアウト */
+    /* ボス戦中でもプレイヤーのVITAL（HP）パネルが絶対に隠れない、完全分離・高視認性レイアウト */
     body.boss-active .ui-layer {
-      padding: 10px 14px;
+      padding: 12px 16px;
+    }
+    body.boss-active .boss-hud {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 520px;
+      max-width: 94%;
+      display: flex;
+      z-index: 95;
+      padding: 6px 14px;
+      background: rgba(8, 12, 24, 0.98);
+      border: 1.5px solid rgba(255, 0, 85, 0.9);
+      box-shadow: 0 10px 35px rgba(255, 0, 85, 0.7);
     }
     body.boss-active .hud-top {
+      margin-top: 68px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-top: 56px;
-      gap: 12px;
+      width: 100%;
       z-index: 90;
     }
     body.boss-active .unified-panel {
-      width: 200px;
-      padding: 8px 12px;
+      width: 220px;
       background: rgba(8, 12, 24, 0.98);
-      border-color: rgba(0, 255, 204, 0.7);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
+      border-color: rgba(0, 255, 204, 0.8);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8);
     }
     body.boss-active .score-panel {
-      min-width: 105px;
-      padding: 8px 12px;
+      min-width: 120px;
       background: rgba(8, 12, 24, 0.98);
-    }
-    body.boss-active .boss-hud {
-      top: 10px;
-      display: flex;
-      width: 500px;
-      max-width: 90%;
     }
     @media (max-width: 768px) {
       body.boss-active .ui-layer {
-        padding: 8px 10px;
+        padding: 6px 8px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        max-width: 96%;
+        padding: 5px 10px;
       }
       body.boss-active .hud-top {
-        margin-top: 62px;
-        gap: 8px;
+        margin-top: 58px;
+        gap: 6px;
       }
       body.boss-active .unified-panel {
         width: 48%;
-        padding: 6px 10px;
+        padding: 6px 8px;
       }
       body.boss-active .score-panel {
         width: 48%;
-        padding: 6px 10px;
+        padding: 6px 8px;
         text-align: right;
-      }
-      .boss-hud {
-        top: 6px;
-        width: 96%;
-        max-width: 96%;
-        padding: 6px 10px;
       }
     }
 ====
@@ -1367,26 +1373,26 @@
       triggerGlitchEffect();
       triggerHitFlash();
       
-      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：極限まで洗練された全画面一掃・カメラ演出・完全無敵＆大回復
-      stats.invulnerableTimer = 12.0;
-      stats.hp = Math.min(stats.maxHp, stats.hp + 300);
+      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：極限まで洗練された全画面一掃・ダイナミックカメラ・完全無敵＆大回復
+      stats.invulnerableTimer = 10.0;
+      stats.hp = Math.min(stats.maxHp, stats.hp + 250);
       updateHUD();
       const pPos = playerPhysics.position.clone();
       
-      for (let k = 0; k < 60; k++) {
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*20, 0, (Math.random()-0.5)*20)), 0x00ffff);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*20, 0, (Math.random()-0.5)*20)), 0xff0077);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*20, 0, (Math.random()-0.5)*20)), 0xffaa00);
+      for (let k = 0; k < 50; k++) {
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*18, 0, (Math.random()-0.5)*18)), 0x00ffff);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*18, 0, (Math.random()-0.5)*18)), 0xff0077);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*18, 0, (Math.random()-0.5)*18)), 0xffaa00);
       }
 
-      cameraShake = 26.0;
-      hitStopFrames = 210;
+      cameraShake = 22.0;
+      hitStopFrames = 180;
 
       // 3連重畳ブラックホール・ノヴァ衝撃波
       [
-        { r: 180, color: 0x00ffcc, speed: 160 },
-        { r: 140, color: 0xff0066, speed: 140 },
-        { r: 100, color: 0xffaa00, speed: 120 }
+        { r: 160, color: 0x00ffcc, speed: 150 },
+        { r: 120, color: 0xff0066, speed: 130 },
+        { r: 80, color: 0xffaa00, speed: 110 }
       ].forEach((ring, idx) => {
         const novaGeo = new THREE.RingGeometry(0.5, ring.r, 64);
         novaGeo.rotateX(-Math.PI / 2);
@@ -1395,25 +1401,25 @@
         }));
         novaMesh.position.set(pPos.x, pPos.y + 0.15 + idx * 0.05, pPos.z);
         scene.add(novaMesh);
-        shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: ring.r + 20, speed: ring.speed, platform: playerPhysics.currentPlatform });
+        shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: ring.r + 15, speed: ring.speed, platform: playerPhysics.currentPlatform });
       });
 
       enemies.forEach((e, idx) => {
         const dist = e.position.distanceTo(pPos);
-        if (dist <= 150.0) {
+        if (dist <= 140.0) {
           const pullDir = pPos.clone().sub(e.position);
           pullDir.y = 0;
-          e.position.add(pullDir.multiplyScalar(0.995));
+          e.position.add(pullDir.multiplyScalar(0.99));
           const u = e.platform;
           if (u) {
             e.position.x = Math.max(u.x - u.w / 2 + 0.6, Math.min(u.x + u.w / 2 - 0.6, e.position.x));
             e.position.z = Math.max(u.z - u.d / 2 + 0.6, Math.min(u.z + u.d / 2 - 0.6, e.position.z));
           }
 
-          e.hp -= stats.slashDamage * 80.0;
+          e.hp -= stats.slashDamage * 65.0;
           spawnParticles(e.position, 0x00ffcc);
           if (e.hp <= 0) {
-            stats.score += 5000;
+            stats.score += 4000;
             scene.remove(e.group);
             enemies.splice(idx, 1);
           }
@@ -1422,17 +1428,18 @@
 
       if (boss) {
         const bDist = boss.position.distanceTo(pPos);
-        if (bDist <= 160.0) {
-          boss.hp -= stats.slashDamage * 25.0;
+        if (bDist <= 150.0) {
+          boss.hp -= stats.slashDamage * 20.0;
           const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
           document.getElementById('boss-hp-bar').style.width = `${pct}%`;
           document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
 
           if (boss.hp <= 0) {
-            stats.score += 35000;
-            showFeed('BOSS ANNIHILATED +35000');
+            stats.score += 30000;
+            showFeed('BOSS ANNIHILATED +30000');
             scene.remove(boss.group);
             boss = null;
+            document.body.classList.remove('boss-active');
             document.getElementById('boss-hud').classList.remove('active');
 
             portal = new THREE.Mesh(
