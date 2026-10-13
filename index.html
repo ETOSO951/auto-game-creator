@@ -184,32 +184,36 @@
 
     .boss-hud {
       position: absolute;
-      top: 110px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 540px;
-      max-width: 90%;
-      background: rgba(10, 5, 18, 0.95);
+      top: 22px;
+      right: 24px;
+      width: 320px;
+      max-width: 45%;
+      background: rgba(10, 5, 18, 0.92);
       border: 2px solid rgba(255, 0, 85, 0.95);
-      border-radius: 14px;
-      padding: 12px 20px;
+      border-radius: 12px;
+      padding: 10px 16px;
       display: none;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 12px 40px rgba(255, 0, 85, 0.75);
+      box-shadow: 0 12px 35px rgba(255, 0, 85, 0.65);
       z-index: 50;
       animation: bossHudPulse 1.2s ease infinite alternate;
     }
     @keyframes bossHudPulse {
-      0% { box-shadow: 0 8px 25px rgba(255, 0, 85, 0.4); }
-      100% { box-shadow: 0 14px 45px rgba(255, 0, 85, 0.85); }
+      0% { box-shadow: 0 6px 20px rgba(255, 0, 85, 0.35); }
+      100% { box-shadow: 0 12px 38px rgba(255, 0, 85, 0.8); }
     }
     @media (max-width: 768px) {
       .boss-hud {
-        top: 130px;
-        width: 94%;
+        top: auto;
+        bottom: 110px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
         padding: 8px 12px;
         z-index: 50;
       }
@@ -1283,49 +1287,49 @@
       triggerGlitchEffect();
       triggerHitFlash();
       
-      // 究極奥義「CYBER NOVA BLACKHOLE STRIKE」：超絶スーパースロー・カメラシネマティックアングル・全画面バースト
-      stats.invulnerableTimer = 3.5;
-      stats.hp = Math.min(stats.maxHp, stats.hp + 65);
+      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：圧倒的演出＆全画面一掃・全弾薬消去・HP大回復
+      stats.invulnerableTimer = 4.0;
+      stats.hp = Math.min(stats.maxHp, stats.hp + 75);
       const pPos = playerPhysics.position.clone();
       
-      for (let k = 0; k < 4; k++) {
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*3, 0, (Math.random()-0.5)*3)), 0x00ffff);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*3, 0, (Math.random()-0.5)*3)), 0xff0055);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*3, 0, (Math.random()-0.5)*3)), 0xffaa00);
+      for (let k = 0; k < 6; k++) {
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*4, 0, (Math.random()-0.5)*4)), 0x00ffff);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*4, 0, (Math.random()-0.5)*4)), 0xff0055);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*4, 0, (Math.random()-0.5)*4)), 0xffaa00);
       }
 
-      cameraShake = 4.5;
-      hitStopFrames = 55; // 圧倒的なドラマチックヒットストップ
+      cameraShake = 5.2;
+      hitStopFrames = 65; // さらにドラマチックなヒットストップ
 
-      const novaGeo = new THREE.RingGeometry(0.5, 40, 64);
+      const novaGeo = new THREE.RingGeometry(0.5, 50, 64);
       novaGeo.rotateX(-Math.PI / 2);
       const novaMesh = new THREE.Mesh(novaGeo, new THREE.MeshBasicMaterial({
         color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.98
       }));
       novaMesh.position.set(pPos.x, pPos.y + 0.15, pPos.z);
       scene.add(novaMesh);
-      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 75.0, speed: 60.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 90.0, speed: 70.0, platform: playerPhysics.currentPlatform });
 
-      const novaGeo2 = new THREE.RingGeometry(0.5, 28, 48);
+      const novaGeo2 = new THREE.RingGeometry(0.5, 35, 48);
       novaGeo2.rotateX(-Math.PI / 2);
       const novaMesh2 = new THREE.Mesh(novaGeo2, new THREE.MeshBasicMaterial({
         color: 0xff0077, side: THREE.DoubleSide, transparent: true, opacity: 0.95
       }));
       novaMesh2.position.set(pPos.x, pPos.y + 0.2, pPos.z);
       scene.add(novaMesh2);
-      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 55.0, speed: 45.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 70.0, speed: 55.0, platform: playerPhysics.currentPlatform });
 
       enemies.forEach((e, idx) => {
         const dist = e.position.distanceTo(pPos);
-        if (dist <= 42.0) {
+        if (dist <= 50.0) {
           const pullDir = pPos.clone().sub(e.position);
           pullDir.y = 0;
           e.position.add(pullDir.multiplyScalar(0.98));
 
-          e.hp -= stats.slashDamage * 7.5;
+          e.hp -= stats.slashDamage * 9.0;
           spawnParticles(e.position, 0x00ffcc);
           if (e.hp <= 0) {
-            stats.score += 1000;
+            stats.score += 1200;
             scene.remove(e.group);
             enemies.splice(idx, 1);
           }
@@ -1334,8 +1338,8 @@
 
       if (boss) {
         const bDist = boss.position.distanceTo(pPos);
-        if (bDist <= 45.0) {
-          boss.hp -= stats.slashDamage * 5.5;
+        if (bDist <= 55.0) {
+          boss.hp -= stats.slashDamage * 6.8;
           const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
           document.getElementById('boss-hp-bar').style.width = `${pct}%`;
           document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
