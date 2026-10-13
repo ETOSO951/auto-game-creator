@@ -184,7 +184,7 @@
 
     .boss-hud {
       position: absolute;
-      top: 20px;
+      top: 135px;
       left: 50%;
       transform: translateX(-50%);
       width: 480px;
@@ -1349,49 +1349,49 @@
       triggerGlitchEffect();
       triggerHitFlash();
       
-      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：究極演出＆全画面一掃・全弾薬消去・HP大回復
-      stats.invulnerableTimer = 4.5;
-      stats.hp = Math.min(stats.maxHp, stats.hp + 90);
+      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：極上演出＆多重重力ブラックホール全画面一掃・全弾薬消去・HP大回復
+      stats.invulnerableTimer = 5.0;
+      stats.hp = Math.min(stats.maxHp, stats.hp + 120);
       const pPos = playerPhysics.position.clone();
       
-      for (let k = 0; k < 8; k++) {
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*5, 0, (Math.random()-0.5)*5)), 0x00ffff);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*5, 0, (Math.random()-0.5)*5)), 0xff0055);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*5, 0, (Math.random()-0.5)*5)), 0xffaa00);
+      for (let k = 0; k < 12; k++) {
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*6, 0, (Math.random()-0.5)*6)), 0x00ffff);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*6, 0, (Math.random()-0.5)*6)), 0xff0055);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*6, 0, (Math.random()-0.5)*6)), 0xffaa00);
       }
 
-      cameraShake = 6.0;
-      hitStopFrames = 75; // 極上のドラマチックヒットストップ
+      cameraShake = 8.0;
+      hitStopFrames = 90; // さらにドラマチックなヒットストップ
 
-      const novaGeo = new THREE.RingGeometry(0.5, 60, 64);
+      const novaGeo = new THREE.RingGeometry(0.5, 75, 64);
       novaGeo.rotateX(-Math.PI / 2);
       const novaMesh = new THREE.Mesh(novaGeo, new THREE.MeshBasicMaterial({
         color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.98
       }));
       novaMesh.position.set(pPos.x, pPos.y + 0.15, pPos.z);
       scene.add(novaMesh);
-      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 100.0, speed: 75.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 120.0, speed: 90.0, platform: playerPhysics.currentPlatform });
 
-      const novaGeo2 = new THREE.RingGeometry(0.5, 45, 48);
+      const novaGeo2 = new THREE.RingGeometry(0.5, 55, 48);
       novaGeo2.rotateX(-Math.PI / 2);
       const novaMesh2 = new THREE.Mesh(novaGeo2, new THREE.MeshBasicMaterial({
         color: 0xff0077, side: THREE.DoubleSide, transparent: true, opacity: 0.95
       }));
       novaMesh2.position.set(pPos.x, pPos.y + 0.2, pPos.z);
       scene.add(novaMesh2);
-      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 80.0, speed: 60.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 95.0, speed: 75.0, platform: playerPhysics.currentPlatform });
 
       enemies.forEach((e, idx) => {
         const dist = e.position.distanceTo(pPos);
-        if (dist <= 60.0) {
+        if (dist <= 75.0) {
           const pullDir = pPos.clone().sub(e.position);
           pullDir.y = 0;
-          e.position.add(pullDir.multiplyScalar(0.98));
+          e.position.add(pullDir.multiplyScalar(0.99));
 
-          e.hp -= stats.slashDamage * 12.0;
+          e.hp -= stats.slashDamage * 18.0;
           spawnParticles(e.position, 0x00ffcc);
           if (e.hp <= 0) {
-            stats.score += 1500;
+            stats.score += 2000;
             scene.remove(e.group);
             enemies.splice(idx, 1);
           }
@@ -1400,15 +1400,15 @@
 
       if (boss) {
         const bDist = boss.position.distanceTo(pPos);
-        if (bDist <= 65.0) {
-          boss.hp -= stats.slashDamage * 8.5;
+        if (bDist <= 80.0) {
+          boss.hp -= stats.slashDamage * 12.5;
           const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
           document.getElementById('boss-hp-bar').style.width = `${pct}%`;
           document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
 
           if (boss.hp <= 0) {
-            stats.score += 5000;
-            showFeed('BOSS ANNIHILATED +5000');
+            stats.score += 8000;
+            showFeed('BOSS ANNIHILATED +8000');
             scene.remove(boss.group);
             boss = null;
             document.getElementById('boss-hud').classList.remove('active');
@@ -1705,14 +1705,34 @@
         `;
         card.onclick = () => {
           perk.apply();
-          // シナジーコンボボーナス判定：特定パークの組み合わせで追加強力効果を発動
+          // 深度ビルドシナジーコンボ：取得済みパークの組み合わせで戦術的シナジー覚醒が発動！
+          if (perk.id === 'assault') stats.perks.assault = true;
+          if (perk.id === 'agility') stats.perks.agility = true;
+          if (perk.id === 'vampirism') stats.perks.vampirism = true;
+          if (perk.id === 'plasma') stats.perks.plasmaExplosion = true;
+          if (perk.id === 'homing') stats.perks.homingBlade = true;
+          if (perk.id === 'meteor') stats.perks.meteorSlash = true;
+          if (perk.id === 'shield') stats.perks.shieldReflect = true;
+
           if (stats.perks.vampirism && stats.perks.plasmaExplosion) {
-            stats.slashDamage = Math.round(stats.slashDamage * 1.3);
-            showFeed('⚡ SYNERGY COMBO: BLOOD PLASMA OVERLOAD!');
-          } else if (stats.perks.homingBlade && stats.perks.meteorSlash) {
-            stats.slashRange *= 1.25;
-            showFeed('☄️ SYNERGY COMBO: METEOR HOMING STORM!');
+            stats.slashDamage = Math.round(stats.slashDamage * 1.4);
+            showFeed('⚡ SYNERGY AWAKENING: BLOOD PLASMA OVERLOAD!');
           }
+          if (stats.perks.homingBlade && stats.perks.meteorSlash) {
+            stats.slashRange *= 1.35;
+            showFeed('☄️ SYNERGY AWAKENING: METEOR HOMING STORM!');
+          }
+          if (stats.perks.assault && stats.perks.agility) {
+            stats.moveSpeed *= 1.25;
+            stats.slashDamage = Math.round(stats.slashDamage * 1.25);
+            showFeed('⚡ SYNERGY AWAKENING: HYPER ASSAULT SPEED!');
+          }
+          if (stats.perks.shieldReflect && stats.perks.vampirism) {
+            stats.maxHp += 150;
+            stats.hp = Math.min(stats.maxHp, stats.hp + 150);
+            showFeed('🛡️ SYNERGY AWAKENING: IMMORTAL BASTION!');
+          }
+
           stats.floor++;
           screen.classList.add('hidden');
           generateStage(stats.floor);
@@ -2111,85 +2131,41 @@
         toPlayer.y = 0;
         const dist = toPlayer.length();
 
-        if (e.type === 'stealth') {
-          // ステルス暗殺型：プレイヤーの背後に突然ワープして奇襲斬撃を行う
-          e.mesh.material.opacity = 0.25 + Math.sin(performance.now() * 0.01) * 0.2;
+        // 敵AIの行動の面白さ・戦略性の向上（フェイントワープ、三方向マルチ弾幕、コンビネーション突撃）
+        if (e.type === 'stealth' || e.type === 'phantom') {
+          e.mesh.material.opacity = 0.25 + Math.sin(performance.now() * 0.012) * 0.25;
           if (onSamePlatform && dist > 3.0) {
             toPlayer.normalize();
-            e.position.add(toPlayer.multiplyScalar(e.speed * 1.3 * delta));
-          } else if (onSamePlatform && dist <= 3.0 && Math.random() < 0.03) {
-            // 背後へ量子ワープ
-            const backPos = playerPhysics.position.clone().add(new THREE.Vector3(0, 0, 2.0).applyQuaternion(playerPhysics.quaternion));
+            e.position.add(toPlayer.multiplyScalar(e.speed * 1.4 * delta));
+          } else if (onSamePlatform && dist <= 3.0 && Math.random() < 0.05) {
+            const backPos = playerPhysics.position.clone().add(new THREE.Vector3((Math.random()-0.5)*3, 0, (Math.random()-0.5)*3));
             e.position.copy(backPos);
-            spawnParticles(e.position, 0x7700ff);
-            showFeed('WARNING: STEALTH ASSASSIN AMBUSH!');
-            takeDamage(18);
+            spawnParticles(e.position, 0x9900ff);
+            showFeed('⚠️ PHANTOM QUANTUM AMBUSH!');
+            takeDamage(20);
           }
-        } else if (e.type === 'bomber' && dist < 4.5 && onSamePlatform) {
-          // 自爆ドローン：ジグザグ高速接近して自爆
+        } else if (e.type === 'bomber' && dist < 5.0 && onSamePlatform) {
           toPlayer.normalize();
-          const evadeVec = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).multiplyScalar(Math.sin(performance.now() * 0.01) * 2.0);
-          e.position.add(toPlayer.add(evadeVec).normalize().multiplyScalar(e.speed * 1.5 * delta));
+          const evadeVec = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).multiplyScalar(Math.sin(performance.now() * 0.015) * 3.0);
+          e.position.add(toPlayer.add(evadeVec).normalize().multiplyScalar(e.speed * 1.6 * delta));
           if (dist < 1.8) {
-            takeDamage(24);
+            takeDamage(25);
             spawnParticles(e.position, 0xff3300);
             scene.remove(e.group);
             enemies.splice(i, 1);
             continue;
           }
         } else if (e.type === 'shooter' || e.type === 'sniper' || e.type === 'turret') {
-          // 射撃系：距離を一定に保ちながら円形サーフィン・ストレイフ移動で弾幕放射
           if (onSamePlatform) {
-            const orbitAngle = performance.now() * 0.002 + e.position.x;
-            const orbitOffset = new THREE.Vector3(Math.cos(orbitAngle), 0, Math.sin(orbitAngle)).multiplyScalar(0.8);
+            const orbitAngle = performance.now() * 0.003 + e.position.x;
+            const orbitOffset = new THREE.Vector3(Math.cos(orbitAngle), 0, Math.sin(orbitAngle)).multiplyScalar(1.2);
             e.position.add(orbitOffset.multiplyScalar(delta * e.speed));
           }
           if (e.attackCooldown > 0) e.attackCooldown -= delta;
 
           if (onSamePlatform && e.attackCooldown <= 0 && !e.isWarning) {
             e.isWarning = true;
-            e.warningTimer = e.type === 'sniper' ? 0.7 : 0.45;
-          }
-
-          if (e.isWarning) {
-            e.warningTimer -= delta;
-            e.warnRing.material.opacity = 0.95;
-            if (e.warningTimer <= 0) {
-              e.isWarning = false;
-              e.attackCooldown = e.type === 'sniper' ? 2.5 : 1.8;
-              const bMesh = new THREE.Mesh(
-                new THREE.SphereGeometry(0.28, 8, 8),
-                new THREE.MeshBasicMaterial({ color: e.type === 'sniper' ? 0x00ffcc : 0xffaa00, emissive: 0xffaa00 })
-              );
-              bMesh.position.copy(e.position);
-              scene.add(bMesh);
-              const shootDir = playerPhysics.position.clone().add(new THREE.Vector3(0, 0.6, 0)).sub(e.position).normalize();
-              projectiles.push({ mesh: bMesh, dir: shootDir, speed: e.type === 'sniper' ? 18.0 : 12.0, life: 3.2 });
-              audio.play('jump');
-            }
-          }
-        } else {
-          // 近接系（ストライカー・ガーディアン・ファントム）：フェイント突撃・ジャンプ回避・バックステップのタクティカル挙動
-          if (onSamePlatform && dist > 1.5) {
-            toPlayer.normalize();
-            // プレイヤーとの距離が近すぎるときにバックステップ（後退）する戦術的動き
-            if (dist < 3.0 && Math.random() < 0.04) {
-              e.position.add(toPlayer.clone().negate().multiplyScalar(e.speed * 1.8 * delta));
-            } else {
-              // 予測不可能なフェイント交差移動＆ランダムジャンプ回避
-              const strafe = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).multiplyScalar(Math.sin(performance.now() * 0.005) * 2.5);
-              const moveDir = toPlayer.add(strafe).normalize();
-              e.position.add(moveDir.multiplyScalar(e.speed * (e.type === 'phantom' ? 1.5 : 1.2) * delta));
-            }
-            e.position.x = Math.max(u.x - u.w / 2 + 0.6, Math.min(u.x + u.w / 2 - 0.6, e.position.x));
-            e.position.z = Math.max(u.z - u.d / 2 + 0.6, Math.min(u.z + u.d / 2 - 0.6, e.position.z));
-          }
-
-          if (e.attackCooldown > 0) e.attackCooldown -= delta;
-
-          if (onSamePlatform && dist < 2.8 && e.attackCooldown <= 0 && !e.isWarning) {
-            e.isWarning = true;
-            e.warningTimer = 0.28;
+            e.warningTimer = e.type === 'sniper' ? 0.6 : 0.4;
           }
 
           if (e.isWarning) {
@@ -2197,18 +2173,60 @@
             e.warnRing.material.opacity = 0.98;
             if (e.warningTimer <= 0) {
               e.isWarning = false;
-              e.attackCooldown = 0.9;
+              e.attackCooldown = e.type === 'sniper' ? 2.2 : 1.5;
+              const shootCount = e.type === 'sniper' ? 3 : 1;
+              for (let sc = 0; sc < shootCount; sc++) {
+                const bMesh = new THREE.Mesh(
+                  new THREE.SphereGeometry(0.3, 8, 8),
+                  new THREE.MeshBasicMaterial({ color: e.type === 'sniper' ? 0x00ffcc : 0xffaa00, emissive: 0xffaa00 })
+                );
+                bMesh.position.copy(e.position);
+                scene.add(bMesh);
+                const spread = (sc - 1) * 0.18;
+                const shootDir = playerPhysics.position.clone().add(new THREE.Vector3(spread, 0.6, 0)).sub(e.position).normalize();
+                projectiles.push({ mesh: bMesh, dir: shootDir, speed: e.type === 'sniper' ? 20.0 : 13.0, life: 3.5 });
+              }
+              audio.play('jump');
+            }
+          }
+        } else {
+          if (onSamePlatform && dist > 1.5) {
+            toPlayer.normalize();
+            if (dist < 3.2 && Math.random() < 0.06) {
+              e.position.add(toPlayer.clone().negate().multiplyScalar(e.speed * 2.0 * delta));
+            } else {
+              const strafe = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).multiplyScalar(Math.sin(performance.now() * 0.008) * 3.5);
+              const moveDir = toPlayer.add(strafe).normalize();
+              e.position.add(moveDir.multiplyScalar(e.speed * 1.35 * delta));
+            }
+            e.position.x = Math.max(u.x - u.w / 2 + 0.6, Math.min(u.x + u.w / 2 - 0.6, e.position.x));
+            e.position.z = Math.max(u.z - u.d / 2 + 0.6, Math.min(u.z + u.d / 2 - 0.6, e.position.z));
+          }
+
+          if (e.attackCooldown > 0) e.attackCooldown -= delta;
+
+          if (onSamePlatform && dist < 3.0 && e.attackCooldown <= 0 && !e.isWarning) {
+            e.isWarning = true;
+            e.warningTimer = 0.24;
+          }
+
+          if (e.isWarning) {
+            e.warningTimer -= delta;
+            e.warnRing.material.opacity = 1.0;
+            if (e.warningTimer <= 0) {
+              e.isWarning = false;
+              e.attackCooldown = 0.75;
               const finalDist = playerPhysics.position.clone().sub(e.position).length();
-              if (pPlat === u && finalDist < 3.0) {
-                takeDamage(e.type === 'guardian' ? 22 : 15);
+              if (pPlat === u && finalDist < 3.2) {
+                takeDamage(e.type === 'guardian' ? 24 : 16);
               }
             }
           }
         }
 
-        e.position.y = e.floorY + 0.75 + Math.sin(performance.now() * 0.006 + e.position.x) * 0.2;
-        e.mesh.rotation.y += delta * 2.5;
-        e.mesh.rotation.x += delta * 1.3;
+        e.position.y = e.floorY + 0.75 + Math.sin(performance.now() * 0.008 + e.position.x) * 0.22;
+        e.mesh.rotation.y += delta * 3.0;
+        e.mesh.rotation.x += delta * 1.5;
         e.group.position.copy(e.position);
       }
 
