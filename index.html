@@ -6,7 +6,7 @@
   <title>斬影 - ZANEI: 3D CYBER SLASH</title>
   <style>
     :root {
-      --bg: #090a10;
+      --bg: #060810;
       --accent: #00ffcc;
       --accent-glow: rgba(0, 255, 204, 0.4);
       --danger: #ff0055;
@@ -52,7 +52,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 20px;
+      padding: 24px;
     }
 
     /* HUD Header */
@@ -60,23 +60,23 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 10px;
+      gap: 16px;
     }
 
     .status-panel {
-      background: rgba(10, 15, 25, 0.7);
-      backdrop-filter: blur(10px);
+      background: rgba(10, 15, 25, 0.75);
+      backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 12px;
-      padding: 12px 18px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      padding: 14px 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     }
 
     .hp-container {
       display: flex;
       flex-direction: column;
-      gap: 5px;
-      width: 160px;
+      gap: 6px;
+      width: 180px;
     }
 
     .hp-label {
@@ -112,14 +112,14 @@
       letter-spacing: 1.5px;
       color: var(--accent);
       background: rgba(0, 255, 204, 0.1);
-      padding: 4px 10px;
+      padding: 4px 12px;
       border-radius: 20px;
       border: 1px solid var(--accent);
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
 
     .score-val {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 900;
       letter-spacing: 1px;
       font-variant-numeric: tabular-nums;
@@ -139,14 +139,14 @@
     }
 
     .kill-feed {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 800;
       letter-spacing: 2px;
       color: var(--accent);
       opacity: 0;
       transform: translateY(10px);
       transition: all 0.3s ease;
-      text-shadow: 0 0 10px var(--accent);
+      text-shadow: 0 0 12px var(--accent);
     }
     .kill-feed.show {
       opacity: 1;
@@ -170,8 +170,8 @@
     }
 
     .stick-area {
-      width: 130px;
-      height: 130px;
+      width: 140px;
+      height: 140px;
       background: rgba(255, 255, 255, 0.05);
       border: 2px dashed rgba(255, 255, 255, 0.2);
       border-radius: 50%;
@@ -180,15 +180,15 @@
     }
 
     .stick-nub {
-      width: 50px;
-      height: 50px;
+      width: 56px;
+      height: 56px;
       background: var(--accent);
       border-radius: 50%;
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      box-shadow: 0 0 15px var(--accent-glow);
+      box-shadow: 0 0 18px var(--accent-glow);
       pointer-events: none;
     }
 
@@ -199,12 +199,12 @@
     }
 
     .act-btn {
-      width: 72px;
-      height: 72px;
+      width: 76px;
+      height: 76px;
       border-radius: 50%;
       border: none;
       font-weight: 900;
-      font-size: 13px;
+      font-size: 14px;
       letter-spacing: 1px;
       color: #fff;
       display: flex;
@@ -212,7 +212,6 @@
       justify-content: center;
       cursor: pointer;
       box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-      active-scale: 0.95;
       touch-action: manipulation;
     }
     .act-btn:active {
@@ -221,17 +220,17 @@
 
     .btn-slash {
       background: linear-gradient(135deg, #ff0055, #ff5500);
-      box-shadow: 0 0 20px var(--danger-glow);
+      box-shadow: 0 0 24px var(--danger-glow);
     }
 
     .btn-jump {
-      width: 60px;
-      height: 60px;
+      width: 64px;
+      height: 64px;
       background: linear-gradient(135deg, #0099ff, #00ffcc);
-      box-shadow: 0 0 15px var(--accent-glow);
+      box-shadow: 0 0 18px var(--accent-glow);
     }
 
-    /* Modal Screens (Title, Game Over, Upgrade) */
+    /* Modal Screens */
     .screen-overlay {
       position: absolute;
       top: 0;
@@ -239,8 +238,8 @@
       width: 100%;
       height: 100%;
       z-index: 100;
-      background: rgba(8, 10, 16, 0.85);
-      backdrop-filter: blur(16px);
+      background: rgba(6, 8, 16, 0.88);
+      backdrop-filter: blur(18px);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -257,13 +256,13 @@
     }
 
     .screen-title {
-      font-size: clamp(36px, 8vw, 54px);
+      font-size: clamp(38px, 8vw, 56px);
       font-weight: 900;
       letter-spacing: 4px;
       background: linear-gradient(135deg, #ffffff 30%, var(--accent) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       text-transform: uppercase;
     }
 
@@ -271,7 +270,7 @@
       color: #8899aa;
       font-size: 14px;
       letter-spacing: 3px;
-      margin-bottom: 30px;
+      margin-bottom: 35px;
       font-weight: 600;
     }
 
@@ -280,18 +279,18 @@
       background: linear-gradient(135deg, var(--accent), #0099ff);
       color: #050a10;
       border: none;
-      padding: 16px 48px;
+      padding: 16px 52px;
       font-size: 16px;
       font-weight: 900;
       letter-spacing: 2px;
       border-radius: 30px;
       cursor: pointer;
-      box-shadow: 0 0 25px var(--accent-glow);
+      box-shadow: 0 0 30px var(--accent-glow);
       transition: transform 0.2s, box-shadow 0.2s;
     }
     .primary-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 0 35px var(--accent-glow);
+      box-shadow: 0 0 40px var(--accent-glow);
     }
     .primary-btn:active {
       transform: translateY(1px);
@@ -301,53 +300,53 @@
     .perk-cards {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       margin-top: 15px;
     }
     @media (min-width: 600px) {
       .perk-cards {
         flex-direction: row;
-        max-width: 680px;
+        max-width: 720px;
       }
     }
 
     .perk-card {
       pointer-events: auto;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 14px;
-      padding: 18px;
+      padding: 20px;
       flex: 1;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       text-align: left;
     }
     .perk-card:hover {
-      background: rgba(0, 255, 204, 0.12);
+      background: rgba(0, 255, 204, 0.1);
       border-color: var(--accent);
-      transform: translateY(-4px);
-      box-shadow: 0 10px 25px rgba(0, 255, 204, 0.2);
+      transform: translateY(-5px);
+      box-shadow: 0 12px 30px rgba(0, 255, 204, 0.25);
     }
     .perk-name {
       font-weight: 800;
       font-size: 16px;
       color: var(--accent);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .perk-desc {
       font-size: 12px;
       color: #99aabb;
-      line-height: 1.4;
+      line-height: 1.5;
     }
 
-    /* Controls Instruction Tip */
     .tips {
-      margin-top: 25px;
+      margin-top: 30px;
       font-size: 12px;
       color: #556677;
       letter-spacing: 1px;
+      line-height: 1.6;
     }
   </style>
   <!-- Three.js CDN -->
@@ -396,24 +395,22 @@
     <button id="btn-start" class="primary-btn">MISSION START</button>
     <div class="tips">
       PC: [WASD] 移動 / [SPACE] ジャンプ / [クリック or J] 斬撃<br>
-      スマホ: 仮想パッド & 右ボタン
+      スマホ: バーチャルパッド & 右ボタン
     </div>
   </div>
 
   <!-- Level Clear / Roguelike Upgrade Screen -->
   <div id="screen-perk" class="screen-overlay hidden">
-    <h2 class="screen-title" style="font-size: 28px;">フロア踏破</h2>
-    <p class="screen-sub">ニューラルモジュールをアップグレードしてください</p>
-    <div id="perk-list" class="perk-cards">
-      <!-- Generated Perks -->
-    </div>
+    <h2 class="screen-title" style="font-size: 30px;">フロア踏破</h2>
+    <p class="screen-sub">ニューラルモジュールを選択してください</p>
+    <div id="perk-list" class="perk-cards"></div>
   </div>
 
   <!-- Game Over Screen -->
   <div id="screen-gameover" class="screen-overlay hidden">
     <h1 class="screen-title" style="color: var(--danger); -webkit-text-fill-color: var(--danger);">TERMINATED</h1>
     <p class="screen-sub" id="gameover-summary">フロア 1 で信号切断</p>
-    <button id="btn-restart" class="primary-btn" style="background: linear-gradient(135deg, var(--danger), #ffaa00); box-shadow: 0 0 25px var(--danger-glow);">REBOOT SYSTEM</button>
+    <button id="btn-restart" class="primary-btn" style="background: linear-gradient(135deg, var(--danger), #ffaa00); box-shadow: 0 0 30px var(--danger-glow);">REBOOT SYSTEM</button>
   </div>
 
   <script>
@@ -435,9 +432,9 @@
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, now);
-        osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
-        gain.gain.setValueAtTime(0.3, now);
+        osc.frequency.setValueAtTime(900, now);
+        osc.frequency.exponentialRampToValueAtTime(120, now + 0.15);
+        gain.gain.setValueAtTime(0.35, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
@@ -445,14 +442,14 @@
         osc.stop(now + 0.15);
 
         // Noise element
-        const bufSize = this.ctx.sampleRate * 0.1;
+        const bufSize = this.ctx.sampleRate * 0.12;
         const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
         const data = buf.getChannelData(0);
         for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
         const noise = this.ctx.createBufferSource();
         noise.buffer = buf;
         const noiseGain = this.ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.2, now);
+        noiseGain.gain.setValueAtTime(0.25, now);
         noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
         noise.connect(noiseGain);
         noiseGain.connect(this.ctx.destination);
@@ -464,9 +461,9 @@
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'square';
-        osc.frequency.setValueAtTime(220, now);
-        osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
-        gain.gain.setValueAtTime(0.35, now);
+        osc.frequency.setValueAtTime(260, now);
+        osc.frequency.exponentialRampToValueAtTime(45, now + 0.12);
+        gain.gain.setValueAtTime(0.4, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
@@ -479,9 +476,9 @@
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(180, now);
-        osc.frequency.exponentialRampToValueAtTime(400, now + 0.15);
-        gain.gain.setValueAtTime(0.2, now);
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(450, now + 0.15);
+        gain.gain.setValueAtTime(0.25, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
@@ -496,12 +493,12 @@
           const gain = this.ctx.createGain();
           osc.type = 'sine';
           osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.15, now + idx * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+          gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start(now + idx * 0.08);
-          osc.stop(now + idx * 0.08 + 0.3);
+          osc.stop(now + idx * 0.08 + 0.35);
         });
       }
     }
@@ -513,9 +510,9 @@
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x060810);
-    scene.fog = new THREE.FogExp2(0x060810, 0.035);
+    scene.fog = new THREE.FogExp2(0x060810, 0.032);
 
-    const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 120);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -524,17 +521,17 @@
     container.appendChild(renderer.domElement);
 
     // Lightings
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0x00ffcc, 0.8);
-    dirLight.position.set(20, 40, 20);
+    const dirLight = new THREE.DirectionalLight(0x00ffcc, 0.9);
+    dirLight.position.set(20, 45, 20);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
-    const pointLight = new THREE.PointLight(0xff0055, 1.2, 25);
+    const pointLight = new THREE.PointLight(0xff0055, 1.5, 30);
     scene.add(pointLight);
 
     /* ========================================================
@@ -553,10 +550,10 @@
       hp: 100,
       score: 0,
       floor: 1,
-      moveSpeed: 10.0,
-      slashDamage: 40,
-      slashRange: 3.5,
-      critChance: 0.1
+      moveSpeed: 11.0,
+      slashDamage: 45,
+      slashRange: 3.8,
+      critChance: 0.12
     };
 
     let enemies = [];
@@ -565,6 +562,7 @@
     let portal = null;
     let cameraShake = 0;
     let hitStopFrames = 0;
+    const raycaster = new THREE.Raycaster();
 
     /* ========================================================
        Player Mesh & Animation Construction
@@ -593,7 +591,7 @@
     const bladeMat = new THREE.MeshStandardMaterial({
       color: 0x00ffcc,
       emissive: 0x00ffcc,
-      emissiveIntensity: 0.8,
+      emissiveIntensity: 0.9,
       roughness: 0.1
     });
     const bladeMesh = new THREE.Mesh(bladeGeom, bladeMat);
@@ -603,7 +601,7 @@
     playerGroup.add(katanaGroup);
 
     // Slash Arc Visual
-    const slashArcGeom = new THREE.RingGeometry(1.2, 3.2, 16, 1, 0, Math.PI * 0.9);
+    const slashArcGeom = new THREE.RingGeometry(1.4, 3.6, 20, 1, 0, Math.PI * 0.95);
     const slashArcMat = new THREE.MeshBasicMaterial({
       color: 0x00ffcc,
       side: THREE.DoubleSide,
@@ -627,7 +625,6 @@
        Level Generator
        ======================================================== */
     function clearLevel() {
-      // Remove previous level items
       platforms.forEach(p => scene.remove(p));
       platforms = [];
       enemies.forEach(e => scene.remove(e.group));
@@ -638,19 +635,18 @@
       }
     }
 
-    function createPlatform(x, y, z, w, h, d, color = 0x111625) {
+    function createPlatform(x, y, z, w, h, d, color = 0x131929) {
       const geom = new THREE.BoxGeometry(w, h, d);
       const mat = new THREE.MeshStandardMaterial({
         color: color,
-        roughness: 0.6,
-        metalness: 0.4
+        roughness: 0.5,
+        metalness: 0.5
       });
       const mesh = new THREE.Mesh(geom, mat);
       mesh.position.set(x, y, z);
       mesh.receiveShadow = true;
       mesh.castShadow = true;
       scene.add(mesh);
-      mesh.bbox = new THREE.Box3().setFromObject(mesh);
       platforms.push(mesh);
       return mesh;
     }
@@ -659,21 +655,21 @@
       clearLevel();
 
       // Start Platform
-      createPlatform(0, -0.5, 0, 10, 1, 10, 0x151c2e);
+      createPlatform(0, -0.5, 0, 12, 1, 12, 0x161e33);
       playerGroup.position.set(0, 2, 0);
       playerPhysics.velocity.set(0, 0, 0);
 
-      const pathLength = 5 + floorNumber * 2;
+      const pathLength = 6 + floorNumber * 2;
       let currPos = new THREE.Vector3(0, -0.5, 0);
 
       for (let i = 0; i < pathLength; i++) {
-        const stepX = (Math.random() - 0.5) * 12;
-        const stepZ = -(8 + Math.random() * 8);
-        const stepY = (Math.random() - 0.3) * 3; // jump platform heights
+        const stepX = (Math.random() - 0.5) * 14;
+        const stepZ = -(9 + Math.random() * 8);
+        const stepY = (Math.random() - 0.35) * 3.5;
 
         currPos.x += stepX;
         currPos.z += stepZ;
-        currPos.y = Math.max(-2, Math.min(8, currPos.y + stepY));
+        currPos.y = Math.max(-3, Math.min(9, currPos.y + stepY));
 
         const w = 6 + Math.random() * 4;
         const d = 6 + Math.random() * 4;
@@ -681,25 +677,25 @@
 
         // Spawn Enemies
         if (i > 0) {
-          const enemyCount = Math.floor(1 + Math.random() * 2);
+          const enemyCount = Math.floor(1 + Math.random() * 2.2);
           for (let e = 0; e < enemyCount; e++) {
             spawnEnemy(
-              currPos.x + (Math.random() - 0.5) * (w - 2),
+              currPos.x + (Math.random() - 0.5) * (w - 2.5),
               currPos.y + 1.2,
-              currPos.z + (Math.random() - 0.5) * (d - 2)
+              currPos.z + (Math.random() - 0.5) * (d - 2.5)
             );
           }
         }
       }
 
       // Goal Platform & Portal
-      currPos.z -= 10;
-      createPlatform(currPos.x, currPos.y, currPos.z, 8, 1, 8, 0x203045);
+      currPos.z -= 11;
+      createPlatform(currPos.x, currPos.y, currPos.z, 8, 1, 8, 0x1e304f);
 
       const portalGeom = new THREE.TorusGeometry(1.8, 0.25, 16, 32);
       const portalMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
       portal = new THREE.Mesh(portalGeom, portalMat);
-      portal.position.set(currPos.x, currPos.y + 2.5, currPos.z);
+      portal.position.set(currPos.x, currPos.y + 2.6, currPos.z);
       scene.add(portal);
     }
 
@@ -712,10 +708,10 @@
 
       const bodyMat = new THREE.MeshStandardMaterial({
         color: 0xff0055,
-        roughness: 0.3,
-        metalness: 0.7
+        roughness: 0.2,
+        metalness: 0.8
       });
-      const geom = new THREE.OctahedronGeometry(0.7, 0);
+      const geom = new THREE.OctahedronGeometry(0.75, 0);
       const mesh = new THREE.Mesh(geom, bodyMat);
       mesh.castShadow = true;
       group.add(mesh);
@@ -731,9 +727,9 @@
       enemies.push({
         group: group,
         mesh: mesh,
-        hp: 50 + stats.floor * 15,
-        attackTimer: 0,
-        speed: 3.5 + Math.random() * 2
+        hp: 60 + stats.floor * 18,
+        speed: 3.8 + Math.random() * 2.2,
+        velocity: new THREE.Vector3()
       });
     }
 
@@ -743,40 +739,41 @@
     function triggerSlash() {
       if (playerPhysics.isSlashing) return;
       playerPhysics.isSlashing = true;
-      playerPhysics.slashTime = 0.25;
+      playerPhysics.slashTime = 0.22;
 
       audio.playSlash();
 
       // Visual sweep
-      slashArcMat.opacity = 0.8;
-      slashArc.scale.set(stats.slashRange * 0.6, stats.slashRange * 0.6, 1);
-
-      // Katana slash rotation
+      slashArcMat.opacity = 0.85;
+      slashArc.scale.set(stats.slashRange * 0.55, stats.slashRange * 0.55, 1);
       katanaGroup.rotation.y = -Math.PI * 0.7;
 
-      // Hit Check
+      // 3D Sector & Capsule Hit Check
       const slashForward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerGroup.quaternion);
       const playerPos = playerGroup.position;
 
       enemies.forEach((enemy, idx) => {
-        const dist = playerPos.distanceTo(enemy.group.position);
-        if (dist <= stats.slashRange) {
-          const dirToEnemy = enemy.group.position.clone().sub(playerPos).normalize();
-          const angle = slashForward.angleTo(dirToEnemy);
+        const enemyPos = enemy.group.position;
+        const dist = playerPos.distanceTo(enemyPos);
 
-          if (angle < Math.PI * 0.6) { // 120-degree front arc
-            // Hit!
+        if (dist <= stats.slashRange) {
+          const dirToEnemy = enemyPos.clone().sub(playerPos).normalize();
+          const angle = slashForward.angleTo(dirToEnemy);
+          const heightDiff = Math.abs(enemyPos.y - playerPos.y);
+
+          // 130-degree front arc & vertical tolerance
+          if (angle < Math.PI * 0.7 && heightDiff < 2.0) {
             const isCrit = Math.random() < stats.critChance;
-            const damage = stats.slashDamage * (isCrit ? 2.0 : 1.0);
+            const damage = stats.slashDamage * (isCrit ? 2.2 : 1.0);
             enemy.hp -= damage;
 
             audio.playHit();
-            hitStopFrames = 4;
-            cameraShake = 0.4;
-            spawnBloodParticles(enemy.group.position.clone(), isCrit ? 0x00ffcc : 0xff0055);
+            hitStopFrames = 5; // Hitstop effect
+            cameraShake = 0.45;
+            spawnBloodParticles(enemyPos.clone(), isCrit ? 0x00ffcc : 0xff0055);
 
-            // Knockback
-            enemy.group.position.add(dirToEnemy.multiplyScalar(1.5));
+            // Knockback impulse
+            enemy.velocity.add(dirToEnemy.multiplyScalar(6.0));
 
             if (enemy.hp <= 0) {
               stats.score += 100 * stats.floor;
@@ -794,11 +791,11 @@
       const feed = document.getElementById('kill-feed');
       feed.textContent = msg;
       feed.classList.add('show');
-      setTimeout(() => feed.classList.remove('show'), 800);
+      setTimeout(() => feed.classList.remove('show'), 850);
     }
 
     function spawnBloodParticles(pos, colorHex) {
-      const count = 18;
+      const count = 20;
       const geom = new THREE.BoxGeometry(0.12, 0.12, 0.12);
       const mat = new THREE.MeshBasicMaterial({ color: colorHex });
 
@@ -806,12 +803,12 @@
         const p = new THREE.Mesh(geom, mat);
         p.position.copy(pos);
         const vel = new THREE.Vector3(
-          (Math.random() - 0.5) * 12,
-          Math.random() * 8 + 2,
-          (Math.random() - 0.5) * 12
+          (Math.random() - 0.5) * 14,
+          Math.random() * 9 + 3,
+          (Math.random() - 0.5) * 14
         );
         scene.add(p);
-        particles.push({ mesh: p, vel: vel, life: 0.6 });
+        particles.push({ mesh: p, vel: vel, life: 0.65 });
       }
     }
 
@@ -824,7 +821,7 @@
       if (state === GAME_STATE.PLAYING) {
         if (e.code === 'KeyJ' || e.code === 'KeyF') triggerSlash();
         if (e.code === 'Space' && playerPhysics.isGrounded) {
-          playerPhysics.velocity.y = 12;
+          playerPhysics.velocity.y = 12.5;
           playerPhysics.isGrounded = false;
           audio.playJump();
         }
@@ -849,12 +846,12 @@
       const centerY = rect.top + rect.height / 2;
       const deltaX = touch.clientX - centerX;
       const deltaY = touch.clientY - centerY;
-      const dist = Math.min(45, Math.hypot(deltaX, deltaY));
+      const dist = Math.min(48, Math.hypot(deltaX, deltaY));
       const angle = Math.atan2(deltaY, deltaX);
 
-      stick.x = (Math.cos(angle) * dist) / 45;
-      stick.y = (Math.sin(angle) * dist) / 45;
-      stickNub.style.transform = `translate(calc(-50% + ${stick.x * 35}px), calc(-50% + ${stick.y * 35}px))`;
+      stick.x = (Math.cos(angle) * dist) / 48;
+      stick.y = (Math.sin(angle) * dist) / 48;
+      stickNub.style.transform = `translate(calc(-50% + ${stick.x * 38}px), calc(-50% + ${stick.y * 38}px))`;
     }
 
     stickArea.addEventListener('touchstart', e => {
@@ -863,9 +860,7 @@
     }, { passive: false });
 
     window.addEventListener('touchmove', e => {
-      if (stick.active) {
-        handleStickTouch(e);
-      }
+      if (stick.active) handleStickTouch(e);
     }, { passive: false });
 
     window.addEventListener('touchend', () => {
@@ -883,7 +878,7 @@
     document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
       e.stopPropagation();
       if (playerPhysics.isGrounded) {
-        playerPhysics.velocity.y = 12;
+        playerPhysics.velocity.y = 12.5;
         playerPhysics.isGrounded = false;
         audio.playJump();
       }
@@ -897,7 +892,7 @@
       { id: 'range', name: 'サイバーレンジ拡大', desc: '斬撃リーチが +20% 拡大し巻き込みやすくなる', apply: () => stats.slashRange *= 1.2 },
       { id: 'speed', name: 'アクセラレータ', desc: '走行速度が 15% 上昇', apply: () => stats.moveSpeed *= 1.15 },
       { id: 'crit', name: 'フェイタルリンク', desc: 'クリティカル率 +15%', apply: () => stats.critChance += 0.15 },
-      { id: 'heal', name: 'ナノリペア修復', desc: 'HPを 50 回復し、最大HP +20', apply: () => { stats.maxHp += 20; stats.hp = Math.min(stats.maxHp, stats.hp + 50); } }
+      { id: 'heal', name: 'ナノリペア修復', desc: 'HPを 50 回復し、最大HP +25', apply: () => { stats.maxHp += 25; stats.hp = Math.min(stats.maxHp, stats.hp + 50); } }
     ];
 
     function showPerkSelection() {
@@ -908,7 +903,6 @@
       const container = document.getElementById('perk-list');
       container.innerHTML = '';
 
-      // Random 3 perks
       const shuffled = [...PERK_DEFINITIONS].sort(() => 0.5 - Math.random()).slice(0, 3);
       shuffled.forEach(perk => {
         const card = document.createElement('div');
@@ -949,10 +943,10 @@
       stats.maxHp = 100;
       stats.score = 0;
       stats.floor = 1;
-      stats.moveSpeed = 10.0;
-      stats.slashDamage = 40;
-      stats.slashRange = 3.5;
-      stats.critChance = 0.1;
+      stats.moveSpeed = 11.0;
+      stats.slashDamage = 45;
+      stats.slashRange = 3.8;
+      stats.critChance = 0.12;
 
       updateHUD();
       generateStage(stats.floor);
@@ -1004,37 +998,40 @@
         if (moveVec.length() > 0.1) {
           moveVec.normalize();
           const targetAngle = Math.atan2(moveVec.x, moveVec.y) + Math.PI;
-          playerGroup.rotation.y = targetAngle;
+          
+          // Smooth rotation (Slerp-like angle interpolation)
+          let currRot = playerGroup.rotation.y;
+          let diff = targetAngle - currRot;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          playerGroup.rotation.y += diff * Math.min(1.0, delta * 15);
 
           playerPhysics.velocity.x = moveVec.x * stats.moveSpeed;
           playerPhysics.velocity.z = moveVec.y * stats.moveSpeed;
         } else {
-          playerPhysics.velocity.x *= 0.8;
-          playerPhysics.velocity.z *= 0.8;
+          playerPhysics.velocity.x *= 0.82;
+          playerPhysics.velocity.z *= 0.82;
         }
 
-        // Gravity & Vertical Physics
-        playerPhysics.velocity.y -= 28.0 * delta; // Gravity
+        // Gravity & Position update
+        playerPhysics.velocity.y -= 30.0 * delta;
         playerGroup.position.x += playerPhysics.velocity.x * delta;
         playerGroup.position.y += playerPhysics.velocity.y * delta;
         playerGroup.position.z += playerPhysics.velocity.z * delta;
 
-        // Platform Collisions (AABB Ground Detection)
+        // --- 2. Raycasting Ground Collision Detection ---
         playerPhysics.isGrounded = false;
-        const playerBox = new THREE.Box3().setFromCenterAndSize(
-          playerGroup.position,
-          new THREE.Vector3(0.6, 1.4, 0.6)
-        );
+        raycaster.set(playerGroup.position.clone().add(new THREE.Vector3(0, 0.5, 0)), new THREE.Vector3(0, -1, 0));
+        const intersects = raycaster.intersectObjects(platforms);
 
-        for (let p of platforms) {
-          if (p.bbox.intersectsBox(playerBox)) {
-            // Check if falling onto top
-            if (playerPhysics.velocity.y <= 0 && playerGroup.position.y >= p.position.y + 0.4) {
-              playerGroup.position.y = p.position.y + 0.5 + 0.6;
-              playerPhysics.velocity.y = 0;
-              playerPhysics.isGrounded = true;
-              break;
-            }
+        if (intersects.length > 0) {
+          const hit = intersects[0];
+          const distToFloor = hit.distance;
+          // If falling and close enough to platform top surface
+          if (playerPhysics.velocity.y <= 0 && distToFloor <= 0.75) {
+            playerGroup.position.y = hit.point.y + 0.6;
+            playerPhysics.velocity.y = 0;
+            playerPhysics.isGrounded = true;
           }
         }
 
@@ -1045,10 +1042,10 @@
           triggerGameOver();
         }
 
-        // --- 2. Slash Animation ---
+        // --- 3. Slash Animation ---
         if (playerPhysics.isSlashing) {
           playerPhysics.slashTime -= delta;
-          const progress = 1.0 - (playerPhysics.slashTime / 0.25);
+          const progress = 1.0 - (playerPhysics.slashTime / 0.22);
           katanaGroup.rotation.y = -Math.PI * 0.7 + progress * Math.PI * 1.4;
 
           if (playerPhysics.slashTime <= 0) {
@@ -1058,45 +1055,58 @@
           }
         }
 
-        // --- 3. Enemies AI ---
+        // --- 4. Enemies Momentum & Pursuit AI ---
         enemies.forEach(enemy => {
-          const dir = playerGroup.position.clone().sub(enemy.group.position);
+          const enemyPos = enemy.group.position;
+          const dir = playerGroup.position.clone().sub(enemyPos);
           const dist = dir.length();
 
           // Float animation
-          enemy.mesh.rotation.y += delta * 2;
-          enemy.mesh.rotation.x += delta * 1.5;
+          enemy.mesh.rotation.y += delta * 2.2;
+          enemy.mesh.rotation.x += delta * 1.6;
 
-          if (dist < 18) {
+          // Apply velocity momentum
+          enemy.group.position.addScaledVector(enemy.velocity, delta);
+          enemy.velocity.multiplyScalar(0.9); // friction
+
+          if (dist < 20) {
             dir.y = 0;
             dir.normalize();
+
+            // Smooth enemy rotation towards player
+            const targetRot = Math.atan2(dir.x, dir.z);
+            let diff = targetRot - enemy.group.rotation.y;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            enemy.group.rotation.y += diff * Math.min(1.0, delta * 8);
+
             enemy.group.position.add(dir.multiplyScalar(enemy.speed * delta));
 
             // Enemy Attack collision
-            if (dist < 1.2) {
-              stats.hp -= 20 * delta;
-              cameraShake = 0.3;
+            if (dist < 1.3) {
+              stats.hp -= 22 * delta;
+              cameraShake = 0.35;
               updateHUD();
               if (stats.hp <= 0) triggerGameOver();
             }
           }
         });
 
-        // --- 4. Portal Check ---
+        // --- 5. Portal Check ---
         if (portal) {
-          portal.rotation.z += delta * 1.5;
-          if (playerGroup.position.distanceTo(portal.position) < 2.0) {
+          portal.rotation.z += delta * 1.8;
+          if (playerGroup.position.distanceTo(portal.position) < 2.2) {
             showPerkSelection();
           }
         }
 
-        // --- 5. Particles Update ---
+        // --- 6. Particles Update ---
         for (let i = particles.length - 1; i >= 0; i--) {
           const p = particles[i];
           p.mesh.position.addScaledVector(p.vel, delta);
-          p.vel.y -= 25.0 * delta;
+          p.vel.y -= 28.0 * delta;
           p.life -= delta;
-          p.mesh.scale.multiplyScalar(0.95);
+          p.mesh.scale.multiplyScalar(0.94);
 
           if (p.life <= 0) {
             scene.remove(p.mesh);
@@ -1104,16 +1114,16 @@
           }
         }
 
-        // --- 6. Camera Follow & Dynamic Shake ---
-        const idealOffset = new THREE.Vector3(0, 7, 9);
+        // --- 7. Camera Follow & Dynamic Shake ---
+        const idealOffset = new THREE.Vector3(0, 7.5, 9.5);
         const camTarget = playerGroup.position.clone().add(idealOffset);
-        camera.position.lerp(camTarget, 0.08);
+        camera.position.lerp(camTarget, 0.1);
 
         let lookAtTarget = playerGroup.position.clone();
         if (cameraShake > 0) {
           camera.position.x += (Math.random() - 0.5) * cameraShake;
           camera.position.y += (Math.random() - 0.5) * cameraShake;
-          cameraShake = Math.max(0, cameraShake - delta * 2);
+          cameraShake = Math.max(0, cameraShake - delta * 2.5);
         }
         camera.lookAt(lookAtTarget);
 
