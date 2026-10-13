@@ -37,7 +37,7 @@ issue_number = event_data['issue']['number']
 # --- 2. API呼び出し関数（リトライ強化・指数バックオフ） ---
 def call_gemini_api(prompt_text, max_retries=5):
     # 最新の推奨モデルリストに更新 (2.5系は廃止されたため最新の3.8と3.1に変更)
-    models = ["gemini-3.8-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash"]
+    models = ["gemini-3.8-flash","gemini-3.6-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash","gemini-3.5-flash-lite"]
     
     for model_name in models:
         print(f"🤖 [{model_name}] と通信中...")
