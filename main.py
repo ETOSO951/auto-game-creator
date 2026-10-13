@@ -12,7 +12,8 @@ from playwright.sync_api import sync_playwright
 # ========================================================
 # ⚙️ AIエージェントの設定
 # ========================================================
-QUALITY_UP_ITERATIONS = 10 # 限界まで回す設定
+QUALITY_UP_ITERATIONS = 20 # 新規作成時の限界まで回す設定
+MAX_UPDATE_LOOPS = 15 # 既存コード修正時の最大ループ回数（達成度ベース）
 MAX_BUGFIX_LOOPS = 4
 
 # システムプロンプト
@@ -197,49 +198,103 @@ except Exception as e:
     exit(1)
 
 # ========================================================
-# フェーズ2: 自律的クオリティアップループ（限界突破仕様）
+# フェーズ2: 自律的クオリティアップループ or 達成度ベース調整ループ
 # ========================================================
-print(f"\n--- 🌟 自律クオリティアップループ開始（最大{QUALITY_UP_ITERATIONS}回） ---")
-for i in range(1, QUALITY_UP_ITERATIONS + 1):
-    try:
-        time.sleep(3)
-        print(f"\n【ループ {i}/{QUALITY_UP_ITERATIONS}】改善案の作成中...")
-        
-        # --- 段階的ディレクション（進捗に応じた計画的なプロンプト切り替え） ---
-        progress_ratio = i / QUALITY_UP_ITERATIONS
-        
-        if progress_ratio < 0.3:
-            phase_instruction = "【フェーズ: 基礎固め】 新しいゲームシステムや要素は一切追加せず、現在のゲームのコアメカニクス（操作性、当たり判定、基本ルール）を完璧にブラッシュアップし、コードを整理してください。"
-        elif progress_ratio < 0.6:
-            phase_instruction = "【フェーズ: 視覚・聴覚の洗練】 新要素は増やさず、既存の要素のCSSグラフィック、パーティクルエフェクト、アニメーションの滑らかさ、UIの美しさを徹底的に高めてリッチにしてください。"
-        elif progress_ratio < 0.8:
-            phase_instruction = "【フェーズ: UI整理と引き算の美学】 画面がごちゃごちゃしている場合は不要な要素を削除・整理し、プレイヤーが直感的に遊べるように洗練させてください。バランス調整に専念してください。"
-        else:
-            phase_instruction = "【フェーズ: 最終仕上げ】 ゲーム全体の完成度を商業レベルに引き上げるため、タイトル画面やゲームオーバー画面の演出強化、細かいディテールの磨き上げを行ってください。"
+if not existing_code:
+    # --- 新規作成時: 計画的なクオリティアップ（%進行） ---
+    print(f"\n--- 🌟 自律クオリティアップループ開始（新規作成モード: 最大{QUALITY_UP_ITERATIONS}回） ---")
+    for i in range(1, QUALITY_UP_ITERATIONS + 1):
+        try:
+            time.sleep(3)
+            print(f"\n【ループ {i}/{QUALITY_UP_ITERATIONS}】改善案の作成中...")
+            
+            # --- 段階的ディレクション（進捗に応じた計画的なプロンプト切り替え） ---
+            progress_ratio = i / QUALITY_UP_ITERATIONS
+            
+            if progress_ratio < 0.3:
+                phase_instruction = "【フェーズ: 基礎固め】 新しいゲームシステムや要素は一切追加せず、現在のゲームのコアメカニクス（操作性、当たり判定、基本ルール）を完璧にブラッシュアップし、コードを整理してください。"
+            elif progress_ratio < 0.5:
+                phase_instruction = "【フェーズ: 視覚・聴覚の洗練】 新要素は増やさず、既存の要素のCSSグラフィック、パーティクルエフェクト、アニメーションの滑らかさ、UIの美しさを徹底的に高めてリッチにしてください。"
+            elif progress_ratio < 0.7:
+                phase_instruction = "【フェーズ: ゲーム全体のボリューム増加】 これまで構築した基礎と視覚表現の上に、新しいステージ、敵の種類、アイテム、隠し要素、新しいギミックなど、ゲーム全体のボリュームと遊び応えを大幅に増加させる新要素を大胆に追加してください。"
+            elif progress_ratio < 0.85:
+                phase_instruction = "【フェーズ: UI整理と引き算の美学】 画面がごちゃごちゃしている場合は不要な要素を削除・整理し、プレイヤーが直感的に遊べるように洗練させてください。要素を詰め込みすぎない「引き算の美学」を意識してバランス調整に専念してください。"
+            else:
+                phase_instruction = "【フェーズ: 最終仕上げ】 ゲーム全体の完成度を商業レベルに引き上げるため、タイトル画面やゲームオーバー画面の演出強化、細かいディテールの磨き上げを行ってください。"
 
-        prompt_idea = f"現在のコード:\n```html\n{html_content}\n```\nあなたはプロのゲームディレクターです。\n{phase_instruction}\nこの方針に厳格に従い、現在のコードをより洗練させるための具体的な改善案を3つ文章で挙げてください。コードは書かないでください。"
-        
-        # 修正: アイデア出しもリトライ・フォールバック関数（call_gemini_api）を経由させる
-        ideas = call_gemini_api(prompt_idea, extract_html=False)
-        print(f"💡 改善アイデア:\n{ideas}\n")
-        
-        time.sleep(3)
-        print(f"【ループ {i}/{QUALITY_UP_ITERATIONS}】改善アイデアの実装中...")
-        prompt_apply = f"現在のコード:\n```html\n{html_content}\n```\n【実装するアイデア】\n{ideas}\nルール: `<thinking>` タグで論理的に記述後、完全なHTMLコードを ```html ... ``` で出力してください。省略厳禁。"
-        
-        # 実装
-        html_content = call_gemini_api(prompt_apply)
-        
-        # 💾 【重要】ループ途中の漸進的更新（毎ループGitへPushしてブラウザで確認可能に）
-        print(f"💾 ループ {i} の成果を保存・Push中...")
-        save_and_push(html_content, f"🔄 自律改善ループ {i}/{QUALITY_UP_ITERATIONS} 完了")
-        
-    except Exception as e:
-        if "API_LIMIT_REACHED" in str(e):
-            print(f"\n⚠️ トークン上限・API制限に到達しました！\nループ {i-1} までの成果を保存して、自動的に次のステップへ進みます。")
-        else:
-            print(f"\n⚠️ 予期せぬエラー発生: {e}\nループ {i-1} までの成果を保存して、自動的に次のステップへ進みます。")
-        break # エラーが起きたらループを安全に脱出する
+            prompt_idea = f"現在のコード:\n```html\n{html_content}\n```\nあなたはプロのゲームディレクターです。\n{phase_instruction}\nこの方針に厳格に従い、現在のコードをより洗練させるための具体的な改善案を3つ文章で挙げてください。コードは書かないでください。"
+            
+            ideas = call_gemini_api(prompt_idea, extract_html=False)
+            print(f"💡 改善アイデア:\n{ideas}\n")
+            
+            time.sleep(3)
+            print(f"【ループ {i}/{QUALITY_UP_ITERATIONS}】改善アイデアの実装中...")
+            prompt_apply = f"現在のコード:\n```html\n{html_content}\n```\n【実装するアイデア】\n{ideas}\nルール: `<thinking>` タグで論理的に記述後、完全なHTMLコードを ```html ... ``` で出力してください。省略厳禁。"
+            
+            html_content = call_gemini_api(prompt_apply)
+            
+            print(f"💾 ループ {i} の成果を保存・Push中...")
+            save_and_push(html_content, f"🔄 自律改善ループ {i}/{QUALITY_UP_ITERATIONS} 完了")
+            
+        except Exception as e:
+            if "API_LIMIT_REACHED" in str(e):
+                print(f"\n⚠️ トークン上限・API制限に到達しました！\nループ {i-1} までの成果を保存して、自動的に次のステップへ進みます。")
+            else:
+                print(f"\n⚠️ 予期せぬエラー発生: {e}\nループ {i-1} までの成果を保存して、自動的に次のステップへ進みます。")
+            break
+
+else:
+    # --- 既存コード修正時: 達成度ベースの調整ループ ---
+    print(f"\n--- 🎯 ユーザー要望達成ループ開始（既存編集モード: 最大{MAX_UPDATE_LOOPS}回） ---")
+    for i in range(1, MAX_UPDATE_LOOPS + 1):
+        try:
+            time.sleep(3)
+            print(f"\n【ループ {i}/{MAX_UPDATE_LOOPS}】達成度の評価と改善案の作成中...")
+            
+            prompt_eval = f"""現在のコード:
+```html
+{html_content}
+```
+【ユーザーからの依頼内容】
+タイトル: {issue_title}
+内容: {issue_body}
+
+あなたはプロのエンジニアです。現在のコードが「ユーザーの依頼」をどれくらい完璧に満たしているか、達成度を0〜100の数値で評価してください。
+バグがないか、要件を漏らしていないか、UI/UXは崩れていないかを厳しく判定してください。
+
+出力フォーマット（必ず以下の形式を厳守すること）:
+達成度: [0〜100の数値]
+改善案: [達成度が100でない場合、次にどのようなコード修正や微調整を行うべきか具体的な指示を書いてください。100の場合は「要望は完全に満たされています」と書いてください。]
+"""
+            eval_result = call_gemini_api(prompt_eval, extract_html=False)
+            print(f"📊 評価結果:\n{eval_result}\n")
+            
+            # 達成度の抽出
+            score = 0
+            match = re.search(r'達成度[:：]\s*(\d+)', eval_result)
+            if match:
+                score = int(match.group(1))
+                if score >= 100:
+                    print("✨ 達成度100%に到達しました！ユーザーの要望は完全に反映されたため、調整ループを終了します。")
+                    break
+            else:
+                print("⚠️ 達成度の数値が抽出できませんでした。処理を継続します。")
+                
+            time.sleep(3)
+            print(f"【ループ {i}/{MAX_UPDATE_LOOPS}】改善案（微調整）の実装中...")
+            prompt_apply = f"現在のコード:\n```html\n{html_content}\n```\n【ユーザーの依頼内容】\n{issue_body}\n【実装する改善案】\n{eval_result}\nルール: 上記の改善案を反映し、ユーザーの依頼を達成してください。`<thinking>` タグで論理的に記述後、完全なHTMLコードを ```html ... ``` で出力してください。省略厳禁。"
+            
+            html_content = call_gemini_api(prompt_apply)
+            
+            print(f"💾 調整ループ {i} の成果を保存・Push中...")
+            save_and_push(html_content, f"🔄 要望達成ループ {i}/{MAX_UPDATE_LOOPS} (達成度: {score}%) 完了")
+            
+        except Exception as e:
+            if "API_LIMIT_REACHED" in str(e):
+                print(f"\n⚠️ トークン上限・API制限に到達しました！\nループ {i-1} までの成果を保存して、自動的に次のステップへ進みます。")
+            else:
+                print(f"\n⚠️ 予期せぬエラー発生: {e}\nループ {i-1} までの成果を保存して、自動的に次のステップへ進みます。")
+            break
 
 # ========================================================
 # フェーズ3: 自己修正（バグ取り）ループ
