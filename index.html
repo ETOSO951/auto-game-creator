@@ -865,19 +865,24 @@
       );
       group.add(line);
 
-      // 足場サイズ(w, d)にぴったり一致する正確な網目グリッドを作成（ズレの解消）
-      const step = 2.0;
+      // 足場サイズ(w, d)に等分割した完全対称の網目グリッドを作成（端の歪み・ズレを完全解消）
       const gridPts = [];
       const halfW = w / 2;
       const halfD = d / 2;
+      const divsX = Math.max(2, Math.round(w / 2));
+      const divsZ = Math.max(2, Math.round(d / 2));
+      const stepX = w / divsX;
+      const stepZ = d / divsZ;
 
-      // X方向の平行線
-      for (let zPos = -halfD; zPos <= halfD + 0.001; zPos += step) {
+      // X方向の平行線（Z軸方向に等間隔に配置）
+      for (let i = 0; i <= divsZ; i++) {
+        const zPos = -halfD + i * stepZ;
         gridPts.push(new THREE.Vector3(-halfW, h / 2 + 0.015, zPos));
         gridPts.push(new THREE.Vector3(halfW, h / 2 + 0.015, zPos));
       }
-      // Z方向の平行線
-      for (let xPos = -halfW; xPos <= halfW + 0.001; xPos += step) {
+      // Z方向の平行線（X軸方向に等間隔に配置）
+      for (let i = 0; i <= divsX; i++) {
+        const xPos = -halfW + i * stepX;
         gridPts.push(new THREE.Vector3(xPos, h / 2 + 0.015, -halfD));
         gridPts.push(new THREE.Vector3(xPos, h / 2 + 0.015, halfD));
       }
@@ -1033,51 +1038,84 @@
 
     function spawnBoss(x, platformTopY, z, platformData) {
       const group = new THREE.Group();
-      group.position.set(x, platformTopY + 1.8, z);
-      const mesh = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(2.1, 1),
-        new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.1, metalness: 0.9, emissive: 0xff0044, emissiveIntensity: 2.2 })
-      );
-      mesh.castShadow = true;
-      group.add(mesh);
+      // ボスタイプを階層で分岐（3F: 重量級OVERLORD, 6F: 高速剣客SHADOW BLADE, 9F...）
+      const bossType = (Math.floor(stats.floor / 3) % 2 === 0) ? 'shadow_blade' : 'overlord';
+      
+      let mesh, innerCore = null;
+      let bossColor = 0xff0055;
+      let bossName = '';
 
-      // 内側の核
-      const innerCore = new THREE.Mesh(
-        new THREE.OctahedronGeometry(1.2, 0),
-        new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00f0ff, emissiveIntensity: 3.0 })
-      );
-      group.add(innerCore);
+      if (bossType === 'shadow_blade') {
+        bossName = `SHADOW BLADE [FL ${stats.floor}]`;
+        bossColor = 0x9900ff;
+        group.position.set(x, platformTopY + 1.4, z);
+
+        // 鋭角的なファントム人型ボディ
+        mesh = new THREE.Mesh(
+          new THREE.ConeGeometry(0.9, 2.2, 5),
+          new THREE.MeshStandardMaterial({ color: 0x220530, roughness: 0.2, metalness: 0.9, emissive: 0x9900ff, emissiveIntensity: 2.0 })
+        );
+        mesh.rotation.x = Math.PI;
+        group.add(mesh);
+
+        // 両脇のサイバー二刀流ブレード
+        const b1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.8, 0.2), new THREE.MeshBasicMaterial({ color: 0xff00cc }));
+        b1.position.set(1.1, 0, 0); b1.rotation.z = -0.4;
+        const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.8, 0.2), new THREE.MeshBasicMaterial({ color: 0xff00cc }));
+        b2.position.set(-1.1, 0, 0); b2.rotation.z = 0.4;
+        group.add(b1); group.add(b2);
+      } else {
+        bossName = `NEXUS OVERLORD [FL ${stats.floor}]`;
+        bossColor = 0xff0055;
+        group.position.set(x, platformTopY + 1.8, z);
+
+        mesh = new THREE.Mesh(
+          new THREE.IcosahedronGeometry(2.1, 1),
+          new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.1, metalness: 0.9, emissive: 0xff0044, emissiveIntensity: 2.2 })
+        );
+        group.add(mesh);
+
+        innerCore = new THREE.Mesh(
+          new THREE.OctahedronGeometry(1.2, 0),
+          new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00f0ff, emissiveIntensity: 3.0 })
+        );
+        group.add(innerCore);
+      }
+
+      mesh.castShadow = true;
 
       const warnRing = new THREE.Mesh(
         new THREE.RingGeometry(2.2, 2.8, 32),
-        new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.5 })
+        new THREE.MeshBasicMaterial({ color: bossColor, side: THREE.DoubleSide, transparent: true, opacity: 0.5 })
       );
       warnRing.rotation.x = -Math.PI / 2;
-      warnRing.position.y = -1.75;
+      warnRing.position.y = (bossType === 'shadow_blade') ? -1.35 : -1.75;
       group.add(warnRing);
 
-      const bossLight = new THREE.PointLight(0xff0055, 5.0, 28);
+      const bossLight = new THREE.PointLight(bossColor, 5.0, 28);
       group.add(bossLight);
 
       scene.add(group);
 
       boss = {
+        type: bossType,
         group, mesh, innerCore, warnRing,
-        position: new THREE.Vector3(x, platformTopY + 1.8, z),
+        position: group.position.clone(),
         floorY: platformTopY,
         platform: platformData,
-        hp: 750 + stats.floor * 280,
-        maxHp: 750 + stats.floor * 280,
-        speed: 3.6,
-        attackCooldown: 1.5,
-        specialCooldown: 4.5,
-        attackType: 'melee', // 'melee' or 'shockwave'
+        hp: (bossType === 'shadow_blade' ? 620 : 780) + stats.floor * 250,
+        maxHp: (bossType === 'shadow_blade' ? 620 : 780) + stats.floor * 250,
+        speed: (bossType === 'shadow_blade' ? 5.2 : 3.4),
+        attackCooldown: 1.4,
+        specialCooldown: 4.0,
+        attackType: 'melee',
         isWarning: false,
-        warningTimer: 0
+        warningTimer: 0,
+        dashDir: new THREE.Vector3()
       };
 
       document.getElementById('boss-hud').classList.add('active');
-      document.getElementById('boss-name').textContent = `NEXUS OVERLORD [FL ${stats.floor}]`;
+      document.getElementById('boss-name').textContent = bossName;
     }
 
     function triggerGlitchEffect() {
