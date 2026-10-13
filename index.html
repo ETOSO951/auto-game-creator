@@ -625,6 +625,7 @@
       constructor() {
         this.commands = { slash: 0, jump: 0, skill: 0 };
         this.keys = {};
+        this.jumpKeyReleased = true;
         
         window.addEventListener('keydown', e => {
           if (!this.keys[e.code]) {
@@ -632,12 +633,20 @@
             if (e.code === 'KeyJ') this.push('slash');
             if (e.code === 'KeyK' || e.code === 'Space') {
               if (e.code === 'Space') e.preventDefault();
-              this.push('jump');
+              if (this.jumpKeyReleased) {
+                this.push('jump');
+                this.jumpKeyReleased = false;
+              }
             }
             if (e.code === 'KeyE') this.push('skill');
           }
         });
-        window.addEventListener('keyup', e => { this.keys[e.code] = false; });
+        window.addEventListener('keyup', e => { 
+          this.keys[e.code] = false; 
+          if (e.code === 'KeyK' || e.code === 'Space') {
+            this.jumpKeyReleased = true;
+          }
+        });
       }
       push(cmd) { this.commands[cmd] = 10; }
       consume(cmd) {
@@ -650,11 +659,15 @@
       update() {
         for (let k in this.commands) if (this.commands[k] > 0) this.commands[k]--;
       }
-      clear() { this.commands.slash = 0; this.commands.jump = 0; this.commands.skill = 0; }
+      clear() { 
+        this.commands.slash = 0; 
+        this.commands.jump = 0; 
+        this.commands.skill = 0; 
+        this.jumpKeyReleased = true;
+      }
     }
     const inputSys = new InputSystem();
 
-    // ライティングと視認性の向上（画面が暗い問題へのアプローチ）
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x182642);
@@ -667,10 +680,9 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 2.4; // 露出を大幅アップして明るくくっきりと
+    renderer.toneMappingExposure = 2.4;
     container.appendChild(renderer.domElement);
 
-    // 視認性を劇的に向上させる強力なライティング構成
     const ambientLight = new THREE.AmbientLight(0xe0f0ff, 2.5);
     scene.add(ambientLight);
 
@@ -711,7 +723,6 @@
       { name: 'CYBER SECTOR', color: 0x142c48, basePlate: 0x24557d, lightColor: 0x00d4ff, edgeColor: 0x00e5ff }
     ];
 
-    // プレイヤーオブジェクト
     const playerGroup = new THREE.Group();
     scene.add(playerGroup);
 
@@ -739,14 +750,13 @@
     katanaGroup.add(bladeMesh);
     playerGroup.add(katanaGroup);
 
-    // 斬撃エフェクトの向きを修正（正しく正面に前方に繰り出される扇形）
     const slashPivot = new THREE.Group();
     slashPivot.position.set(0, 0.75, 0);
     playerGroup.add(slashPivot);
 
     function buildSlashGeometry(innerR, outerR, arcAngle) {
-      // RingGeometryを水平に配置 (-Z軸方向へ扇形が広がるように回転)
-      const startAngle = -arcAngle * 0.5;
+      // 改善1: RingGeometryの向きを補正し、プレイヤーの前方（-Z軸方向）に扇形が正しく広がるように修正
+      const startAngle = Math.PI * 0.5 - arcAngle * 0.5;
       const geo = new THREE.RingGeometry(innerR, outerR, 32, 1, startAngle, arcAngle);
       geo.rotateX(-Math.PI * 0.5);
       return geo;
@@ -1260,7 +1270,6 @@
     const FIXED_TIMESTEP = 1 / 60;
     let accumulator = 0, lastTime = performance.now();
 
-    // 足場判定の厳密化（跳ね続けるバグの完全解消）
     function findBestPlatformUnder(pos, margin = 0.5) {
       let best = null;
       let minDy = Infinity;
@@ -1274,8 +1283,7 @@
           pos.z <= u.z + u.d / 2 + margin
         ) {
           const dy = pos.y - u.topY;
-          // プレイヤーの足元付近またはわずかに上の範囲で最も適切な足場を採用
-          if (dy >= -0.6 && dy < minDy) {
+          if (dy >= -0.8 && dy < minDy) {
             minDy = dy;
             best = u;
           }
@@ -1325,7 +1333,7 @@
         playerPhysics.velocity.z *= 0.78;
       }
 
-      // 接地・ジャンプステートマシンの最適化
+      // 改善2: 接地判定のバウンス（跳ね続ける問題）の完全解消
       if (playerPhysics.isGrounded) {
         if (inputSys.consume('jump')) {
           playerPhysics.velocity.y = 12.5;
@@ -1334,7 +1342,7 @@
           audio.play('jump');
         } else {
           const cur = playerPhysics.currentPlatform;
-          const margin = 0.4;
+          const margin = 0.5;
           const isOffPlatform = !cur || (
             playerPhysics.position.x < cur.x - cur.w / 2 - margin ||
             playerPhysics.position.x > cur.x + cur.w / 2 + margin ||
@@ -1343,8 +1351,8 @@
           );
 
           if (isOffPlatform) {
-            const nextPlat = findBestPlatformUnder(playerPhysics.position, 0.3);
-            if (nextPlat && Math.abs(playerPhysics.position.y - nextPlat.topY) < 0.5) {
+            const nextPlat = findBestPlatformUnder(playerPhysics.position, 0.4);
+            if (nextPlat && Math.abs(playerPhysics.position.y - nextPlat.topY) < 0.8) {
               playerPhysics.currentPlatform = nextPlat;
               playerPhysics.position.y = nextPlat.topY;
             } else {
@@ -1363,8 +1371,8 @@
         playerPhysics.position.y += playerPhysics.velocity.y * delta;
 
         if (playerPhysics.velocity.y <= 0) {
-          const under = findBestPlatformUnder(playerPhysics.position, 0.4);
-          if (under && playerPhysics.position.y <= under.topY + 0.35 && playerPhysics.position.y >= under.topY - 0.8) {
+          const under = findBestPlatformUnder(playerPhysics.position, 0.5);
+          if (under && playerPhysics.position.y <= under.topY + 0.4 && playerPhysics.position.y >= under.topY - 1.0) {
             playerPhysics.position.y = under.topY;
             playerPhysics.velocity.y = 0;
             playerPhysics.isGrounded = true;
@@ -1383,7 +1391,6 @@
       if (inputSys.consume('skill')) triggerSkill();
       if (inputSys.consume('slash') && !playerPhysics.isSlashing) triggerSlash();
 
-      // 斬撃アニメーションの描画更新
       if (playerPhysics.isSlashing) {
         playerPhysics.slashTime -= delta;
         const prog = 1.0 - (playerPhysics.slashTime / playerPhysics.slashDuration);
@@ -1403,11 +1410,11 @@
         }
       }
 
-      // ボスのAIと判定ロジック（同一足場または確実に視認できる距離のときのみ攻撃）
+      // 改善3: 見えない敵からの被弾バグの解消（同一足場かつ正面視認範囲のみに限定）
       if (boss) {
         const u = boss.platform;
         const pPlat = playerPhysics.currentPlatform;
-        const onSamePlatform = (pPlat === u || Math.abs(playerPhysics.position.y - boss.floorY) < 1.5);
+        const onSamePlatform = (pPlat === u);
 
         const toPlayer = playerPhysics.position.clone().sub(boss.position);
         toPlayer.y = 0;
@@ -1427,8 +1434,7 @@
 
         if (boss.attackCooldown > 0) boss.attackCooldown -= delta;
 
-        const bossYDiff = Math.abs(playerPhysics.position.y - boss.floorY);
-        if (onSamePlatform && dist < 3.8 && bossYDiff < 1.5 && boss.attackCooldown <= 0) {
+        if (onSamePlatform && dist < 4.0 && boss.attackCooldown <= 0) {
           if (!boss.isWarning) {
             boss.isWarning = true;
             boss.warningTimer = 0.45;
@@ -1446,14 +1452,14 @@
             boss.warnRing.material.opacity = 0.5;
             boss.warnRing.scale.setScalar(1.0);
 
-            if (onSamePlatform && dist < 4.0 && bossYDiff < 1.5) {
+            const finalDist = playerPhysics.position.clone().sub(boss.position).length();
+            if (pPlat === u && finalDist < 4.5) {
               takeDamage(22);
             }
           }
         }
       }
 
-      // 雑魚敵のAIと明確な予兆判定（見えない敵からの被弾バグを完全解消）
       for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
 
@@ -1465,7 +1471,7 @@
 
         const u = e.platform;
         const pPlat = playerPhysics.currentPlatform;
-        const onSamePlatform = (pPlat === u || Math.abs(playerPhysics.position.y - e.floorY) < 1.2);
+        const onSamePlatform = (pPlat === u);
 
         const toPlayer = playerPhysics.position.clone().sub(e.position);
         toPlayer.y = 0;
@@ -1484,8 +1490,7 @@
 
         if (e.attackCooldown > 0) e.attackCooldown -= delta;
 
-        const yDiff = Math.abs(playerPhysics.position.y - e.floorY);
-        if (onSamePlatform && dist < 2.0 && yDiff < 1.2 && e.attackCooldown <= 0) {
+        if (onSamePlatform && dist < 2.2 && e.attackCooldown <= 0) {
           if (!e.isWarning) {
             e.isWarning = true;
             e.warningTimer = 0.35;
@@ -1503,7 +1508,8 @@
             e.warnRing.material.opacity = 0.4;
             e.warnRing.scale.setScalar(1.0);
 
-            if (onSamePlatform && dist < 2.2 && yDiff < 1.2) {
+            const finalDist = playerPhysics.position.clone().sub(e.position).length();
+            if (pPlat === u && finalDist < 2.6) {
               takeDamage(12);
             }
           }
