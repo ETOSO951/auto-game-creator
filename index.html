@@ -184,48 +184,47 @@
 
     .boss-hud {
       position: absolute;
-      top: 16px;
+      top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      width: 480px;
-      max-width: 88%;
-      background: rgba(8, 12, 24, 0.98);
-      border: 1.5px solid rgba(255, 0, 85, 0.85);
+      width: 520px;
+      max-width: 92%;
+      background: rgba(6, 10, 20, 0.98);
+      border: 1.5px solid rgba(255, 0, 85, 0.9);
       border-radius: 12px;
-      padding: 8px 16px;
+      padding: 6px 16px;
       display: none;
       flex-direction: column;
       gap: 4px;
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 10px 35px rgba(255, 0, 85, 0.65);
-      z-index: 85;
+      box-shadow: 0 10px 35px rgba(255, 0, 85, 0.7);
+      z-index: 95;
       animation: bossHudPulse 1.2s ease infinite alternate;
     }
     @keyframes bossHudPulse {
-      0% { box-shadow: 0 4px 20px rgba(255, 0, 85, 0.35); }
-      100% { box-shadow: 0 10px 38px rgba(255, 0, 85, 0.75); }
+      0% { box-shadow: 0 4px 20px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 40px rgba(255, 0, 85, 0.85); }
     }
-    /* ボス戦中でもプレイヤーのVITAL（HP）パネルが絶対に隠れない、完全分離・高視認性レイアウト */
+    /* ボス戦中でもプレイヤーのVITAL（HP）パネルが絶対に隠れない、完全分離・高視認性レイアウトの決定版 */
     body.boss-active .ui-layer {
-      padding: 12px 16px;
+      padding: 10px 14px;
     }
     body.boss-active .boss-hud {
       position: absolute;
-      top: 8px;
+      top: 6px;
       left: 50%;
       transform: translateX(-50%);
       width: 520px;
       max-width: 94%;
       display: flex;
-      z-index: 95;
-      padding: 6px 14px;
-      background: rgba(8, 12, 24, 0.98);
-      border: 1.5px solid rgba(255, 0, 85, 0.9);
-      box-shadow: 0 10px 35px rgba(255, 0, 85, 0.7);
+      z-index: 100;
+      padding: 5px 14px;
+      background: rgba(6, 10, 20, 0.98);
+      border: 1.5px solid rgba(255, 0, 85, 0.95);
     }
     body.boss-active .hud-top {
-      margin-top: 68px;
+      margin-top: 62px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
@@ -234,35 +233,36 @@
     }
     body.boss-active .unified-panel {
       width: 220px;
-      background: rgba(8, 12, 24, 0.98);
-      border-color: rgba(0, 255, 204, 0.8);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8);
+      background: rgba(6, 10, 20, 0.98);
+      border-color: rgba(0, 255, 204, 0.9);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.85);
     }
     body.boss-active .score-panel {
       min-width: 120px;
-      background: rgba(8, 12, 24, 0.98);
+      background: rgba(6, 10, 20, 0.98);
     }
     @media (max-width: 768px) {
       body.boss-active .ui-layer {
-        padding: 6px 8px;
+        padding: 4px 6px;
       }
       body.boss-active .boss-hud {
-        top: 4px;
-        width: 96%;
-        max-width: 96%;
-        padding: 5px 10px;
+        top: 2px;
+        width: 98%;
+        max-width: 98%;
+        padding: 4px 8px;
       }
       body.boss-active .hud-top {
-        margin-top: 58px;
-        gap: 6px;
+        margin-top: 52px;
+        gap: 4px;
+        flex-direction: row;
       }
       body.boss-active .unified-panel {
         width: 48%;
-        padding: 6px 8px;
+        padding: 5px 6px;
       }
       body.boss-active .score-panel {
         width: 48%;
-        padding: 6px 8px;
+        padding: 5px 6px;
         text-align: right;
       }
     }
