@@ -184,33 +184,49 @@
 
     .boss-hud {
       position: absolute;
-      top: 135px;
+      top: 100px;
       left: 50%;
       transform: translateX(-50%);
-      width: 480px;
-      max-width: 88%;
-      background: rgba(12, 6, 22, 0.96);
-      border: 2px solid rgba(255, 0, 85, 0.98);
-      border-radius: 14px;
-      padding: 10px 20px;
+      width: 520px;
+      max-width: 90%;
+      background: rgba(10, 4, 18, 0.98);
+      border: 2px solid rgba(255, 0, 85, 0.99);
+      border-radius: 16px;
+      padding: 12px 22px;
       display: none;
       flex-direction: column;
-      gap: 5px;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 14px 45px rgba(255, 0, 85, 0.75);
-      z-index: 70;
-      animation: bossHudPulse 1.2s ease infinite alternate;
-      transition: top 0.3s ease;
+      gap: 6px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 16px 50px rgba(255, 0, 85, 0.85);
+      z-index: 75;
+      animation: bossHudPulse 1s ease infinite alternate;
     }
-    /* ボス戦中のトップHUD干渉防止：ボス出現時は上部パネルをコンパクトにしHPバーが絶対に見切れないようにする */
+    /* ボス戦中のHUD干渉を完全ゼロにするための究極配置レイアウト */
+    body.boss-active .ui-layer {
+      padding: 14px 18px;
+    }
     body.boss-active .hud-top {
-      transform: scale(0.95);
-      transform-origin: top center;
+      display: grid;
+      grid-template-columns: 210px 1fr 210px;
+      align-items: center;
+      gap: 12px;
     }
     body.boss-active .unified-panel {
-      width: 220px;
-      padding: 8px 12px;
+      width: 100%;
+      padding: 6px 10px;
+    }
+    body.boss-active .controls-hint {
+      display: none;
+    }
+    body.boss-active .score-panel {
+      width: 100%;
+      text-align: right;
+      padding: 6px 10px;
+    }
+    body.boss-active .boss-hud {
+      top: 74px;
+      display: flex;
     }
 ====
     @media (max-width: 768px) {
@@ -1359,55 +1375,53 @@
       triggerGlitchEffect();
       triggerHitFlash();
       
-      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：圧倒的演出・全画面一掃・完全無敵＆HP大回復
-      stats.invulnerableTimer = 8.0;
-      stats.hp = Math.min(stats.maxHp, stats.hp + 200);
+      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：極限まで洗練された全画面一掃・カメラ演出・完全無敵＆大回復
+      stats.invulnerableTimer = 10.0;
+      stats.hp = Math.min(stats.maxHp, stats.hp + 250);
       updateHUD();
       const pPos = playerPhysics.position.clone();
       
-      for (let k = 0; k < 35; k++) {
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*14, 0, (Math.random()-0.5)*14)), 0x00ffff);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*14, 0, (Math.random()-0.5)*14)), 0xff0055);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*14, 0, (Math.random()-0.5)*14)), 0xffaa00);
+      for (let k = 0; k < 50; k++) {
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*18, 0, (Math.random()-0.5)*18)), 0x00ffff);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*18, 0, (Math.random()-0.5)*18)), 0xff0077);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*18, 0, (Math.random()-0.5)*18)), 0xffaa00);
       }
 
-      cameraShake = 16.0;
-      hitStopFrames = 150;
+      cameraShake = 22.0;
+      hitStopFrames = 180;
 
-      const novaGeo = new THREE.RingGeometry(0.5, 140, 64);
-      novaGeo.rotateX(-Math.PI / 2);
-      const novaMesh = new THREE.Mesh(novaGeo, new THREE.MeshBasicMaterial({
-        color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.99
-      }));
-      novaMesh.position.set(pPos.x, pPos.y + 0.15, pPos.z);
-      scene.add(novaMesh);
-      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 180.0, speed: 150.0, platform: playerPhysics.currentPlatform });
-
-      const novaGeo2 = new THREE.RingGeometry(0.5, 110, 48);
-      novaGeo2.rotateX(-Math.PI / 2);
-      const novaMesh2 = new THREE.Mesh(novaGeo2, new THREE.MeshBasicMaterial({
-        color: 0xff0077, side: THREE.DoubleSide, transparent: true, opacity: 0.98
-      }));
-      novaMesh2.position.set(pPos.x, pPos.y + 0.2, pPos.z);
-      scene.add(novaMesh2);
-      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 150.0, speed: 130.0, platform: playerPhysics.currentPlatform });
+      // 3連重畳ブラックホール・ノヴァ衝撃波
+      [
+        { r: 180, color: 0x00ffcc, speed: 160 },
+        { r: 140, color: 0xff0066, speed: 140 },
+        { r: 100, color: 0xffaa00, speed: 120 }
+      ].forEach((ring, idx) => {
+        const novaGeo = new THREE.RingGeometry(0.5, ring.r, 64);
+        novaGeo.rotateX(-Math.PI / 2);
+        const novaMesh = new THREE.Mesh(novaGeo, new THREE.MeshBasicMaterial({
+          color: ring.color, side: THREE.DoubleSide, transparent: true, opacity: 0.98 - idx * 0.1
+        }));
+        novaMesh.position.set(pPos.x, pPos.y + 0.15 + idx * 0.05, pPos.z);
+        scene.add(novaMesh);
+        shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: ring.r + 20, speed: ring.speed, platform: playerPhysics.currentPlatform });
+      });
 
       enemies.forEach((e, idx) => {
         const dist = e.position.distanceTo(pPos);
-        if (dist <= 130.0) {
+        if (dist <= 150.0) {
           const pullDir = pPos.clone().sub(e.position);
           pullDir.y = 0;
-          e.position.add(pullDir.multiplyScalar(0.99));
+          e.position.add(pullDir.multiplyScalar(0.995));
           const u = e.platform;
           if (u) {
             e.position.x = Math.max(u.x - u.w / 2 + 0.6, Math.min(u.x + u.w / 2 - 0.6, e.position.x));
             e.position.z = Math.max(u.z - u.d / 2 + 0.6, Math.min(u.z + u.d / 2 - 0.6, e.position.z));
           }
 
-          e.hp -= stats.slashDamage * 50.0;
+          e.hp -= stats.slashDamage * 80.0;
           spawnParticles(e.position, 0x00ffcc);
           if (e.hp <= 0) {
-            stats.score += 4000;
+            stats.score += 5000;
             scene.remove(e.group);
             enemies.splice(idx, 1);
           }
@@ -1416,15 +1430,15 @@
 
       if (boss) {
         const bDist = boss.position.distanceTo(pPos);
-        if (bDist <= 140.0) {
-          boss.hp -= stats.slashDamage * 18.0;
+        if (bDist <= 160.0) {
+          boss.hp -= stats.slashDamage * 25.0;
           const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
           document.getElementById('boss-hp-bar').style.width = `${pct}%`;
           document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
 
           if (boss.hp <= 0) {
-            stats.score += 25000;
-            showFeed('BOSS ANNIHILATED +25000');
+            stats.score += 35000;
+            showFeed('BOSS ANNIHILATED +35000');
             scene.remove(boss.group);
             boss = null;
             document.getElementById('boss-hud').classList.remove('active');
@@ -1442,7 +1456,7 @@
       projectiles.forEach(pr => scene.remove(pr.mesh));
       projectiles = [];
 
-      showFeed('【神速究極奥義】 CYBER NOVA BLACKHOLE STRIKE!!');
+      showFeed('⚡【神速究極奥義】 CYBER NOVA BLACKHOLE STRIKE!!');
     }
 
     function executeSlashHit() {
