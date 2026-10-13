@@ -1079,7 +1079,7 @@
 
       scene.add(group);
 
-      const maxHpVal = (type === 'guardian' ? 90 : (type === 'shooter' ? 40 : (type === 'sniper' ? 35 : 60))) + stats.floor * 15;
+      const maxHpVal = (type === 'guardian' ? 110 : (type === 'shooter' ? 45 : (type === 'sniper' ? 40 : (type === 'turret' ? 80 : 60)))) + stats.floor * 18;
       enemies.push({
         group, mesh, warnRing, type,
         position: new THREE.Vector3(x, platformTopY + 0.8, z),
@@ -1088,8 +1088,8 @@
         hp: maxHpVal,
         maxHp: maxHpVal,
         shieldActive: type === 'guardian',
-        speed: type === 'phantom' ? 4.2 : (type === 'bomber' ? 4.8 : 2.8),
-        attackCooldown: 1.0 + Math.random() * 0.5,
+        speed: type === 'phantom' ? 4.6 : (type === 'bomber' ? 5.2 : (type === 'striker' ? 3.4 : 2.6)),
+        attackCooldown: 0.8 + Math.random() * 0.4,
         isWarning: false,
         warningTimer: 0
       });
@@ -1662,66 +1662,80 @@
         if (boss.attackCooldown > 0) boss.attackCooldown -= delta;
         if (boss.specialCooldown > 0) boss.specialCooldown -= delta;
 
-        // ボスの2〜3種の専用技をランダムまたはローテーションで発動
+        // ボス専用の多彩な複合攻撃技（衝撃波・十字レーザー・ホーミングミサイル・猛進コンボ）の高度なローテーション制御
         if (onSamePlatform && boss.specialCooldown <= 0 && !boss.isWarning) {
           boss.isWarning = true;
-          const moves = ['shockwave', 'laser_beam', 'meteor_swarm'];
+          const moves = ['shockwave', 'laser_barrage', 'homing_missile', 'slash_dash'];
           boss.attackType = moves[Math.floor(Math.random() * moves.length)];
-          boss.warningTimer = 0.8;
-          showFeed(`WARNING: ${boss.attackType.toUpperCase()} COMING`);
-        } else if (onSamePlatform && dist < 4.5 && boss.attackCooldown <= 0 && !boss.isWarning) {
+          boss.warningTimer = 0.7;
+          showFeed(`ALERT: BOSS ${boss.attackType.toUpperCase()} INIT`);
+        } else if (onSamePlatform && dist < 5.0 && boss.attackCooldown <= 0 && !boss.isWarning) {
           boss.isWarning = true;
-          boss.attackType = 'melee';
-          boss.warningTimer = 0.4;
+          boss.attackType = 'heavy_slam';
+          boss.warningTimer = 0.35;
         }
 
         if (boss.isWarning) {
           boss.warningTimer -= delta;
-          boss.warnRing.material.opacity = 0.95;
-          const maxWarn = boss.attackType === 'melee' ? 0.4 : 0.8;
-          boss.warnRing.scale.setScalar(1.0 + (maxWarn - boss.warningTimer) * 1.2);
+          boss.warnRing.material.opacity = 1.0;
+          const maxW = boss.attackType === 'heavy_slam' ? 0.35 : 0.7;
+          boss.warnRing.scale.setScalar(1.0 + (maxW - boss.warningTimer) * 1.8);
 
           if (boss.warningTimer <= 0) {
             boss.warnRing.material.opacity = 0.5;
             boss.warnRing.scale.setScalar(1.0);
 
             if (boss.attackType === 'shockwave') {
-              boss.specialCooldown = 4.5;
-              const waveGeo = new THREE.RingGeometry(0.5, 1.2, 32);
+              boss.specialCooldown = 4.0;
+              const waveGeo = new THREE.RingGeometry(0.5, 1.4, 36);
               waveGeo.rotateX(-Math.PI / 2);
               const waveMesh = new THREE.Mesh(waveGeo, new THREE.MeshBasicMaterial({
-                color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.9
+                color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.95
               }));
               waveMesh.position.set(boss.position.x, boss.floorY + 0.15, boss.position.z);
               scene.add(waveMesh);
-              shockwaves.push({ mesh: waveMesh, radius: 1.0, maxRadius: 18.0, speed: 14.0, platform: u });
+              shockwaves.push({ mesh: waveMesh, radius: 1.0, maxRadius: 20.0, speed: 16.0, platform: u });
               audio.play('hurt');
-            } else if (boss.attackType === 'laser_beam') {
-              boss.specialCooldown = 5.0;
-              // 十字レーザー弾幕
-              for (let k = 0; k < 4; k++) {
-                const angle = k * (Math.PI / 2);
+            } else if (boss.attackType === 'laser_barrage') {
+              boss.specialCooldown = 4.5;
+              // 8方向の全方位レーザー弾幕
+              for (let k = 0; k < 8; k++) {
+                const angle = k * (Math.PI / 4);
                 const lDir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
-                const bMesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), new THREE.MeshBasicMaterial({ color: 0x00ffff }));
+                const bMesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.8), new THREE.MeshBasicMaterial({ color: 0x00ffff, emissive: 0x00ffff }));
                 bMesh.position.copy(boss.position);
                 scene.add(bMesh);
-                projectiles.push({ mesh: bMesh, dir: lDir, speed: 12.0, life: 3.5 });
+                projectiles.push({ mesh: bMesh, dir: lDir, speed: 14.0, life: 3.5 });
               }
               audio.play('slash');
-            } else if (boss.attackType === 'meteor_swarm') {
-              boss.specialCooldown = 6.0;
-              // プレイヤー狙いのミサイル発射
-              const bMesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffaa00 }));
-              bMesh.position.copy(boss.position);
-              scene.add(bMesh);
-              const pDir = playerPhysics.position.clone().sub(boss.position).normalize();
-              projectiles.push({ mesh: bMesh, dir: pDir, speed: 9.0, life: 4.0 });
+            } else if (boss.attackType === 'homing_missile') {
+              boss.specialCooldown = 5.0;
+              // 3連装の追尾弾ミサイル発射
+              for (let k = -1; k <= 1; k++) {
+                const bMesh = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.0, 6), new THREE.MeshBasicMaterial({ color: 0xffaa00 }));
+                bMesh.position.copy(boss.position);
+                bMesh.rotation.x = Math.PI / 2;
+                scene.add(bMesh);
+                const pDir = playerPhysics.position.clone().sub(boss.position).normalize().add(new THREE.Vector3(k * 0.2, 0, 0)).normalize();
+                projectiles.push({ mesh: bMesh, dir: pDir, speed: 11.0, life: 4.0 });
+              }
               audio.play('hit');
-            } else {
-              boss.attackCooldown = 1.2;
+            } else if (boss.attackType === 'slash_dash') {
+              boss.specialCooldown = 4.2;
+              // 高速ダッシュ斬撃
+              const dashDir = playerPhysics.position.clone().sub(boss.position).normalize();
+              boss.position.add(dashDir.multiplyScalar(6.0));
+              spawnParticles(boss.position, 0xff0055);
               const finalDist = playerPhysics.position.clone().sub(boss.position).length();
-              if (pPlat === u && finalDist < 5.0) {
-                takeDamage(25);
+              if (pPlat === u && finalDist < 4.0) {
+                takeDamage(22);
+              }
+              audio.play('slash');
+            } else {
+              boss.attackCooldown = 1.0;
+              const finalDist = playerPhysics.position.clone().sub(boss.position).length();
+              if (pPlat === u && finalDist < 4.5) {
+                takeDamage(28);
               }
             }
             boss.isWarning = false;
