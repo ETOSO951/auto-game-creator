@@ -184,7 +184,7 @@
 
     .boss-hud {
       position: absolute;
-      top: 155px;
+      top: 130px;
       left: 50%;
       transform: translateX(-50%);
       width: 480px;
@@ -205,7 +205,7 @@
 ====
     @media (max-width: 768px) {
       .boss-hud {
-        top: 140px;
+        top: 120px;
         left: 50%;
         transform: translateX(-50%);
         width: 94%;
@@ -250,7 +250,7 @@
     }
     @media (max-width: 768px) {
       .boss-hud {
-        top: 140px;
+        top: 120px;
         left: 50%;
         transform: translateX(-50%);
         width: 94%;
@@ -1355,50 +1355,49 @@
       updateHUD();
       const pPos = playerPhysics.position.clone();
       
-      for (let k = 0; k < 18; k++) {
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*8, 0, (Math.random()-0.5)*8)), 0x00ffff);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*8, 0, (Math.random()-0.5)*8)), 0xff0055);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*8, 0, (Math.random()-0.5)*8)), 0xffaa00);
+      for (let k = 0; k < 24; k++) {
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*10, 0, (Math.random()-0.5)*10)), 0x00ffff);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*10, 0, (Math.random()-0.5)*10)), 0xff0055);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*10, 0, (Math.random()-0.5)*10)), 0xffaa00);
       }
 
-      cameraShake = 10.0;
-      hitStopFrames = 100;
+      cameraShake = 12.0;
+      hitStopFrames = 120;
 
-      const novaGeo = new THREE.RingGeometry(0.5, 90, 64);
+      const novaGeo = new THREE.RingGeometry(0.5, 110, 64);
       novaGeo.rotateX(-Math.PI / 2);
       const novaMesh = new THREE.Mesh(novaGeo, new THREE.MeshBasicMaterial({
         color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.99
       }));
       novaMesh.position.set(pPos.x, pPos.y + 0.15, pPos.z);
       scene.add(novaMesh);
-      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 140.0, speed: 110.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 160.0, speed: 130.0, platform: playerPhysics.currentPlatform });
 
-      const novaGeo2 = new THREE.RingGeometry(0.5, 70, 48);
+      const novaGeo2 = new THREE.RingGeometry(0.5, 85, 48);
       novaGeo2.rotateX(-Math.PI / 2);
       const novaMesh2 = new THREE.Mesh(novaGeo2, new THREE.MeshBasicMaterial({
         color: 0xff0077, side: THREE.DoubleSide, transparent: true, opacity: 0.98
       }));
       novaMesh2.position.set(pPos.x, pPos.y + 0.2, pPos.z);
       scene.add(novaMesh2);
-      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 110.0, speed: 90.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 130.0, speed: 110.0, platform: playerPhysics.currentPlatform });
 
       enemies.forEach((e, idx) => {
         const dist = e.position.distanceTo(pPos);
-        if (dist <= 90.0) {
+        if (dist <= 110.0) {
           const pullDir = pPos.clone().sub(e.position);
           pullDir.y = 0;
           e.position.add(pullDir.multiplyScalar(0.99));
-          // プラットフォーム上の範囲内に確実にクランプ
           const u = e.platform;
           if (u) {
             e.position.x = Math.max(u.x - u.w / 2 + 0.6, Math.min(u.x + u.w / 2 - 0.6, e.position.x));
             e.position.z = Math.max(u.z - u.d / 2 + 0.6, Math.min(u.z + u.d / 2 - 0.6, e.position.z));
           }
 
-          e.hp -= stats.slashDamage * 25.0;
+          e.hp -= stats.slashDamage * 30.0;
           spawnParticles(e.position, 0x00ffcc);
           if (e.hp <= 0) {
-            stats.score += 2500;
+            stats.score += 3000;
             scene.remove(e.group);
             enemies.splice(idx, 1);
           }
@@ -1407,15 +1406,16 @@
 
       if (boss) {
         const bDist = boss.position.distanceTo(pPos);
-        if (bDist <= 100.0) {
-          boss.hp -= stats.slashDamage * 16.0;
+        if (bDist <= 120.0) {
+          // ボス戦でのバランス調整：適正ダメージと爽快感を両立
+          boss.hp -= stats.slashDamage * 12.0;
           const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
           document.getElementById('boss-hp-bar').style.width = `${pct}%`;
           document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
 
           if (boss.hp <= 0) {
-            stats.score += 10000;
-            showFeed('BOSS ANNIHILATED +10000');
+            stats.score += 15000;
+            showFeed('BOSS ANNIHILATED +15000');
             scene.remove(boss.group);
             boss = null;
             document.getElementById('boss-hud').classList.remove('active');
