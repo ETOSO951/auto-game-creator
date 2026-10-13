@@ -6,13 +6,15 @@
   <title>斬影 - ZANEI: CYBERNETIC SLASHER</title>
   <style>
     :root {
-      --bg: #1c2742;
+      --bg: #0d1527;
       --accent: #00ffcc;
-      --accent-glow: rgba(0, 255, 204, 0.5);
+      --accent-glow: rgba(0, 255, 204, 0.4);
       --danger: #ff0055;
-      --danger-glow: rgba(255, 0, 85, 0.6);
+      --danger-glow: rgba(255, 0, 85, 0.5);
       --warning: #ffaa00;
-      --font-main: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      --panel-bg: rgba(15, 23, 42, 0.85);
+      --panel-border: rgba(255, 255, 255, 0.2);
+      --font-main: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
 
     * {
@@ -49,16 +51,16 @@
       height: 100%;
       z-index: 5;
       pointer-events: none;
-      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.03);
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
       transition: box-shadow 0.3s ease;
     }
     #vignette.danger {
-      box-shadow: inset 0 0 80px rgba(255, 0, 85, 0.35);
+      box-shadow: inset 0 0 90px rgba(255, 0, 85, 0.45);
       animation: vignettePulse 0.8s ease infinite alternate;
     }
     @keyframes vignettePulse {
-      0% { box-shadow: inset 0 0 40px rgba(255, 0, 85, 0.2); }
-      100% { box-shadow: inset 0 0 90px rgba(255, 0, 85, 0.4); }
+      0% { box-shadow: inset 0 0 50px rgba(255, 0, 85, 0.3); }
+      100% { box-shadow: inset 0 0 100px rgba(255, 0, 85, 0.6); }
     }
 
     .glitch-overlay {
@@ -67,13 +69,12 @@
       z-index: 6;
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.05s ease;
-      background: radial-gradient(circle, rgba(255,0,85,0.06) 0%, rgba(0,255,204,0.03) 100%);
+      background: radial-gradient(circle, rgba(255,0,85,0.08) 0%, rgba(0,255,204,0.04) 100%);
       mix-blend-mode: screen;
     }
     .glitch-overlay.active {
       opacity: 1;
-      animation: glitchAnim 0.12s steps(2, start) infinite;
+      animation: glitchAnim 0.1s steps(2, start) infinite;
     }
     @keyframes glitchAnim {
       0% { transform: translate(2px, -2px); }
@@ -88,10 +89,10 @@
       pointer-events: none;
       background: #ffffff;
       opacity: 0;
-      transition: opacity 0.02s ease;
+      transition: opacity 0.04s ease;
       mix-blend-mode: overlay;
     }
-    .hit-flash-overlay.active { opacity: 0.3; }
+    .hit-flash-overlay.active { opacity: 0.35; }
 
     .ui-layer {
       position: absolute;
@@ -115,20 +116,20 @@
     }
 
     .unified-panel, .score-panel {
-      background: rgba(18, 28, 50, 0.9);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
       border-radius: 12px;
       padding: 12px 18px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
 
     .unified-panel {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      width: 250px;
+      width: 240px;
     }
 
     .hud-row {
@@ -137,14 +138,14 @@
       align-items: center;
       font-size: 11px;
       letter-spacing: 2px;
-      color: rgba(255, 255, 255, 0.98);
+      color: rgba(255, 255, 255, 0.95);
       font-weight: 700;
     }
 
     .bar-outer {
       width: 100%;
-      height: 7px;
-      background: rgba(255, 255, 255, 0.25);
+      height: 8px;
+      background: rgba(255, 255, 255, 0.12);
       border-radius: 4px;
       overflow: hidden;
     }
@@ -153,16 +154,17 @@
       width: 100%;
       height: 100%;
       background: var(--accent);
-      box-shadow: 0 0 12px var(--accent-glow);
+      box-shadow: 0 0 10px var(--accent-glow);
       transition: width 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .hp-inner {
-      background: linear-gradient(90deg, var(--danger), var(--accent));
+      background: linear-gradient(90deg, #ff0055, #00ffcc);
     }
 
     .score-panel {
       text-align: right;
+      min-width: 130px;
     }
 
     .floor-indicator {
@@ -175,7 +177,7 @@
 
     .score-val {
       font-size: 24px;
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing: 1px;
       font-variant-numeric: tabular-nums;
     }
@@ -187,22 +189,22 @@
       transform: translateX(-50%);
       width: 380px;
       max-width: 85%;
-      background: rgba(38, 18, 36, 0.92);
-      border: 1px solid rgba(255, 0, 85, 0.8);
+      background: rgba(30, 15, 30, 0.9);
+      border: 1px solid rgba(255, 0, 85, 0.7);
       border-radius: 12px;
       padding: 12px 20px;
       display: none;
       flex-direction: column;
       gap: 6px;
-      backdrop-filter: blur(16px);
-      box-shadow: 0 10px 30px rgba(255, 0, 85, 0.4);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(255, 0, 85, 0.35);
     }
     .boss-hud.active { display: flex; }
     .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
 
     .feed-container {
       position: absolute;
-      top: 36%;
+      top: 38%;
       left: 50%;
       transform: translate(-50%, -50%);
       pointer-events: none;
@@ -226,12 +228,12 @@
     .controls-hint {
       align-self: center;
       font-size: 11px;
-      color: rgba(255, 255, 255, 0.95);
+      color: rgba(255, 255, 255, 0.9);
       letter-spacing: 1.5px;
-      background: rgba(18, 28, 50, 0.9);
-      padding: 7px 20px;
+      background: var(--panel-bg);
+      padding: 8px 20px;
       border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      border: 1px solid var(--panel-border);
       backdrop-filter: blur(8px);
     }
 
@@ -249,10 +251,10 @@
 
     .dynamic-stick {
       position: absolute;
-      width: 104px;
-      height: 104px;
-      border: 1.5px solid rgba(0, 255, 204, 0.7);
-      background: rgba(0, 255, 204, 0.12);
+      width: 100px;
+      height: 100px;
+      border: 1.5px solid rgba(0, 255, 204, 0.6);
+      background: rgba(0, 255, 204, 0.1);
       border-radius: 50%;
       transform: translate(-50%, -50%);
       pointer-events: none;
@@ -263,9 +265,9 @@
     .dynamic-stick.active { display: block; }
 
     .dynamic-nub {
-      width: 44px;
-      height: 44px;
-      background: rgba(0, 255, 204, 0.95);
+      width: 40px;
+      height: 40px;
+      background: rgba(0, 255, 204, 0.9);
       border-radius: 50%;
       position: absolute;
       top: 50%; left: 50%;
@@ -275,10 +277,10 @@
 
     .touch-actions {
       position: absolute;
-      bottom: 28px;
-      right: 28px;
+      bottom: 24px;
+      right: 24px;
       display: none;
-      gap: 14px;
+      gap: 12px;
       align-items: flex-end;
       pointer-events: auto;
       z-index: 15;
@@ -289,7 +291,7 @@
 
     .act-btn {
       border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.4);
       font-weight: 800;
       color: #fff;
       display: flex;
@@ -299,168 +301,168 @@
       touch-action: manipulation;
       transition: transform 0.1s ease;
       backdrop-filter: blur(8px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     }
     .act-btn:active {
       transform: scale(0.92);
     }
 
     .btn-slash {
-      width: 76px; height: 76px; font-size: 16px;
-      background: rgba(255, 0, 85, 0.65);
-      border-color: rgba(255, 0, 85, 0.95);
-      box-shadow: 0 0 24px var(--danger-glow);
+      width: 72px; height: 72px; font-size: 16px;
+      background: rgba(255, 0, 85, 0.7);
+      border-color: rgba(255, 0, 85, 0.9);
+      box-shadow: 0 0 20px var(--danger-glow);
     }
     .btn-skill, .btn-jump {
-      width: 54px; height: 54px; font-size: 12px;
+      width: 52px; height: 52px; font-size: 12px;
     }
     .btn-skill {
-      background: rgba(0, 136, 255, 0.6);
+      background: rgba(0, 136, 255, 0.65);
       border-color: rgba(0, 136, 255, 0.9);
     }
     .btn-jump {
-      background: rgba(0, 255, 204, 0.55);
-      border-color: rgba(0, 255, 204, 0.85);
+      background: rgba(0, 255, 204, 0.6);
+      border-color: rgba(0, 255, 204, 0.9);
     }
 
     .screen-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       z-index: 100;
-      background: rgba(20, 32, 56, 0.95);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      background: rgba(13, 21, 39, 0.94);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 32px 20px;
       text-align: center;
-      transition: opacity 0.35s ease, visibility 0.35s;
+      transition: opacity 0.3s ease, visibility 0.3s;
     }
     .screen-overlay.hidden {
       opacity: 0; visibility: hidden; pointer-events: none;
     }
 
     .screen-title {
-      font-size: clamp(28px, 5vw, 48px);
+      font-size: clamp(28px, 5vw, 46px);
       font-weight: 900;
-      letter-spacing: 6px;
+      letter-spacing: 5px;
       color: #fff;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       text-transform: uppercase;
-      text-shadow: 0 0 30px rgba(0, 255, 204, 0.5);
+      text-shadow: 0 0 24px rgba(0, 255, 204, 0.4);
     }
 
     .screen-sub {
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(255, 255, 255, 0.85);
       font-size: 12px;
-      letter-spacing: 4px;
-      margin-bottom: 32px;
+      letter-spacing: 3px;
+      margin-bottom: 28px;
       font-weight: 600;
     }
 
     .primary-btn {
       pointer-events: auto;
       background: #fff;
-      color: #0b1329;
+      color: #0d1527;
       border: none;
-      padding: 16px 48px;
+      padding: 15px 44px;
       font-size: 13px;
       font-weight: 900;
       letter-spacing: 3px;
       border-radius: 30px;
       cursor: pointer;
-      box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
       transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
     .primary-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 0 40px rgba(0, 255, 204, 0.7);
+      box-shadow: 0 0 35px rgba(0, 255, 204, 0.6);
       background: var(--accent);
     }
 
     .selector-container {
       display: flex;
-      gap: 16px;
-      margin-bottom: 32px;
+      gap: 14px;
+      margin-bottom: 30px;
       flex-wrap: wrap;
       justify-content: center;
-      max-width: 580px;
+      max-width: 540px;
     }
     .select-card {
       pointer-events: auto;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 12px;
-      padding: 16px 20px;
+      padding: 16px 18px;
       cursor: pointer;
       width: 140px;
       text-align: center;
       transition: all 0.2s ease;
     }
     .select-card.selected, .select-card:hover {
-      background: rgba(0, 255, 204, 0.28);
+      background: rgba(0, 255, 204, 0.2);
       border-color: var(--accent);
-      box-shadow: 0 0 20px rgba(0, 255, 204, 0.45);
+      box-shadow: 0 0 18px rgba(0, 255, 204, 0.35);
       transform: translateY(-2px);
     }
     .card-name {
       font-weight: 800;
-      font-size: 14px;
+      font-size: 13px;
       color: #fff;
       margin-bottom: 4px;
     }
     .card-detail {
       font-size: 10px;
-      color: rgba(255, 255, 255, 0.85);
+      color: rgba(255, 255, 255, 0.75);
       letter-spacing: 1px;
     }
 
     .perk-cards {
       display: flex;
-      gap: 20px;
+      gap: 18px;
       width: 100%;
-      max-width: 800px;
+      max-width: 780px;
       justify-content: center;
       flex-wrap: wrap;
       margin-bottom: 12px;
     }
     .perk-card {
       pointer-events: auto;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 14px;
-      padding: 24px 20px;
+      padding: 22px 18px;
       width: 220px;
       cursor: pointer;
       transition: all 0.2s ease;
       text-align: left;
     }
     .perk-card:hover {
-      background: rgba(0, 255, 204, 0.28);
+      background: rgba(0, 255, 204, 0.2);
       border-color: var(--accent);
       transform: translateY(-4px);
-      box-shadow: 0 10px 30px rgba(0, 255, 204, 0.35);
+      box-shadow: 0 8px 24px rgba(0, 255, 204, 0.3);
     }
     .perk-title {
       font-weight: 800;
       font-size: 14px;
       color: var(--accent);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .perk-desc {
       font-size: 11px;
-      color: rgba(255, 255, 255, 0.95);
+      color: rgba(255, 255, 255, 0.9);
       line-height: 1.5;
     }
 
     .data-summary-box {
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 10px;
-      padding: 16px 28px;
-      margin-bottom: 28px;
+      padding: 16px 26px;
+      margin-bottom: 26px;
       text-align: left;
       font-family: monospace;
       font-size: 13px;
@@ -468,7 +470,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      min-width: 300px;
+      min-width: 280px;
     }
     .data-summary-box span { color: #fff; }
   </style>
@@ -486,7 +488,7 @@
       <div id="unified-panel" class="unified-panel">
         <div class="hud-row">
           <span>VITAL</span>
-          <span id="biome-label" style="color: var(--accent);">NEON MATRIX</span>
+          <span id="biome-label" style="color: var(--accent);">NEON GRID</span>
         </div>
         <div class="bar-outer">
           <div id="hp-bar" class="bar-inner hp-inner"></div>
@@ -539,7 +541,7 @@
     <h1 class="screen-title">斬影 : ZANEI</h1>
     <p class="screen-sub">CYBERNETIC HIGH-SLASHER</p>
     
-    <div style="font-size: 10px; letter-spacing: 3px; color: rgba(255,255,255,0.9); margin-bottom: 14px; font-weight: 700;">WEAPON SELECT</div>
+    <div style="font-size: 10px; letter-spacing: 3px; color: rgba(255,255,255,0.85); margin-bottom: 12px; font-weight: 700;">WEAPON SELECT</div>
     <div class="selector-container" id="weapon-selector">
       <div class="select-card selected" data-val="saber">
         <div class="card-name">サイバー刀</div>
@@ -559,7 +561,7 @@
   </div>
 
   <div id="screen-perk" class="screen-overlay hidden">
-    <h2 class="screen-title" style="font-size: 32px;">SECTOR CLEARED</h2>
+    <h2 class="screen-title" style="font-size: 30px;">SECTOR CLEARED</h2>
     <p class="screen-sub">ニューラルモジュールを選択して強化</p>
     <div id="perk-list" class="perk-cards"></div>
   </div>
@@ -588,32 +590,32 @@
 
         if (type === 'slash') {
           osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(1300, now);
-          osc.frequency.exponentialRampToValueAtTime(120, now + 0.12);
+          osc.frequency.setValueAtTime(1400, now);
+          osc.frequency.exponentialRampToValueAtTime(140, now + 0.1);
+          gain.gain.setValueAtTime(0.28, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'hit') {
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(60, now + 0.12);
           gain.gain.setValueAtTime(0.3, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
           osc.start(now); osc.stop(now + 0.12);
-        } else if (type === 'hit') {
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(350, now);
-          osc.frequency.exponentialRampToValueAtTime(50, now + 0.12);
-          gain.gain.setValueAtTime(0.35, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-          osc.start(now); osc.stop(now + 0.12);
         } else if (type === 'jump') {
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(240, now);
-          osc.frequency.exponentialRampToValueAtTime(600, now + 0.16);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(260, now);
+          osc.frequency.exponentialRampToValueAtTime(540, now + 0.15);
           gain.gain.setValueAtTime(0.2, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-          osc.start(now); osc.stop(now + 0.16);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+          osc.start(now); osc.stop(now + 0.15);
         } else if (type === 'hurt') {
           osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(180, now);
-          osc.frequency.exponentialRampToValueAtTime(55, now + 0.2);
-          gain.gain.setValueAtTime(0.35, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-          osc.start(now); osc.stop(now + 0.2);
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(50, now + 0.18);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.start(now); osc.stop(now + 0.18);
         }
       }
     }
@@ -637,7 +639,7 @@
         });
         window.addEventListener('keyup', e => { this.keys[e.code] = false; });
       }
-      push(cmd) { this.commands[cmd] = 12; }
+      push(cmd) { this.commands[cmd] = 10; }
       consume(cmd) {
         if (this.commands[cmd] > 0) { 
           this.commands[cmd] = 0; 
@@ -652,42 +654,42 @@
     }
     const inputSys = new InputSystem();
 
-    // Three.js シーン設定（高輝度・鮮明化設定）
+    // 改善案4: 視認性の高いライティングと背景設計
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x324d7a);
-    scene.fog = new THREE.Fog(0x324d7a, 60, 160);
+    scene.background = new THREE.Color(0x131d33);
+    scene.fog = new THREE.Fog(0x131d33, 110, 240); // 開始距離を広げて奥の視認性を確保
 
-    const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 160);
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 300);
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 2.4;
+    renderer.toneMappingExposure = 1.8;
     container.appendChild(renderer.domElement);
 
-    // 完璧な視認性を生む高輝度ライティング群
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2.2);
+    // クリアでコントラストの高い照明群
+    const ambientLight = new THREE.AmbientLight(0xd8e8ff, 1.8);
     scene.add(ambientLight);
 
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x7799cc, 2.2);
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x334466, 1.6);
     scene.add(hemiLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 3.5);
-    dirLight.position.set(40, 70, 40);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    dirLight.position.set(30, 60, 30);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
     dirLight.shadow.camera.near = 0.5;
-    dirLight.shadow.camera.far = 140;
-    const d = 45;
+    dirLight.shadow.camera.far = 160;
+    const d = 50;
     dirLight.shadow.camera.left = -d; dirLight.shadow.camera.right = d;
     dirLight.shadow.camera.top = d; dirLight.shadow.camera.bottom = -d;
     scene.add(dirLight);
 
-    const playerGlowLight = new THREE.PointLight(0x00ffcc, 4.0, 35);
+    const playerGlowLight = new THREE.PointLight(0x00ffcc, 3.0, 30);
     scene.add(playerGlowLight);
 
     const GAME_STATE = { TITLE: 0, PLAYING: 1, PERK_SELECT: 2, GAMEOVER: 3 };
@@ -696,7 +698,7 @@
     const stats = {
       maxHp: 100, hp: 100, score: 0, floor: 1,
       moveSpeed: 11.5, slashDamage: 50, slashRange: 4.8,
-      skillCooldown: 0, skillMaxCooldown: 5.5, weaponType: 'saber',
+      skillCooldown: 0, skillMaxCooldown: 5.0, weaponType: 'saber',
       invulnerableTimer: 0
     };
 
@@ -704,29 +706,31 @@
     let cameraShake = 0, hitStopFrames = 0;
 
     const BIOMES = [
-      { name: 'NEON MATRIX', color: 0x324d7a, basePlate: 0x5a7ab0, lightColor: 0x00ffcc, edgeColor: 0x00ffcc },
-      { name: 'CRIMSON CORE', color: 0x5c3254, basePlate: 0x8a5585, lightColor: 0xff0055, edgeColor: 0xff3366 },
-      { name: 'CYBER ARCHIVE', color: 0x2b528c, basePlate: 0x5885c4, lightColor: 0x00d4ff, edgeColor: 0x00e5ff }
+      { name: 'NEON GRID', color: 0x131d33, basePlate: 0x243555, lightColor: 0x00ffcc, edgeColor: 0x00ffcc },
+      { name: 'CRIMSON CORE', color: 0x221324, basePlate: 0x482845, lightColor: 0xff0055, edgeColor: 0xff3366 },
+      { name: 'CYBER SECTOR', color: 0x0f2338, basePlate: 0x1d4465, lightColor: 0x00d4ff, edgeColor: 0x00e5ff }
     ];
 
     // プレイヤーオブジェクト
     const playerGroup = new THREE.Group();
     scene.add(playerGroup);
 
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.15, metalness: 0.6, emissive: 0x0284c7, emissiveIntensity: 0.9 });
-    const bodyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.24, 1.25, 16), bodyMat);
+    const bodyMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.32, 0.24, 1.25, 16),
+      new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.2, metalness: 0.5, emissive: 0x0284c7, emissiveIntensity: 0.6 })
+    );
     bodyMesh.position.y = 0.625;
     bodyMesh.castShadow = true;
     playerGroup.add(bodyMesh);
 
     const headMesh = new THREE.Mesh(
       new THREE.SphereGeometry(0.26, 16, 16),
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, emissive: 0x00ffcc, emissiveIntensity: 1.4 })
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, emissive: 0x00ffcc, emissiveIntensity: 1.2 })
     );
     headMesh.position.y = 1.42;
     playerGroup.add(headMesh);
 
-    const bladeMat = new THREE.MeshStandardMaterial({ color: 0x00ffcc, emissive: 0x00ffcc, emissiveIntensity: 3.0, roughness: 0.1 });
+    const bladeMat = new THREE.MeshStandardMaterial({ color: 0x00ffcc, emissive: 0x00ffcc, emissiveIntensity: 2.5, roughness: 0.1 });
     const katanaGroup = new THREE.Group();
     katanaGroup.position.set(0.35, 0.65, 0.1);
     const bladeMesh = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.35, 0.08), bladeMat);
@@ -735,23 +739,21 @@
     katanaGroup.add(bladeMesh);
     playerGroup.add(katanaGroup);
 
-    // 改善案1: 斬影エフェクトの向きをプレイヤーの正面（-Z方向）に完璧に一致させるよう修正
+    // 改善案3: 斬撃エフェクトの向き・描画の修正
+    // 鋭い円弧（約60度）を正面（-Z軸）に展開
     const slashPivot = new THREE.Group();
-    slashPivot.position.set(0, 0.7, 0);
+    slashPivot.position.set(0, 0.75, 0);
     playerGroup.add(slashPivot);
 
     function buildSlashGeometry(innerR, outerR, arcAngle) {
-      // RingGeometry はデフォルトでXY平面（+X軸方向が中心）。
-      // ジオメトリをrotateZ(-Math.PI * 0.5) で上方向（+Y軸）に起こし、さらにrotateX(-Math.PI * 0.5)で水平にするか、
-      // あるいは直接 +Y軸方向（ゲーム内の正面 -Z方向）に展開されるよう調整。
-      // ここでは正確に正面(-Z)を向くようにZ軸・X軸回転を正しく適用する。
-      const startAngle = Math.PI * 0.5 - arcAngle * 0.5;
+      // RingGeometry: XY平面。中心角を90度（+Y軸）に揃え、X軸を90度回転して奥（-Z）を向くように構成
+      const startAngle = (Math.PI * 0.5) - (arcAngle * 0.5);
       const geo = new THREE.RingGeometry(innerR, outerR, 32, 1, startAngle, arcAngle);
-      geo.rotateX(-Math.PI * 0.5);
+      geo.rotateX(-Math.PI * 0.5); // 水平展開
       return geo;
     }
 
-    let slashGeo = buildSlashGeometry(1.6, 4.8, Math.PI * 0.75);
+    let slashGeo = buildSlashGeometry(1.5, 4.8, Math.PI * 0.45);
     const slashMat = new THREE.MeshBasicMaterial({
       color: 0x00ffcc,
       side: THREE.DoubleSide,
@@ -781,13 +783,13 @@
       slashGeo.dispose();
       if (type === 'saber') { 
         stats.slashDamage = 50; stats.slashRange = 4.8; bladeMesh.scale.set(1, 1, 1);
-        slashGeo = buildSlashGeometry(1.6, 4.8, Math.PI * 0.75);
+        slashGeo = buildSlashGeometry(1.5, 4.8, Math.PI * 0.45);
       } else if (type === 'odachi') { 
-        stats.slashDamage = 95; stats.slashRange = 6.6; bladeMesh.scale.set(1.6, 1.5, 1.5);
-        slashGeo = buildSlashGeometry(2.0, 6.6, Math.PI * 0.85);
+        stats.slashDamage = 95; stats.slashRange = 6.4; bladeMesh.scale.set(1.5, 1.4, 1.4);
+        slashGeo = buildSlashGeometry(1.8, 6.4, Math.PI * 0.55);
       } else if (type === 'dual') { 
-        stats.slashDamage = 35; stats.slashRange = 4.0; bladeMesh.scale.set(0.7, 0.8, 0.8);
-        slashGeo = buildSlashGeometry(1.2, 4.0, Math.PI * 0.7);
+        stats.slashDamage = 35; stats.slashRange = 3.8; bladeMesh.scale.set(0.7, 0.8, 0.8);
+        slashGeo = buildSlashGeometry(1.2, 3.8, Math.PI * 0.4);
       }
       slashArc.geometry = slashGeo;
     }
@@ -799,7 +801,7 @@
       if (portal) { scene.remove(portal); portal = null; }
     }
 
-    function createPlatform(x, y, z, w, h, d, baseColor = 0x5a7ab0, edgeColor = 0x00ffcc) {
+    function createPlatform(x, y, z, w, h, d, baseColor = 0x243555, edgeColor = 0x00ffcc) {
       const group = new THREE.Group();
       group.position.set(x, y, z);
 
@@ -808,10 +810,10 @@
         geom,
         new THREE.MeshStandardMaterial({ 
           color: baseColor, 
-          roughness: 0.2, 
+          roughness: 0.3, 
           metalness: 0.4,
           emissive: baseColor,
-          emissiveIntensity: 0.35
+          emissiveIntensity: 0.25
         })
       );
       mesh.receiveShadow = true;
@@ -825,13 +827,12 @@
       );
       group.add(line);
 
-      const topPlate = new THREE.Mesh(
-        new THREE.PlaneGeometry(w * 0.96, d * 0.96),
-        new THREE.MeshBasicMaterial({ color: edgeColor, wireframe: true, transparent: true, opacity: 0.5 })
-      );
-      topPlate.rotation.x = -Math.PI / 2;
-      topPlate.position.y = h / 2 + 0.01;
-      group.add(topPlate);
+      // 上面グリッド
+      const grid = new THREE.GridHelper(Math.max(w, d), Math.round(Math.max(w, d) / 1.5), edgeColor, edgeColor);
+      grid.position.y = h / 2 + 0.01;
+      grid.material.opacity = 0.45;
+      grid.material.transparent = true;
+      group.add(grid);
 
       scene.add(group);
 
@@ -854,23 +855,23 @@
       document.getElementById('biome-label').style.color = `#${biome.lightColor.toString(16).padStart(6, '0')}`;
 
       const startPlat = createPlatform(0, -0.5, 0, 16, 1, 16, biome.basePlate, biome.edgeColor);
-      playerPhysics.position.set(0, 0, 0);
+      playerPhysics.position.set(0, startPlat.topY, 0);
       playerPhysics.velocity.set(0, 0, 0);
       playerPhysics.isGrounded = true;
       playerPhysics.currentPlatform = startPlat;
 
       if (isBoss) {
-        createPlatform(0, -0.5, -24, 24, 1, 24, biome.basePlate, biome.edgeColor);
-        spawnBoss(0, 0, -24, startPlat);
+        // 改善案2: ボス足場を作成し、ボスに正しい足場データを渡す
+        const bossPlat = createPlatform(0, -0.5, -28, 22, 1, 22, biome.basePlate, biome.edgeColor);
+        spawnBoss(0, bossPlat.topY, -28, bossPlat);
       } else {
         const pathLen = 5 + floorNum;
         let currPos = new THREE.Vector3(0, -0.5, 0);
-        let lastPlat = startPlat;
 
         for (let i = 0; i < pathLen; i++) {
-          currPos.x += (Math.random() - 0.5) * 10;
-          currPos.z -= (9 + Math.random() * 5);
-          currPos.y += (Math.random() - 0.4) * 2;
+          currPos.x += (Math.random() - 0.5) * 8;
+          currPos.z -= (10 + Math.random() * 4);
+          currPos.y += (Math.random() - 0.35) * 1.5;
           const pw = 7 + Math.random() * 3;
           const pd = 7 + Math.random() * 3;
           const pData = createPlatform(currPos.x, currPos.y, currPos.z, pw, 1, pd, biome.basePlate, biome.edgeColor);
@@ -879,23 +880,22 @@
             const count = 1 + Math.floor(Math.random() * 2);
             for (let e = 0; e < count; e++) {
               spawnEnemy(
-                currPos.x + (Math.random() - 0.5) * (pw * 0.5),
-                currPos.y + 0.5,
-                currPos.z + (Math.random() - 0.5) * (pd * 0.5),
+                currPos.x + (Math.random() - 0.5) * (pw * 0.4),
+                pData.topY,
+                currPos.z + (Math.random() - 0.5) * (pd * 0.4),
                 pData
               );
             }
           }
-          lastPlat = pData;
         }
 
         currPos.z -= 11;
-        const finalPlat = createPlatform(currPos.x, currPos.y, currPos.z, 9, 1, 9, biome.basePlate, biome.edgeColor);
+        createPlatform(currPos.x, currPos.y, currPos.z, 9, 1, 9, biome.basePlate, biome.edgeColor);
         portal = new THREE.Mesh(
-          new THREE.TorusGeometry(2.0, 0.28, 16, 32),
+          new THREE.TorusGeometry(1.8, 0.22, 16, 32),
           new THREE.MeshBasicMaterial({ color: biome.lightColor, wireframe: true })
         );
-        portal.position.set(currPos.x, currPos.y + 2.4, currPos.z);
+        portal.position.set(currPos.x, currPos.y + 2.0, currPos.z);
         scene.add(portal);
       }
     }
@@ -905,29 +905,29 @@
       group.position.set(x, platformTopY + 0.8, z);
 
       const mesh = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.85, 0),
+        new THREE.OctahedronGeometry(0.75, 0),
         new THREE.MeshStandardMaterial({ 
           color: 0xff0055, 
           roughness: 0.1, 
           metalness: 0.8, 
           emissive: 0xff0055, 
-          emissiveIntensity: 2.6 
+          emissiveIntensity: 2.0 
         })
       );
       mesh.castShadow = true;
       group.add(mesh);
 
-      // 改善案2: 攻撃予兆を表す赤いリングエフェクト
+      // 攻撃予兆リング
       const warnRing = new THREE.Mesh(
-        new THREE.RingGeometry(0.8, 1.1, 24),
-        new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
+        new THREE.RingGeometry(0.7, 0.95, 24),
+        new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.4 })
       );
       warnRing.rotation.x = -Math.PI / 2;
-      warnRing.position.y = -0.78;
+      warnRing.position.y = -0.75;
       group.add(warnRing);
 
-      const enemyLight = new THREE.PointLight(0xff0055, 2.2, 10);
-      enemyLight.position.set(0, 0.5, 0);
+      const enemyLight = new THREE.PointLight(0xff0055, 1.8, 8);
+      enemyLight.position.set(0, 0.3, 0);
       group.add(enemyLight);
 
       scene.add(group);
@@ -939,8 +939,10 @@
         platform: platformData,
         hp: 45 + stats.floor * 15,
         maxHp: 45 + stats.floor * 15,
-        speed: 3.5,
-        attackCooldown: 0
+        speed: 3.2,
+        attackCooldown: 1.0,
+        isWarning: false,
+        warningTimer: 0
       });
     }
 
@@ -948,21 +950,21 @@
       const group = new THREE.Group();
       group.position.set(x, platformTopY + 1.6, z);
       const mesh = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(2.2, 1),
-        new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.1, metalness: 0.8, emissive: 0xff0055, emissiveIntensity: 2.8 })
+        new THREE.IcosahedronGeometry(2.0, 1),
+        new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.1, metalness: 0.8, emissive: 0xff0055, emissiveIntensity: 2.5 })
       );
       mesh.castShadow = true;
       group.add(mesh);
 
       const warnRing = new THREE.Mesh(
-        new THREE.RingGeometry(2.2, 2.8, 32),
-        new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.8 })
+        new THREE.RingGeometry(2.0, 2.5, 32),
+        new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.5 })
       );
       warnRing.rotation.x = -Math.PI / 2;
-      warnRing.position.y = -1.58;
+      warnRing.position.y = -1.55;
       group.add(warnRing);
 
-      const bossLight = new THREE.PointLight(0xff0055, 5.0, 24);
+      const bossLight = new THREE.PointLight(0xff0055, 4.0, 20);
       group.add(bossLight);
 
       scene.add(group);
@@ -974,8 +976,10 @@
         platform: platformData,
         hp: 700 + stats.floor * 250,
         maxHp: 700 + stats.floor * 250,
-        speed: 3.8,
-        attackCooldown: 0
+        speed: 3.5,
+        attackCooldown: 1.2,
+        isWarning: false,
+        warningTimer: 0
       };
 
       document.getElementById('boss-hud').classList.add('active');
@@ -985,7 +989,7 @@
     function triggerGlitchEffect() {
       const overlay = document.getElementById('glitch-overlay');
       overlay.classList.add('active');
-      setTimeout(() => overlay.classList.remove('active'), 120);
+      setTimeout(() => overlay.classList.remove('active'), 100);
     }
 
     function triggerHitFlash() {
@@ -997,14 +1001,15 @@
     function triggerSlash() {
       if (playerPhysics.isSlashing) return;
       playerPhysics.isSlashing = true;
-      playerPhysics.slashDuration = stats.weaponType === 'odachi' ? 0.28 : (stats.weaponType === 'dual' ? 0.14 : 0.2);
+      playerPhysics.slashDuration = stats.weaponType === 'odachi' ? 0.26 : (stats.weaponType === 'dual' ? 0.14 : 0.2);
       playerPhysics.slashTime = playerPhysics.slashDuration;
       playerPhysics.slashHitTriggered = false;
 
       audio.play('slash');
       slashArc.material.opacity = 0.95;
-      slashPivot.rotation.y = Math.PI * 0.4; 
-      katanaGroup.rotation.y = -Math.PI * 0.7;
+      // 正面（0度）を中心に少しだけ振る
+      slashPivot.rotation.y = 0.35;
+      katanaGroup.rotation.y = -Math.PI * 0.6;
     }
 
     function triggerSkill() {
@@ -1014,7 +1019,7 @@
       triggerGlitchEffect();
       
       const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(playerPhysics.quaternion);
-      playerPhysics.velocity.add(fwd.multiplyScalar(24));
+      playerPhysics.velocity.add(fwd.multiplyScalar(22));
       showFeed('【閃光】 CYBER DASH');
     }
 
@@ -1027,11 +1032,11 @@
         const dist = toBoss.length();
         const dot = fwd.dot(toBoss.clone().normalize());
 
-        if (dist <= stats.slashRange + 1.2 && dot > -0.2 && Math.abs(toBoss.y) < 2.5) {
+        if (dist <= stats.slashRange + 1.2 && dot > 0.1 && Math.abs(toBoss.y) < 2.5) {
           boss.hp -= stats.slashDamage;
           audio.play('hit');
-          hitStopFrames = stats.weaponType === 'odachi' ? 12 : 6;
-          cameraShake = 0.55;
+          hitStopFrames = stats.weaponType === 'odachi' ? 10 : 5;
+          cameraShake = 0.5;
           triggerGlitchEffect();
           if (stats.weaponType === 'odachi') triggerHitFlash();
           spawnParticles(boss.position.clone(), 0xff0055);
@@ -1048,10 +1053,10 @@
             document.getElementById('boss-hud').classList.remove('active');
 
             portal = new THREE.Mesh(
-              new THREE.TorusGeometry(2.0, 0.28, 16, 32),
+              new THREE.TorusGeometry(1.8, 0.22, 16, 32),
               new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true })
             );
-            portal.position.set(pPos.x, pPos.y + 2, pPos.z - 7);
+            portal.position.set(pPos.x, pPos.y + 2, pPos.z - 6);
             scene.add(portal);
           }
         }
@@ -1063,11 +1068,11 @@
         const dist = toEnemy.length();
         const dot = fwd.dot(toEnemy.clone().normalize());
 
-        if (dist <= stats.slashRange && dot > -0.25 && Math.abs(toEnemy.y) < 2.0) {
+        if (dist <= stats.slashRange && dot > 0.1 && Math.abs(toEnemy.y) < 2.0) {
           e.hp -= stats.slashDamage;
           audio.play('hit');
-          hitStopFrames = stats.weaponType === 'odachi' ? 9 : 4;
-          cameraShake = 0.35;
+          hitStopFrames = stats.weaponType === 'odachi' ? 8 : 4;
+          cameraShake = 0.3;
           triggerGlitchEffect();
           spawnParticles(e.position.clone(), 0x00ffcc);
 
@@ -1086,9 +1091,9 @@
     function takeDamage(amount) {
       if (stats.invulnerableTimer > 0) return;
       stats.hp = Math.max(0, stats.hp - amount);
-      stats.invulnerableTimer = 0.65;
+      stats.invulnerableTimer = 0.75;
       audio.play('hurt');
-      cameraShake = 0.65;
+      cameraShake = 0.55;
       triggerGlitchEffect();
       updateHUD();
 
@@ -1101,18 +1106,18 @@
       const feed = document.getElementById('kill-feed');
       feed.textContent = msg;
       feed.classList.add('show');
-      setTimeout(() => feed.classList.remove('show'), 900);
+      setTimeout(() => feed.classList.remove('show'), 800);
     }
 
     function spawnParticles(pos, color) {
-      const geom = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+      const geom = new THREE.BoxGeometry(0.12, 0.12, 0.12);
       const mat = new THREE.MeshBasicMaterial({ color });
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < 14; i++) {
         const p = new THREE.Mesh(geom, mat);
         p.position.copy(pos);
-        const vel = new THREE.Vector3((Math.random() - 0.5) * 12, Math.random() * 8 + 2, (Math.random() - 0.5) * 12);
+        const vel = new THREE.Vector3((Math.random() - 0.5) * 10, Math.random() * 6 + 2, (Math.random() - 0.5) * 10);
         scene.add(p);
-        particles.push({ mesh: p, vel, life: 0.5 });
+        particles.push({ mesh: p, vel, life: 0.45 });
       }
     }
 
@@ -1150,11 +1155,11 @@
           const centerY = rect.top + rect.height / 2;
           const dx = t.clientX - centerX;
           const dy = t.clientY - centerY;
-          const dist = Math.min(35, Math.hypot(dx, dy));
+          const dist = Math.min(32, Math.hypot(dx, dy));
           const angle = Math.atan2(dy, dx);
-          stick.x = (Math.cos(angle) * dist) / 35;
-          stick.y = (Math.sin(angle) * dist) / 35;
-          dynamicNub.style.transform = `translate(calc(-50% + ${stick.x * 28}px), calc(-50% + ${stick.y * 28}px))`;
+          stick.x = (Math.cos(angle) * dist) / 32;
+          stick.y = (Math.sin(angle) * dist) / 32;
+          dynamicNub.style.transform = `translate(calc(-50% + ${stick.x * 24}px), calc(-50% + ${stick.y * 24}px))`;
         }
       }
     }, { passive: false });
@@ -1260,22 +1265,28 @@
     const FIXED_TIMESTEP = 1 / 60;
     let accumulator = 0, lastTime = performance.now();
 
-    // 改善案3: 足場検出ロジックの堅牢化（マージンを広くしてバウンドや突き抜けを完全に防止）
-    function findPlatformUnder(pos, margin = 0.8) {
-      for (let p of platforms) {
-        const u = p.userData;
+    // 改善案1: プレイヤーの直下にある最適な足場を探索する堅牢なロジック
+    function findBestPlatformUnder(pos, margin = 0.4) {
+      let best = null;
+      let minDy = Infinity;
+
+      for (let i = 0; i < platforms.length; i++) {
+        const u = platforms[i].userData;
         if (
           pos.x >= u.x - u.w / 2 - margin &&
           pos.x <= u.x + u.w / 2 + margin &&
           pos.z >= u.z - u.d / 2 - margin &&
           pos.z <= u.z + u.d / 2 + margin
         ) {
-          if (pos.y >= u.topY - 1.2 && pos.y <= u.topY + 1.5) {
-            return u;
+          // プレイヤー足元より下にあり、かつ最も近い上面
+          const dy = pos.y - u.topY;
+          if (dy >= -0.3 && dy < minDy) {
+            minDy = dy;
+            best = u;
           }
         }
       }
-      return null;
+      return best;
     }
 
     function update(delta) {
@@ -1283,7 +1294,7 @@
         const time = performance.now() * 0.001;
         playerGroup.position.set(Math.sin(time) * 3, 0, Math.cos(time) * 3);
         playerGroup.rotation.y = time * 1.5;
-        camera.position.set(Math.cos(time * 0.5) * 11, 6, Math.sin(time * 0.5) * 11);
+        camera.position.set(Math.cos(time * 0.5) * 11, 5, Math.sin(time * 0.5) * 11);
         camera.lookAt(0, 0.5, 0);
         return;
       }
@@ -1303,7 +1314,7 @@
       if (inputSys.keys['KeyW'] || inputSys.keys['ArrowUp']) mz -= 1;
       if (inputSys.keys['KeyS'] || inputSys.keys['ArrowDown']) mz += 1;
       if (inputSys.keys['KeyA'] || inputSys.keys['ArrowLeft']) mx -= 1;
-      if (inputSys.keys['KeyD'] || inputSys.keys['ArrowRight']) mx += 1; // 改善案4: 不要な重複・無意味なコード行を削除
+      if (inputSys.keys['KeyD'] || inputSys.keys['ArrowRight']) mx += 1;
       if (stick.active) { mx = stick.x; mz = stick.y; }
 
       const moveVec = new THREE.Vector2(mx, mz);
@@ -1311,63 +1322,61 @@
         moveVec.normalize();
         const angle = Math.atan2(moveVec.x, moveVec.y) + Math.PI;
         playerPhysics.targetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
-        playerPhysics.quaternion.slerp(playerPhysics.targetQuaternion, 0.35);
+        playerPhysics.quaternion.slerp(playerPhysics.targetQuaternion, 0.3);
         playerPhysics.velocity.x = moveVec.x * stats.moveSpeed;
         playerPhysics.velocity.z = moveVec.y * stats.moveSpeed;
       } else {
-        playerPhysics.velocity.x *= 0.75;
-        playerPhysics.velocity.z *= 0.75;
+        playerPhysics.velocity.x *= 0.78;
+        playerPhysics.velocity.z *= 0.78;
       }
 
-      // 堅牢な接地・ジャンプ物理処理
+      // 改善案1: 跳ねないクリーンな接地・重力ステートマシン
       if (playerPhysics.isGrounded) {
         if (inputSys.consume('jump')) {
-          playerPhysics.velocity.y = 13.5;
+          playerPhysics.velocity.y = 12.5;
           playerPhysics.isGrounded = false;
           playerPhysics.currentPlatform = null;
           audio.play('jump');
         } else {
-          let under = playerPhysics.currentPlatform;
-          if (under) {
-            const margin = 0.6;
-            const inside = (
-              playerPhysics.position.x >= under.x - under.w / 2 - margin &&
-              playerPhysics.position.x <= under.x + under.w / 2 + margin &&
-              playerPhysics.position.z >= under.z - under.d / 2 - margin &&
-              playerPhysics.position.z <= under.z + under.d / 2 + margin
-            );
-            if (!inside) {
-              under = findPlatformUnder(playerPhysics.position, 0.6);
-              playerPhysics.currentPlatform = under;
+          // 足場から外れたかをチェック
+          const cur = playerPhysics.currentPlatform;
+          const margin = 0.3;
+          const isOffPlatform = !cur || (
+            playerPhysics.position.x < cur.x - cur.w / 2 - margin ||
+            playerPhysics.position.x > cur.x + cur.w / 2 + margin ||
+            playerPhysics.position.z < cur.z - cur.d / 2 - margin ||
+            playerPhysics.position.z > cur.z + cur.d / 2 + margin
+          );
+
+          if (isOffPlatform) {
+            const nextPlat = findBestPlatformUnder(playerPhysics.position, 0.2);
+            if (nextPlat && Math.abs(playerPhysics.position.y - nextPlat.topY) < 0.3) {
+              playerPhysics.currentPlatform = nextPlat;
+              playerPhysics.position.y = nextPlat.topY;
+            } else {
+              playerPhysics.isGrounded = false;
+              playerPhysics.currentPlatform = null;
             }
           } else {
-            under = findPlatformUnder(playerPhysics.position, 0.6);
-            playerPhysics.currentPlatform = under;
-          }
-
-          if (under) {
-            playerPhysics.position.y = under.topY;
+            // 足場上に安定滞在
+            playerPhysics.position.y = cur.topY;
             playerPhysics.velocity.y = 0;
-          } else {
-            playerPhysics.isGrounded = false;
-            playerPhysics.currentPlatform = null;
           }
         }
       }
 
       if (!playerPhysics.isGrounded) {
-        playerPhysics.velocity.y -= 32.0 * delta;
+        playerPhysics.velocity.y -= 30.0 * delta;
         playerPhysics.position.y += playerPhysics.velocity.y * delta;
 
+        // 落下時のみ、足元に足場があれば接地吸着
         if (playerPhysics.velocity.y <= 0) {
-          const under = findPlatformUnder(playerPhysics.position, 0.6);
-          if (under) {
-            if (playerPhysics.position.y <= under.topY + 0.3 && playerPhysics.position.y >= under.topY - 0.8) {
-              playerPhysics.position.y = under.topY;
-              playerPhysics.velocity.y = 0;
-              playerPhysics.isGrounded = true;
-              playerPhysics.currentPlatform = under;
-            }
+          const under = findBestPlatformUnder(playerPhysics.position, 0.3);
+          if (under && playerPhysics.position.y <= under.topY + 0.25 && playerPhysics.position.y >= under.topY - 0.5) {
+            playerPhysics.position.y = under.topY;
+            playerPhysics.velocity.y = 0;
+            playerPhysics.isGrounded = true;
+            playerPhysics.currentPlatform = under;
           }
         }
       }
@@ -1382,15 +1391,16 @@
       if (inputSys.consume('skill')) triggerSkill();
       if (inputSys.consume('slash') && !playerPhysics.isSlashing) triggerSlash();
 
+      // 改善案3: 正面を綺麗に切り裂く斬撃アニメーション
       if (playerPhysics.isSlashing) {
         playerPhysics.slashTime -= delta;
         const prog = 1.0 - (playerPhysics.slashTime / playerPhysics.slashDuration);
         
-        katanaGroup.rotation.y = -Math.PI * 0.7 + prog * Math.PI * 1.4;
-        slashPivot.rotation.y = Math.PI * 0.4 - prog * Math.PI * 0.8;
+        katanaGroup.rotation.y = -Math.PI * 0.6 + prog * Math.PI * 1.2;
+        slashPivot.rotation.y = 0.35 - prog * 0.7; // 正面を中心に滑らかに振る
         slashArc.material.opacity = Math.sin(prog * Math.PI) * 0.95;
 
-        if (!playerPhysics.slashHitTriggered && prog >= 0.25) {
+        if (!playerPhysics.slashHitTriggered && prog >= 0.2) {
           executeSlashHit();
           playerPhysics.slashHitTriggered = true;
         }
@@ -1401,42 +1411,58 @@
         }
       }
 
-      // 改善案2: ボスの足場制限付きAIと明確な予兆表現
+      // 改善案2: ボスの予兆動作と公正な攻撃判定
       if (boss) {
-        const pPlat = findPlatformUnder(playerPhysics.position, 1.2);
-        const onSamePlatform = (pPlat === boss.platform);
+        const u = boss.platform;
+        const pPlat = playerPhysics.currentPlatform;
+        const onSamePlatform = (pPlat === u);
 
         const toPlayer = playerPhysics.position.clone().sub(boss.position);
         toPlayer.y = 0;
         const dist = toPlayer.length();
 
-        if (onSamePlatform && dist > 2.0) {
+        if (onSamePlatform && dist > 2.5) {
           toPlayer.normalize();
           boss.position.add(toPlayer.multiplyScalar(boss.speed * delta));
-          // 足場の範囲内にクランプして奈落へ落ちないようにする
-          const u = boss.platform;
-          boss.position.x = Math.max(u.x - u.w / 2 + 1.2, Math.min(u.x + u.w / 2 - 1.2, boss.position.x));
-          boss.position.z = Math.max(u.z - u.d / 2 + 1.2, Math.min(u.z + u.d / 2 - 1.2, boss.position.z));
+          boss.position.x = Math.max(u.x - u.w / 2 + 1.5, Math.min(u.x + u.w / 2 - 1.5, boss.position.x));
+          boss.position.z = Math.max(u.z - u.d / 2 + 1.5, Math.min(u.z + u.d / 2 - 1.5, boss.position.z));
         }
 
-        boss.position.y = boss.floorY + 1.2 + Math.sin(performance.now() * 0.003) * 0.3;
-        boss.mesh.rotation.y += delta * 2;
-        boss.mesh.rotation.x += delta * 1.5;
-        boss.warnRing.rotation.z += delta * 3;
+        boss.position.y = boss.floorY + 1.2 + Math.sin(performance.now() * 0.003) * 0.25;
+        boss.mesh.rotation.y += delta * 1.8;
+        boss.mesh.rotation.x += delta * 1.2;
         boss.group.position.copy(boss.position);
 
         if (boss.attackCooldown > 0) boss.attackCooldown -= delta;
 
-        const bossYDiff = Math.abs(playerPhysics.position.y - boss.position.y);
-        if (onSamePlatform && dist < 2.5 && bossYDiff < 1.2) {
-          if (boss.attackCooldown <= 0) {
-            takeDamage(22);
-            boss.attackCooldown = 1.0;
+        // 攻撃予兆と判定
+        const bossYDiff = Math.abs(playerPhysics.position.y - boss.floorY);
+        if (onSamePlatform && dist < 3.2 && bossYDiff < 1.0 && boss.attackCooldown <= 0) {
+          if (!boss.isWarning) {
+            boss.isWarning = true;
+            boss.warningTimer = 0.45;
+          }
+        }
+
+        if (boss.isWarning) {
+          boss.warningTimer -= delta;
+          boss.warnRing.material.opacity = 0.9;
+          boss.warnRing.scale.setScalar(1.0 + (0.45 - boss.warningTimer) * 0.8);
+
+          if (boss.warningTimer <= 0) {
+            boss.isWarning = false;
+            boss.attackCooldown = 1.3;
+            boss.warnRing.material.opacity = 0.5;
+            boss.warnRing.scale.setScalar(1.0);
+
+            if (onSamePlatform && dist < 3.5 && bossYDiff < 1.0) {
+              takeDamage(22);
+            }
           }
         }
       }
 
-      // 改善案2: 雑魚敵も同一足場上にプレイヤーがいる場合のみ追跡・攻撃し、予兆リングを表示
+      // 改善案2: 雑魚敵の明確な予兆と同一足場上でのみ攻撃するロジック
       for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
 
@@ -1446,40 +1472,56 @@
           continue;
         }
 
-        const pPlat = findPlatformUnder(playerPhysics.position, 1.2);
-        const onSamePlatform = (pPlat === e.platform);
+        const u = e.platform;
+        const pPlat = playerPhysics.currentPlatform;
+        const onSamePlatform = (pPlat === u);
 
         const toPlayer = playerPhysics.position.clone().sub(e.position);
         toPlayer.y = 0;
         const dist = toPlayer.length();
 
-        if (onSamePlatform && dist > 1.3) {
+        if (onSamePlatform && dist > 1.6) {
           toPlayer.normalize();
           e.position.add(toPlayer.multiplyScalar(e.speed * delta));
-          const u = e.platform;
-          e.position.x = Math.max(u.x - u.w / 2 + 0.8, Math.min(u.x + u.w / 2 - 0.8, e.position.x));
-          e.position.z = Math.max(u.z - u.d / 2 + 0.8, Math.min(u.z + u.d / 2 - 0.8, e.position.z));
+          e.position.x = Math.max(u.x - u.w / 2 + 0.6, Math.min(u.x + u.w / 2 - 0.6, e.position.x));
+          e.position.z = Math.max(u.z - u.d / 2 + 0.6, Math.min(u.z + u.d / 2 - 0.6, e.position.z));
         }
         
-        e.position.y = e.floorY + 0.8 + Math.sin(performance.now() * 0.005 + e.position.x) * 0.2;
-        e.mesh.rotation.y += delta * 2.5;
-        e.warnRing.rotation.z += delta * 3.5;
+        e.position.y = e.floorY + 0.75 + Math.sin(performance.now() * 0.005 + e.position.x) * 0.15;
+        e.mesh.rotation.y += delta * 2.2;
         e.group.position.copy(e.position);
 
         if (e.attackCooldown > 0) e.attackCooldown -= delta;
 
         const yDiff = Math.abs(playerPhysics.position.y - e.floorY);
-        if (onSamePlatform && dist < 1.4 && yDiff < 0.8) {
-          if (e.attackCooldown <= 0) {
-            takeDamage(12);
-            e.attackCooldown = 0.9;
+        if (onSamePlatform && dist < 1.8 && yDiff < 0.8 && e.attackCooldown <= 0) {
+          if (!e.isWarning) {
+            e.isWarning = true;
+            e.warningTimer = 0.35;
+          }
+        }
+
+        if (e.isWarning) {
+          e.warningTimer -= delta;
+          e.warnRing.material.opacity = 0.9;
+          e.warnRing.scale.setScalar(1.0 + (0.35 - e.warningTimer) * 1.0);
+
+          if (e.warningTimer <= 0) {
+            e.isWarning = false;
+            e.attackCooldown = 1.0;
+            e.warnRing.material.opacity = 0.4;
+            e.warnRing.scale.setScalar(1.0);
+
+            if (onSamePlatform && dist < 1.9 && yDiff < 0.8) {
+              takeDamage(12);
+            }
           }
         }
       }
 
       if (portal) {
-        portal.rotation.z += delta * 2;
-        if (playerPhysics.position.distanceTo(portal.position) < 2.2) {
+        portal.rotation.z += delta * 1.8;
+        if (playerPhysics.position.distanceTo(portal.position) < 2.0) {
           showPerkScreen();
         }
       }
@@ -1514,7 +1556,7 @@
         playerGroup.position.copy(playerPhysics.position);
         playerGroup.quaternion.copy(playerPhysics.quaternion);
 
-        const targetCam = playerGroup.position.clone().add(new THREE.Vector3(0, 8.0, 10.5));
+        const targetCam = playerGroup.position.clone().add(new THREE.Vector3(0, 7.5, 9.5));
         camera.position.lerp(targetCam, 0.12);
         
         if (cameraShake > 0) {
@@ -1522,8 +1564,8 @@
           camera.position.y += (Math.random() - 0.5) * cameraShake;
           cameraShake = Math.max(0, cameraShake - rawDelta * 3);
         }
-        camera.lookAt(playerGroup.position.clone().add(new THREE.Vector3(0, 0.8, -1.0)));
-        playerGlowLight.position.copy(playerGroup.position).add(new THREE.Vector3(0, 2.0, 0));
+        camera.lookAt(playerGroup.position.clone().add(new THREE.Vector3(0, 0.7, -1.0)));
+        playerGlowLight.position.copy(playerGroup.position).add(new THREE.Vector3(0, 1.8, 0));
       }
 
       renderer.render(scene, camera);
