@@ -64,24 +64,24 @@
       100% { box-shadow: inset 0 0 200px rgba(255, 0, 85, 0.9); }
     }
 
-    /* アイデア3: クロマティックアベレーション＆フィルムノイズレイヤー */
+    /* アイデア3: クロマティックアベレーション＆フィルムノイズレイヤーの洗練 */
     .glitch-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       z-index: 6;
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.1s ease;
-      background: rgba(255, 0, 85, 0.05);
+      transition: opacity 0.05s ease;
+      background: radial-gradient(circle, rgba(255,0,85,0.1) 0%, rgba(0,255,204,0.05) 100%);
       mix-blend-mode: screen;
     }
     .glitch-overlay.active {
       opacity: 1;
-      animation: glitchAnim 0.2s steps(2, start) infinite;
+      animation: glitchAnim 0.15s steps(2, start) infinite;
     }
     @keyframes glitchAnim {
-      0% { transform: translate(2px, -2px); filter: hue-rotate(90deg); }
-      50% { transform: translate(-2px, 2px); filter: hue-rotate(-90deg); }
+      0% { transform: translate(4px, -3px); filter: hue-rotate(90deg) contrast(150%); }
+      50% { transform: translate(-4px, 3px); filter: hue-rotate(-90deg) contrast(150%); }
       100% { transform: translate(0, 0); filter: none; }
     }
 
@@ -313,7 +313,7 @@
       border-color: rgba(0, 255, 204, 0.3);
     }
 
-    /* Screen Overlays & Cinematic Glitch Effects (アイデア1, 2) */
+    /* Screen Overlays & Cinematic Glitch Effects */
     .screen-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -344,14 +344,15 @@
       position: relative;
     }
     
-    /* アイデア2: グリッチアニメーション付きタイトル */
+    /* アイデア1: グリッチアニメーション付きシネマティックタイトル */
     .screen-overlay:not(.hidden) .screen-title {
-      animation: titleGlitch 2s infinite;
+      animation: titleGlitch 2.5s infinite;
     }
     @keyframes titleGlitch {
-      0%, 90%, 100% { transform: none; text-shadow: 0 0 30px rgba(255, 255, 255, 0.15); }
-      92% { transform: translate(-3px, 1px); text-shadow: 3px 0 var(--danger), -3px 0 var(--accent); }
-      95% { transform: translate(3px, -1px); text-shadow: -3px 0 var(--danger), 3px 0 var(--accent); }
+      0%, 85%, 100% { transform: none; text-shadow: 0 0 30px rgba(255, 255, 255, 0.15); filter: none; }
+      87% { transform: translate(-4px, 2px) skewX(-2deg); text-shadow: 4px 0 var(--danger), -4px 0 var(--accent); filter: contrast(200%); }
+      90% { transform: translate(4px, -2px) skewX(2deg); text-shadow: -4px 0 var(--danger), 4px 0 var(--accent); filter: contrast(200%); }
+      93% { transform: translate(-2px, 1px); text-shadow: 2px 0 var(--danger); }
     }
 
     .screen-sub {
@@ -378,6 +379,7 @@
       flex-direction: column;
       gap: 8px;
       box-shadow: inset 0 0 15px rgba(0, 255, 204, 0.05);
+      min-width: 280px;
     }
     .data-summary-box span {
       color: rgba(255, 255, 255, 0.7);
@@ -538,7 +540,7 @@
     <button id="btn-slash" class="act-btn btn-slash">斬</button>
   </div>
 
-  <!-- Start Screen (アイデア1: アトラクトデモ背景対応) -->
+  <!-- Start Screen -->
   <div id="screen-start" class="screen-overlay">
     <h1 class="screen-title">斬影 : ZANEI</h1>
     <p class="screen-sub">CYBERNETIC SLASHER</p>
@@ -569,14 +571,14 @@
     <div id="perk-list" class="perk-cards"></div>
   </div>
 
-  <!-- Game Over Screen (アイデア2: データサマリー演出) -->
+  <!-- Game Over Screen (アイデア2: タイピング・高速カウントアップデータサマリー) -->
   <div id="screen-gameover" class="screen-overlay hidden">
     <h1 class="screen-title" style="color: var(--danger);">DISCONNECTED</h1>
     <p class="screen-sub">シグナルが切断されました</p>
     <div class="data-summary-box" id="gameover-summary">
-      <div>SESSION_FLOOR: <span id="summary-floor">1</span></div>
+      <div>SESSION_FLOOR: <span id="summary-floor">0</span></div>
       <div>FINAL_SCORE: <span id="summary-score">0</span></div>
-      <div>STATUS: <span style="color: var(--danger);">NEURAL_COLLAPSE</span></div>
+      <div>STATUS: <span style="color: var(--danger);" id="summary-status">INITIALIZING...</span></div>
     </div>
     <button id="btn-restart" class="primary-btn">REBOOT</button>
   </div>
@@ -872,7 +874,7 @@
     function triggerGlitchEffect() {
       const overlay = document.getElementById('glitch-overlay');
       overlay.classList.add('active');
-      setTimeout(() => overlay.classList.remove('active'), 200);
+      setTimeout(() => overlay.classList.remove('active'), 180);
     }
 
     function triggerSlash() {
@@ -902,7 +904,8 @@
       if (boss && pPos.distanceTo(boss.position) <= stats.slashRange + 1.5) {
         boss.hp -= stats.slashDamage;
         audio.play('hit');
-        hitStopFrames = 6; cameraShake = 0.5;
+        hitStopFrames = 8; cameraShake = 0.6;
+        triggerGlitchEffect();
         spawnParticles(boss.position.clone(), 0xff0055);
         triggerHUDActive();
         
@@ -928,7 +931,8 @@
         if (pPos.distanceTo(enemy.position) <= stats.slashRange) {
           enemy.hp -= stats.slashDamage;
           audio.play('hit');
-          hitStopFrames = 8; cameraShake = 0.4;
+          hitStopFrames = 6; cameraShake = 0.4;
+          triggerGlitchEffect();
           spawnParticles(enemy.position.clone(), 0x00ffcc);
           triggerHUDActive();
 
@@ -1082,11 +1086,33 @@
       state = GAME_STATE.GAMEOVER;
       triggerGlitchEffect();
       document.getElementById('boss-hud').classList.remove('active');
-      
-      // アイデア2: サマリーデータのタイピング・数値反映演出
-      document.getElementById('summary-floor').textContent = stats.floor;
-      document.getElementById('summary-score').textContent = stats.score;
       document.getElementById('screen-gameover').classList.remove('hidden');
+
+      // アイデア2: リザルト画面における高度な高速カウントアップ＆タイピング演出
+      const floorEl = document.getElementById('summary-floor');
+      const scoreEl = document.getElementById('summary-score');
+      const statusEl = document.getElementById('summary-status');
+
+      let currentFloor = 0;
+      let currentScore = 0;
+      const targetFloor = stats.floor;
+      const targetScore = stats.score;
+      
+      statusEl.textContent = 'NEURAL_COLLAPSE';
+
+      const countInterval = setInterval(() => {
+        if (currentFloor < targetFloor) currentFloor++;
+        if (currentScore < targetScore) currentScore += Math.max(1, Math.floor((targetScore - currentScore) / 4));
+        
+        floorEl.textContent = currentFloor;
+        scoreEl.textContent = currentScore;
+
+        if (currentFloor >= targetFloor && currentScore >= targetScore) {
+          clearInterval(countInterval);
+          floorEl.textContent = targetFloor;
+          scoreEl.textContent = targetScore;
+        }
+      }, 40);
     }
 
     function startGame() {
@@ -1103,7 +1129,6 @@
     document.getElementById('btn-start').addEventListener('click', startGame);
     document.getElementById('btn-restart').addEventListener('click', startGame);
 
-    // 初期タイトル用ステージ生成
     generateStage(1);
 
     /* ========================================================
@@ -1114,11 +1139,20 @@
 
     function update(delta) {
       if (state === GAME_STATE.TITLE) {
-        // アイデア1: タイトル画面用アトラクトデモ（背景自動旋回・微小移動）
-        playerGroup.position.y = 2 + Math.sin(performance.now() * 0.002) * 0.5;
-        playerGroup.rotation.y += delta * 0.5;
-        camera.position.set(0, 8, 14);
+        // アイデア1: ダイナミックなクレーンショット＆ネオン明滅アトラクトデモ
+        const time = performance.now() * 0.001;
+        playerGroup.position.y = 2 + Math.sin(time * 2) * 0.3;
+        playerGroup.rotation.y += delta * 0.4;
+
+        const camRadius = 12;
+        const camX = Math.cos(time * 0.5) * camRadius;
+        const camZ = Math.sin(time * 0.5) * camRadius;
+        camera.position.set(camX, 6 + Math.sin(time * 0.3) * 2, camZ);
         camera.lookAt(playerGroup.position);
+
+        // ネオン明滅のダイナミック変動
+        const pulse = 1.0 + Math.sin(time * 5) * 0.3;
+        dirLight.intensity = pulse * 1.5;
         return;
       }
 
@@ -1197,7 +1231,6 @@
         }
       }
 
-      // Boss Logic
       if (boss) {
         const dir = playerPhysics.position.clone().sub(boss.position);
         dir.y = 0; dir.normalize();
@@ -1210,7 +1243,6 @@
         }
       }
 
-      // Enemy Logic
       enemies.forEach(e => {
         const dir = playerPhysics.position.clone().sub(e.position);
         dir.y = 0; dir.normalize();
