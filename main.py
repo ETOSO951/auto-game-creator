@@ -157,6 +157,38 @@ def test_game_code(html_code):
                 os.remove("temp_test.html")
     return errors_list
 
+# --- 3.5. パッチ適用関数（Diff形式での部分書き換え） ---
+def apply_patches(original_code, patch_text):
+    # <<<< から ====、そして >>>> までのブロックを抽出
+    pattern = re.compile(r'<<<<\s*\n(.*?)\n====\s*\n(.*?)\n>>>>\s*', re.DOTALL)
+    matches = pattern.findall(patch_text)
+    
+    if not matches:
+        # パッチ形式が守られなかった場合のフォールバック（HTMLタグの抽出）
+        html_match = re.search(r'```html\n(.*?)\n```', patch_text, re.DOTALL)
+        if html_match:
+            print("⚠️ SEARCH/REPLACE形式が見つかりませんでした。全文出力を適用します。")
+            return html_match.group(1).strip()
+        print("⚠️ パッチもHTMLコードも見つかりませんでした。変更をスキップします。")
+        return original_code
+
+    new_code = original_code
+    success_count = 0
+    for search_block, replace_block in matches:
+        if search_block in new_code:
+            # 完全一致での置換
+            new_code = new_code.replace(search_block, replace_block)
+            success_count += 1
+        elif search_block.strip() in new_code:
+            # 前後の空白による不一致を防ぐためのストリップ置換
+            new_code = new_code.replace(search_block.strip(), replace_block.strip())
+            success_count += 1
+        else:
+            print(f"⚠️ パッチ適用失敗（対象コードが見つかりません）:\n{search_block[:50]}...")
+    
+    print(f"✅ パッチ適用完了 ({success_count}/{len(matches)} 個成功)")
+    return new_code
+
 # --- 4. 既存コードの確認 ---
 existing_code = ""
 if os.path.exists("index.html"):
@@ -183,12 +215,24 @@ try:
     else:
         print(f"Issue #{issue_number}: 【フェーズ1】ユーザー指示の反映（既存コードの修正）")
         prompt_p1 = f"""
-以下の既存コードに【追加・修正依頼】を適用し、動くコードを出力してください。
+以下の既存コードに【追加・修正依頼】を適用してください。
 【依頼】\nタイトル: {issue_title}\n内容: {issue_body}
 【現在のコード】\n```html\n{existing_code}\n```
-ルール: `<thinking>` タグで設計思考を記述後、完全なHTMLコードを ```html ... ``` で出力してください。
+
+【重要】コード全体を出力するのではなく、必ず以下の SEARCH/REPLACE 形式を使って変更部分のみを出力してください。
+新機能や変数を追加する場合は、追加したい場所の直前や直後の既存コードを SEARCH に含め、REPLACE に「既存コード＋追加コード」を書いてください。
+
+<<<<
+置き換え対象の既存コード（一言一句違わずコピペすること）
+====
+新しく置き換えるコード
+>>>>
+
+複数の箇所を変更する場合は、<<<< ==== >>>> のブロックを複数回使用してください。
+`<thinking>` タグで設計思考を記述してから出力してください。
 """
-        html_content = call_gemini_api(prompt_p1)
+        patch_text = call_gemini_api(prompt_p1, extract_html=False)
+        html_content = apply_patches(existing_code, patch_text)
         
     # フェーズ1完了時点で一旦セーブ＆Push
     save_and_push(html_content, f"✨ フェーズ1 プロトタイプ作成完了 (Issue #{issue_number})")
@@ -229,9 +273,27 @@ if not existing_code:
             
             time.sleep(3)
             print(f"【ループ {i}/{QUALITY_UP_ITERATIONS}】改善アイデアの実装中...")
-            prompt_apply = f"現在のコード:\n```html\n{html_content}\n```\n【実装するアイデア】\n{ideas}\nルール: `<thinking>` タグで論理的に記述後、完全なHTMLコードを ```html ... ``` で出力してください。省略厳禁。"
-            
-            html_content = call_gemini_api(prompt_apply)
+            prompt_apply = f"""現在のコード:
+```html
+{html_content}
+```
+【実装するアイデア】
+{ideas}
+
+【重要】コード全体を出力するのではなく、必ず以下の SEARCH/REPLACE 形式を使って変更・追加部分のみを出力してください。
+新機能や変数を追加する場合は、追加したい場所の既存コードを SEARCH に含め、REPLACE に「既存コード＋追加コード」を書いてください。
+
+<<<<
+置き換え対象の既存コード（一言一句違わずコピペすること）
+====
+新しく置き換えるコード
+>>>>
+
+複数の箇所を変更する場合は、<<<< ==== >>>> のブロックを複数回使用してください。
+`<thinking>` タグで論理的に記述後に出力してください。省略厳禁。
+"""
+            patch_text = call_gemini_api(prompt_apply, extract_html=False)
+            html_content = apply_patches(html_content, patch_text)
             
             print(f"💾 ループ {i} の成果を保存・Push中...")
             save_and_push(html_content, f"🔄 自律改善ループ {i}/{QUALITY_UP_ITERATIONS} 完了")
@@ -289,9 +351,29 @@ else:
                 
             time.sleep(3)
             print(f"【ループ {i}/{MAX_UPDATE_LOOPS}】改善案（微調整）の実装中...")
-            prompt_apply = f"現在のコード:\n```html\n{html_content}\n```\n【ユーザーの依頼内容】\n{issue_body}\n【実装する改善案】\n{eval_result}\nルール: 上記の改善案を反映し、ユーザーの依頼を達成してください。`<thinking>` タグで論理的に記述後、完全なHTMLコードを ```html ... ``` で出力してください。省略厳禁。"
+            prompt_apply = f"""現在のコード:
+```html
+{html_content}
+```
+【ユーザーの依頼内容】
+{issue_body}
+【実装する改善案】
+{eval_result}
             
-            html_content = call_gemini_api(prompt_apply)
+【重要】コード全体を出力するのではなく、必ず以下の SEARCH/REPLACE 形式を使って変更・追加部分のみを出力してください。
+新機能や変数を追加する場合は、追加したい場所の既存コードを SEARCH に含め、REPLACE に「既存コード＋追加コード」を書いてください。
+
+<<<<
+置き換え対象の既存コード（一言一句違わずコピペすること）
+====
+新しく置き換えるコード
+>>>>
+
+複数の箇所を変更する場合は、<<<< ==== >>>> のブロックを複数回使用してください。
+`<thinking>` タグで論理的に記述後に出力してください。省略厳禁。
+"""
+            patch_text = call_gemini_api(prompt_apply, extract_html=False)
+            html_content = apply_patches(html_content, patch_text)
             
             print(f"💾 調整ループ {i} の成果を保存・Push中...")
             save_and_push(html_content, f"🔄 要望達成ループ {i}/{MAX_UPDATE_LOOPS} (達成度: {score}%) 完了")
@@ -325,9 +407,25 @@ for attempt in range(1, MAX_BUGFIX_LOOPS + 1):
                 print("🔄 エラーの自己修正を行います...")
                 time.sleep(3)
                 error_text = "\n".join(js_errors[:5])
-                prompt_fix = f"以下のエラーが発生しました。\n{error_text}\n【エラーが出たコード】\n```html\n{final_code}\n```\nルール: 原因分析後、完全なHTMLコードを出力してください。"
-                
-                final_code = call_gemini_api(prompt_fix)
+                prompt_fix = f"""以下のエラーが発生しました。
+{error_text}
+【エラーが出たコード】
+```html
+{final_code}
+```
+
+【重要】コード全体を出力するのではなく、以下の SEARCH/REPLACE 形式を使ってバグ修正部分のみを出力してください。
+
+<<<<
+バグの原因となっている既存コード（一言一句違わずコピペすること）
+====
+修正後のコード
+>>>>
+
+原因分析を `<thinking>` タグで行った後、上記の形式でパッチを出力してください。
+"""
+                patch_text = call_gemini_api(prompt_fix, extract_html=False)
+                final_code = apply_patches(final_code, patch_text)
                 
                 # バグ修正後も中間セーブ＆Push
                 save_and_push(final_code, f"🛠 バグ自己修正 試行 {attempt}/{MAX_BUGFIX_LOOPS}")
