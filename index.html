@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>斬影 - ZANEI: 3D CYBER SLASH (Ultimate Masterpiece Refined)</title>
+  <title>斬影 - ZANEI: CYBERNETIC SLASHER ULTIMATE EVOLUTION</title>
   <style>
     :root {
       --bg: #010206;
@@ -11,6 +11,7 @@
       --accent-glow: rgba(0, 255, 204, 0.65);
       --danger: #ff0055;
       --danger-glow: rgba(255, 0, 85, 0.7);
+      --warning: #ffaa00;
       --font-main: 'Segoe UI', Roboto, 'Hiragino Kaku Gothic ProN', sans-serif;
     }
 
@@ -75,7 +76,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 32px;
+      padding: 28px;
     }
 
     /* HUD Header */
@@ -92,7 +93,7 @@
       -webkit-backdrop-filter: blur(28px);
       border: 1px solid rgba(0, 255, 204, 0.35);
       border-radius: 18px;
-      padding: 20px 28px;
+      padding: 18px 24px;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 0 35px rgba(0, 255, 204, 0.1);
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -100,23 +101,25 @@
     .hp-container {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      width: 250px;
+      gap: 8px;
+      width: 240px;
     }
 
     .hp-label {
       font-size: 11px;
-      letter-spacing: 3.5px;
+      letter-spacing: 3px;
       color: #88eebb;
       font-weight: 800;
       text-shadow: 0 0 12px rgba(0, 255, 204, 0.5);
+      display: flex;
+      justify-content: space-between;
     }
 
     .hp-bar-outer {
       width: 100%;
-      height: 10px;
+      height: 8px;
       background: rgba(255, 255, 255, 0.04);
-      border-radius: 6px;
+      border-radius: 4px;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.15);
       box-shadow: inset 0 2px 5px rgba(0,0,0,0.7);
@@ -130,30 +133,53 @@
       transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
+    /* Skill Gauge */
+    .skill-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .skill-bar-outer {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 136, 255, 0.3);
+    }
+    .skill-bar-inner {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #0088ff, #00ffcc);
+      box-shadow: 0 0 15px rgba(0, 136, 255, 0.8);
+      transition: width 0.1s linear;
+    }
+
     .score-container {
       text-align: right;
     }
 
     .floor-badge {
       display: inline-block;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 800;
-      letter-spacing: 3px;
+      letter-spacing: 2.5px;
       color: var(--accent);
       background: rgba(0, 255, 204, 0.14);
-      padding: 7px 18px;
-      border-radius: 24px;
+      padding: 6px 16px;
+      border-radius: 20px;
       border: 1px solid rgba(0, 255, 204, 0.5);
-      margin-bottom: 10px;
-      box-shadow: 0 0 30px rgba(0, 255, 204, 0.35);
+      margin-bottom: 8px;
+      box-shadow: 0 0 25px rgba(0, 255, 204, 0.3);
     }
 
     .score-val {
-      font-size: 36px;
+      font-size: 32px;
       font-weight: 900;
-      letter-spacing: 2.5px;
+      letter-spacing: 2px;
       font-variant-numeric: tabular-nums;
-      text-shadow: 0 0 35px rgba(255, 255, 255, 0.6), 0 0 18px var(--accent-glow);
+      text-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 0 15px var(--accent-glow);
     }
 
     /* Crosshair & Kill Feed */
@@ -170,14 +196,15 @@
     }
 
     .kill-feed {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 900;
-      letter-spacing: 3.5px;
+      letter-spacing: 3px;
       color: var(--accent);
       opacity: 0;
-      transform: translateY(25px) scale(0.8);
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      text-shadow: 0 0 30px var(--accent), 0 0 60px var(--accent-glow);
+      transform: translateY(20px) scale(0.85);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      text-shadow: 0 0 25px var(--accent), 0 0 50px var(--accent-glow);
+      white-space: nowrap;
     }
     .kill-feed.show {
       opacity: 1;
@@ -190,7 +217,7 @@
       width: 100%;
       justify-content: space-between;
       align-items: flex-end;
-      padding-bottom: 16px;
+      padding-bottom: 12px;
       pointer-events: auto;
     }
 
@@ -201,34 +228,34 @@
     }
 
     .stick-area {
-      width: 170px;
-      height: 170px;
+      width: 160px;
+      height: 160px;
       background: rgba(255, 255, 255, 0.02);
       border: 2px dashed rgba(0, 255, 204, 0.45);
       border-radius: 50%;
       position: relative;
       touch-action: none;
       backdrop-filter: blur(10px);
-      box-shadow: 0 0 45px rgba(0,0,0,0.7);
+      box-shadow: 0 0 40px rgba(0,0,0,0.7);
     }
 
     .stick-nub {
-      width: 68px;
-      height: 68px;
+      width: 64px;
+      height: 64px;
       background: linear-gradient(135deg, var(--accent), #0088ff);
       border-radius: 50%;
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      box-shadow: 0 0 40px var(--accent-glow), inset 0 2px 8px rgba(255,255,255,0.6);
+      box-shadow: 0 0 35px var(--accent-glow), inset 0 2px 8px rgba(255,255,255,0.6);
       pointer-events: none;
       will-change: transform;
     }
 
     .action-btns {
       display: flex;
-      gap: 22px;
+      gap: 16px;
       align-items: flex-end;
     }
 
@@ -249,22 +276,32 @@
     }
 
     .btn-slash {
-      width: 96px;
-      height: 96px;
-      font-size: 22px;
-      letter-spacing: 1.5px;
+      width: 90px;
+      height: 90px;
+      font-size: 20px;
+      letter-spacing: 1px;
       background: linear-gradient(135deg, #ff0055, #ff4400);
-      box-shadow: 0 0 45px var(--danger-glow), inset 0 2px 10px rgba(255,255,255,0.5);
+      box-shadow: 0 0 40px var(--danger-glow), inset 0 2px 10px rgba(255,255,255,0.5);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+    }
+
+    .btn-skill {
+      width: 74px;
+      height: 74px;
+      font-size: 13px;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #0088ff, #7700ff);
+      box-shadow: 0 0 30px rgba(0, 136, 255, 0.6), inset 0 2px 8px rgba(255,255,255,0.5);
       border: 1px solid rgba(255, 255, 255, 0.35);
     }
 
     .btn-jump {
-      width: 78px;
-      height: 78px;
-      font-size: 14px;
-      letter-spacing: 1.5px;
+      width: 74px;
+      height: 74px;
+      font-size: 13px;
+      letter-spacing: 1px;
       background: linear-gradient(135deg, #0088ff, #00ffcc);
-      box-shadow: 0 0 35px var(--accent-glow), inset 0 2px 10px rgba(255,255,255,0.5);
+      box-shadow: 0 0 30px var(--accent-glow), inset 0 2px 8px rgba(255,255,255,0.5);
       border: 1px solid rgba(255, 255, 255, 0.35);
     }
 
@@ -276,16 +313,16 @@
       width: 100%;
       height: 100%;
       z-index: 100;
-      background: rgba(1, 2, 6, 0.9);
+      background: rgba(1, 2, 6, 0.92);
       backdrop-filter: blur(32px);
       -webkit-backdrop-filter: blur(32px);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 36px;
+      padding: 32px;
       text-align: center;
-      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.5s;
+      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.4s;
     }
 
     .screen-overlay.hidden {
@@ -295,24 +332,24 @@
     }
 
     .screen-title {
-      font-size: clamp(48px, 9vw, 84px);
+      font-size: clamp(40px, 8vw, 76px);
       font-weight: 900;
-      letter-spacing: 12px;
+      letter-spacing: 10px;
       background: linear-gradient(135deg, #ffffff 15%, var(--accent) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       text-transform: uppercase;
-      filter: drop-shadow(0 0 60px rgba(0, 255, 204, 0.6));
+      filter: drop-shadow(0 0 50px rgba(0, 255, 204, 0.5));
     }
 
     .screen-sub {
       color: #99bbcc;
-      font-size: 15px;
-      letter-spacing: 6px;
-      margin-bottom: 50px;
+      font-size: 14px;
+      letter-spacing: 5px;
+      margin-bottom: 40px;
       font-weight: 700;
-      text-shadow: 0 0 15px rgba(153, 187, 204, 0.5);
+      text-shadow: 0 0 12px rgba(153, 187, 204, 0.4);
     }
 
     .primary-btn {
@@ -320,33 +357,33 @@
       background: linear-gradient(135deg, var(--accent), #0088ff);
       color: #020409;
       border: none;
-      padding: 22px 68px;
-      font-size: 18px;
+      padding: 20px 60px;
+      font-size: 17px;
       font-weight: 900;
-      letter-spacing: 4px;
-      border-radius: 40px;
+      letter-spacing: 3.5px;
+      border-radius: 36px;
       cursor: pointer;
-      box-shadow: 0 0 60px var(--accent-glow), inset 0 2px 8px rgba(255,255,255,0.6);
+      box-shadow: 0 0 50px var(--accent-glow), inset 0 2px 8px rgba(255,255,255,0.6);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .primary-btn:hover {
-      transform: translateY(-6px) scale(1.05);
-      box-shadow: 0 0 80px var(--accent-glow), inset 0 2px 12px rgba(255,255,255,0.9);
+      transform: translateY(-5px) scale(1.04);
+      box-shadow: 0 0 70px var(--accent-glow), inset 0 2px 12px rgba(255,255,255,0.9);
     }
     .primary-btn:active {
       transform: translateY(1px);
     }
 
-    /* Rogue Perk Select Cards */
+    /* Perk Cards */
     .perk-cards {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 18px;
       width: 100%;
-      max-width: 520px;
-      margin-top: 18px;
+      max-width: 500px;
+      margin-top: 10px;
     }
-    @media (min-width: 700px) {
+    @media (min-width: 760px) {
       .perk-cards {
         flex-direction: row;
         max-width: 960px;
@@ -358,40 +395,40 @@
       background: rgba(8, 16, 32, 0.88);
       backdrop-filter: blur(24px);
       border: 1px solid rgba(0, 255, 204, 0.35);
-      border-radius: 20px;
-      padding: 34px 30px;
+      border-radius: 18px;
+      padding: 30px 24px;
       flex: 1;
       cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       text-align: left;
-      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.2);
     }
     .perk-card:hover {
-      background: rgba(0, 255, 204, 0.16);
+      background: rgba(0, 255, 204, 0.15);
       border-color: var(--accent);
-      transform: translateY(-10px);
-      box-shadow: 0 28px 70px rgba(0, 255, 204, 0.45), inset 0 1px 3px rgba(255, 255, 255, 0.4);
+      transform: translateY(-8px);
+      box-shadow: 0 24px 60px rgba(0, 255, 204, 0.4), inset 0 1px 3px rgba(255, 255, 255, 0.4);
     }
     .perk-name {
       font-weight: 800;
-      font-size: 20px;
+      font-size: 18px;
       color: var(--accent);
-      margin-bottom: 14px;
-      letter-spacing: 2px;
-      text-shadow: 0 0 18px var(--accent-glow);
+      margin-bottom: 12px;
+      letter-spacing: 1.5px;
+      text-shadow: 0 0 15px var(--accent-glow);
     }
     .perk-desc {
-      font-size: 14px;
+      font-size: 13px;
       color: #aaccbb;
-      line-height: 1.85;
+      line-height: 1.75;
     }
 
     .tips {
-      margin-top: 45px;
-      font-size: 13px;
+      margin-top: 35px;
+      font-size: 12px;
       color: #778899;
-      letter-spacing: 1.5px;
-      line-height: 1.9;
+      letter-spacing: 1.2px;
+      line-height: 1.8;
       text-shadow: 0 0 10px rgba(0,0,0,0.9);
     }
   </style>
@@ -407,9 +444,18 @@
   <div class="ui-layer">
     <div class="hud-top">
       <div class="status-panel hp-container">
-        <div class="hp-label">VITAL INTEGRITY</div>
+        <div class="hp-label">
+          <span>VITAL INTEGRITY</span>
+          <span id="biome-label" style="color: var(--accent);">NEON CITY</span>
+        </div>
         <div class="hp-bar-outer">
           <div id="hp-bar" class="hp-bar-inner"></div>
+        </div>
+        <div class="skill-container">
+          <div class="hp-label" style="font-size: 9px; color: #88ccff;">ACTIVE SKILL [E / SKILL]</div>
+          <div class="skill-bar-outer">
+            <div id="skill-bar" class="skill-bar-inner"></div>
+          </div>
         </div>
       </div>
 
@@ -429,6 +475,7 @@
         <div id="stick-nub" class="stick-nub"></div>
       </div>
       <div class="action-btns">
+        <button id="btn-skill" class="act-btn btn-skill">技能</button>
         <button id="btn-jump" class="act-btn btn-jump">JUMP</button>
         <button id="btn-slash" class="act-btn btn-slash">斬</button>
       </div>
@@ -438,17 +485,17 @@
   <!-- Start Screen -->
   <div id="screen-start" class="screen-overlay">
     <h1 class="screen-title">斬影 : ZANEI</h1>
-    <p class="screen-sub">CYBERNETIC 3D SLASHER ROGUELIKE</p>
+    <p class="screen-sub">ULTIMATE CYBERNETIC SLASHER</p>
     <button id="btn-start" class="primary-btn">MISSION START</button>
     <div class="tips">
-      PC: [WASD] 移動 / [SPACE] ジャンプ / [クリック or J] 斬撃<br>
-      スマホ: バーチャルパッド & 右ボタン
+      PC: [WASD] 移動 / [SPACE] ジャンプ / [クリック or J] 斬撃 / [E] アクティブスキル<br>
+      スマホ: バーチャルパッド & 右ボタン操作
     </div>
   </div>
 
   <!-- Level Clear / Roguelike Upgrade Screen -->
   <div id="screen-perk" class="screen-overlay hidden">
-    <h2 class="screen-title" style="font-size: 38px;">フロア踏破</h2>
+    <h2 class="screen-title" style="font-size: 36px;">フロア踏破</h2>
     <p class="screen-sub">ニューラルモジュールを選択してください</p>
     <div id="perk-list" class="perk-cards"></div>
   </div>
@@ -462,7 +509,7 @@
 
   <script>
     /* ========================================================
-       1. Enhanced SoundFX Synthesizer (Web Audio API with Filters)
+       1. SoundFX Synthesizer (Web Audio API)
        ======================================================== */
     class SoundFX {
       constructor() {
@@ -476,45 +523,26 @@
       playSlash() {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
-        
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         const filter = this.ctx.createBiquadFilter();
         
         filter.type = 'bandpass';
-        filter.frequency.value = 2200;
+        filter.frequency.value = 2400;
         filter.Q.value = 4.0;
 
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(1600, now);
-        osc.frequency.exponentialRampToValueAtTime(80, now + 0.24);
+        osc.frequency.setValueAtTime(1800, now);
+        osc.frequency.exponentialRampToValueAtTime(70, now + 0.22);
 
-        gain.gain.setValueAtTime(0.45, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.24);
-
-        const bufSize = this.ctx.sampleRate * 0.2;
-        const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
-        const data = buf.getChannelData(0);
-        for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.28));
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buf;
-        const noiseFilter = this.ctx.createBiquadFilter();
-        noiseFilter.type = 'highpass';
-        noiseFilter.frequency.value = 3800;
-        const noiseGain = this.ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.35, now);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-
-        noise.connect(noiseFilter);
-        noiseFilter.connect(noiseGain);
-        noiseGain.connect(this.ctx.destination);
-        noise.start(now);
+        osc.stop(now + 0.22);
       }
       playHit() {
         if (!this.ctx) return;
@@ -524,20 +552,21 @@
         const filter = this.ctx.createBiquadFilter();
         
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(1000, now);
+        filter.frequency.setValueAtTime(1200, now);
 
         osc.type = 'square';
-        osc.frequency.setValueAtTime(440, now);
-        osc.frequency.exponentialRampToValueAtTime(25, now + 0.22);
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.exponentialRampType = 'exponential';
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
 
-        gain.gain.setValueAtTime(0.55, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.22);
+        osc.stop(now + 0.2);
       }
       playJump() {
         if (!this.ctx) return;
@@ -545,14 +574,29 @@
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(260, now);
-        osc.frequency.exponentialRampToValueAtTime(700, now + 0.24);
-        gain.gain.setValueAtTime(0.32, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.exponentialRampToValueAtTime(750, now + 0.22);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.24);
+        osc.stop(now + 0.22);
+      }
+      playSkill() {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(1400, now + 0.35);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
       }
       playClear() {
         if (!this.ctx) return;
@@ -563,22 +607,22 @@
           osc.type = 'sine';
           osc.frequency.value = freq;
           gain.gain.setValueAtTime(0.25, now + idx * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.55);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.5);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start(now + idx * 0.08);
-          osc.stop(now + idx * 0.08 + 0.55);
+          osc.stop(now + idx * 0.08 + 0.5);
         });
       }
     }
     const audio = new SoundFX();
 
     /* ========================================================
-       2. Unified Input & Command Buffer System
+       2. Input System
        ======================================================== */
     class InputSystem {
       constructor() {
-        this.commands = { slash: 0, jump: 0 };
+        this.commands = { slash: 0, jump: 0, skill: 0 };
         this.framesValid = 12;
         this.keys = {};
         
@@ -587,6 +631,7 @@
             this.keys[e.code] = true;
             if (e.code === 'KeyJ' || e.code === 'KeyF') this.push('slash');
             if (e.code === 'Space') this.push('jump');
+            if (e.code === 'KeyE') this.push('skill');
           }
         });
         window.addEventListener('keyup', e => { this.keys[e.code] = false; });
@@ -618,12 +663,13 @@
       clear() {
         this.commands.slash = 0;
         this.commands.jump = 0;
+        this.commands.skill = 0;
       }
     }
     const inputSys = new InputSystem();
 
     /* ========================================================
-       3. Game Engine Setup & Visual Polish (Three.js)
+       3. Three.js Engine Setup
        ======================================================== */
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
@@ -640,7 +686,7 @@
     renderer.toneMappingExposure = 1.35;
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
     const dirLight = new THREE.DirectionalLight(0x00ffcc, 1.8);
@@ -663,18 +709,28 @@
       score: 0,
       floor: 1,
       moveSpeed: 13.0,
-      slashDamage: 45,
+      slashDamage: 40,
       slashRange: 4.6,
-      critChance: 0.12
+      critChance: 0.12,
+      skillCooldown: 0,
+      skillMaxCooldown: 8.0,
+      activeSkillType: 'issen' // 'issen' (dash slash) or 'clock' (slow down) or 'burst' (phantom burst)
     };
 
     let enemies = [];
     let particles = [];
     let platforms = [];
+    let gimmicks = []; // Boost pads, terminals
     let portal = null;
     let cameraShake = 0;
     let hitStopFrames = 0;
     const raycaster = new THREE.Raycaster();
+
+    const BIOMES = [
+      { name: 'NEON CITY', color: 0x142240, lightColor: 0x00ffcc, fog: 0x010206 },
+      { name: 'UNDERGROUND RUINS', color: 0x331b14, lightColor: 0xffaa00, fog: 0x040201 },
+      { name: 'DEEP NET MATRIX', color: 0x1b0a33, lightColor: 0xaa00ff, fog: 0x020106 }
+    ];
 
     /* ========================================================
        4. Player Mesh & Cyber Aesthetic Setup
@@ -720,15 +776,19 @@
       isGrounded: false,
       isSlashing: false,
       slashTime: 0,
-      slashHitTriggered: false
+      slashHitTriggered: false,
+      isDashing: false,
+      dashTimer: 0
     };
 
     /* ========================================================
-       5. Stage & Procedural Grid Platforms
+       5. Stage, Biomes & Gimmicks Generation
        ======================================================== */
     function clearLevel() {
       platforms.forEach(p => scene.remove(p));
       platforms = [];
+      gimmicks.forEach(g => scene.remove(g.mesh));
+      gimmicks = [];
       enemies.forEach(e => scene.remove(e.group));
       enemies = [];
       if (portal) {
@@ -761,7 +821,16 @@
 
     function generateStage(floorNumber) {
       clearLevel();
-      createPlatform(0, -0.5, 0, 14, 1, 14, 0x142240);
+      const biomeIdx = (floorNumber - 1) % BIOMES.length;
+      const biome = BIOMES[biomeIdx];
+      
+      scene.background.set(biome.fog);
+      scene.fog.color.set(biome.fog);
+      dirLight.color.set(biome.lightColor);
+      document.getElementById('biome-label').textContent = biome.name;
+      document.getElementById('biome-label').style.color = `#${biome.lightColor.toString(16)}`;
+
+      createPlatform(0, -0.5, 0, 14, 1, 14, biome.color);
       playerPhysics.position.set(0, 2, 0);
       playerPhysics.prevPosition.copy(playerPhysics.position);
       playerPhysics.velocity.set(0, 0, 0);
@@ -781,66 +850,119 @@
 
         const w = 6.5 + Math.random() * 5;
         const d = 6.5 + Math.random() * 5;
-        createPlatform(currPos.x, currPos.y, currPos.z, w, 1, d);
+        createPlatform(currPos.x, currPos.y, currPos.z, w, 1, d, biome.color);
+
+        // Add Gimmick (Terminal or Boost Pad)
+        if (Math.random() < 0.45) {
+          const isTerminal = Math.random() > 0.5;
+          const gMesh = new THREE.Mesh(
+            isTerminal ? new THREE.BoxGeometry(0.8, 1.2, 0.4) : new THREE.CylinderGeometry(1.2, 1.2, 0.1, 16),
+            new THREE.MeshBasicMaterial({ color: isTerminal ? 0x0088ff : 0x00ffcc, wireframe: true })
+          );
+          gMesh.position.set(currPos.x + (Math.random() - 0.5)*(w-3), currPos.y + (isTerminal ? 0.8 : 0.6), currPos.z + (Math.random() - 0.5)*(d-3));
+          scene.add(gMesh);
+          gimmicks.push({ type: isTerminal ? 'terminal' : 'boost', mesh: gMesh, active: true });
+        }
 
         if (i > 0) {
-          const enemyCount = Math.floor(1 + Math.random() * 2.5);
+          const enemyCount = Math.floor(1 + Math.random() * 2.8);
           for (let e = 0; e < enemyCount; e++) {
+            const types = ['normal', 'gunner', 'guardian', 'assassin'];
+            const typeWeights = [0.4, 0.25, 0.2, 0.15];
+            let r = Math.random(), accum = 0, chosenType = 'normal';
+            for(let t=0; t<types.length; t++) {
+              accum += typeWeights[t];
+              if(r <= accum) { chosenType = types[t]; break; }
+            }
+
             spawnEnemy(
               currPos.x + (Math.random() - 0.5) * (w - 2.5),
               currPos.y + 1.4,
-              currPos.z + (Math.random() - 0.5) * (d - 2.5)
+              currPos.z + (Math.random() - 0.5) * (d - 2.5),
+              chosenType
             );
           }
         }
       }
 
       currPos.z -= 14;
-      createPlatform(currPos.x, currPos.y, currPos.z, 9, 1, 9, 0x1a2e58);
+      createPlatform(currPos.x, currPos.y, currPos.z, 9, 1, 9, biome.color);
 
       portal = new THREE.Mesh(
         new THREE.TorusGeometry(2.0, 0.3, 20, 40),
-        new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true })
+        new THREE.MeshBasicMaterial({ color: biome.lightColor, wireframe: true })
       );
       portal.position.set(currPos.x, currPos.y + 2.8, currPos.z);
       scene.add(portal);
     }
 
-    function spawnEnemy(x, y, z) {
+    function spawnEnemy(x, y, z, type = 'normal') {
       const group = new THREE.Group();
       group.position.set(x, y, z);
 
+      let geom, colorVal, hpVal = 60 + stats.floor * 22, speedVal = 5.0;
+      let hasShield = (type === 'guardian');
+
+      if (type === 'gunner') {
+        geom = new THREE.ConeGeometry(0.7, 1.2, 4);
+        colorVal = 0x0088ff;
+        hpVal *= 0.8;
+      } else if (type === 'guardian') {
+        geom = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+        colorVal = 0xffaa00;
+        hpVal *= 1.6;
+        speedVal = 3.5;
+      } else if (type === 'assassin') {
+        geom = new THREE.TetrahedronGeometry(0.8, 0);
+        colorVal = 0xaa00ff;
+        hpVal *= 0.7;
+        speedVal = 7.5;
+      } else {
+        geom = new THREE.OctahedronGeometry(0.85, 0);
+        colorVal = 0xff0055;
+      }
+
       const mesh = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.85, 0),
-        new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.12, metalness: 0.98, emissive: 0xff0055, emissiveIntensity: 1.1 })
+        geom,
+        new THREE.MeshStandardMaterial({ color: colorVal, roughness: 0.12, metalness: 0.98, emissive: colorVal, emissiveIntensity: 1.1 })
       );
       mesh.castShadow = true;
       group.add(mesh);
 
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      eye.position.set(0, 0, 0.58);
-      group.add(eye);
+      let shieldMesh = null;
+      if (hasShield) {
+        shieldMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(1.6, 1.8, 0.2),
+          new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true, transparent: true, opacity: 0.8 })
+        );
+        shieldMesh.position.set(0, 0, 0.8);
+        group.add(shieldMesh);
+      }
 
       scene.add(group);
 
       enemies.push({
         group,
         mesh,
+        shieldMesh,
+        type,
         position: new THREE.Vector3(x, y, z),
         prevPosition: new THREE.Vector3(x, y, z),
-        hp: 75 + stats.floor * 24,
-        speed: 5.0 + Math.random() * 2.8,
-        velocity: new THREE.Vector3()
+        hp: hpVal,
+        maxHp: hpVal,
+        speed: speedVal + Math.random() * 1.5,
+        velocity: new THREE.Vector3(),
+        attackTimer: Math.random() * 2
       });
     }
 
     /* ========================================================
-       6. Collision Detection, CCD & Combat Feedback
+       6. Combat, Active Skills & Gimmick Interaction
        ======================================================== */
     function triggerSlash() {
       if (playerPhysics.isSlashing) return;
       playerPhysics.isSlashing = true;
-      playerPhysics.slashTime = 0.24;
+      playerPhysics.slashTime = 0.22;
       playerPhysics.slashHitTriggered = false;
 
       audio.playSlash();
@@ -848,6 +970,36 @@
       slashArc.material.opacity = 1.0;
       slashArc.scale.set(stats.slashRange * 0.58, stats.slashRange * 0.58, 1);
       katanaGroup.rotation.y = -Math.PI * 0.75;
+    }
+
+    function triggerActiveSkill() {
+      if (stats.skillCooldown > 0) return;
+      stats.skillCooldown = stats.skillMaxCooldown;
+      audio.playSkill();
+
+      if (stats.activeSkillType === 'issen') {
+        // High Speed Dash Slash
+        playerPhysics.isDashing = true;
+        playerPhysics.dashTimer = 0.3;
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerPhysics.quaternion);
+        playerPhysics.velocity.copy(forward.multiplyScalar(28.0));
+        showKillFeed("【一閃】 居合突進！");
+      } else if (stats.activeSkillType === 'clock') {
+        // Slow enemies
+        enemies.forEach(e => e.speed *= 0.3);
+        showKillFeed("【クロックダウン】 時間膨張！");
+        setTimeout(() => {
+          enemies.forEach(e => e.speed /= 0.3);
+        }, 4000);
+      } else {
+        // Phantom Burst (Damage all on screen)
+        enemies.forEach(e => {
+          e.hp -= stats.slashDamage * 2.0;
+          spawnBloodParticles(e.position.clone(), 0xaa00ff);
+        });
+        showKillFeed("【残影解放】 全方位断裁！");
+        cameraShake = 0.8;
+      }
     }
 
     function executeSlashHit() {
@@ -873,6 +1025,24 @@
           }
 
           if (hitDetected) {
+            // Check Shield for Guardian
+            if (enemy.shieldMesh) {
+              const toPlayer = playerPos.clone().sub(enemyPos).normalize();
+              const enemyDir = new THREE.Vector3(0, 0, 1).applyQuaternion(enemy.group.quaternion);
+              if (toPlayer.dot(enemyDir) < 0.2) {
+                // Hit front shield -> Break down mechanic
+                enemy.hp -= stats.slashDamage * 0.3;
+                showKillFeed("GUARD BLOCKED!");
+                spawnBloodParticles(enemyPos.clone(), 0xffaa00);
+                if (enemy.hp < enemy.maxHp * 0.6) {
+                  scene.remove(enemy.shieldMesh);
+                  enemy.shieldMesh = null;
+                  showKillFeed("SHIELD BROKEN!");
+                }
+                return;
+              }
+            }
+
             const isCrit = Math.random() < stats.critChance;
             const damage = stats.slashDamage * (isCrit ? 2.5 : 1.0);
             enemy.hp -= damage;
@@ -886,12 +1056,29 @@
             enemy.velocity.add(knockbackDir.multiplyScalar(14.0));
 
             if (enemy.hp <= 0) {
-              stats.score += 100 * stats.floor;
+              stats.score += 120 * stats.floor;
               updateHUD();
-              showKillFeed(isCrit ? "CRITICAL SLASH! +200" : "SLASHED! +100");
+              showKillFeed(isCrit ? "CRITICAL SLASH! +240" : "SLASHED! +120");
               scene.remove(enemy.group);
               enemies.splice(idx, 1);
             }
+          }
+        }
+      });
+
+      // Check Gimmicks
+      gimmicks.forEach(g => {
+        if (g.active && g.mesh.position.distanceTo(playerPos) < 2.2) {
+          if (g.type === 'terminal') {
+            g.active = false;
+            scene.remove(g.mesh);
+            stats.score += 300;
+            showKillFeed("TERMINAL HACKED! +300");
+            // Damage nearby enemies via hacking
+            enemies.forEach(e => {
+              e.hp -= 80;
+              spawnBloodParticles(e.position.clone(), 0x0088ff);
+            });
           }
         }
       });
@@ -908,7 +1095,7 @@
       const geom = new THREE.BoxGeometry(0.18, 0.18, 0.18);
       const mat = new THREE.MeshBasicMaterial({ color: colorHex });
 
-      for (let i = 0; i < 35; i++) {
+      for (let i = 0; i < 30; i++) {
         const p = new THREE.Mesh(geom, mat);
         p.position.copy(pos);
         const vel = new THREE.Vector3(
@@ -917,7 +1104,7 @@
           (Math.random() - 0.5) * 20
         );
         scene.add(p);
-        particles.push({ mesh: p, vel, life: 0.9 });
+        particles.push({ mesh: p, vel, life: 0.85 });
       }
     }
 
@@ -967,6 +1154,10 @@
       e.stopPropagation();
       inputSys.push('jump');
     });
+    document.getElementById('btn-skill').addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+      inputSys.push('skill');
+    });
 
     /* ========================================================
        8. Roguelike Upgrades & HUD Management
@@ -976,7 +1167,8 @@
       { id: 'range', name: 'サイバーレンジ拡大', desc: '斬撃リーチが +20% 拡大', apply: () => stats.slashRange *= 1.2 },
       { id: 'speed', name: 'アクセラレータ', desc: '走行速度が 15% 上昇', apply: () => stats.moveSpeed *= 1.15 },
       { id: 'crit', name: 'フェイタルリンク', desc: 'クリティカル率 +15%', apply: () => stats.critChance += 0.15 },
-      { id: 'heal', name: 'ナノリペア修復', desc: 'HPを 65 回復し、最大HP +35', apply: () => { stats.maxHp += 35; stats.hp = Math.min(stats.maxHp, stats.hp + 65); } }
+      { id: 'skill', name: 'オーバークロック', desc: 'アクティブスキルのクールダウン 30% 短縮', apply: () => stats.skillMaxCooldown *= 0.7 },
+      { id: 'heal', name: 'ナノリペア修復', desc: 'HPを 70 回復し、最大HP +40', apply: () => { stats.maxHp += 40; stats.hp = Math.min(stats.maxHp, stats.hp + 70); } }
     ];
 
     function showPerkSelection() {
@@ -1009,6 +1201,9 @@
     function updateHUD() {
       const hpPct = Math.max(0, (stats.hp / stats.maxHp) * 100);
       document.getElementById('hp-bar').style.width = `${hpPct}%`;
+      const skillPct = Math.max(0, (1 - stats.skillCooldown / stats.skillMaxCooldown) * 100);
+      document.getElementById('skill-bar').style.width = `${skillPct}%`;
+      
       document.getElementById('score-display').textContent = stats.score;
       document.getElementById('floor-badge').textContent = `FLOOR ${stats.floor}`;
 
@@ -1032,9 +1227,11 @@
       stats.score = 0;
       stats.floor = 1;
       stats.moveSpeed = 13.0;
-      stats.slashDamage = 45;
+      stats.slashDamage = 40;
       stats.slashRange = 4.6;
       stats.critChance = 0.12;
+      stats.skillCooldown = 0;
+      stats.skillMaxCooldown = 8.0;
 
       inputSys.clear();
       updateHUD();
@@ -1058,6 +1255,9 @@
       if (state !== GAME_STATE.PLAYING) return;
 
       inputSys.update();
+      if (stats.skillCooldown > 0) {
+        stats.skillCooldown = Math.max(0, stats.skillCooldown - delta);
+      }
 
       playerPhysics.prevPosition.copy(playerPhysics.position);
       playerPhysics.prevQuaternion.copy(playerPhysics.quaternion);
@@ -1075,24 +1275,33 @@
         moveZ = stick.y;
       }
 
-      const moveVec = new THREE.Vector2(moveX, moveZ);
-      if (moveVec.length() > 0.1) {
-        moveVec.normalize();
-        const targetAngle = Math.atan2(moveVec.x, moveVec.y) + Math.PI;
-        playerPhysics.targetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), targetAngle);
-        playerPhysics.quaternion.slerp(playerPhysics.targetQuaternion, Math.min(1.0, delta * 28));
-
-        playerPhysics.velocity.x = moveVec.x * stats.moveSpeed;
-        playerPhysics.velocity.z = moveVec.y * stats.moveSpeed;
+      if (playerPhysics.isDashing) {
+        playerPhysics.dashTimer -= delta;
+        if (playerPhysics.dashTimer <= 0) playerPhysics.isDashing = false;
       } else {
-        playerPhysics.velocity.x *= 0.80;
-        playerPhysics.velocity.z *= 0.80;
+        const moveVec = new THREE.Vector2(moveX, moveZ);
+        if (moveVec.length() > 0.1) {
+          moveVec.normalize();
+          const targetAngle = Math.atan2(moveVec.x, moveVec.y) + Math.PI;
+          playerPhysics.targetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), targetAngle);
+          playerPhysics.quaternion.slerp(playerPhysics.targetQuaternion, Math.min(1.0, delta * 28));
+
+          playerPhysics.velocity.x = moveVec.x * stats.moveSpeed;
+          playerPhysics.velocity.z = moveVec.y * stats.moveSpeed;
+        } else {
+          playerPhysics.velocity.x *= 0.80;
+          playerPhysics.velocity.z *= 0.80;
+        }
       }
 
       if (inputSys.consume('jump') && playerPhysics.isGrounded) {
         playerPhysics.velocity.y = 14.5;
         playerPhysics.isGrounded = false;
         audio.playJump();
+      }
+
+      if (inputSys.consume('skill')) {
+        triggerActiveSkill();
       }
 
       playerPhysics.velocity.y -= 38.0 * delta;
@@ -1123,7 +1332,7 @@
 
       if (playerPhysics.isSlashing) {
         playerPhysics.slashTime -= delta;
-        const progress = 1.0 - (playerPhysics.slashTime / 0.24);
+        const progress = 1.0 - (playerPhysics.slashTime / 0.22);
         katanaGroup.rotation.y = -Math.PI * 0.75 + progress * Math.PI * 1.5;
 
         if (!playerPhysics.slashHitTriggered && progress >= 0.2 && progress <= 0.7) {
@@ -1138,6 +1347,14 @@
         }
       }
 
+      // Check Gimmick Boost Pads
+      gimmicks.forEach(g => {
+        if (g.active && g.type === 'boost' && g.mesh.position.distanceTo(playerPhysics.position) < 1.8) {
+          playerPhysics.velocity.add(new THREE.Vector3(0, 0, -1).applyQuaternion(playerPhysics.quaternion).multiplyScalar(18.0));
+          showKillFeed("BOOST ACCEL!");
+        }
+      });
+
       enemies.forEach(enemy => {
         const dir = playerPhysics.position.clone().sub(enemy.position);
         const dist = dir.length();
@@ -1148,17 +1365,23 @@
         enemy.position.addScaledVector(enemy.velocity, delta);
         enemy.velocity.multiplyScalar(0.82);
 
-        if (dist < 30) {
+        if (dist < 32) {
           dir.y = 0;
           dir.normalize();
 
           const targetRot = Math.atan2(dir.x, dir.z);
           enemy.group.rotation.y = THREE.MathUtils.lerp(enemy.group.rotation.y, targetRot, Math.min(1.0, delta * 18));
 
-          enemy.position.add(dir.multiplyScalar(enemy.speed * delta));
+          // Gunner keeps distance
+          if (enemy.type === 'gunner') {
+            if (dist > 12) enemy.position.add(dir.multiplyScalar(enemy.speed * delta));
+            else if (dist < 8) enemy.position.add(dir.multiplyScalar(-enemy.speed * delta));
+          } else {
+            enemy.position.add(dir.multiplyScalar(enemy.speed * delta));
+          }
 
           if (dist < 1.45) {
-            stats.hp -= 32 * delta;
+            stats.hp -= 28 * delta;
             cameraShake = 0.55;
             updateHUD();
             if (stats.hp <= 0) triggerGameOver();
@@ -1186,6 +1409,8 @@
           particles.splice(i, 1);
         }
       }
+
+      updateHUD();
     }
 
     function animate(now) {
@@ -1193,7 +1418,6 @@
       const rawDelta = (now - lastTime) / 1000;
       lastTime = now;
 
-      // Dynamic Core Pulsing & Lighting
       const timeSec = now * 0.0045;
       const corePulse = 1.0 + Math.sin(timeSec * 8) * 0.5;
       coreMaterial.emissiveIntensity = corePulse;
