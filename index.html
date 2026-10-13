@@ -532,7 +532,6 @@
       parry() {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
-        // Crisp high-pitched metallic ping
         [1600, 2400, 3200].forEach((freq, idx) => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
@@ -629,34 +628,34 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // Style Definitions
+    // Style Definitions (完全固有の攻撃システム化)
     const STYLES = {
       blade: {
         name: '刃聖 (BLADE MASTER)',
-        desc: '【近接連撃 & 精密弾き】隙が少ない俊敏な刀技。敵の強攻撃を「ジャストパリィ」すると相手を怯ませ特大リターン。',
+        desc: '【近接連撃 & 精密弾き】高威力の連続斬撃と接近戦に特化。敵の強攻撃を「ジャストパリィ」すると相手を怯ませ特大リターン。',
         color: '#00f0ff',
         hp: 110,
         staminaMax: 100,
-        atkDamage: 28,
+        atkDamage: 26,
         speed: 4.8
       },
       gunner: {
         name: '雷弾術士 (SPELL GUNNER)',
-        desc: '【中距離斉射 & ジャストステップ】電磁魔弾の連射と高機動ステップ。敵の攻撃をギリギリで回避すると弾丸威力が2倍化。',
+        desc: '【遠隔レーザー砲 & 魔法弾幕】接近戦を捨て、高速ホーミング魔法弾と貫通レーザーで安全な中遠距離からボスを蜂の巣にする。',
         color: '#ffd700',
-        hp: 90,
-        staminaMax: 120,
-        atkDamage: 18,
-        speed: 5.2
+        hp: 85,
+        staminaMax: 130,
+        atkDamage: 14,
+        speed: 5.4
       },
       brawler: {
         name: '剛拳闘士 (TITAN BRAWLER)',
-        desc: '【鉄壁カウンター & 強撃】重い打撃とスーパーアーマーガード。攻撃を受ける直前ガードで衝撃波を放ち、自己リペアする。',
+        desc: '【超重量カウンター & 衝撃波】近接で強力なガントレット衝撃波を放つ。攻撃を直前ガードするとカウンターでHP回復と大ダメージ。',
         color: '#ff0055',
-        hp: 160,
+        hp: 150,
         staminaMax: 80,
-        atkDamage: 45,
-        speed: 3.8
+        atkDamage: 40,
+        speed: 3.6
       }
     };
     let currentSelectedStyle = 'blade';
@@ -873,7 +872,7 @@
     }
 
     class Projectile {
-      constructor(x, y, vx, vy, dmg, isEnemy = false, color = '#00f0ff', rad = 6) {
+      constructor(x, y, vx, vy, dmg, isEnemy = false, color = '#00f0ff', rad = 6, homing = false) {
         this.x = x;
         this.y = y;
         this.vx = vx;
@@ -882,9 +881,23 @@
         this.isEnemy = isEnemy;
         this.color = color;
         this.rad = rad;
-        this.life = 120;
+        this.homing = homing;
+        this.life = 140;
       }
       update() {
+        // Gunner Homing ability
+        if (this.homing && boss && !this.isEnemy) {
+          const targetAngle = Math.atan2(boss.y - this.y, boss.x - this.x);
+          const currentAngle = Math.atan2(this.vy, this.vx);
+          let diff = targetAngle - currentAngle;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          const newAngle = currentAngle + Math.sign(diff) * Math.min(Math.abs(diff), 0.08);
+          const spd = Math.hypot(this.vx, this.vy);
+          this.vx = Math.cos(newAngle) * spd;
+          this.vy = Math.sin(newAngle) * spd;
+        }
+
         this.x += this.vx;
         this.y += this.vy;
         this.life--;
@@ -949,19 +962,17 @@
         this.speed = st.speed;
         this.color = st.color;
 
-        // Action States
         this.isDashing = false;
         this.dashTimer = 0;
         this.dashCooldown = 0;
         this.isParrying = false;
         this.parryWindow = 0;
         this.atkCooldown = 0;
-        this.critBuffTimer = 0; // Triggered by just-dodge / parry
+        this.critBuffTimer = 0;
         this.comboMultiplier = 1.0;
         this.invulnerableTimer = 0;
       }
       update() {
-        // Stamina Auto-Regen
         if (!this.isDashing && !this.isParrying) {
           this.stamina = Math.min(this.staminaMax, this.stamina + 0.55);
         }
@@ -972,7 +983,6 @@
         if (this.critBuffTimer > 0) this.critBuffTimer--;
         else this.comboMultiplier = Math.max(1.0, this.comboMultiplier - 0.005);
 
-        // Movement Direction
         let mx = input.x;
         let my = input.y;
         if (keys['w'] || keys['arrowup']) my -= 1;
@@ -981,7 +991,7 @@
         if (keys['d'] || keys['arrowright']) mx += 1;
         const len = Math.hypot(mx, my);
 
-        // Dash / Just Dodge Handling
+        // Dash Handling
         if (input.dash && this.dashCooldown <= 0 && this.stamina >= 20) {
           sfx.dash();
           this.isDashing = true;
@@ -990,7 +1000,6 @@
           this.invulnerableTimer = 16;
           this.stamina -= 20;
 
-          // Dash velocity vector
           this.dashVx = len > 0.1 ? (mx / len) * (this.speed * 2.8) : Math.cos(this.angle) * (this.speed * 2.8);
           this.dashVy = len > 0.1 ? (my / len) * (this.speed * 2.8) : Math.sin(this.angle) * (this.speed * 2.8);
 
@@ -1003,7 +1012,6 @@
           this.dashTimer--;
           if (this.dashTimer <= 0) this.isDashing = false;
         } else {
-          // Normal Move
           if (len > 0.05) {
             this.x += (mx / len) * this.speed;
             this.y += (my / len) * this.speed;
@@ -1011,20 +1019,17 @@
           }
         }
 
-        // Aim towards Boss
         if (boss) {
           const bAngle = Math.atan2(boss.y - this.y, boss.x - this.x);
           this.angle = bAngle;
         }
 
-        // Keep inside bounds
         this.x = Math.max(this.radius + 10, Math.min(width - this.radius - 10, this.x));
         this.y = Math.max(this.radius + 60, Math.min(height - this.radius - 20, this.y));
 
-        // Parry / Guard Input
         if (input.parry && this.parryWindow <= 0 && this.stamina >= 10) {
           this.isParrying = true;
-          this.parryWindow = 18; // Active parry frames
+          this.parryWindow = 18;
           this.stamina -= 10;
           spawnBurst(this.x, this.y, '#ffd700', 6, 2);
         }
@@ -1033,7 +1038,6 @@
           if (this.parryWindow <= 0) this.isParrying = false;
         }
 
-        // Attack Input
         if (input.atk && this.atkCooldown <= 0) {
           this.executeAttack();
         }
@@ -1043,49 +1047,54 @@
         const totalDmg = Math.floor(this.baseDmg * this.comboMultiplier * (isCrit ? 1.8 : 1.0));
 
         if (this.styleKey === 'blade') {
+          // 近接剣聖スタイル
           sfx.slash();
           this.atkCooldown = 15;
           slashes.push(new AttackSlash(this.x, this.y, this.angle, 75, this.color));
-          // Hitbox check
           const dist = Math.hypot(boss.x - this.x, boss.y - this.y);
           if (dist < boss.radius + 75) {
             boss.takeDamage(totalDmg, isCrit);
             spawnBurst(boss.x, boss.y, this.color, 10, 4);
           }
         } else if (this.styleKey === 'gunner') {
+          // 雷弾術士スタイル：遠隔ホーミング弾幕連射 ＆ 貫通レーザー
           sfx.slash();
-          this.atkCooldown = 11;
-          const spd = 12;
-          const spread = (Math.random() - 0.5) * 0.15;
-          projectiles.push(new Projectile(
-            this.x, this.y,
-            Math.cos(this.angle + spread) * spd,
-            Math.sin(this.angle + spread) * spd,
-            totalDmg,
-            false,
-            isCrit ? '#ff0055' : this.color,
-            isCrit ? 7 : 5
-          ));
+          this.atkCooldown = 8;
+          const spd = 13;
+          // 3連装ホーミングマジック
+          for (let i = -1; i <= 1; i++) {
+            const spreadAngle = this.angle + i * 0.18;
+            projectiles.push(new Projectile(
+              this.x, this.y,
+              Math.cos(spreadAngle) * spd,
+              Math.sin(spreadAngle) * spd,
+              Math.floor(totalDmg * 0.75),
+              false,
+              isCrit ? '#ff0055' : this.color,
+              isCrit ? 7 : 4,
+              true // ホーミング有効
+            ));
+          }
         } else if (this.styleKey === 'brawler') {
+          // 剛拳闘士スタイル：衝撃波メガパンチ
           sfx.impact();
-          this.atkCooldown = 24;
-          slashes.push(new AttackSlash(this.x, this.y, this.angle, 60, '#ff0055'));
+          this.atkCooldown = 26;
+          slashes.push(new AttackSlash(this.x, this.y, this.angle, 65, '#ff0055'));
           const dist = Math.hypot(boss.x - this.x, boss.y - this.y);
-          if (dist < boss.radius + 65) {
-            boss.takeDamage(totalDmg * 1.3, isCrit);
+          if (dist < boss.radius + 70) {
+            boss.takeDamage(totalDmg * 1.4, isCrit);
             shakeTimer = 8;
-            spawnBurst(boss.x, boss.y, '#ff0055', 18, 7);
+            spawnBurst(boss.x, boss.y, '#ff0055', 20, 8);
           }
         }
       }
       triggerJustAction(type) {
-        // High Risk - High Return Reward
         totalParries++;
-        this.critBuffTimer = 180; // 3 seconds critical state
+        this.critBuffTimer = 180;
         this.comboMultiplier = Math.min(3.0, this.comboMultiplier + 0.4);
         maxCombo = Math.max(maxCombo, this.comboMultiplier);
-        this.stamina = this.staminaMax; // Full stamina refill
-        slowMoTimer = 22; // Dramatic slow motion
+        this.stamina = this.staminaMax;
+        slowMoTimer = 22;
         hitStopTimer = 6;
         shakeTimer = 15;
 
@@ -1101,14 +1110,13 @@
         } else if (type === 'COUNTER') {
           sfx.impact();
           triggerRiskAlert('TITAN COUNTER!!', '#ff0055');
-          this.hp = Math.min(this.maxHp, this.hp + 20); // HP Drain
-          boss.takeDamage(120, true);
+          this.hp = Math.min(this.maxHp, this.hp + 25);
+          boss.takeDamage(140, true);
           spawnBurst(this.x, this.y, '#ff0055', 35, 10);
         }
       }
       hit(dmg, incomingAngle) {
         if (this.invulnerableTimer > 0) {
-          // Just Dodge Check
           if (this.isDashing && this.dashTimer > 6) {
             this.triggerJustAction('DODGE');
             return;
@@ -1116,7 +1124,6 @@
           return;
         }
 
-        // Parry Check
         if (this.isParrying && this.parryWindow > 4) {
           if (this.styleKey === 'brawler') {
             this.triggerJustAction('COUNTER');
@@ -1126,7 +1133,6 @@
           return;
         }
 
-        // Regular Hit
         this.hp -= dmg;
         this.invulnerableTimer = 35;
         this.comboMultiplier = 1.0;
@@ -1144,12 +1150,10 @@
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Flash during invulnerability
         if (this.invulnerableTimer > 0 && Math.floor(Date.now() / 50) % 2 === 0) {
           ctx.globalAlpha = 0.4;
         }
 
-        // Aura when Crit Buffed
         if (this.critBuffTimer > 0) {
           ctx.strokeStyle = this.color;
           ctx.lineWidth = 3;
@@ -1160,7 +1164,6 @@
           ctx.stroke();
         }
 
-        // Parry Shield Visual
         if (this.isParrying) {
           ctx.strokeStyle = '#ffd700';
           ctx.lineWidth = 5;
@@ -1173,7 +1176,6 @@
 
         ctx.rotate(this.angle);
 
-        // Character Shape
         ctx.fillStyle = '#0f172a';
         ctx.strokeStyle = this.color;
         ctx.lineWidth = 2.5;
@@ -1194,7 +1196,7 @@
     }
 
     /* ==========================================================
-       SUPER DIVERSE BOSS ENCOUNTERS
+       SUPER DIVERSE BOSS ENCOUNTERS (多彩なボスの行動パターンと技追加)
        ========================================================== */
     class Boss {
       constructor(typeIndex) {
@@ -1203,34 +1205,39 @@
         this.y = height * 0.28;
         this.stunTimer = 0;
         this.actionTimer = 0;
-        this.patternStep = 0;
         this.warningTimer = 0;
-        this.warningX = 0;
-        this.warningY = 0;
-        this.warningRadius = 0;
+        this.targetChargeAngle = 0;
+        this.chargeDuration = 0;
 
-        // Boss Definitions
+        // ボス個別定義：多彩で変化に富んだ強力なボスたち
         const configs = [
           {
             name: '【業火の断罪者・イグニス】',
-            maxHp: 900,
+            maxHp: 1000,
             radius: 36,
             color: '#ff3300',
             title: 'IGNIS THE INFERNO'
           },
           {
             name: '【虚空の暗殺者・ゼファー】',
-            maxHp: 750,
+            maxHp: 850,
             radius: 28,
             color: '#a855f7',
             title: 'ZEPHYR THE VOID BLADE'
           },
           {
             name: '【機甲要塞・ゴライアス】',
-            maxHp: 1300,
+            maxHp: 1500,
             radius: 46,
             color: '#00f0ff',
             title: 'GOLIATH THE DREADNOUGHT'
+          },
+          {
+            name: '【終焉の魔導王・ザラール】',
+            maxHp: 1800,
+            radius: 40,
+            color: '#ffd700',
+            title: 'ZARAL THE ARCANE LORD'
           }
         ];
 
@@ -1273,22 +1280,23 @@
 
         this.actionTimer++;
 
-        // Boss Specific Pattern AI
-        if (this.typeIndex % 3 === 0) {
+        const bossType = this.typeIndex % 4;
+        if (bossType === 0) {
           this.updateIgnis();
-        } else if (this.typeIndex % 3 === 1) {
+        } else if (bossType === 1) {
           this.updateZephyr();
-        } else {
+        } else if (bossType === 2) {
           this.updateGoliath();
+        } else {
+          this.updateZaral();
         }
       }
-      /* Boss 1: Ignis (Melee lunges, broad fire waves, charge attacks) */
+
+      /* Boss 0: イグニス (炎の爆撃＆突進の猛攻) */
       updateIgnis() {
-        const dist = Math.hypot(player.x - this.x, player.y - this.y);
         const angle = Math.atan2(player.y - this.y, player.x - this.x);
 
-        if (this.actionTimer % 180 === 40) {
-          // Telegraphed Charge Warning
+        if (this.actionTimer % 160 === 40) {
           sfx.warning();
           this.warningTimer = 40;
           this.targetChargeAngle = angle;
@@ -1297,9 +1305,8 @@
         if (this.warningTimer > 0) {
           this.warningTimer--;
           if (this.warningTimer === 0) {
-            // High velocity rush attack
-            this.vx = Math.cos(this.targetChargeAngle) * 14;
-            this.vy = Math.sin(this.targetChargeAngle) * 14;
+            this.vx = Math.cos(this.targetChargeAngle) * 15;
+            this.vy = Math.sin(this.targetChargeAngle) * 15;
             this.chargeDuration = 22;
           }
         }
@@ -1310,80 +1317,99 @@
           this.chargeDuration--;
           spawnBurst(this.x, this.y, '#ff4400', 3, 2);
 
-          // Player collision test
           if (Math.hypot(player.x - this.x, player.y - this.y) < this.radius + player.radius) {
-            player.hit(30, this.targetChargeAngle);
+            player.hit(32, this.targetChargeAngle);
           }
         } else {
-          // Normal chase
-          this.x += Math.cos(angle) * 1.8;
-          this.y += Math.sin(angle) * 1.8;
+          this.x += Math.cos(angle) * 1.6;
+          this.y += Math.sin(angle) * 1.6;
 
-          // Fireball Spread
-          if (this.actionTimer % 90 === 0) {
+          // 放射状ファイア弾幕
+          if (this.actionTimer % 80 === 0) {
             for (let i = -2; i <= 2; i++) {
-              const a = angle + i * 0.25;
+              const a = angle + i * 0.22;
               projectiles.push(new Projectile(this.x, this.y, Math.cos(a) * 5.5, Math.sin(a) * 5.5, 18, true, '#ff3300', 7));
             }
           }
         }
       }
-      /* Boss 2: Zephyr (Speed dash, clones/teleport, shurikens) */
+
+      /* Boss 1: ゼファー (高速テレポート＆十字スラッシュ弾) */
       updateZephyr() {
-        if (this.actionTimer % 140 === 0) {
-          // Teleport behind player
+        if (this.actionTimer % 120 === 0) {
           sfx.warning();
           spawnBurst(this.x, this.y, this.color, 20, 6);
           const offsetAngle = Math.random() * Math.PI * 2;
-          this.x = player.x + Math.cos(offsetAngle) * 120;
-          this.y = player.y + Math.sin(offsetAngle) * 120;
+          this.x = player.x + Math.cos(offsetAngle) * 130;
+          this.y = player.y + Math.sin(offsetAngle) * 130;
           spawnBurst(this.x, this.y, this.color, 20, 6);
 
-          // Fast slice
           setTimeout(() => {
             const angle = Math.atan2(player.y - this.y, player.x - this.x);
             for (let i = 0; i < 8; i++) {
               const a = angle + (i * Math.PI / 4);
-              projectiles.push(new Projectile(this.x, this.y, Math.cos(a) * 6, Math.sin(a) * 6, 14, true, '#c084fc', 5));
+              projectiles.push(new Projectile(this.x, this.y, Math.cos(a) * 6.5, Math.sin(a) * 6.5, 15, true, '#a855f7', 5));
             }
-          }, 300);
+          }, 250);
         } else {
-          // Strafe orbit
           const angle = Math.atan2(player.y - this.y, player.x - this.x) + Math.PI / 2;
-          this.x += Math.cos(angle) * 3.2;
-          this.y += Math.sin(angle) * 3.2;
+          this.x += Math.cos(angle) * 3.5;
+          this.y += Math.sin(angle) * 3.5;
         }
       }
-      /* Boss 3: Goliath (Heavy bombardment, laser ring, tanky) */
-      updateGoliath() {
-        // Slow advance
-        const angle = Math.atan2(player.y - this.y, player.x - this.x);
-        this.x += Math.cos(angle) * 0.8;
-        this.y += Math.sin(angle) * 0.8;
 
-        if (this.actionTimer % 70 === 0) {
-          // Circular Bullet Hell Pulse
+      /* Boss 2: ゴライアス (全方位弾幕 ＆ 追尾ミサイル砲) */
+      updateGoliath() {
+        const angle = Math.atan2(player.y - this.y, player.x - this.x);
+        this.x += Math.cos(angle) * 0.9;
+        this.y += Math.sin(angle) * 0.9;
+
+        if (this.actionTimer % 65 === 0) {
           sfx.warning();
-          const count = 12;
+          const count = 14;
           for (let i = 0; i < count; i++) {
             const a = (i * Math.PI * 2 / count) + (this.actionTimer * 0.05);
-            projectiles.push(new Projectile(this.x, this.y, Math.cos(a) * 4.5, Math.sin(a) * 4.5, 16, true, '#00f0ff', 6));
+            projectiles.push(new Projectile(this.x, this.y, Math.cos(a) * 4.8, Math.sin(a) * 4.8, 16, true, '#00f0ff', 6));
           }
         }
 
-        if (this.actionTimer % 200 === 0) {
-          // Targeted Heavy Missile
-          for (let k = -1; k <= 1; k++) {
-            const a = angle + k * 0.4;
-            projectiles.push(new Projectile(this.x, this.y, Math.cos(a) * 3, Math.sin(a) * 3, 28, true, '#ffd700', 10));
+        if (this.actionTimer % 180 === 0) {
+          // 巨大ミサイル
+          projectiles.push(new Projectile(this.x, this.y, Math.cos(angle) * 4, Math.sin(angle) * 4, 30, true, '#ffd700', 12));
+        }
+      }
+
+      /* Boss 3: ザラール (新ボス：魔法陣ビーム ＆ 混乱弾幕) */
+      updateZaral() {
+        const angle = Math.atan2(player.y - this.y, player.x - this.x);
+        
+        // 浮遊移動
+        this.x += Math.cos(angle + 1.2) * 2.2;
+        this.y += Math.sin(angle + 1.2) * 2.2;
+
+        if (this.actionTimer % 90 === 0) {
+          sfx.warning();
+          // 螺旋魔弾
+          for (let i = 0; i < 6; i++) {
+            const a = (this.actionTimer * 0.1) + (i * Math.PI / 3);
+            projectiles.push(new Projectile(this.x, this.y, Math.cos(a) * 5, Math.sin(a) * 5, 20, true, '#ffd700', 7));
+          }
+        }
+
+        if (this.actionTimer % 220 === 0) {
+          // プレイヤー狙いの高速収束レーザー弾
+          sfx.warning();
+          for (let k = -2; k <= 2; k++) {
+            const a = angle + k * 0.12;
+            projectiles.push(new Projectile(this.x, this.y, Math.cos(a) * 8.5, Math.sin(a) * 8.5, 25, true, '#ff0055', 8));
           }
         }
       }
+
       draw(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Telegraph Flash Warning
         if (this.warningTimer > 0) {
           ctx.save();
           ctx.strokeStyle = 'rgba(255, 0, 85, 0.7)';
@@ -1395,7 +1421,6 @@
           ctx.restore();
         }
 
-        // Stunned dizzy ring
         if (this.stunTimer > 0) {
           ctx.strokeStyle = '#ffd700';
           ctx.lineWidth = 3;
@@ -1410,9 +1435,9 @@
         ctx.shadowColor = this.color;
         ctx.shadowBlur = 18;
 
-        // Polygon Body
         ctx.beginPath();
-        const sides = this.typeIndex % 3 === 0 ? 5 : this.typeIndex % 3 === 1 ? 4 : 8;
+        const bossType = this.typeIndex % 4;
+        const sides = bossType === 0 ? 5 : bossType === 1 ? 4 : bossType === 2 ? 8 : 6;
         for (let i = 0; i < sides; i++) {
           const a = (i * Math.PI * 2) / sides;
           const px = Math.cos(a) * this.radius;
@@ -1423,7 +1448,6 @@
         ctx.fill();
         ctx.stroke();
 
-        // Core Eye
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(0, 0, 10, 0, Math.PI * 2);
@@ -1508,20 +1532,17 @@
     function update() {
       if (gameState !== 'PLAYING') return;
 
-      // Hit stop logic
       if (hitStopTimer > 0) {
         hitStopTimer--;
         return;
       }
 
-      // Slow-mo modifier
       const steps = slowMoTimer > 0 ? (slowMoTimer--, 0.5) : 1.0;
-      if (Math.random() > steps) return; // Skip frame for buttery slow-mo
+      if (Math.random() > steps) return;
 
       player.update();
       boss.update();
 
-      // Projectiles update
       for (let i = projectiles.length - 1; i >= 0; i--) {
         const p = projectiles[i];
         p.update();
@@ -1532,7 +1553,6 @@
         }
 
         if (p.isEnemy) {
-          // Check Player collision
           const dist = Math.hypot(player.x - p.x, player.y - p.y);
           if (dist < player.radius + p.rad) {
             player.hit(p.dmg, Math.atan2(p.vy, p.vx));
@@ -1540,7 +1560,6 @@
             continue;
           }
         } else {
-          // Check Boss collision
           const dist = Math.hypot(boss.x - p.x, boss.y - p.y);
           if (dist < boss.radius + p.rad) {
             boss.takeDamage(p.dmg, p.color === '#ff0055');
@@ -1551,7 +1570,6 @@
         }
       }
 
-      // Slashes & Particles
       slashes.forEach(s => s.update());
       slashes = slashes.filter(s => s.life > 0);
 
@@ -1561,7 +1579,6 @@
       damageNumbers.forEach(d => d.update());
       damageNumbers = damageNumbers.filter(d => d.life > 0);
 
-      // HUD Bars
       document.getElementById('player-hp-bar').style.width = `${(player.hp / player.maxHp) * 100}%`;
       document.getElementById('player-stamina-bar').style.width = `${(player.stamina / player.staminaMax) * 100}%`;
       document.getElementById('boss-hp-bar').style.width = `${(boss.hp / boss.maxHp) * 100}%`;
@@ -1571,7 +1588,6 @@
     function draw() {
       ctx.save();
 
-      // Screen Shake
       if (shakeTimer > 0) {
         const sx = (Math.random() - 0.5) * shakeTimer;
         const sy = (Math.random() - 0.5) * shakeTimer;
@@ -1582,7 +1598,6 @@
 
       ctx.clearRect(0, 0, width, height);
 
-      // Cyber Battlefield Arena Floor Grid
       ctx.strokeStyle = 'rgba(0, 240, 255, 0.05)';
       ctx.lineWidth = 1;
       const step = 44;
@@ -1599,12 +1614,10 @@
         ctx.stroke();
       }
 
-      // Outer Arena Boundary Glow
       ctx.strokeStyle = 'rgba(255, 0, 85, 0.2)';
       ctx.lineWidth = 3;
       ctx.strokeRect(10, 50, width - 20, height - 60);
 
-      // Render Entities
       particles.forEach(p => p.draw(ctx));
       projectiles.forEach(p => p.draw(ctx));
       slashes.forEach(s => s.draw(ctx));
