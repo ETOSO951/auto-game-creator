@@ -34,9 +34,9 @@ issue_title = event_data['issue'].get('title', '無題のゲーム')
 issue_body = event_data['issue'].get('body') or "" 
 issue_number = event_data['issue']['number']
 
-# --- 2. API呼び出し関数（リトライ強化・指数バックオフ） ---
-def call_gemini_api(prompt_text, max_retries=5):
-    # 最新の推奨モデルリストに更新 (2.5系は廃止されたため最新の3.8と3.1に変更)
+# --- 2. API呼び出し関数（リトライ強化・指数バックオフ・HTML抽出トグル付き） ---
+def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
+    # 2026年10月現在利用可能な最新・軽量モデルのフォールバックリスト
     models = ["gemini-3.8-flash","gemini-3.6-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash","gemini-3.5-flash-lite"]
     
     for model_name in models:
@@ -54,6 +54,11 @@ def call_gemini_api(prompt_text, max_retries=5):
                 )
                 
                 text = response.text
+                
+                # アイデア出し等、HTML抽出が不要な場合はそのまま返す
+                if not extract_html:
+                    return text.strip()
+
                 # HTMLの抽出
                 match = re.search(r'```html\n(.*?)\n```', text, re.DOTALL)
                 if match:
@@ -166,13 +171,8 @@ for i in range(1, QUALITY_UP_ITERATIONS + 1):
         print(f"\n【ループ {i}/{QUALITY_UP_ITERATIONS}】改善案の作成中...")
         prompt_idea = f"現在のコード:\n```html\n{html_content}\n```\nこのゲームをさらに面白く、リッチにする追加アイデアを3つ文章で挙げてください。コードは書かないでください。"
         
-        # アイデア出しのモデルも最新の3.8-flashに更新
-        ideas_response = client.models.generate_content(
-            model="gemini-3.8-flash",
-            contents=prompt_idea,
-            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION)
-        )
-        ideas = ideas_response.text.strip()
+        # 修正: アイデア出しもリトライ・フォールバック関数（call_gemini_api）を経由させる
+        ideas = call_gemini_api(prompt_idea, extract_html=False)
         print(f"💡 改善アイデア:\n{ideas}\n")
         
         time.sleep(3)
@@ -248,3 +248,4 @@ try:
         print("変更なしのためPushをスキップしました。")
 except subprocess.CalledProcessError as e:
     raise RuntimeError(f"【エラー】Git操作失敗: {e}")
+    
