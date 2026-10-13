@@ -64,7 +64,7 @@
       100% { box-shadow: inset 0 0 200px rgba(255, 0, 85, 0.9); }
     }
 
-    /* UI Base Layer (Negative Space & Minimalism - 統合された左上UI) */
+    /* UI Base Layer (アイデア1: ダイナミックHUD) */
     .ui-layer {
       position: absolute;
       top: 0;
@@ -86,28 +86,39 @@
       width: 100%;
     }
 
-    /* Minimal Unified Status Panel (アイデア1に基づく統合HUD) */
-    .unified-panel {
-      background: rgba(3, 5, 11, 0.65);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+    /* Dynamic HUD Panels */
+    .unified-panel, .score-panel {
+      background: rgba(3, 5, 11, 0.4);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.04);
       border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      padding: 14px 18px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: opacity 0.4s ease, transform 0.4s ease, background 0.4s ease, border-color 0.4s ease;
+      opacity: 0.4;
+    }
+    .unified-panel.active, .score-panel.active,
+    .unified-panel:hover, .score-panel:hover {
+      opacity: 1;
+      background: rgba(3, 5, 11, 0.75);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .unified-panel {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      width: 280px;
+      gap: 10px;
+      width: 260px;
     }
 
     .hud-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 9px;
+      font-size: 8px;
       letter-spacing: 2px;
-      color: rgba(255, 255, 255, 0.5);
+      color: rgba(255, 255, 255, 0.4);
       font-weight: 700;
     }
 
@@ -123,7 +134,7 @@
       width: 100%;
       height: 100%;
       background: var(--accent);
-      box-shadow: 0 0 10px var(--accent-glow);
+      box-shadow: 0 0 8px var(--accent-glow);
       transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -131,20 +142,12 @@
       background: linear-gradient(90deg, var(--danger), var(--accent));
     }
 
-    /* Score & Floor (Right Side) */
     .score-panel {
       text-align: right;
-      background: rgba(3, 5, 11, 0.65);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
 
     .floor-indicator {
-      font-size: 9px;
+      font-size: 8px;
       letter-spacing: 2px;
       color: var(--accent);
       font-weight: 700;
@@ -152,7 +155,7 @@
     }
 
     .score-val {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 800;
       letter-spacing: 1px;
       font-variant-numeric: tabular-nums;
@@ -164,16 +167,17 @@
       top: 32px;
       left: 50%;
       transform: translateX(-50%);
-      width: 380px;
+      width: 360px;
       max-width: 85%;
       background: rgba(11, 3, 5, 0.75);
-      border: 1px solid rgba(255, 0, 85, 0.2);
+      border: 1px solid rgba(255, 0, 85, 0.25);
       border-radius: 12px;
       padding: 12px 20px;
       display: none;
       flex-direction: column;
       gap: 6px;
       backdrop-filter: blur(16px);
+      box-shadow: 0 10px 30px rgba(255, 0, 85, 0.15);
     }
     .boss-hud.active { display: flex; }
     .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
@@ -188,7 +192,7 @@
       text-align: center;
     }
     .kill-feed {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       letter-spacing: 3px;
       color: var(--accent);
@@ -202,58 +206,61 @@
       transform: translateY(0);
     }
 
-    /* Touch Controls (アイデア2に基づく動的半透明化・洗練されたフロートデザイン) */
-    .touch-controls {
-      display: none;
-      width: 100%;
-      justify-content: space-between;
-      align-items: flex-end;
-      padding-bottom: 12px;
+    /* アイデア2: ダイナミック・タッチコントロール (非操作時は完全非表示・タッチ時にその場に出現) */
+    .touch-surface {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: auto;
-      opacity: 0.35;
-      transition: opacity 0.3s ease;
+      display: none;
+      z-index: 8;
     }
-    .touch-controls:active, .touch-controls.active-touch {
-      opacity: 0.9;
-    }
-
     @media (hover: none) and (pointer: coarse) {
-      .touch-controls { display: flex; }
+      .touch-surface { display: block; }
     }
 
-    .stick-area {
-      width: 120px;
-      height: 120px;
-      background: rgba(255, 255, 255, 0.01);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+    .dynamic-stick {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      border: 1px solid rgba(0, 255, 204, 0.3);
+      background: rgba(0, 255, 204, 0.03);
       border-radius: 50%;
-      position: relative;
-      touch-action: none;
-      backdrop-filter: blur(8px);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      display: none;
+      backdrop-filter: blur(4px);
+      z-index: 15;
     }
+    .dynamic-stick.active { display: block; }
 
-    .stick-nub {
-      width: 44px;
-      height: 44px;
-      background: rgba(0, 255, 204, 0.7);
+    .dynamic-nub {
+      width: 40px;
+      height: 40px;
+      background: rgba(0, 255, 204, 0.8);
       border-radius: 50%;
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      box-shadow: 0 0 16px var(--accent-glow);
-      pointer-events: none;
+      box-shadow: 0 0 14px var(--accent-glow);
     }
 
-    .action-btns {
-      display: flex;
-      gap: 12px;
+    .touch-actions {
+      position: absolute;
+      bottom: 32px;
+      right: 32px;
+      display: none;
+      gap: 14px;
       align-items: flex-end;
+      pointer-events: auto;
+      z-index: 15;
+    }
+    @media (hover: none) and (pointer: coarse) {
+      .touch-actions { display: flex; }
     }
 
     .act-btn {
       border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       font-weight: 800;
       color: #fff;
       display: flex;
@@ -261,54 +268,59 @@
       justify-content: center;
       cursor: pointer;
       touch-action: manipulation;
-      transition: transform 0.1s ease, background 0.2s ease;
+      transition: transform 0.1s ease, background 0.2s ease, opacity 0.3s ease;
       backdrop-filter: blur(8px);
+      opacity: 0.4;
     }
-    .act-btn:active { transform: scale(0.92); }
+    .touch-actions:active .act-btn, .act-btn:active {
+      opacity: 0.95;
+      transform: scale(0.92);
+    }
 
     .btn-slash {
-      width: 74px; height: 74px; font-size: 14px;
-      background: rgba(255, 0, 85, 0.2);
-      border-color: rgba(255, 0, 85, 0.4);
+      width: 72px; height: 72px; font-size: 13px;
+      background: rgba(255, 0, 85, 0.25);
+      border-color: rgba(255, 0, 85, 0.5);
       box-shadow: 0 0 20px var(--danger-glow);
     }
+    .btn-skill, .btn-jump {
+      width: 52px; height: 52px; font-size: 9px;
+    }
     .btn-skill {
-      width: 56px; height: 56px; font-size: 10px;
       background: rgba(0, 136, 255, 0.2);
       border-color: rgba(0, 136, 255, 0.4);
     }
     .btn-jump {
-      width: 56px; height: 56px; font-size: 10px;
       background: rgba(0, 255, 204, 0.15);
       border-color: rgba(0, 255, 204, 0.3);
     }
 
-    /* Screen Overlays (アイデア3に基づく余白の確保と洗練されたミニマルレイアウト) */
+    /* Screen Overlays (アイデア3: リザルト・報酬選択画面の洗練と余白の確保) */
     .screen-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       z-index: 100;
-      background: rgba(3, 5, 11, 0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(3, 5, 11, 0.9);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 40px 24px;
+      padding: 48px 24px;
       text-align: center;
-      transition: opacity 0.3s ease, visibility 0.3s;
+      transition: opacity 0.4s ease, visibility 0.4s;
     }
     .screen-overlay.hidden {
       opacity: 0; visibility: hidden; pointer-events: none;
     }
 
     .screen-title {
-      font-size: clamp(26px, 4vw, 48px);
+      font-size: clamp(28px, 4vw, 44px);
       font-weight: 900;
       letter-spacing: 6px;
       color: #fff;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       text-transform: uppercase;
       text-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
     }
@@ -317,7 +329,7 @@
       color: rgba(255, 255, 255, 0.4);
       font-size: 10px;
       letter-spacing: 4px;
-      margin-bottom: 36px;
+      margin-bottom: 40px;
       font-weight: 600;
     }
 
@@ -326,92 +338,96 @@
       background: #fff;
       color: #03050b;
       border: none;
-      padding: 15px 40px;
-      font-size: 12px;
+      padding: 16px 44px;
+      font-size: 11px;
       font-weight: 800;
       letter-spacing: 3px;
-      border-radius: 28px;
+      border-radius: 30px;
       cursor: pointer;
-      box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .primary-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 0 40px rgba(0, 255, 204, 0.3);
+      box-shadow: 0 0 45px rgba(0, 255, 204, 0.35);
     }
 
     /* Minimal Selectors */
     .selector-container {
       display: flex;
-      gap: 12px;
-      margin-bottom: 32px;
+      gap: 16px;
+      margin-bottom: 36px;
       flex-wrap: wrap;
       justify-content: center;
-      max-width: 540px;
+      max-width: 580px;
     }
     .select-card {
       pointer-events: auto;
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 10px;
-      padding: 14px 16px;
+      border-radius: 12px;
+      padding: 18px 20px;
       cursor: pointer;
-      width: 130px;
+      width: 140px;
       text-align: center;
-      transition: all 0.2s ease;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .select-card.selected, .select-card:hover {
       background: rgba(0, 255, 204, 0.06);
       border-color: var(--accent);
-      box-shadow: 0 0 16px rgba(0, 255, 204, 0.15);
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+      transform: translateY(-2px);
     }
     .card-name {
       font-weight: 700;
-      font-size: 11px;
+      font-size: 12px;
       color: #fff;
-      margin-bottom: 3px;
+      margin-bottom: 4px;
     }
     .card-detail {
       font-size: 8px;
       color: rgba(255, 255, 255, 0.4);
+      letter-spacing: 1px;
     }
 
-    /* Perk Upgrade Cards */
+    /* Perk Upgrade Cards (アイデア3に基づくゆとりとミニマルな美学) */
     .perk-cards {
       display: flex;
-      gap: 16px;
+      gap: 20px;
       width: 100%;
-      max-width: 760px;
+      max-width: 820px;
       justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
     .perk-card {
       pointer-events: auto;
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(255, 255, 255, 0.025);
       border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
-      padding: 22px 18px;
-      width: 210px;
+      border-radius: 14px;
+      padding: 28px 22px;
+      width: 230px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       text-align: left;
     }
     .perk-card:hover {
       background: rgba(0, 255, 204, 0.06);
       border-color: var(--accent);
-      transform: translateY(-3px);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 35px rgba(0, 255, 204, 0.12);
     }
     .perk-title {
       font-weight: 700;
       font-size: 13px;
       color: var(--accent);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
     }
     .perk-desc {
       font-size: 9px;
       color: rgba(255, 255, 255, 0.5);
-      line-height: 1.4;
+      line-height: 1.5;
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -421,10 +437,10 @@
   <div id="canvas-container"></div>
   <div id="vignette"></div>
 
-  <!-- Ingame Minimal HUD (アイデア1に基づく統合型) -->
+  <!-- Ingame Minimal HUD (アイデア1に基づくダイナミックHUD) -->
   <div class="ui-layer">
     <div class="hud-top">
-      <div class="unified-panel">
+      <div id="unified-panel" class="unified-panel">
         <div class="hud-row">
           <span>VITAL</span>
           <span id="biome-label" style="color: var(--accent);">NEON CITY</span>
@@ -440,7 +456,7 @@
         </div>
       </div>
 
-      <div class="score-panel">
+      <div id="score-panel" class="score-panel">
         <div id="floor-badge" class="floor-indicator">FLOOR 1</div>
         <div id="score-display" class="score-val">0</div>
       </div>
@@ -460,26 +476,26 @@
     <div class="feed-container">
       <div id="kill-feed" class="kill-feed">SLASHED</div>
     </div>
-
-    <!-- Simplified Mobile Controls (アイデア2に基づく動的フェード) -->
-    <div id="touch-controls" class="touch-controls">
-      <div id="stick-area" class="stick-area">
-        <div id="stick-nub" class="stick-nub"></div>
-      </div>
-      <div class="action-btns">
-        <button id="btn-skill" class="act-btn btn-skill">技能</button>
-        <button id="btn-jump" class="act-btn btn-jump">JUMP</button>
-        <button id="btn-slash" class="act-btn btn-slash">斬</button>
-      </div>
-    </div>
   </div>
 
-  <!-- Start Screen (アイデア3に基づく統一感・十分な余白) -->
+  <!-- アイデア2: ダイナミック・タッチコントロール用のサーフェスと要素 -->
+  <div id="touch-surface" class="touch-surface">
+    <div id="dynamic-stick" class="dynamic-stick">
+      <div id="dynamic-nub" class="dynamic-nub"></div>
+    </div>
+  </div>
+  <div id="touch-actions" class="touch-actions">
+    <button id="btn-skill" class="act-btn btn-skill">技能</button>
+    <button id="btn-jump" class="act-btn btn-jump">JUMP</button>
+    <button id="btn-slash" class="act-btn btn-slash">斬</button>
+  </div>
+
+  <!-- Start Screen -->
   <div id="screen-start" class="screen-overlay">
     <h1 class="screen-title">斬影 : ZANEI</h1>
     <p class="screen-sub">CYBERNETIC SLASHER</p>
     
-    <div style="font-size: 9px; letter-spacing: 2px; color: rgba(255,255,255,0.35); margin-bottom: 12px; font-weight: 700;">WEAPON TYPE</div>
+    <div style="font-size: 8px; letter-spacing: 3px; color: rgba(255,255,255,0.3); margin-bottom: 14px; font-weight: 700;">WEAPON TYPE</div>
     <div class="selector-container" id="weapon-selector">
       <div class="select-card selected" data-val="saber">
         <div class="card-name">セイバー</div>
@@ -498,9 +514,9 @@
     <button id="btn-start" class="primary-btn">ENTER NET</button>
   </div>
 
-  <!-- Roguelike Perk Screen -->
+  <!-- Roguelike Perk Screen (アイデア3に基づく洗練されたレイアウト) -->
   <div id="screen-perk" class="screen-overlay hidden">
-    <h2 class="screen-title" style="font-size: 26px;">FLOOR CLEAR</h2>
+    <h2 class="screen-title" style="font-size: 28px;">FLOOR CLEAR</h2>
     <p class="screen-sub">ニューラルモジュールを選択</p>
     <div id="perk-list" class="perk-cards"></div>
   </div>
@@ -553,7 +569,7 @@
     const audio = new SoundFX();
 
     /* ========================================================
-       2. Input System
+       2. Input System & Dynamic Touch
        ======================================================== */
     class InputSystem {
       constructor() {
@@ -568,13 +584,11 @@
           }
         });
         window.addEventListener('keyup', e => { this.keys[e.code] = false; });
-        window.addEventListener('pointerdown', e => {
-          if (state === GAME_STATE.PLAYING && e.target.tagName !== 'BUTTON' && e.clientX > 80 && e.clientY > 80) {
-            this.push('slash');
-          }
-        });
       }
-      push(cmd) { this.commands[cmd] = 10; }
+      push(cmd) {
+        this.commands[cmd] = 10;
+        triggerHUDActive();
+      }
       consume(cmd) {
         if (this.commands[cmd] > 0) { this.commands[cmd] = 0; return true; }
         return false;
@@ -585,6 +599,16 @@
       clear() { this.commands.slash = 0; this.commands.jump = 0; this.commands.skill = 0; }
     }
     const inputSys = new InputSystem();
+
+    // ダイナミックHUDの活性化トリガー（アクション時に一瞬HUDをくっきりと浮かび上がらせる）
+    let hudActiveTimer = 0;
+    function triggerHUDActive() {
+      const panel = document.getElementById('unified-panel');
+      const scorePanel = document.getElementById('score-panel');
+      panel.classList.add('active');
+      scorePanel.classList.add('active');
+      hudActiveTimer = 1.5;
+    }
 
     /* ========================================================
        3. Three.js Engine Setup
@@ -821,6 +845,7 @@
         audio.play('hit');
         hitStopFrames = 6; cameraShake = 0.5;
         spawnParticles(boss.position.clone(), 0xff0055);
+        triggerHUDActive();
         
         const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
         document.getElementById('boss-hp-bar').style.width = `${pct}%`;
@@ -846,6 +871,7 @@
           audio.play('hit');
           hitStopFrames = 8; cameraShake = 0.4;
           spawnParticles(enemy.position.clone(), 0x00ffcc);
+          triggerHUDActive();
 
           if (enemy.hp <= 0) {
             stats.score += 100;
@@ -878,46 +904,67 @@
     }
 
     /* ========================================================
-       7. Touch Controls & Selectors
+       7. Dynamic Touch Controls Implementation (アイデア2)
        ======================================================== */
-    const stick = { active: false, x: 0, y: 0 };
-    const stickArea = document.getElementById('stick-area');
-    const stickNub = document.getElementById('stick-nub');
-    const touchControlsElem = document.getElementById('touch-controls');
+    const stick = { active: false, x: 0, y: 0, identifier: null };
+    const touchSurface = document.getElementById('touch-surface');
+    const dynamicStick = document.getElementById('dynamic-stick');
+    const dynamicNub = document.getElementById('dynamic-nub');
 
-    stickArea.addEventListener('touchstart', e => { 
-      stick.active = true; 
-      touchControlsElem.classList.add('active-touch');
-      updateStick(e); 
+    touchSurface.addEventListener('touchstart', e => {
+      e.preventDefault();
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (!stick.active && t.clientX < window.innerWidth / 2) {
+          stick.active = true;
+          stick.identifier = t.identifier;
+          dynamicStick.style.left = `${t.clientX}px`;
+          dynamicStick.style.top = `${t.clientY}px`;
+          dynamicStick.classList.add('active');
+          dynamicNub.style.transform = 'translate(-50%, -50%)';
+          stick.x = 0; stick.y = 0;
+        } else if (t.clientX >= window.innerWidth / 2) {
+          inputSys.push('slash');
+        }
+      }
     }, { passive: false });
 
-    window.addEventListener('touchmove', e => { if (stick.active) updateStick(e); }, { passive: false });
-    window.addEventListener('touchend', () => { 
-      stick.active = false; 
-      stick.x = 0; 
-      stick.y = 0; 
-      stickNub.style.transform = 'translate(-50%, -50%)';
-      touchControlsElem.classList.remove('active-touch');
-    });
+    touchSurface.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (!stick.active) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === stick.identifier) {
+          const rect = dynamicStick.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const dx = t.clientX - centerX;
+          const dy = t.clientY - centerY;
+          const dist = Math.min(35, Math.hypot(dx, dy));
+          const angle = Math.atan2(dy, dx);
+          stick.x = (Math.cos(angle) * dist) / 35;
+          stick.y = (Math.sin(angle) * dist) / 35;
+          dynamicNub.style.transform = `translate(calc(-50% + ${stick.x * 30}px), calc(-50% + ${stick.y * 30}px))`;
+        }
+      }
+    }, { passive: false });
 
-    function updateStick(e) {
-      const t = e.touches[0];
-      const r = stickArea.getBoundingClientRect();
-      const dx = t.clientX - (r.left + r.width / 2);
-      const dy = t.clientY - (r.top + r.height / 2);
-      const dist = Math.min(40, Math.hypot(dx, dy));
-      const angle = Math.atan2(dy, dx);
-      stick.x = (Math.cos(angle) * dist) / 40;
-      stick.y = (Math.sin(angle) * dist) / 40;
-      stickNub.style.transform = `translate(calc(-50% + ${stick.x * 35}px), calc(-50% + ${stick.y * 35}px))`;
-    }
+    touchSurface.addEventListener('touchend', e => {
+      e.preventDefault();
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === stick.identifier) {
+          stick.active = false;
+          stick.identifier = null;
+          stick.x = 0; stick.y = 0;
+          dynamicStick.classList.remove('active');
+        }
+      }
+    }, { passive: false });
 
-    document.getElementById('btn-slash').addEventListener('touchstart', (e) => { e.stopPropagation(); touchControlsElem.classList.add('active-touch'); inputSys.push('slash'); });
-    document.getElementById('btn-jump').addEventListener('touchstart', (e) => { e.stopPropagation(); touchControlsElem.classList.add('active-touch'); inputSys.push('jump'); });
-    document.getElementById('btn-skill').addEventListener('touchstart', (e) => { e.stopPropagation(); touchControlsElem.classList.add('active-touch'); inputSys.push('skill'); });
-    document.getElementById('btn-slash').addEventListener('touchend', () => touchControlsElem.classList.remove('active-touch'));
-    document.getElementById('btn-jump').addEventListener('touchend', () => touchControlsElem.classList.remove('active-touch'));
-    document.getElementById('btn-skill').addEventListener('touchend', () => touchControlsElem.classList.remove('active-touch'));
+    document.getElementById('btn-slash').addEventListener('touchstart', (e) => { e.stopPropagation(); inputSys.push('slash'); });
+    document.getElementById('btn-jump').addEventListener('touchstart', (e) => { e.stopPropagation(); inputSys.push('jump'); });
+    document.getElementById('btn-skill').addEventListener('touchstart', (e) => { e.stopPropagation(); inputSys.push('skill'); });
 
     document.querySelectorAll('#weapon-selector .select-card').forEach(card => {
       card.addEventListener('click', () => {
@@ -964,8 +1011,12 @@
       document.getElementById('floor-badge').textContent = `FLOOR ${stats.floor}`;
 
       const vignette = document.getElementById('vignette');
-      if (hpPct < 30) vignette.classList.add('danger');
-      else vignette.classList.remove('danger');
+      if (hpPct < 30) {
+        vignette.classList.add('danger');
+        triggerHUDActive();
+      } else {
+        vignette.classList.remove('danger');
+      }
     }
 
     function gameOver() {
@@ -1000,6 +1051,14 @@
       inputSys.update();
       if (stats.skillCooldown > 0) stats.skillCooldown = Math.max(0, stats.skillCooldown - delta);
 
+      if (hudActiveTimer > 0) {
+        hudActiveTimer -= delta;
+        if (hudActiveTimer <= 0) {
+          document.getElementById('unified-panel').classList.remove('active');
+          document.getElementById('score-panel').classList.remove('active');
+        }
+      }
+
       playerPhysics.prevPosition.copy(playerPhysics.position);
       playerPhysics.prevQuaternion.copy(playerPhysics.quaternion);
 
@@ -1018,6 +1077,7 @@
         playerPhysics.quaternion.slerp(playerPhysics.targetQuaternion, 0.25);
         playerPhysics.velocity.x = moveVec.x * stats.moveSpeed;
         playerPhysics.velocity.z = moveVec.y * stats.moveSpeed;
+        triggerHUDActive();
       } else {
         playerPhysics.velocity.x *= 0.8; playerPhysics.velocity.z *= 0.8;
       }
@@ -1026,6 +1086,7 @@
         playerPhysics.velocity.y = 13.5;
         playerPhysics.isGrounded = false;
         audio.play('jump');
+        triggerHUDActive();
       }
       if (inputSys.consume('skill')) triggerSkill();
 
@@ -1068,7 +1129,7 @@
         boss.position.add(dir.multiplyScalar(boss.speed * delta));
         boss.mesh.rotation.y += delta * 3;
         if (boss.position.distanceTo(playerPhysics.position) < 2.0) {
-          stats.hp -= 20 * delta; updateHUD();
+          stats.hp -= 20 * delta; updateHUD(); triggerHUDActive();
           if (stats.hp <= 0) gameOver();
         }
       }
@@ -1080,7 +1141,7 @@
         e.position.add(dir.multiplyScalar(e.speed * delta));
         e.mesh.rotation.y += delta * 2;
         if (e.position.distanceTo(playerPhysics.position) < 1.4) {
-          stats.hp -= 15 * delta; updateHUD();
+          stats.hp -= 15 * delta; updateHUD(); triggerHUDActive();
           if (stats.hp <= 0) gameOver();
         }
       });
