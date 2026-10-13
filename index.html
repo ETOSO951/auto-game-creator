@@ -184,48 +184,52 @@
 
     .boss-hud {
       position: absolute;
-      top: 12px;
+      top: 16px;
       left: 50%;
       transform: translateX(-50%);
       width: 520px;
-      max-width: 88%;
+      max-width: 90%;
       background: rgba(10, 4, 18, 0.98);
       border: 2px solid rgba(255, 0, 85, 0.99);
       border-radius: 14px;
-      padding: 8px 18px;
+      padding: 10px 20px;
       display: none;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       box-shadow: 0 16px 50px rgba(255, 0, 85, 0.85);
-      z-index: 75;
+      z-index: 85;
       animation: bossHudPulse 1s ease infinite alternate;
     }
-    /* ボス戦中のHUD干渉を完全ゼロにする絶対非干渉グリッドレイアウト */
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+    /* ボス戦中のHUD干渉・見切れを完全解消する専用レイアウト */
     body.boss-active .ui-layer {
-      padding: 10px 14px;
+      padding: 12px 16px;
     }
     body.boss-active .hud-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-top: 56px;
+      margin-top: 72px;
     }
     body.boss-active .unified-panel {
-      width: 230px;
+      width: 220px;
       padding: 8px 12px;
-    }
-    body.boss-active .controls-hint {
-      display: none;
+      background: rgba(10, 15, 30, 0.92);
+      border-color: rgba(0, 255, 204, 0.4);
     }
     body.boss-active .score-panel {
       text-align: right;
-      min-width: 130px;
+      min-width: 120px;
       padding: 8px 12px;
+      background: rgba(10, 15, 30, 0.92);
     }
     body.boss-active .boss-hud {
-      top: 10px;
+      top: 12px;
       display: flex;
     }
     @media (max-width: 768px) {
@@ -233,7 +237,7 @@
         flex-direction: column;
         align-items: stretch;
         gap: 6px;
-        margin-top: 64px;
+        margin-top: 78px;
       }
       body.boss-active .unified-panel {
         width: 100%;
@@ -246,41 +250,14 @@
         align-items: center;
       }
       .boss-hud {
-        top: 6px;
-        width: 95%;
-        max-width: 95%;
-        padding: 6px 10px;
+        top: 8px;
+        width: 96%;
+        max-width: 96%;
+        padding: 6px 12px;
       }
     }
 ====
     @media (max-width: 768px) {
-      .boss-hud {
-        top: 155px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 94%;
-        max-width: 94%;
-        padding: 6px 14px;
-        z-index: 70;
-      }
-      .hud-top {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 6px;
-        padding-top: 6px;
-      }
-      .unified-panel {
-        width: 100%;
-        padding: 6px 10px;
-      }
-      .score-panel {
-        width: 100%;
-        text-align: center;
-        padding: 6px 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
       .controls-hint { display: none; }
     }
 ====
@@ -299,33 +276,6 @@
       100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
     }
     @media (max-width: 768px) {
-      .boss-hud {
-        top: 155px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 94%;
-        max-width: 94%;
-        padding: 6px 14px;
-        z-index: 70;
-      }
-      .hud-top {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 6px;
-        padding-top: 6px;
-      }
-      .unified-panel {
-        width: 100%;
-        padding: 6px 10px;
-      }
-      .score-panel {
-        width: 100%;
-        text-align: center;
-        padding: 6px 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
       .controls-hint { display: none; }
     }
       .hud-top {
@@ -1267,7 +1217,6 @@
 
     function spawnBoss(x, platformTopY, z, platformData, bossIndex) {
       const group = new THREE.Group();
-      // 5種類のボス：0: shadow_blade, 1: overlord, 2: colossus, 3: nexus_queen, 4: omega_core
       const bossTypes = ['shadow_blade', 'overlord', 'colossus', 'nexus_queen', 'omega_core'];
       const bossType = bossTypes[(bossIndex - 1) % bossTypes.length];
       
@@ -1356,9 +1305,11 @@
         specialCooldown: 3.5,
         attackType: 'melee',
         isWarning: false,
-        warningTimer: 0
+        warningTimer: 0,
+        phaseTwo: false
       };
 
+      document.body.classList.add('boss-active');
       document.getElementById('boss-hud').classList.add('active');
       document.getElementById('boss-name').textContent = bossName;
     }
@@ -1536,6 +1487,7 @@
             showFeed('BOSS ANNIHILATED +3500');
             scene.remove(boss.group);
             boss = null;
+            document.body.classList.remove('boss-active');
             document.getElementById('boss-hud').classList.remove('active');
 
             portal = new THREE.Mesh(
@@ -1822,6 +1774,7 @@
     function gameOver() {
       state = GAME_STATE.GAMEOVER;
       triggerGlitchEffect();
+      document.body.classList.remove('boss-active');
       document.getElementById('boss-hud').classList.remove('active');
       document.getElementById('summary-floor').textContent = stats.floor;
       document.getElementById('summary-score').textContent = stats.score;
