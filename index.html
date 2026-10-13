@@ -206,7 +206,7 @@
       0% { box-shadow: 0 4px 20px rgba(255, 0, 85, 0.35); }
       100% { box-shadow: 0 10px 38px rgba(255, 0, 85, 0.75); }
     }
-    /* ボス戦中のHUD干渉・見切れを完全解消する専用レイアウト（洗練された引き算の美学） */
+    /* ボス戦中のHUD干渉・見切れを完全解消する専用レイアウト（引き算の美学に基づくVITALパネル右上に配置＆上下分離設計） */
     body.boss-active .ui-layer {
       padding: 12px 16px;
     }
@@ -214,49 +214,49 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-top: 68px;
+      margin-top: 60px;
       gap: 12px;
     }
     body.boss-active .unified-panel {
-      width: 200px;
-      padding: 6px 12px;
-      background: rgba(10, 15, 30, 0.95);
-      border-color: rgba(0, 255, 204, 0.45);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      order: 2;
+      width: 210px;
+      padding: 8px 12px;
+      background: rgba(10, 15, 30, 0.96);
+      border-color: rgba(0, 255, 204, 0.6);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     }
     body.boss-active .score-panel {
-      text-align: right;
+      order: 1;
+      text-align: left;
       min-width: 110px;
-      padding: 6px 12px;
-      background: rgba(10, 15, 30, 0.95);
+      padding: 8px 12px;
+      background: rgba(10, 15, 30, 0.96);
     }
     body.boss-active .boss-hud {
-      top: 10px;
+      top: 12px;
       display: flex;
-      width: 500px;
-      max-width: 90%;
+      width: 520px;
+      max-width: 92%;
     }
     @media (max-width: 768px) {
       body.boss-active .hud-top {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-top: 68px;
         gap: 6px;
-        margin-top: 72px;
       }
       body.boss-active .unified-panel {
-        width: 100%;
+        width: 48%;
       }
       body.boss-active .score-panel {
-        width: 100%;
-        text-align: center;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        width: 48%;
+        text-align: right;
       }
       .boss-hud {
         top: 6px;
-        width: 94%;
-        max-width: 94%;
+        width: 96%;
+        max-width: 96%;
         padding: 6px 10px;
       }
     }
@@ -1047,13 +1047,13 @@
 
       if (isBoss) {
         const bridgePlat = createPlatform(0, -0.5, -12, 8, 1, 10, biome.basePlate, biome.edgeColor);
-        const bossPlat = createPlatform(0, -0.5, -30, 26, 1, 26, biome.basePlate, biome.edgeColor);
+        const bossPlat = createPlatform(0, -0.5, -30, 28, 1, 28, biome.basePlate, biome.edgeColor);
         spawnBoss(0, bossPlat.topY, -30, bossPlat, Math.floor(floorNum / 3));
       } else {
         // 8パターンの多彩なステージ構造
         const layoutType = (floorNum % 8);
         let currPos = new THREE.Vector3(0, -0.5, 0);
-        const eTypes = ['striker', 'shooter', 'phantom', 'guardian', 'bomber', 'sniper', 'turret'];
+        const eTypes = ['striker', 'shooter', 'phantom', 'guardian', 'bomber', 'sniper', 'turret', 'charger', 'supporter'];
 
         if (layoutType === 0) {
           // パターン0: クランク＆ジグザグ
@@ -1166,17 +1166,19 @@
       } else if (type === 'phantom') {
         geo = new THREE.ConeGeometry(0.7, 1.2, 4); col = 0x9900ff; emisCol = 0xcc00ff;
       } else if (type === 'guardian') {
-        // シールドガーディアン：四角柱＋シールド版
         geo = new THREE.BoxGeometry(1.1, 1.1, 1.1); col = 0x00aaff; emisCol = 0x0088ff;
       } else if (type === 'bomber') {
-        // 自爆ドローン：球体・赤黄発光
         geo = new THREE.SphereGeometry(0.6, 12, 12); col = 0xff3300; emisCol = 0xff6600;
       } else if (type === 'sniper') {
-        // スナイパー：細身の尖塔型
         geo = new THREE.CylinderGeometry(0.2, 0.6, 1.5, 6); col = 0x00ffcc; emisCol = 0x00ffaa;
       } else if (type === 'turret') {
-        // レーザータレット：円柱防衛型
         geo = new THREE.CylinderGeometry(0.9, 0.9, 0.6, 8); col = 0xff00aa; emisCol = 0xff00cc;
+      } else if (type === 'charger') {
+        // チャージビースト：突撃特化型（角ばった凶暴な形状）
+        geo = new THREE.BoxGeometry(1.2, 0.7, 1.4); col = 0xff0044; emisCol = 0xff2255;
+      } else if (type === 'supporter') {
+        // サポーター：周囲の敵をシールド回復する浮遊ドローン
+        geo = new THREE.TorusGeometry(0.6, 0.2, 8, 16); col = 0x00ff88; emisCol = 0x00ffaa;
       } else {
         geo = new THREE.OctahedronGeometry(0.75, 0); col = 0xff0055; emisCol = 0xff0055;
       }
@@ -1202,20 +1204,31 @@
 
       scene.add(group);
 
-      const maxHpVal = (type === 'guardian' ? 110 : (type === 'shooter' ? 45 : (type === 'sniper' ? 40 : (type === 'turret' ? 80 : (type === 'parrier' ? 95 : 60))))) + stats.floor * 18;
+      const maxHpVal = (type === 'guardian' ? 110 : (type === 'shooter' ? 45 : (type === 'sniper' ? 40 : (type === 'turret' ? 80 : (type === 'charger' ? 70 : (type === 'supporter' ? 50 : 60))))) + stats.floor * 18;
+      
+      // チャージビースト用予測線（インジケーターライン）の作成
+      let chargeLine = null;
+      if (type === 'charger') {
+        const lineMat = new THREE.LineBasicMaterial({ color: 0xff0044, transparent: true, opacity: 0.8 });
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-5)]);
+        chargeLine = new THREE.Line(lineGeo, lineMat);
+        group.add(chargeLine);
+      }
+
       enemies.push({
-        group, mesh, warnRing, type,
+        group, mesh, warnRing, type, chargeLine,
         position: new THREE.Vector3(x, platformTopY + 0.8, z),
         floorY: platformTopY,
         platform: platformData,
         hp: maxHpVal,
         maxHp: maxHpVal,
-        shieldActive: type === 'guardian' || type === 'parrier',
-        parryable: type === 'parrier' || Math.random() < 0.35,
-        speed: type === 'phantom' ? 4.6 : (type === 'stealth' ? 5.0 : (type === 'bomber' ? 5.2 : (type === 'striker' ? 3.4 : 2.6))),
+        shieldActive: type === 'guardian',
+        parryable: Math.random() < 0.35,
+        speed: type === 'charger' ? 6.8 : (type === 'phantom' ? 4.6 : (type === 'bomber' ? 5.2 : (type === 'striker' ? 3.4 : 2.6))),
         attackCooldown: 0.8 + Math.random() * 0.4,
         isWarning: false,
-        warningTimer: 0
+        warningTimer: 0,
+        chargeDir: new THREE.Vector3()
       });
     }
 
@@ -1686,10 +1699,10 @@
 
     const PERKS = [
       { id: 'assault', name: '【進撃】オーバークロック・セイバー', desc: '斬撃ダメージが85%増加し、さらに刃のリーチと衝撃範囲が拡大する。', synergy: '🔥 ASSAULT BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.85); stats.slashRange *= 1.4; bladeMat.color.set(0xff0055); bladeMat.emissive.set(0xff0055); bladeMat.emissiveIntensity = 3.8; } },
-      { id: 'agility', name: '【機動】クアンタム・リープ', desc: '移動速度が60%上昇し、スキルのクールダウンがさらに高速化する', synergy: '⚡ AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.6; stats.skillMaxCooldown = Math.max(0.6, stats.skillMaxCooldown * 0.35); } },
+      { id: 'agility', name: '【機動】クアンタム・リープ', desc: '移動速度が60%上昇し、スキルのクールダウンがさらに高速化する', synergy: '⚡ AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.6; stats.skillMaxCooldown = Math.max(0.6, stats.skillMaxCooldown * 0.35); bladeMat.color.set(0x00ffcc); bladeMat.emissive.set(0x00ffcc); bladeMat.emissiveIntensity = 4.2; slashMat.color.set(0x00ffcc); } },
       { id: 'survival', name: '【再生】ナノマシン・リジェネ', desc: '最大HPが150増加し、即座にバイタル（HP）が完全回復する', synergy: '🛡️ SURVIVAL BUILD', apply: () => { stats.maxHp += 150; stats.hp = stats.maxHp; } },
       { id: 'vampirism', name: '【吸血】サイバー・ヴァンパイア', desc: '敵撃破時にHPが90回復し、さらに攻撃範囲・スピードがシナジー強化される', synergy: '🧛 VAMPIRIC BUILD', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 90); stats.perks.vampirism = true; stats.slashDamage = Math.round(stats.slashDamage * 1.35); } },
-      { id: 'plasma', name: '【爆発】プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む超強力チェインプラズマ爆発が発生する', synergy: '💥 EXPLOSIVE BUILD', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.5); } },
+      { id: 'plasma', name: '【爆発】プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む超強力チェインプラズマ爆発が発生する', synergy: '💥 EXPLOSIVE BUILD', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.5); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); bladeMat.emissiveIntensity = 4.5; slashMat.color.set(0xffaa00); } },
       { id: 'homing', name: '【追尾】ホーミング・プラズマブレード', desc: '斬撃時に前方に敵をどこまでも自動追尾するプラズマエナジー弾が連続放射される', synergy: '🎯 HOMING BUILD', apply: () => { stats.perks.homingBlade = true; stats.slashDamage = Math.round(stats.slashDamage * 1.25); } },
       { id: 'meteor', name: '【急降下】メテオ・スラッシュ・ドライブ', desc: '空中ジャンプからの急降下下方向斬撃が、全画面級の巨大メテオスマッシュに進化する', synergy: '☄️ METEOR BUILD', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.5; } },
       { id: 'shield', name: '【防御】ネクサス・シールドバリア', desc: '受けるダメージを60%軽減し、さらに敵の弾丸を高確率で自動弾き返すシールドを展開', synergy: '🛡️ SHIELD BUILD', apply: () => { stats.maxHp += 80; stats.hp = Math.min(stats.maxHp, stats.hp + 80); stats.perks.shieldReflect = true; } },
@@ -2167,6 +2180,63 @@
             scene.remove(e.group);
             enemies.splice(i, 1);
             continue;
+          }
+        } else if (e.type === 'supporter') {
+          // サポーターAI：周囲の味方（敵）のHPを自動回復＆プレイヤーに接近して妨害オーラ放射
+          if (onSamePlatform && dist > 2.0) {
+            toPlayer.normalize();
+            e.position.add(toPlayer.multiplyScalar(e.speed * 0.8 * delta));
+          }
+          if (e.attackCooldown > 0) e.attackCooldown -= delta;
+          if (onSamePlatform && e.attackCooldown <= 0) {
+            e.attackCooldown = 3.0;
+            spawnParticles(e.position, 0x00ff88);
+            enemies.forEach(other => {
+              if (other !== e && other.position.distanceTo(e.position) < 6.0) {
+                other.hp = Math.min(other.maxHp, other.hp + 25);
+                spawnParticles(other.position, 0x00ffaa);
+              }
+            });
+            showFeed('⚠️ ENEMY HEAL PULSE ACTIVATED');
+          }
+        } else if (e.type === 'charger') {
+          // チャージビーストAI：赤色の予測線を伸ばしたのち、一気に超高速で突撃する
+          if (onSamePlatform) {
+            if (e.attackCooldown > 0) e.attackCooldown -= delta;
+
+            if (dist < 8.0 && e.attackCooldown <= 0 && !e.isWarning) {
+              e.isWarning = true;
+              e.warningTimer = 0.6; // 予測タメ時間
+              e.chargeDir.copy(toPlayer).normalize();
+              if (e.chargeLine) e.chargeLine.visible = true;
+            }
+
+            if (e.isWarning) {
+              e.warningTimer -= delta;
+              if (e.chargeLine) {
+                // 予測線の先端をプレイヤー方向へ向ける
+                const linePoints = [new THREE.Vector3(0,0,0), e.chargeDir.clone().multiplyScalar(6.0)];
+                e.chargeLine.geometry.setFromPoints(linePoints);
+              }
+
+              if (e.warningTimer <= 0) {
+                e.isWarning = false;
+                e.attackCooldown = 2.2;
+                if (e.chargeLine) e.chargeLine.visible = false;
+                // 高速突撃ダッシュ敢行
+                e.position.add(e.chargeDir.clone().multiplyScalar(5.5));
+                spawnParticles(e.position, 0xff0044);
+                const finalDist = playerPhysics.position.clone().sub(e.position).length();
+                if (pPlat === u && finalDist < 3.0) {
+                  takeDamage(26);
+                  showFeed('⚠️ CHARGE CRASH HIT!');
+                }
+              }
+            } else {
+              if (e.chargeLine) e.chargeLine.visible = false;
+              toPlayer.normalize();
+              e.position.add(toPlayer.multiplyScalar(e.speed * 0.9 * delta));
+            }
           }
         } else if (e.type === 'shooter' || e.type === 'sniper' || e.type === 'turret') {
           if (onSamePlatform) {
