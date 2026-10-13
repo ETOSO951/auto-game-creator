@@ -6,11 +6,11 @@
   <title>斬影 - ZANEI: 3D CYBER SLASH (Ultimate Masterpiece Refined)</title>
   <style>
     :root {
-      --bg: #020409;
+      --bg: #010206;
       --accent: #00ffcc;
-      --accent-glow: rgba(0, 255, 204, 0.6);
+      --accent-glow: rgba(0, 255, 204, 0.65);
       --danger: #ff0055;
-      --danger-glow: rgba(255, 0, 85, 0.65);
+      --danger-glow: rgba(255, 0, 85, 0.7);
       --font-main: 'Segoe UI', Roboto, 'Hiragino Kaku Gothic ProN', sans-serif;
     }
 
@@ -40,7 +40,7 @@
       z-index: 1;
     }
 
-    /* Screen Damage & Critical Vignette Pulse */
+    /* Cinematic Vignette & Scanline Overlay */
     #vignette {
       position: absolute;
       top: 0;
@@ -49,16 +49,18 @@
       height: 100%;
       z-index: 5;
       pointer-events: none;
-      box-shadow: inset 0 0 140px rgba(255, 0, 85, 0);
+      box-shadow: inset 0 0 160px rgba(0, 0, 0, 0.85);
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 3px, 3px 100%;
       transition: box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
     #vignette.danger {
-      box-shadow: inset 0 0 200px rgba(255, 0, 85, 0.8);
-      animation: vignettePulse 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+      box-shadow: inset 0 0 220px rgba(255, 0, 85, 0.85);
+      animation: vignettePulse 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
     }
     @keyframes vignettePulse {
-      0% { box-shadow: inset 0 0 160px rgba(255, 0, 85, 0.65); }
-      100% { box-shadow: inset 0 0 240px rgba(255, 0, 85, 0.95); }
+      0% { box-shadow: inset 0 0 160px rgba(255, 0, 85, 0.6); }
+      100% { box-shadow: inset 0 0 260px rgba(255, 0, 85, 0.95); }
     }
 
     /* UI Base Layer */
@@ -85,13 +87,13 @@
     }
 
     .status-panel {
-      background: rgba(6, 11, 22, 0.78);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(0, 255, 204, 0.3);
+      background: rgba(4, 8, 18, 0.82);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(0, 255, 204, 0.35);
       border-radius: 18px;
-      padding: 20px 26px;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 0 30px rgba(0, 255, 204, 0.08);
+      padding: 20px 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 0 35px rgba(0, 255, 204, 0.1);
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -99,7 +101,7 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      width: 240px;
+      width: 250px;
     }
 
     .hp-label {
@@ -107,7 +109,7 @@
       letter-spacing: 3.5px;
       color: #88eebb;
       font-weight: 800;
-      text-shadow: 0 0 12px rgba(0, 255, 204, 0.4);
+      text-shadow: 0 0 12px rgba(0, 255, 204, 0.5);
     }
 
     .hp-bar-outer {
@@ -116,15 +118,15 @@
       background: rgba(255, 255, 255, 0.04);
       border-radius: 6px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.7);
     }
 
     .hp-bar-inner {
       width: 100%;
       height: 100%;
       background: linear-gradient(90deg, var(--danger), var(--accent));
-      box-shadow: 0 0 20px var(--accent-glow);
+      box-shadow: 0 0 25px var(--accent-glow);
       transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -138,20 +140,20 @@
       font-weight: 800;
       letter-spacing: 3px;
       color: var(--accent);
-      background: rgba(0, 255, 204, 0.12);
+      background: rgba(0, 255, 204, 0.14);
       padding: 7px 18px;
       border-radius: 24px;
-      border: 1px solid rgba(0, 255, 204, 0.45);
+      border: 1px solid rgba(0, 255, 204, 0.5);
       margin-bottom: 10px;
-      box-shadow: 0 0 25px rgba(0, 255, 204, 0.3);
+      box-shadow: 0 0 30px rgba(0, 255, 204, 0.35);
     }
 
     .score-val {
-      font-size: 34px;
+      font-size: 36px;
       font-weight: 900;
       letter-spacing: 2.5px;
       font-variant-numeric: tabular-nums;
-      text-shadow: 0 0 30px rgba(255, 255, 255, 0.5), 0 0 15px var(--accent-glow);
+      text-shadow: 0 0 35px rgba(255, 255, 255, 0.6), 0 0 18px var(--accent-glow);
     }
 
     /* Crosshair & Kill Feed */
@@ -168,14 +170,14 @@
     }
 
     .kill-feed {
-      font-size: 19px;
+      font-size: 20px;
       font-weight: 900;
       letter-spacing: 3.5px;
       color: var(--accent);
       opacity: 0;
-      transform: translateY(20px) scale(0.85);
+      transform: translateY(25px) scale(0.8);
       transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      text-shadow: 0 0 25px var(--accent), 0 0 50px var(--accent-glow);
+      text-shadow: 0 0 30px var(--accent), 0 0 60px var(--accent-glow);
     }
     .kill-feed.show {
       opacity: 1;
@@ -202,12 +204,12 @@
       width: 170px;
       height: 170px;
       background: rgba(255, 255, 255, 0.02);
-      border: 2px dashed rgba(0, 255, 204, 0.4);
+      border: 2px dashed rgba(0, 255, 204, 0.45);
       border-radius: 50%;
       position: relative;
       touch-action: none;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 0 40px rgba(0,0,0,0.6);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 45px rgba(0,0,0,0.7);
     }
 
     .stick-nub {
@@ -219,7 +221,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      box-shadow: 0 0 35px var(--accent-glow), inset 0 2px 6px rgba(255,255,255,0.5);
+      box-shadow: 0 0 40px var(--accent-glow), inset 0 2px 8px rgba(255,255,255,0.6);
       pointer-events: none;
       will-change: transform;
     }
@@ -243,27 +245,27 @@
       transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
     }
     .act-btn:active {
-      transform: scale(0.88);
+      transform: scale(0.85);
     }
 
     .btn-slash {
-      width: 92px;
-      height: 92px;
-      font-size: 20px;
+      width: 96px;
+      height: 96px;
+      font-size: 22px;
       letter-spacing: 1.5px;
       background: linear-gradient(135deg, #ff0055, #ff4400);
-      box-shadow: 0 0 40px var(--danger-glow), inset 0 2px 8px rgba(255,255,255,0.4);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 45px var(--danger-glow), inset 0 2px 10px rgba(255,255,255,0.5);
+      border: 1px solid rgba(255, 255, 255, 0.35);
     }
 
     .btn-jump {
-      width: 76px;
-      height: 76px;
+      width: 78px;
+      height: 78px;
       font-size: 14px;
       letter-spacing: 1.5px;
       background: linear-gradient(135deg, #0088ff, #00ffcc);
-      box-shadow: 0 0 32px var(--accent-glow), inset 0 2px 8px rgba(255,255,255,0.4);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 35px var(--accent-glow), inset 0 2px 10px rgba(255,255,255,0.5);
+      border: 1px solid rgba(255, 255, 255, 0.35);
     }
 
     /* Modal Screens */
@@ -274,9 +276,9 @@
       width: 100%;
       height: 100%;
       z-index: 100;
-      background: rgba(2, 4, 9, 0.88);
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
+      background: rgba(1, 2, 6, 0.9);
+      backdrop-filter: blur(32px);
+      -webkit-backdrop-filter: blur(32px);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -293,24 +295,24 @@
     }
 
     .screen-title {
-      font-size: clamp(44px, 8.5vw, 78px);
+      font-size: clamp(48px, 9vw, 84px);
       font-weight: 900;
-      letter-spacing: 10px;
+      letter-spacing: 12px;
       background: linear-gradient(135deg, #ffffff 15%, var(--accent) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       text-transform: uppercase;
-      filter: drop-shadow(0 0 50px rgba(0, 255, 204, 0.5));
+      filter: drop-shadow(0 0 60px rgba(0, 255, 204, 0.6));
     }
 
     .screen-sub {
       color: #99bbcc;
       font-size: 15px;
-      letter-spacing: 5px;
+      letter-spacing: 6px;
       margin-bottom: 50px;
       font-weight: 700;
-      text-shadow: 0 0 12px rgba(153, 187, 204, 0.4);
+      text-shadow: 0 0 15px rgba(153, 187, 204, 0.5);
     }
 
     .primary-btn {
@@ -318,18 +320,18 @@
       background: linear-gradient(135deg, var(--accent), #0088ff);
       color: #020409;
       border: none;
-      padding: 22px 64px;
+      padding: 22px 68px;
       font-size: 18px;
       font-weight: 900;
-      letter-spacing: 3.5px;
+      letter-spacing: 4px;
       border-radius: 40px;
       cursor: pointer;
-      box-shadow: 0 0 50px var(--accent-glow), inset 0 2px 6px rgba(255,255,255,0.5);
+      box-shadow: 0 0 60px var(--accent-glow), inset 0 2px 8px rgba(255,255,255,0.6);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .primary-btn:hover {
-      transform: translateY(-5px) scale(1.04);
-      box-shadow: 0 0 70px var(--accent-glow), inset 0 2px 10px rgba(255,255,255,0.8);
+      transform: translateY(-6px) scale(1.05);
+      box-shadow: 0 0 80px var(--accent-glow), inset 0 2px 12px rgba(255,255,255,0.9);
     }
     .primary-btn:active {
       transform: translateY(1px);
@@ -341,47 +343,47 @@
       flex-direction: column;
       gap: 20px;
       width: 100%;
-      max-width: 500px;
+      max-width: 520px;
       margin-top: 18px;
     }
     @media (min-width: 700px) {
       .perk-cards {
         flex-direction: row;
-        max-width: 900px;
+        max-width: 960px;
       }
     }
 
     .perk-card {
       pointer-events: auto;
-      background: rgba(10, 18, 34, 0.85);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(0, 255, 204, 0.3);
+      background: rgba(8, 16, 32, 0.88);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(0, 255, 204, 0.35);
       border-radius: 20px;
-      padding: 32px 28px;
+      padding: 34px 30px;
       flex: 1;
       cursor: pointer;
       transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       text-align: left;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.2);
     }
     .perk-card:hover {
-      background: rgba(0, 255, 204, 0.14);
+      background: rgba(0, 255, 204, 0.16);
       border-color: var(--accent);
       transform: translateY(-10px);
-      box-shadow: 0 24px 60px rgba(0, 255, 204, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+      box-shadow: 0 28px 70px rgba(0, 255, 204, 0.45), inset 0 1px 3px rgba(255, 255, 255, 0.4);
     }
     .perk-name {
       font-weight: 800;
-      font-size: 19px;
+      font-size: 20px;
       color: var(--accent);
       margin-bottom: 14px;
       letter-spacing: 2px;
-      text-shadow: 0 0 15px var(--accent-glow);
+      text-shadow: 0 0 18px var(--accent-glow);
     }
     .perk-desc {
-      font-size: 13.5px;
+      font-size: 14px;
       color: #aaccbb;
-      line-height: 1.8;
+      line-height: 1.85;
     }
 
     .tips {
@@ -446,7 +448,7 @@
 
   <!-- Level Clear / Roguelike Upgrade Screen -->
   <div id="screen-perk" class="screen-overlay hidden">
-    <h2 class="screen-title" style="font-size: 36px;">フロア踏破</h2>
+    <h2 class="screen-title" style="font-size: 38px;">フロア踏破</h2>
     <p class="screen-sub">ニューラルモジュールを選択してください</p>
     <div id="perk-list" class="perk-cards"></div>
   </div>
@@ -455,7 +457,7 @@
   <div id="screen-gameover" class="screen-overlay hidden">
     <h1 class="screen-title" style="color: var(--danger); -webkit-text-fill-color: var(--danger);">TERMINATED</h1>
     <p class="screen-sub" id="gameover-summary">フロア 1 で信号切断</p>
-    <button id="btn-restart" class="primary-btn" style="background: linear-gradient(135deg, var(--danger), #ffaa00); box-shadow: 0 0 50px var(--danger-glow);">REBOOT SYSTEM</button>
+    <button id="btn-restart" class="primary-btn" style="background: linear-gradient(135deg, var(--danger), #ffaa00); box-shadow: 0 0 60px var(--danger-glow);">REBOOT SYSTEM</button>
   </div>
 
   <script>
@@ -480,34 +482,34 @@
         const filter = this.ctx.createBiquadFilter();
         
         filter.type = 'bandpass';
-        filter.frequency.value = 2000;
-        filter.Q.value = 3.5;
+        filter.frequency.value = 2200;
+        filter.Q.value = 4.0;
 
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(1500, now);
-        osc.frequency.exponentialRampToValueAtTime(100, now + 0.22);
+        osc.frequency.setValueAtTime(1600, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.24);
 
-        gain.gain.setValueAtTime(0.4, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        gain.gain.setValueAtTime(0.45, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.22);
+        osc.stop(now + 0.24);
 
-        const bufSize = this.ctx.sampleRate * 0.18;
+        const bufSize = this.ctx.sampleRate * 0.2;
         const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
         const data = buf.getChannelData(0);
-        for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.3));
+        for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.28));
         const noise = this.ctx.createBufferSource();
         noise.buffer = buf;
         const noiseFilter = this.ctx.createBiquadFilter();
         noiseFilter.type = 'highpass';
-        noiseFilter.frequency.value = 3500;
+        noiseFilter.frequency.value = 3800;
         const noiseGain = this.ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.3, now);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        noiseGain.gain.setValueAtTime(0.35, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
         noise.connect(noiseFilter);
         noiseFilter.connect(noiseGain);
@@ -522,20 +524,20 @@
         const filter = this.ctx.createBiquadFilter();
         
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(900, now);
+        filter.frequency.setValueAtTime(1000, now);
 
         osc.type = 'square';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(25, now + 0.22);
 
-        gain.gain.setValueAtTime(0.5, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        gain.gain.setValueAtTime(0.55, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.2);
+        osc.stop(now + 0.22);
       }
       playJump() {
         if (!this.ctx) return;
@@ -543,14 +545,14 @@
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(240, now);
-        osc.frequency.exponentialRampToValueAtTime(640, now + 0.22);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        osc.frequency.setValueAtTime(260, now);
+        osc.frequency.exponentialRampToValueAtTime(700, now + 0.24);
+        gain.gain.setValueAtTime(0.32, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.22);
+        osc.stop(now + 0.24);
       }
       playClear() {
         if (!this.ctx) return;
@@ -560,12 +562,12 @@
           const gain = this.ctx.createGain();
           osc.type = 'sine';
           osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.22, now + idx * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.5);
+          gain.gain.setValueAtTime(0.25, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.55);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start(now + idx * 0.08);
-          osc.stop(now + idx * 0.08 + 0.5);
+          osc.stop(now + idx * 0.08 + 0.55);
         });
       }
     }
@@ -625,8 +627,8 @@
        ======================================================== */
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x020409);
-    scene.fog = new THREE.FogExp2(0x020409, 0.024);
+    scene.background = new THREE.Color(0x010206);
+    scene.fog = new THREE.FogExp2(0x010206, 0.022);
 
     const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 150);
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -635,21 +637,21 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
+    renderer.toneMappingExposure = 1.35;
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0x00ffcc, 1.5);
-    dirLight.position.set(30, 60, 30);
+    const dirLight = new THREE.DirectionalLight(0x00ffcc, 1.8);
+    dirLight.position.set(35, 65, 35);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
     dirLight.shadow.mapSize.height = 2048;
     dirLight.shadow.bias = -0.0005;
     scene.add(dirLight);
 
-    const pointLight = new THREE.PointLight(0xff0055, 3.0, 45);
+    const pointLight = new THREE.PointLight(0xff0055, 3.5, 50);
     scene.add(pointLight);
 
     const GAME_STATE = { TITLE: 0, PLAYING: 1, PERK_SELECT: 2, GAMEOVER: 3 };
@@ -660,9 +662,9 @@
       hp: 100,
       score: 0,
       floor: 1,
-      moveSpeed: 12.5,
+      moveSpeed: 13.0,
       slashDamage: 45,
-      slashRange: 4.4,
+      slashRange: 4.6,
       critChance: 0.12
     };
 
@@ -680,20 +682,20 @@
     const playerGroup = new THREE.Group();
     scene.add(playerGroup);
 
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.15, metalness: 0.95 });
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0c1322, roughness: 0.12, metalness: 0.98 });
     const bodyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.2, 1.2, 12), bodyMat);
     bodyMesh.castShadow = true;
     bodyMesh.position.y = 0.6;
     playerGroup.add(bodyMesh);
 
-    const coreMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffcc, emissive: 0x00ffcc, emissiveIntensity: 1.2, roughness: 0.1 });
+    const coreMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffcc, emissive: 0x00ffcc, emissiveIntensity: 1.5, roughness: 0.08 });
     const coreMesh = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), coreMaterial);
     coreMesh.position.set(0, 0.7, 0.22);
     playerGroup.add(coreMesh);
 
     const katanaGroup = new THREE.Group();
     katanaGroup.position.set(0.42, 0.6, 0);
-    const bladeMat = new THREE.MeshStandardMaterial({ color: 0x00ffcc, emissive: 0x00ffcc, emissiveIntensity: 2.2, roughness: 0.05, metalness: 0.9 });
+    const bladeMat = new THREE.MeshStandardMaterial({ color: 0x00ffcc, emissive: 0x00ffcc, emissiveIntensity: 2.6, roughness: 0.03, metalness: 0.95 });
     const bladeMesh = new THREE.Mesh(new THREE.BoxGeometry(0.035, 1.35, 0.08), bladeMat);
     bladeMesh.position.set(0, 0.5, 0.3);
     bladeMesh.rotation.x = Math.PI / 4;
@@ -701,7 +703,7 @@
     playerGroup.add(katanaGroup);
 
     const slashArc = new THREE.Mesh(
-      new THREE.RingGeometry(1.6, 4.2, 48, 1, 0, Math.PI * 0.95),
+      new THREE.RingGeometry(1.6, 4.5, 48, 1, 0, Math.PI * 0.95),
       new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0, blending: THREE.AdditiveBlending })
     );
     slashArc.rotation.x = Math.PI / 2;
@@ -735,20 +737,20 @@
       }
     }
 
-    function createPlatform(x, y, z, w, h, d, color = 0x131e36) {
+    function createPlatform(x, y, z, w, h, d, color = 0x111c34) {
       const group = new THREE.Group();
       group.position.set(x, y, z);
 
       const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(w, h, d),
-        new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.7 })
+        new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.75 })
       );
       mesh.receiveShadow = true;
       mesh.castShadow = true;
       group.add(mesh);
 
       const edgeGeom = new THREE.EdgesGeometry(mesh.geometry);
-      const edgeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.55 });
+      const edgeMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.65 });
       const wireframe = new THREE.LineSegments(edgeGeom, edgeMat);
       group.add(wireframe);
 
@@ -759,7 +761,7 @@
 
     function generateStage(floorNumber) {
       clearLevel();
-      createPlatform(0, -0.5, 0, 14, 1, 14, 0x162442);
+      createPlatform(0, -0.5, 0, 14, 1, 14, 0x142240);
       playerPhysics.position.set(0, 2, 0);
       playerPhysics.prevPosition.copy(playerPhysics.position);
       playerPhysics.velocity.set(0, 0, 0);
@@ -794,7 +796,7 @@
       }
 
       currPos.z -= 14;
-      createPlatform(currPos.x, currPos.y, currPos.z, 9, 1, 9, 0x1c325c);
+      createPlatform(currPos.x, currPos.y, currPos.z, 9, 1, 9, 0x1a2e58);
 
       portal = new THREE.Mesh(
         new THREE.TorusGeometry(2.0, 0.3, 20, 40),
@@ -809,14 +811,14 @@
       group.position.set(x, y, z);
 
       const mesh = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.82, 0),
-        new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.15, metalness: 0.95, emissive: 0xff0055, emissiveIntensity: 0.9 })
+        new THREE.OctahedronGeometry(0.85, 0),
+        new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.12, metalness: 0.98, emissive: 0xff0055, emissiveIntensity: 1.1 })
       );
       mesh.castShadow = true;
       group.add(mesh);
 
       const eye = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      eye.position.set(0, 0, 0.55);
+      eye.position.set(0, 0, 0.58);
       group.add(eye);
 
       scene.add(group);
@@ -826,8 +828,8 @@
         mesh,
         position: new THREE.Vector3(x, y, z),
         prevPosition: new THREE.Vector3(x, y, z),
-        hp: 75 + stats.floor * 22,
-        speed: 4.8 + Math.random() * 2.6,
+        hp: 75 + stats.floor * 24,
+        speed: 5.0 + Math.random() * 2.8,
         velocity: new THREE.Vector3()
       });
     }
@@ -838,13 +840,13 @@
     function triggerSlash() {
       if (playerPhysics.isSlashing) return;
       playerPhysics.isSlashing = true;
-      playerPhysics.slashTime = 0.22;
+      playerPhysics.slashTime = 0.24;
       playerPhysics.slashHitTriggered = false;
 
       audio.playSlash();
 
       slashArc.material.opacity = 1.0;
-      slashArc.scale.set(stats.slashRange * 0.55, stats.slashRange * 0.55, 1);
+      slashArc.scale.set(stats.slashRange * 0.58, stats.slashRange * 0.58, 1);
       katanaGroup.rotation.y = -Math.PI * 0.75;
     }
 
@@ -853,7 +855,7 @@
       const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerPhysics.quaternion);
 
       const samplePoints = [];
-      const numSamples = 8;
+      const numSamples = 10;
       for (let i = 1; i <= numSamples; i++) {
         const ratio = i / numSamples;
         samplePoints.push(playerPos.clone().add(forward.clone().multiplyScalar(stats.slashRange * ratio)));
@@ -861,10 +863,10 @@
 
       enemies.forEach((enemy, idx) => {
         const enemyPos = enemy.position;
-        if (Math.abs(enemyPos.y - playerPos.y) < 3.0) {
+        if (Math.abs(enemyPos.y - playerPos.y) < 3.2) {
           let hitDetected = false;
           for (let pt of samplePoints) {
-            if (pt.distanceTo(enemyPos) <= 2.0) {
+            if (pt.distanceTo(enemyPos) <= 2.2) {
               hitDetected = true;
               break;
             }
@@ -876,12 +878,12 @@
             enemy.hp -= damage;
 
             audio.playHit();
-            hitStopFrames = 8;
-            cameraShake = isCrit ? 0.75 : 0.5;
+            hitStopFrames = 10;
+            cameraShake = isCrit ? 0.85 : 0.55;
             spawnBloodParticles(enemyPos.clone(), isCrit ? 0x00ffcc : 0xff0055);
             
             const knockbackDir = enemyPos.clone().sub(playerPos).normalize();
-            enemy.velocity.add(knockbackDir.multiplyScalar(12.0));
+            enemy.velocity.add(knockbackDir.multiplyScalar(14.0));
 
             if (enemy.hp <= 0) {
               stats.score += 100 * stats.floor;
@@ -899,23 +901,23 @@
       const feed = document.getElementById('kill-feed');
       feed.textContent = msg;
       feed.classList.add('show');
-      setTimeout(() => feed.classList.remove('show'), 950);
+      setTimeout(() => feed.classList.remove('show'), 1050);
     }
 
     function spawnBloodParticles(pos, colorHex) {
-      const geom = new THREE.BoxGeometry(0.16, 0.16, 0.16);
+      const geom = new THREE.BoxGeometry(0.18, 0.18, 0.18);
       const mat = new THREE.MeshBasicMaterial({ color: colorHex });
 
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 35; i++) {
         const p = new THREE.Mesh(geom, mat);
         p.position.copy(pos);
         const vel = new THREE.Vector3(
-          (Math.random() - 0.5) * 18,
-          Math.random() * 14 + 5,
-          (Math.random() - 0.5) * 18
+          (Math.random() - 0.5) * 20,
+          Math.random() * 16 + 6,
+          (Math.random() - 0.5) * 20
         );
         scene.add(p);
-        particles.push({ mesh: p, vel, life: 0.8 });
+        particles.push({ mesh: p, vel, life: 0.9 });
       }
     }
 
@@ -974,7 +976,7 @@
       { id: 'range', name: 'サイバーレンジ拡大', desc: '斬撃リーチが +20% 拡大', apply: () => stats.slashRange *= 1.2 },
       { id: 'speed', name: 'アクセラレータ', desc: '走行速度が 15% 上昇', apply: () => stats.moveSpeed *= 1.15 },
       { id: 'crit', name: 'フェイタルリンク', desc: 'クリティカル率 +15%', apply: () => stats.critChance += 0.15 },
-      { id: 'heal', name: 'ナノリペア修復', desc: 'HPを 60 回復し、最大HP +30', apply: () => { stats.maxHp += 30; stats.hp = Math.min(stats.maxHp, stats.hp + 60); } }
+      { id: 'heal', name: 'ナノリペア修復', desc: 'HPを 65 回復し、最大HP +35', apply: () => { stats.maxHp += 35; stats.hp = Math.min(stats.maxHp, stats.hp + 65); } }
     ];
 
     function showPerkSelection() {
@@ -1029,9 +1031,9 @@
       stats.maxHp = 100;
       stats.score = 0;
       stats.floor = 1;
-      stats.moveSpeed = 12.5;
+      stats.moveSpeed = 13.0;
       stats.slashDamage = 45;
-      stats.slashRange = 4.4;
+      stats.slashRange = 4.6;
       stats.critChance = 0.12;
 
       inputSys.clear();
@@ -1078,22 +1080,22 @@
         moveVec.normalize();
         const targetAngle = Math.atan2(moveVec.x, moveVec.y) + Math.PI;
         playerPhysics.targetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), targetAngle);
-        playerPhysics.quaternion.slerp(playerPhysics.targetQuaternion, Math.min(1.0, delta * 26));
+        playerPhysics.quaternion.slerp(playerPhysics.targetQuaternion, Math.min(1.0, delta * 28));
 
         playerPhysics.velocity.x = moveVec.x * stats.moveSpeed;
         playerPhysics.velocity.z = moveVec.y * stats.moveSpeed;
       } else {
-        playerPhysics.velocity.x *= 0.82;
-        playerPhysics.velocity.z *= 0.82;
+        playerPhysics.velocity.x *= 0.80;
+        playerPhysics.velocity.z *= 0.80;
       }
 
       if (inputSys.consume('jump') && playerPhysics.isGrounded) {
-        playerPhysics.velocity.y = 14.0;
+        playerPhysics.velocity.y = 14.5;
         playerPhysics.isGrounded = false;
         audio.playJump();
       }
 
-      playerPhysics.velocity.y -= 36.0 * delta;
+      playerPhysics.velocity.y -= 38.0 * delta;
       playerPhysics.position.addScaledVector(playerPhysics.velocity, delta);
 
       playerPhysics.isGrounded = false;
@@ -1121,10 +1123,10 @@
 
       if (playerPhysics.isSlashing) {
         playerPhysics.slashTime -= delta;
-        const progress = 1.0 - (playerPhysics.slashTime / 0.22);
+        const progress = 1.0 - (playerPhysics.slashTime / 0.24);
         katanaGroup.rotation.y = -Math.PI * 0.75 + progress * Math.PI * 1.5;
 
-        if (!playerPhysics.slashHitTriggered && progress >= 0.22 && progress >= 0.22 && progress <= 0.68) {
+        if (!playerPhysics.slashHitTriggered && progress >= 0.2 && progress <= 0.7) {
           executeSlashHit();
           playerPhysics.slashHitTriggered = true;
         }
@@ -1140,24 +1142,24 @@
         const dir = playerPhysics.position.clone().sub(enemy.position);
         const dist = dir.length();
 
-        enemy.mesh.rotation.y += delta * 3.2;
-        enemy.mesh.rotation.x += delta * 2.2;
+        enemy.mesh.rotation.y += delta * 3.5;
+        enemy.mesh.rotation.x += delta * 2.4;
 
         enemy.position.addScaledVector(enemy.velocity, delta);
-        enemy.velocity.multiplyScalar(0.85);
+        enemy.velocity.multiplyScalar(0.82);
 
-        if (dist < 28) {
+        if (dist < 30) {
           dir.y = 0;
           dir.normalize();
 
           const targetRot = Math.atan2(dir.x, dir.z);
-          enemy.group.rotation.y = THREE.MathUtils.lerp(enemy.group.rotation.y, targetRot, Math.min(1.0, delta * 16));
+          enemy.group.rotation.y = THREE.MathUtils.lerp(enemy.group.rotation.y, targetRot, Math.min(1.0, delta * 18));
 
           enemy.position.add(dir.multiplyScalar(enemy.speed * delta));
 
           if (dist < 1.45) {
-            stats.hp -= 30 * delta;
-            cameraShake = 0.52;
+            stats.hp -= 32 * delta;
+            cameraShake = 0.55;
             updateHUD();
             if (stats.hp <= 0) triggerGameOver();
           }
@@ -1165,8 +1167,8 @@
       });
 
       if (portal) {
-        portal.rotation.z += delta * 2.5;
-        portal.rotation.x += delta * 1.4;
+        portal.rotation.z += delta * 2.8;
+        portal.rotation.x += delta * 1.6;
         if (playerPhysics.position.distanceTo(portal.position) < 2.3) {
           showPerkSelection();
         }
@@ -1175,9 +1177,9 @@
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.mesh.position.addScaledVector(p.vel, delta);
-        p.vel.y -= 34.0 * delta;
+        p.vel.y -= 36.0 * delta;
         p.life -= delta;
-        p.mesh.scale.multiplyScalar(0.91);
+        p.mesh.scale.multiplyScalar(0.9);
 
         if (p.life <= 0) {
           scene.remove(p.mesh);
@@ -1192,10 +1194,10 @@
       lastTime = now;
 
       // Dynamic Core Pulsing & Lighting
-      const timeSec = now * 0.004;
-      const corePulse = 0.8 + Math.sin(timeSec * 7) * 0.4;
+      const timeSec = now * 0.0045;
+      const corePulse = 1.0 + Math.sin(timeSec * 8) * 0.5;
       coreMaterial.emissiveIntensity = corePulse;
-      bladeMat.emissiveIntensity = 1.8 + Math.sin(timeSec * 10) * 0.4;
+      bladeMat.emissiveIntensity = 2.0 + Math.sin(timeSec * 12) * 0.6;
 
       if (hitStopFrames > 0) {
         hitStopFrames--;
@@ -1219,14 +1221,14 @@
           e.group.position.copy(e.prevPosition).lerp(e.position, alpha);
         });
 
-        const idealOffset = new THREE.Vector3(0, 8.2, 10.5);
+        const idealOffset = new THREE.Vector3(0, 8.5, 11.0);
         const camTarget = playerGroup.position.clone().add(idealOffset);
-        camera.position.lerp(camTarget, 0.18);
+        camera.position.lerp(camTarget, 0.2);
 
         if (cameraShake > 0) {
           camera.position.x += (Math.random() - 0.5) * cameraShake;
           camera.position.y += (Math.random() - 0.5) * cameraShake;
-          cameraShake = Math.max(0, cameraShake - rawDelta * 4.0);
+          cameraShake = Math.max(0, cameraShake - rawDelta * 4.5);
         }
         camera.lookAt(playerGroup.position);
 
