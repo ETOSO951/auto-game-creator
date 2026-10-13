@@ -291,6 +291,11 @@
       .controls-hint { display: none; }
     }
 ====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
     @media (max-width: 768px) {
       .boss-hud {
         top: 110px;
@@ -301,13 +306,6 @@
         padding: 6px 12px;
         z-index: 60;
       }
-    @keyframes bossHudPulse {
-      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
-      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
-    }
-    @media (max-width: 768px) {
-      .controls-hint { display: none; }
-    }
       .hud-top {
         flex-direction: column;
         align-items: stretch;
