@@ -110,12 +110,12 @@
             </div>
         </div>
 
-        <!-- 下部操作パネル (スマホでも直感的) -->
+        <!-- 下部操作パネル -->
         <div class="flex justify-between items-end w-full max-w-4xl mx-auto">
             <!-- 操作ガイダンス -->
             <div class="glass-dark px-4 py-2 rounded-xl text-[11px] text-zinc-400 border border-white/5">
-                <span class="text-cyan-400 font-bold">画面スワイプ / クリックドラッグ</span> で瞬速抜刀斬撃<br>
-                敵の攻撃予兆（赤光）を先手で斬り払え
+                <span class="text-cyan-400 font-bold">画面スワイプ / ドラッグ</span> で遠中近すべての敵を先制斬撃<br>
+                迫りくる機械兵を両断しコンボを繋げ
             </div>
 
             <!-- 必殺一閃ボタン (EX 100%で発動可能) -->
@@ -177,12 +177,13 @@
     <!-- ゲームロジック -->
     <script>
         /* ========================================================
-           1. サウンド合成システム (Web Audio API)
-           完全自前シンセシス：抜刀音、斬撃風切り音、金属切断音、爆発音
+           1. サウンド & BGM合成システム (Web Audio API)
            ======================================================== */
         class AudioSystem {
             constructor() {
                 this.ctx = null;
+                this.bgmInterval = null;
+                this.step = 0;
             }
             init() {
                 if (!this.ctx) {
@@ -192,10 +193,51 @@
                     this.ctx.resume();
                 }
             }
+            startBGM() {
+                if (this.bgmInterval) return;
+                // 125BPM ミニマル・サイバーシンセベース ループ
+                const intervalTime = (60 / 125) * 500; // 16分音符相当
+                const bassNotes = [110, 110, 146.83, 110, 98, 110, 164.81, 130.81];
+
+                this.bgmInterval = setInterval(() => {
+                    if (!this.ctx || this.ctx.state !== 'running') return;
+                    const now = this.ctx.currentTime;
+                    const freq = bassNotes[this.step % bassNotes.length];
+
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const filter = this.ctx.createBiquadFilter();
+
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(450, now);
+                    filter.frequency.exponentialRampToValueAtTime(120, now + 0.18);
+                    filter.Q.value = 4.0;
+
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+
+                    this.step++;
+                }, intervalTime);
+            }
+            stopBGM() {
+                if (this.bgmInterval) {
+                    clearInterval(this.bgmInterval);
+                    this.bgmInterval = null;
+                }
+            }
             playSlash() {
                 if (!this.ctx) return;
                 const now = this.ctx.currentTime;
-                // ノイズ風切り音
                 const bufferSize = this.ctx.sampleRate * 0.12;
                 const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
                 const data = buffer.getChannelData(0);
@@ -223,7 +265,6 @@
             playHit() {
                 if (!this.ctx) return;
                 const now = this.ctx.currentTime;
-                // 金属接触音
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
                 osc.type = 'triangle';
@@ -241,7 +282,6 @@
             playSpecialSlash() {
                 if (!this.ctx) return;
                 const now = this.ctx.currentTime;
-                // 低音サブベース + 刀鳴音
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
                 osc.type = 'sawtooth';
@@ -281,7 +321,7 @@
                 this.trailCtx = this.trailCanvas.getContext('2d');
 
                 // ゲーム状態
-                this.state = 'START'; // START, PLAYING, GAMEOVER
+                this.state = 'START';
                 this.hp = 100;
                 this.maxHp = 100;
                 this.ex = 0;
@@ -289,14 +329,13 @@
                 this.combo = 0;
                 this.maxCombo = 0;
                 this.kills = 0;
-                this.timeScale = 1.0;
                 this.hitStopFrames = 0;
                 this.cameraShake = 0;
 
-                // スワイプ・入力記録
+                // 入力管理
                 this.pointerDown = false;
+                this.activePointerId = null;
                 this.strokePoints = [];
-                this.lastSlashRay = null;
 
                 // 3D環境初期化
                 this.initThree();
@@ -304,7 +343,7 @@
                 this.initInput();
                 this.initUIEvents();
 
-                // 敵・オブジェクト管理
+                // オブジェクト管理
                 this.enemies = [];
                 this.particles = [];
                 this.debris = [];
@@ -340,15 +379,14 @@
                 const redRim = new THREE.PointLight(0xff0055, 3.0, 15);
                 redRim.position.set(0, 1, 0);
                 this.scene.add(redRim);
-                this.centerLight = redRim;
 
-                // サイバーグリッドフロア & ドットライン
+                // グリッド
                 const grid = new THREE.GridHelper(60, 40, 0x00f0ff, 0x131a28);
                 grid.position.y = -0.5;
                 this.scene.add(grid);
                 this.grid = grid;
 
-                // 遠景のネオン柱
+                // ネオン柱
                 const pillarGeo = new THREE.BoxGeometry(0.8, 18, 0.8);
                 const pillarMat = new THREE.MeshBasicMaterial({ color: 0x071527, wireframe: true });
                 this.pillars = [];
@@ -360,13 +398,11 @@
                     this.pillars.push(p);
                 }
 
-                // 刀身のサイバーモデル (プレイヤー視点に添えるスタイリッシュなカタナ)
                 this.createKatana();
             }
 
             createKatana() {
                 this.katanaGroup = new THREE.Group();
-                // 刀身
                 const bladeGeo = new THREE.BoxGeometry(0.025, 0.06, 1.6);
                 const bladeMat = new THREE.MeshStandardMaterial({
                     color: 0x00f0ff,
@@ -379,7 +415,6 @@
                 blade.position.z = -0.8;
                 this.katanaGroup.add(blade);
 
-                // 鍔・柄
                 const tsubaGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.02, 16);
                 const darkMat = new THREE.MeshBasicMaterial({ color: 0x111116 });
                 const tsuba = new THREE.Mesh(tsubaGeo, darkMat);
@@ -392,7 +427,6 @@
                 hilt.position.z = 0.22;
                 this.katanaGroup.add(hilt);
 
-                // カメラ下部に配置
                 this.katanaGroup.position.set(0.55, -0.45, -0.9);
                 this.katanaGroup.rotation.set(-0.25, 0.35, -0.3);
                 this.camera.add(this.katanaGroup);
@@ -417,40 +451,45 @@
             }
 
             initInput() {
-                const getPos = (e) => {
-                    if (e.touches && e.touches.length > 0) {
-                        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-                    }
-                    return { x: e.clientX, y: e.clientY };
-                };
-
                 const onDown = (e) => {
                     if (this.state !== 'PLAYING') return;
                     this.audio.init();
                     this.pointerDown = true;
+                    this.activePointerId = e.pointerId;
+                    
+                    // ポインターキャプチャの設定（画面外に指が抜けても軌跡・切断を維持）
+                    try {
+                        e.target.setPointerCapture?.(e.pointerId);
+                    } catch (err) {}
+
                     this.strokePoints = [];
-                    const p = getPos(e);
-                    this.strokePoints.push({ x: p.x, y: p.y, time: performance.now() });
+                    this.strokePoints.push({ x: e.clientX, y: e.clientY, time: performance.now() });
                 };
 
                 const onMove = (e) => {
                     if (!this.pointerDown || this.state !== 'PLAYING') return;
-                    const p = getPos(e);
-                    this.strokePoints.push({ x: p.x, y: p.y, time: performance.now() });
+                    if (this.activePointerId !== null && e.pointerId !== this.activePointerId) return;
 
-                    // スロープ長が一定を超えたらリアルタイムにスラッシュ判定
+                    this.strokePoints.push({ x: e.clientX, y: e.clientY, time: performance.now() });
+
                     if (this.strokePoints.length >= 2) {
                         const p1 = this.strokePoints[this.strokePoints.length - 2];
                         const p2 = this.strokePoints[this.strokePoints.length - 1];
                         const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-                        if (dist > 18) {
+                        if (dist > 14) {
                             this.executeSlash(p1, p2);
                         }
                     }
                 };
 
-                const onUp = () => {
-                    this.pointerDown = false;
+                const onUp = (e) => {
+                    if (this.activePointerId !== null && e.pointerId === this.activePointerId) {
+                        this.pointerDown = false;
+                        this.activePointerId = null;
+                        try {
+                            e.target.releasePointerCapture?.(e.pointerId);
+                        } catch (err) {}
+                    }
                 };
 
                 window.addEventListener('pointerdown', onDown);
@@ -462,10 +501,12 @@
             initUIEvents() {
                 document.getElementById('startBtn').addEventListener('click', () => {
                     this.audio.init();
+                    this.audio.startBGM();
                     this.startGame();
                 });
                 document.getElementById('retryBtn').addEventListener('click', () => {
                     this.audio.init();
+                    this.audio.startBGM();
                     this.startGame();
                 });
                 document.getElementById('exSlashBtn').addEventListener('click', () => {
@@ -482,7 +523,6 @@
                 this.kills = 0;
                 this.spawnTimer = 0;
 
-                // 既存の敵と破片を削除
                 this.enemies.forEach(e => this.scene.remove(e.mesh));
                 this.debris.forEach(d => this.scene.remove(d.mesh));
                 this.enemies = [];
@@ -504,6 +544,7 @@
 
             triggerGameOver() {
                 this.state = 'GAMEOVER';
+                this.audio.stopBGM();
                 this.audio.playDamage();
 
                 document.getElementById('finalScore').innerText = this.score;
@@ -548,13 +589,12 @@
             }
 
             /* ========================================================
-               3. 斬撃レイキャスト判定 & 刀モーション
+               3. 斬撃レイキャスト判定 (Z軸レンジ拡張)
                ======================================================== */
             executeSlash(p1, p2) {
                 this.audio.playSlash();
                 this.swingKatana(p1, p2);
 
-                // スクリーン座標 (p1, p2) をワールド空間での線分としてレイキャスト
                 const raycaster = new THREE.Raycaster();
                 const midX = ((p1.x + p2.x) * 0.5 / window.innerWidth) * 2 - 1;
                 const midY = -((p1.y + p2.y) * 0.5 / window.innerHeight) * 2 + 1;
@@ -562,19 +602,17 @@
 
                 let hitCount = 0;
 
-                // すべての敵との接触判定（レイと敵バウンディングスフィアの交差）
                 for (let i = this.enemies.length - 1; i >= 0; i--) {
                     const enemy = this.enemies[i];
-                    // スクリーン投影位置での距離チェック
                     const screenPos = enemy.mesh.position.clone().project(this.camera);
                     const ex = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
                     const ey = (-(screenPos.y * 0.5) + 0.5) * window.innerHeight;
 
-                    // 線分(p1, p2)と点(ex, ey)の距離
                     const distToLine = this.pointToSegmentDistance(ex, ey, p1.x, p1.y, p2.x, p2.y);
-                    const hitRadius = (window.innerHeight * 0.14) / Math.max(0.8, enemy.mesh.position.z);
+                    const hitRadius = (window.innerHeight * 0.18) / Math.max(0.6, enemy.mesh.position.z + 2.0);
 
-                    if (distToLine < hitRadius && enemy.mesh.position.z > 0.4 && enemy.mesh.position.z < 8.0) {
+                    // 改善案1: Z軸判定レンジを遠方(-6.0)から手前手前(3.8)まで大幅に拡張
+                    if (distToLine < hitRadius && enemy.mesh.position.z > -6.0 && enemy.mesh.position.z < 3.8) {
                         this.sliceEnemy(enemy, i, p1, p2);
                         hitCount++;
                     }
@@ -582,7 +620,7 @@
 
                 if (hitCount > 0) {
                     this.audio.playHit();
-                    this.hitStopFrames = 5; // ヒットストップ
+                    this.hitStopFrames = 5;
                     this.cameraShake = 0.16;
                     this.combo += hitCount;
                     if (this.combo > this.maxCombo) this.maxCombo = this.combo;
@@ -602,7 +640,6 @@
             }
 
             swingKatana(p1, p2) {
-                // スワイプの向きに合わせた刀の強烈な振り下ろし
                 const dx = (p2.x - p1.x) / window.innerWidth;
                 const dy = (p2.y - p1.y) / window.innerHeight;
                 this.katanaGroup.position.set(0.1 + dx * 0.8, -0.2 - dy * 0.5, -0.7);
@@ -624,7 +661,7 @@
             }
 
             /* ========================================================
-               4. 敵の切断（バイセクション）＆ パーティクル生成
+               4. 敵の切断 & パーティクル生成
                ======================================================== */
             sliceEnemy(enemy, index, p1, p2) {
                 const mesh = enemy.mesh;
@@ -633,10 +670,7 @@
                 this.enemies.splice(index, 1);
                 this.kills++;
 
-                // 斬撃角度の算出
                 const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-
-                // 敵を2つの切断破片メッシュに分割して四散
                 const size = enemy.type === 'heavy' ? 0.7 : 0.45;
                 const halfGeo = new THREE.BoxGeometry(size, size * 0.5, size);
                 const matCut = new THREE.MeshStandardMaterial({
@@ -647,7 +681,6 @@
                     roughness: 0.2
                 });
 
-                // 左片
                 const pA = new THREE.Mesh(halfGeo, matCut);
                 pA.position.copy(pos);
                 pA.position.y += 0.15;
@@ -662,7 +695,6 @@
                     life: 1.0
                 });
 
-                // 右片
                 const pB = new THREE.Mesh(halfGeo, matCut);
                 pB.position.copy(pos);
                 pB.position.y -= 0.15;
@@ -677,7 +709,6 @@
                     life: 1.0
                 });
 
-                // サイバー光彩火花パーティクル
                 for (let k = 0; k < 18; k++) {
                     const spd = Math.random() * 0.22 + 0.05;
                     const spAngle = Math.random() * Math.PI * 2;
@@ -706,7 +737,6 @@
                 this.cameraShake = 0.35;
                 this.triggerCritFlash();
 
-                // 画面全体の敵を一挙に両断
                 const enemyCount = this.enemies.length;
                 for (let i = this.enemies.length - 1; i >= 0; i--) {
                     const enemy = this.enemies[i];
@@ -720,13 +750,13 @@
             }
 
             /* ========================================================
-               6. 敵の出現 & 行動パターン
+               6. 敵の出現管理
                ======================================================== */
             spawnEnemy() {
                 const types = ['drone', 'ninja', 'heavy'];
                 const type = types[Math.floor(Math.random() * (this.score > 4000 ? 3 : 2))];
 
-                let geo, mat, color;
+                let geo, color;
                 if (type === 'drone') {
                     geo = new THREE.OctahedronGeometry(0.42);
                     color = 0xff0055;
@@ -738,7 +768,7 @@
                     color = 0xff3b00;
                 }
 
-                mat = new THREE.MeshStandardMaterial({
+                const mat = new THREE.MeshStandardMaterial({
                     color: color,
                     emissive: color,
                     emissiveIntensity: 0.65,
@@ -747,11 +777,9 @@
                 });
 
                 const mesh = new THREE.Mesh(geo, mat);
-
-                // カメラ前方のランダム位置へスポーン
                 const spreadX = (Math.random() - 0.5) * 3.4;
                 const spreadY = Math.random() * 1.8 + 0.4;
-                mesh.position.set(spreadX, spreadY, -14);
+                mesh.position.set(spreadX, spreadY, -16);
 
                 this.scene.add(mesh);
 
@@ -766,38 +794,33 @@
             }
 
             /* ========================================================
-               7. メインゲームループ & 描画
+               7. メインゲームループ
                ======================================================== */
             animate(time) {
                 requestAnimationFrame(this.animate);
 
-                // ヒットストップ処理
                 if (this.hitStopFrames > 0) {
                     this.hitStopFrames--;
                     this.renderTrailCanvas();
                     return;
                 }
 
-                const delta = 0.016; // 安定ステップ
+                const delta = 0.016;
 
                 if (this.state === 'PLAYING') {
-                    // 敵出現管理
                     this.spawnTimer += delta;
-                    const spawnInterval = Math.max(0.65, 1.8 - (this.score / 15000) * 0.9);
+                    const spawnInterval = Math.max(0.6, 1.7 - (this.score / 15000) * 0.9);
                     if (this.spawnTimer > spawnInterval) {
                         this.spawnTimer = 0;
                         this.spawnEnemy();
                     }
 
-                    // 敵の追随・更新
                     for (let i = this.enemies.length - 1; i >= 0; i--) {
                         const enemy = this.enemies[i];
                         const m = enemy.mesh;
 
-                        // 前進移動
                         m.position.z += enemy.speed;
 
-                        // 敵種別ごとの挙動（ニンジャはジグザグ移動）
                         if (enemy.type === 'ninja') {
                             m.position.x += Math.sin(time * 0.005 + enemy.sineOff) * 0.02;
                             m.rotation.y += 0.08;
@@ -806,13 +829,12 @@
                             m.rotation.y += 0.04;
                         }
 
-                        // 接近警告 (プレイヤー手前で発光強化)
-                        if (m.position.z > 2.0 && !enemy.attackSign) {
+                        if (m.position.z > -1.0 && !enemy.attackSign) {
                             enemy.attackSign = true;
                             m.material.emissiveIntensity = 1.4;
                         }
 
-                        // プレイヤーへ激突（被ダメージ）
+                        // 被弾判定
                         if (m.position.z >= 4.0) {
                             this.scene.remove(m);
                             this.enemies.splice(i, 1);
@@ -830,13 +852,12 @@
                         }
                     }
 
-                    // 破片 (切断されたメッシュ) 更新
                     for (let i = this.debris.length - 1; i >= 0; i--) {
                         const d = this.debris[i];
                         d.mesh.position.x += d.vx;
                         d.mesh.position.y += d.vy;
                         d.mesh.position.z += d.vz;
-                        d.vy -= 0.004; // 重力
+                        d.vy -= 0.004;
                         d.mesh.rotation.x += d.rx;
                         d.mesh.rotation.y += d.ry;
                         d.life -= 0.02;
@@ -848,17 +869,14 @@
                         }
                     }
 
-                    // 背景の柱とグリッドのアニメーション
                     this.grid.position.z = (this.grid.position.z + 0.04) % 1.5;
                 }
 
-                // 刀の姿勢復元 (LERPによる滑らかな待機位置復帰)
                 this.katanaGroup.position.lerp(this.katanaRestPos, 0.12);
                 this.katanaGroup.rotation.x += (this.katanaRestRot.x - this.katanaGroup.rotation.x) * 0.12;
                 this.katanaGroup.rotation.y += (this.katanaRestRot.y - this.katanaGroup.rotation.y) * 0.12;
                 this.katanaGroup.rotation.z += (this.katanaRestRot.z - this.katanaGroup.rotation.z) * 0.12;
 
-                // カメラシェイク減衰
                 if (this.cameraShake > 0.001) {
                     this.camera.position.x = this.baseCamPos.x + (Math.random() - 0.5) * this.cameraShake;
                     this.camera.position.y = this.baseCamPos.y + (Math.random() - 0.5) * this.cameraShake;
@@ -867,34 +885,27 @@
                     this.camera.position.copy(this.baseCamPos);
                 }
 
-                // 3Dレンダリング
                 this.renderer.render(this.scene, this.camera);
-
-                // 2D斬撃軌跡 & パーティクル描画
                 this.renderTrailCanvas();
             }
 
             /* ========================================================
-               8. 斬撃軌跡（ネオントレイル）の2Dキャンバスレンダリング
+               8. 斬撃軌跡 & パーティクル描画
                ======================================================== */
             renderTrailCanvas() {
                 const ctx = this.trailCtx;
                 ctx.clearRect(0, 0, this.trailCanvas.width, this.trailCanvas.height);
 
                 const now = performance.now();
-
-                // 古いスワイプストロークを間引き
                 this.strokePoints = this.strokePoints.filter(p => now - p.time < 120);
 
                 if (this.strokePoints.length >= 2) {
                     ctx.save();
-                    // 発光グロー
                     ctx.shadowBlur = 18;
                     ctx.shadowColor = '#00f0ff';
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
 
-                    // 外側グローライン
                     ctx.strokeStyle = 'rgba(0, 240, 255, 0.75)';
                     ctx.lineWidth = 8;
                     ctx.beginPath();
@@ -904,7 +915,6 @@
                     }
                     ctx.stroke();
 
-                    // コア白光ライン
                     ctx.shadowBlur = 4;
                     ctx.shadowColor = '#ffffff';
                     ctx.strokeStyle = '#ffffff';
@@ -914,7 +924,6 @@
                     ctx.restore();
                 }
 
-                // 3Dパーティクルの2D投影描画
                 for (let i = this.particles.length - 1; i >= 0; i--) {
                     const p = this.particles[i];
                     p.x += p.vx;
@@ -922,7 +931,6 @@
                     p.z += p.vz;
                     p.life -= 0.035;
 
-                    // 3Dワールド座標からスクリーン座標へ変換
                     const screenPos = new THREE.Vector3(p.x, p.y, p.z).project(this.camera);
                     const sx = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
                     const sy = (-(screenPos.y * 0.5) + 0.5) * window.innerHeight;
@@ -945,7 +953,6 @@
             }
         }
 
-        // ページロード時起動
         window.addEventListener('DOMContentLoaded', () => {
             new BladeZeroGame();
         });
