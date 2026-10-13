@@ -563,8 +563,15 @@
     let hitStopFrames = 0;
     const raycaster = new THREE.Raycaster();
 
+    // Input Buffer (先行入力システム)
+    const inputBuffer = {
+      slash: 0,
+      jump: 0,
+      bufferTime: 0.15 // 150ms buffering
+    };
+
     /* ========================================================
-       Player Mesh & Animation Construction
+       Player Mesh & Interpolation Setup
        ======================================================== */
     const playerGroup = new THREE.Group();
     scene.add(playerGroup);
@@ -614,7 +621,11 @@
     playerGroup.add(slashArc);
 
     const playerPhysics = {
+      position: new THREE.Vector3(),
+      prevPosition: new THREE.Vector3(),
       velocity: new THREE.Vector3(),
+      rotationY: 0,
+      prevRotationY: 0,
       isGrounded: false,
       isSlashing: false,
       slashTime: 0,
@@ -627,7 +638,9 @@
     function clearLevel() {
       platforms.forEach(p => scene.remove(p));
       platforms = [];
-      enemies.forEach(e => scene.remove(e.group));
+      enemies.forEach(e => {
+        scene.remove(e.group);
+      });
       enemies = [];
       if (portal) {
         scene.remove(portal);
@@ -655,8 +668,10 @@
       clearLevel();
 
       createPlatform(0, -0.5, 0, 12, 1, 12, 0x161e33);
-      playerGroup.position.set(0, 2, 0);
+      playerPhysics.position.set(0, 2, 0);
+      playerPhysics.prevPosition.copy(playerPhysics.position);
       playerPhysics.velocity.set(0, 0, 0);
+      playerGroup.position.copy(playerPhysics.position);
 
       const pathLength = 6 + floorNumber * 2;
       let currPos = new THREE.Vector3(0, -0.5, 0);
@@ -697,7 +712,7 @@
     }
 
     /* ========================================================
-       Enemies
+       Enemies & Interpolation Data
        ======================================================== */
     function spawnEnemy(x, y, z) {
       const group = new THREE.Group();
@@ -723,6 +738,8 @@
       enemies.push({
         group: group,
         mesh: mesh,
+        position: new THREE.Vector3(x, y, z),
+        prevPosition: new THREE.Vector3(x, y, z),
         hp: 60 + stats.floor * 18,
         speed: 3.8 + Math.random() * 2.2,
         velocity: new THREE.Vector3()
@@ -730,8 +747,16 @@
     }
 
     /* ========================================================
-       Slash & Hitbox Sync System
+       Slash & Dynamic Hitbox (Swept/Multi-sample Collision)
        ======================================================== */
+    function requestSlash() {
+      inputBuffer.slash = inputBuffer.bufferTime;
+    }
+
+    function requestJump() {
+      inputBuffer.jump = inputBuffer.bufferTime;
+    }
+
     function triggerSlash() {
       if (playerPhysics.isSlashing) return;
       playerPhysics.isSlashing = true;
@@ -745,21 +770,34 @@
       katanaGroup.rotation.y = -Math.PI * 0.7;
     }
 
-    // Active Frame Slash Execution
+    // Active Frame with Multi-point Swept Collision
     function executeSlashHit() {
-      const slashForward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerGroup.quaternion);
-      const playerPos = playerGroup.position;
+      const playerPos = playerPhysics.position;
+      const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerPhysics.rotationY);
+
+      // サンプリングポイント生成（プレイヤー前方から刀の先端にかけて複数の球体領域で当たり判定）
+      const samplePoints = [];
+      const numSamples = 4;
+      for (let i = 1; i <= numSamples; i++) {
+        const ratio = i / numSamples;
+        const pt = playerPos.clone().add(forward.clone().multiplyScalar(stats.slashRange * ratio));
+        samplePoints.push(pt);
+      }
 
       enemies.forEach((enemy, idx) => {
-        const enemyPos = enemy.group.position;
-        const dist = playerPos.distanceTo(enemyPos);
+        const enemyPos = enemy.position;
+        const heightDiff = Math.abs(enemyPos.y - playerPos.y);
 
-        if (dist <= stats.slashRange) {
-          const dirToEnemy = enemyPos.clone().sub(playerPos).normalize();
-          const angle = slashForward.angleTo(dirToEnemy);
-          const heightDiff = Math.abs(enemyPos.y - playerPos.y);
+        if (heightDiff < 2.2) {
+          let hitDetected = false;
+          for (let pt of samplePoints) {
+            if (pt.distanceTo(enemyPos) <= 1.5) {
+              hitDetected = true;
+              break;
+            }
+          }
 
-          if (angle < Math.PI * 0.7 && heightDiff < 2.0) {
+          if (hitDetected) {
             const isCrit = Math.random() < stats.critChance;
             const damage = stats.slashDamage * (isCrit ? 2.2 : 1.0);
             enemy.hp -= damage;
@@ -768,6 +806,8 @@
             hitStopFrames = 5;
             cameraShake = 0.45;
             spawnBloodParticles(enemyPos.clone(), isCrit ? 0x00ffcc : 0xff0055);
+            
+            const dirToEnemy = enemyPos.clone().sub(playerPos).normalize();
             enemy.velocity.add(dirToEnemy.multiplyScalar(6.0));
 
             if (enemy.hp <= 0) {
@@ -814,18 +854,14 @@
     window.addEventListener('keydown', e => {
       keys[e.code] = true;
       if (state === GAME_STATE.PLAYING) {
-        if (e.code === 'KeyJ' || e.code === 'KeyF') triggerSlash();
-        if (e.code === 'Space' && playerPhysics.isGrounded) {
-          playerPhysics.velocity.y = 12.5;
-          playerPhysics.isGrounded = false;
-          audio.playJump();
-        }
+        if (e.code === 'KeyJ' || e.code === 'KeyF') requestSlash();
+        if (e.code === 'Space') requestJump();
       }
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
     window.addEventListener('pointerdown', e => {
       if (state === GAME_STATE.PLAYING && e.target.tagName !== 'BUTTON') {
-        triggerSlash();
+        requestSlash();
       }
     });
 
@@ -866,15 +902,11 @@
 
     document.getElementById('btn-slash').addEventListener('touchstart', (e) => {
       e.stopPropagation();
-      triggerSlash();
+      requestSlash();
     });
     document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
       e.stopPropagation();
-      if (playerPhysics.isGrounded) {
-        playerPhysics.velocity.y = 12.5;
-        playerPhysics.isGrounded = false;
-        audio.playJump();
-      }
+      requestJump();
     });
 
     /* ========================================================
@@ -957,7 +989,7 @@
     });
 
     /* ========================================================
-       Fixed Timestep Main Game Loop
+       Fixed Timestep Simulation & Interpolation Main Loop
        ======================================================== */
     const FIXED_TIME_STEP = 1 / 60;
     let accumulator = 0;
@@ -965,6 +997,18 @@
 
     function updateSimulation(delta) {
       if (state !== GAME_STATE.PLAYING) return;
+
+      // Decrement Input Buffers
+      if (inputBuffer.slash > 0) inputBuffer.slash -= delta;
+      if (inputBuffer.jump > 0) inputBuffer.jump -= delta;
+
+      // Store previous positions for interpolation
+      playerPhysics.prevPosition.copy(playerPhysics.position);
+      playerPhysics.prevRotationY = playerPhysics.rotationY;
+
+      enemies.forEach(e => {
+        e.prevPosition.copy(e.position);
+      });
 
       // 1. Movement & Input
       let moveX = 0;
@@ -985,11 +1029,10 @@
         moveVec.normalize();
         const targetAngle = Math.atan2(moveVec.x, moveVec.y) + Math.PI;
         
-        let currRot = playerGroup.rotation.y;
-        let diff = targetAngle - currRot;
+        let diff = targetAngle - playerPhysics.rotationY;
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
-        playerGroup.rotation.y += diff * Math.min(1.0, delta * 18);
+        playerPhysics.rotationY += diff * Math.min(1.0, delta * 18);
 
         playerPhysics.velocity.x = moveVec.x * stats.moveSpeed;
         playerPhysics.velocity.z = moveVec.y * stats.moveSpeed;
@@ -998,31 +1041,45 @@
         playerPhysics.velocity.z *= 0.8;
       }
 
+      // Process Buffered Jump
+      if (inputBuffer.jump > 0 && playerPhysics.isGrounded) {
+        playerPhysics.velocity.y = 12.5;
+        playerPhysics.isGrounded = false;
+        audio.playJump();
+        inputBuffer.jump = 0;
+      }
+
       // Gravity & Position update
       playerPhysics.velocity.y -= 32.0 * delta;
-      playerGroup.position.x += playerPhysics.velocity.x * delta;
-      playerGroup.position.y += playerPhysics.velocity.y * delta;
-      playerGroup.position.z += playerPhysics.velocity.z * delta;
+      playerPhysics.position.x += playerPhysics.velocity.x * delta;
+      playerPhysics.position.y += playerPhysics.velocity.y * delta;
+      playerPhysics.position.z += playerPhysics.velocity.z * delta;
 
       // Raycasting Ground Collision Detection
       playerPhysics.isGrounded = false;
-      raycaster.set(playerGroup.position.clone().add(new THREE.Vector3(0, 0.5, 0)), new THREE.Vector3(0, -1, 0));
+      raycaster.set(playerPhysics.position.clone().add(new THREE.Vector3(0, 0.5, 0)), new THREE.Vector3(0, -1, 0));
       const intersects = raycaster.intersectObjects(platforms);
 
       if (intersects.length > 0) {
         const hit = intersects[0];
         const distToFloor = hit.distance;
         if (playerPhysics.velocity.y <= 0 && distToFloor <= 0.75) {
-          playerGroup.position.y = hit.point.y + 0.6;
+          playerPhysics.position.y = hit.point.y + 0.6;
           playerPhysics.velocity.y = 0;
           playerPhysics.isGrounded = true;
         }
       }
 
-      if (playerGroup.position.y < -15) {
+      if (playerPhysics.position.y < -15) {
         stats.hp = 0;
         updateHUD();
         triggerGameOver();
+      }
+
+      // Process Buffered Slash
+      if (inputBuffer.slash > 0 && !playerPhysics.isSlashing) {
+        triggerSlash();
+        inputBuffer.slash = 0;
       }
 
       // Slash Animation & Active Frame Check
@@ -1031,7 +1088,6 @@
         const progress = 1.0 - (playerPhysics.slashTime / 0.22);
         katanaGroup.rotation.y = -Math.PI * 0.7 + progress * Math.PI * 1.4;
 
-        // Active frame trigger (around 30% to 60% of animation)
         if (!playerPhysics.slashHitTriggered && progress >= 0.25 && progress <= 0.65) {
           executeSlashHit();
           playerPhysics.slashHitTriggered = true;
@@ -1046,14 +1102,14 @@
 
       // Enemies Pursuit AI
       enemies.forEach(enemy => {
-        const enemyPos = enemy.group.position;
-        const dir = playerGroup.position.clone().sub(enemyPos);
+        const enemyPos = enemy.position;
+        const dir = playerPhysics.position.clone().sub(enemyPos);
         const dist = dir.length();
 
         enemy.mesh.rotation.y += delta * 2.2;
         enemy.mesh.rotation.x += delta * 1.6;
 
-        enemy.group.position.addScaledVector(enemy.velocity, delta);
+        enemy.position.addScaledVector(enemy.velocity, delta);
         enemy.velocity.multiplyScalar(0.9);
 
         if (dist < 20) {
@@ -1066,7 +1122,7 @@
           while (diff > Math.PI) diff -= Math.PI * 2;
           enemy.group.rotation.y += diff * Math.min(1.0, delta * 10);
 
-          enemy.group.position.add(dir.multiplyScalar(enemy.speed * delta));
+          enemy.position.add(dir.multiplyScalar(enemy.speed * delta));
 
           if (dist < 1.3) {
             stats.hp -= 22 * delta;
@@ -1080,7 +1136,7 @@
       // Portal Check
       if (portal) {
         portal.rotation.z += delta * 1.8;
-        if (playerGroup.position.distanceTo(portal.position) < 2.2) {
+        if (playerPhysics.position.distanceTo(portal.position) < 2.2) {
           showPerkSelection();
         }
       }
@@ -1111,14 +1167,30 @@
         return;
       }
 
-      // Fixed timestep accumulation to guarantee robust physics across devices
+      // Fixed timestep loop
       accumulator += Math.min(rawDelta, 0.1);
       while (accumulator >= FIXED_TIME_STEP) {
         updateSimulation(FIXED_TIME_STEP);
         accumulator -= FIXED_TIME_STEP;
       }
 
+      // Interpolation alpha calculation
+      const alpha = accumulator / FIXED_TIME_STEP;
+
       if (state === GAME_STATE.PLAYING) {
+        // Interpolate player position and rotation for silky smooth rendering
+        playerGroup.position.copy(playerPhysics.prevPosition).lerp(playerPhysics.position, alpha);
+        
+        let rotDiff = playerPhysics.rotationY - playerPhysics.prevRotationY;
+        while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+        while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+        playerGroup.rotation.y = playerPhysics.prevRotationY + rotDiff * alpha;
+
+        // Interpolate enemies positions
+        enemies.forEach(e => {
+          e.group.position.copy(e.prevPosition).lerp(e.position, alpha);
+        });
+
         // Camera Follow & Dynamic Shake
         const idealOffset = new THREE.Vector3(0, 7.5, 9.5);
         const camTarget = playerGroup.position.clone().add(idealOffset);
