@@ -76,7 +76,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 28px;
+      padding: 24px;
     }
 
     /* HUD Header */
@@ -93,7 +93,7 @@
       -webkit-backdrop-filter: blur(28px);
       border: 1px solid rgba(0, 255, 204, 0.35);
       border-radius: 18px;
-      padding: 18px 24px;
+      padding: 16px 22px;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 0 35px rgba(0, 255, 204, 0.1);
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -131,6 +131,42 @@
       background: linear-gradient(90deg, var(--danger), var(--accent));
       box-shadow: 0 0 25px var(--accent-glow);
       transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Boss HP Bar */
+    .boss-hud {
+      position: absolute;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 450px;
+      max-width: 90%;
+      background: rgba(16, 4, 8, 0.88);
+      border: 1px solid rgba(255, 0, 85, 0.6);
+      border-radius: 14px;
+      padding: 12px 20px;
+      box-shadow: 0 0 40px rgba(255, 0, 85, 0.4);
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .boss-hud.active {
+      display: flex;
+    }
+    .boss-bar-outer {
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 5px;
+      overflow: hidden;
+      border: 1px solid rgba(255,0,85,0.4);
+    }
+    .boss-bar-inner {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #ff0055, #ffaa00);
+      box-shadow: 0 0 20px rgba(255,0,85,0.8);
+      transition: width 0.2s linear;
     }
 
     /* Skill Gauge */
@@ -374,7 +410,43 @@
       transform: translateY(1px);
     }
 
-    /* Perk Cards */
+    /* Weapon Selector & Perk Cards */
+    .weapon-select-container {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .weapon-card {
+      pointer-events: auto;
+      background: rgba(8, 16, 32, 0.88);
+      border: 1px solid rgba(0, 255, 204, 0.3);
+      border-radius: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      width: 180px;
+      text-align: center;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .weapon-card.selected, .weapon-card:hover {
+      background: rgba(0, 255, 204, 0.2);
+      border-color: var(--accent);
+      box-shadow: 0 0 30px var(--accent-glow);
+      transform: translateY(-4px);
+    }
+    .weapon-name {
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .weapon-desc {
+      font-size: 11px;
+      color: #99bbcc;
+      line-height: 1.4;
+    }
+
     .perk-cards {
       display: flex;
       flex-direction: column;
@@ -465,6 +537,17 @@
       </div>
     </div>
 
+    <!-- Boss HUD -->
+    <div id="boss-hud" class="boss-hud">
+      <div class="hp-label">
+        <span id="boss-name" style="color: var(--danger);">CYBER GUARDIAN : ELITE</span>
+        <span id="boss-hp-val" style="color: #fff;">100%</span>
+      </div>
+      <div class="boss-bar-outer">
+        <div id="boss-hp-bar" class="boss-bar-inner"></div>
+      </div>
+    </div>
+
     <div class="crosshair-container">
       <div id="kill-feed" class="kill-feed">SLASHED! +100</div>
     </div>
@@ -486,6 +569,22 @@
   <div id="screen-start" class="screen-overlay">
     <h1 class="screen-title">斬影 : ZANEI</h1>
     <p class="screen-sub">ULTIMATE CYBERNETIC SLASHER</p>
+    
+    <div class="weapon-select-container">
+      <div class="weapon-card selected" data-weapon="saber" id="w-saber">
+        <div class="weapon-name">ブレード・セイバー</div>
+        <div class="weapon-desc">標準的なバランスと優れた機動力を持つ基本モデル</div>
+      </div>
+      <div class="weapon-card" data-weapon="odachi" id="w-odachi">
+        <div class="weapon-name">ヘビー大太刀</div>
+        <div class="weapon-desc">攻撃力とリーチが極めて高いが、攻撃速度が遅い</div>
+      </div>
+      <div class="weapon-card" data-weapon="dual" id="w-dual">
+        <div class="weapon-name">ツイン小太刀</div>
+        <div class="weapon-desc">超高速の連続斬撃。リーチは短いが高火力を発揮</div>
+      </div>
+    </div>
+
     <button id="btn-start" class="primary-btn">MISSION START</button>
     <div class="tips">
       PC: [WASD] 移動 / [SPACE] ジャンプ / [クリック or J] 斬撃 / [E] アクティブスキル<br>
@@ -556,7 +655,6 @@
 
         osc.type = 'square';
         osc.frequency.setValueAtTime(500, now);
-        osc.frequency.exponentialRampType = 'exponential';
         osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
 
         gain.gain.setValueAtTime(0.6, now);
@@ -597,6 +695,21 @@
         gain.connect(this.ctx.destination);
         osc.start(now);
         osc.stop(now + 0.35);
+      }
+      playExplosion() {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+        gain.gain.setValueAtTime(0.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.5);
       }
       playClear() {
         if (!this.ctx) return;
@@ -714,13 +827,14 @@
       critChance: 0.12,
       skillCooldown: 0,
       skillMaxCooldown: 8.0,
-      activeSkillType: 'issen' // 'issen' (dash slash) or 'clock' (slow down) or 'burst' (phantom burst)
+      weaponType: 'saber' // 'saber', 'odachi', 'dual'
     };
 
     let enemies = [];
     let particles = [];
     let platforms = [];
-    let gimmicks = []; // Boost pads, terminals
+    let hazards = []; // Security lasers, explosive containers
+    let boss = null;
     let portal = null;
     let cameraShake = 0;
     let hitStopFrames = 0;
@@ -733,7 +847,7 @@
     ];
 
     /* ========================================================
-       4. Player Mesh & Cyber Aesthetic Setup
+       4. Player Mesh & Weapon Configuration
        ======================================================== */
     const playerGroup = new THREE.Group();
     scene.add(playerGroup);
@@ -776,21 +890,53 @@
       isGrounded: false,
       isSlashing: false,
       slashTime: 0,
+      slashDuration: 0.22,
       slashHitTriggered: false,
       isDashing: false,
       dashTimer: 0
     };
 
+    function applyWeaponConfig(type) {
+      stats.weaponType = type;
+      if (type === 'saber') {
+        stats.slashDamage = 40;
+        stats.slashRange = 4.6;
+        playerPhysics.slashDuration = 0.22;
+        bladeMesh.scale.set(1, 1, 1);
+        bladeMat.color.set(0x00ffcc);
+        bladeMat.emissive.set(0x00ffcc);
+      } else if (type === 'odachi') {
+        stats.slashDamage = 75;
+        stats.slashRange = 6.2;
+        playerPhysics.slashDuration = 0.35;
+        bladeMesh.scale.set(1.8, 1.4, 1.5);
+        bladeMat.color.set(0xffaa00);
+        bladeMat.emissive.set(0xffaa00);
+      } else if (type === 'dual') {
+        stats.slashDamage = 30;
+        stats.slashRange = 3.8;
+        playerPhysics.slashDuration = 0.14;
+        bladeMesh.scale.set(0.7, 0.8, 0.8);
+        bladeMat.color.set(0x0088ff);
+        bladeMat.emissive.set(0x0088ff);
+      }
+    }
+
     /* ========================================================
-       5. Stage, Biomes & Gimmicks Generation
+       5. Stage, Biomes, Hazards & Boss Generation
        ======================================================== */
     function clearLevel() {
       platforms.forEach(p => scene.remove(p));
       platforms = [];
-      gimmicks.forEach(g => scene.remove(g.mesh));
-      gimmicks = [];
+      hazards.forEach(h => scene.remove(h.mesh));
+      hazards = [];
       enemies.forEach(e => scene.remove(e.group));
       enemies = [];
+      if (boss) {
+        scene.remove(boss.group);
+        boss = null;
+        document.getElementById('boss-hud').classList.remove('active');
+      }
       if (portal) {
         scene.remove(portal);
         portal = null;
@@ -821,79 +967,86 @@
 
     function generateStage(floorNumber) {
       clearLevel();
+      const isBossFloor = (floorNumber % 5 === 0);
       const biomeIdx = (floorNumber - 1) % BIOMES.length;
       const biome = BIOMES[biomeIdx];
       
       scene.background.set(biome.fog);
       scene.fog.color.set(biome.fog);
       dirLight.color.set(biome.lightColor);
-      document.getElementById('biome-label').textContent = biome.name;
+      document.getElementById('biome-label').textContent = isBossFloor ? `CYBER ARENA [BOSS]` : biome.name;
       document.getElementById('biome-label').style.color = `#${biome.lightColor.toString(16)}`;
 
-      createPlatform(0, -0.5, 0, 14, 1, 14, biome.color);
+      createPlatform(0, -0.5, 0, 16, 1, 16, biome.color);
       playerPhysics.position.set(0, 2, 0);
       playerPhysics.prevPosition.copy(playerPhysics.position);
       playerPhysics.velocity.set(0, 0, 0);
       playerGroup.position.copy(playerPhysics.position);
 
-      const pathLength = 6 + floorNumber * 2;
-      let currPos = new THREE.Vector3(0, -0.5, 0);
+      if (isBossFloor) {
+        // Boss Arena
+        createPlatform(0, -0.5, -22, 22, 1, 26, biome.color);
+        spawnBoss(0, 1.5, -24);
+      } else {
+        const pathLength = 6 + floorNumber * 2;
+        let currPos = new THREE.Vector3(0, -0.5, 0);
 
-      for (let i = 0; i < pathLength; i++) {
-        const stepX = (Math.random() - 0.5) * 16;
-        const stepZ = -(10 + Math.random() * 9);
-        const stepY = (Math.random() - 0.35) * 4.0;
+        for (let i = 0; i < pathLength; i++) {
+          const stepX = (Math.random() - 0.5) * 16;
+          const stepZ = -(10 + Math.random() * 9);
+          const stepY = (Math.random() - 0.35) * 4.0;
 
-        currPos.x += stepX;
-        currPos.z += stepZ;
-        currPos.y = Math.max(-3.5, Math.min(11, currPos.y + stepY));
+          currPos.x += stepX;
+          currPos.z += stepZ;
+          currPos.y = Math.max(-3.5, Math.min(11, currPos.y + stepY));
 
-        const w = 6.5 + Math.random() * 5;
-        const d = 6.5 + Math.random() * 5;
-        createPlatform(currPos.x, currPos.y, currPos.z, w, 1, d, biome.color);
+          const w = 6.5 + Math.random() * 5;
+          const d = 6.5 + Math.random() * 5;
+          createPlatform(currPos.x, currPos.y, currPos.z, w, 1, d, biome.color);
 
-        // Add Gimmick (Terminal or Boost Pad)
-        if (Math.random() < 0.45) {
-          const isTerminal = Math.random() > 0.5;
-          const gMesh = new THREE.Mesh(
-            isTerminal ? new THREE.BoxGeometry(0.8, 1.2, 0.4) : new THREE.CylinderGeometry(1.2, 1.2, 0.1, 16),
-            new THREE.MeshBasicMaterial({ color: isTerminal ? 0x0088ff : 0x00ffcc, wireframe: true })
-          );
-          gMesh.position.set(currPos.x + (Math.random() - 0.5)*(w-3), currPos.y + (isTerminal ? 0.8 : 0.6), currPos.z + (Math.random() - 0.5)*(d-3));
-          scene.add(gMesh);
-          gimmicks.push({ type: isTerminal ? 'terminal' : 'boost', mesh: gMesh, active: true });
-        }
-
-        if (i > 0) {
-          const enemyCount = Math.floor(1 + Math.random() * 2.8);
-          for (let e = 0; e < enemyCount; e++) {
-            const types = ['normal', 'gunner', 'guardian', 'assassin'];
-            const typeWeights = [0.4, 0.25, 0.2, 0.15];
-            let r = Math.random(), accum = 0, chosenType = 'normal';
-            for(let t=0; t<types.length; t++) {
-              accum += typeWeights[t];
-              if(r <= accum) { chosenType = types[t]; break; }
-            }
-
-            spawnEnemy(
-              currPos.x + (Math.random() - 0.5) * (w - 2.5),
-              currPos.y + 1.4,
-              currPos.z + (Math.random() - 0.5) * (d - 2.5),
-              chosenType
+          // Spawn Hazards (Explosive Containers or Security Lasers)
+          if (Math.random() < 0.5) {
+            const isExplosive = Math.random() > 0.4;
+            const hMesh = new THREE.Mesh(
+              isExplosive ? new THREE.CylinderGeometry(0.6, 0.6, 1.2, 12) : new THREE.BoxGeometry(0.8, 1.6, 0.4),
+              new THREE.MeshBasicMaterial({ color: isExplosive ? 0xff0055 : 0x0088ff, wireframe: true })
             );
+            hMesh.position.set(currPos.x + (Math.random() - 0.5)*(w-3), currPos.y + 0.8, currPos.z + (Math.random() - 0.5)*(d-3));
+            scene.add(hMesh);
+            hazards.push({ type: isExplosive ? 'explosive' : 'laser', mesh: hMesh, position: hMesh.position, active: true, hp: isExplosive ? 30 : 999 });
+          }
+
+          if (i > 0) {
+            const enemyCount = Math.floor(1 + Math.random() * 2.8);
+            for (let e = 0; e < enemyCount; e++) {
+              const types = ['normal', 'gunner', 'guardian', 'assassin'];
+              const typeWeights = [0.4, 0.25, 0.2, 0.15];
+              let r = Math.random(), accum = 0, chosenType = 'normal';
+              for(let t=0; t<types.length; t++) {
+                accum += typeWeights[t];
+                if(r <= accum) { chosenType = types[t]; break; }
+              }
+
+              spawnEnemy(
+                currPos.x + (Math.random() - 0.5) * (w - 2.5),
+                currPos.y + 1.4,
+                currPos.z + (Math.random() - 0.5) * (d - 2.5),
+                chosenType
+              );
+            }
           }
         }
+
+        currPos.z -= 14;
+        createPlatform(currPos.x, currPos.y, currPos.z, 9, 1, 9, biome.color);
+
+        portal = new THREE.Mesh(
+          new THREE.TorusGeometry(2.0, 0.3, 20, 40),
+          new THREE.MeshBasicMaterial({ color: biome.lightColor, wireframe: true })
+        );
+        portal.position.set(currPos.x, currPos.y + 2.8, currPos.z);
+        scene.add(portal);
       }
-
-      currPos.z -= 14;
-      createPlatform(currPos.x, currPos.y, currPos.z, 9, 1, 9, biome.color);
-
-      portal = new THREE.Mesh(
-        new THREE.TorusGeometry(2.0, 0.3, 20, 40),
-        new THREE.MeshBasicMaterial({ color: biome.lightColor, wireframe: true })
-      );
-      portal.position.set(currPos.x, currPos.y + 2.8, currPos.z);
-      scene.add(portal);
     }
 
     function spawnEnemy(x, y, z, type = 'normal') {
@@ -951,18 +1104,55 @@
         hp: hpVal,
         maxHp: hpVal,
         speed: speedVal + Math.random() * 1.5,
-        velocity: new THREE.Vector3(),
-        attackTimer: Math.random() * 2
+        velocity: new THREE.Vector3()
       });
     }
 
+    function spawnBoss(x, y, z) {
+      const group = new THREE.Group();
+      group.position.set(x, y, z);
+
+      const mesh = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(1.8, 1),
+        new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.1, metalness: 0.9, emissive: 0xff0055, emissiveIntensity: 1.5 })
+      );
+      mesh.castShadow = true;
+      group.add(mesh);
+
+      // Orbital Shield rings
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(2.8, 0.15, 16, 32),
+        new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true })
+      );
+      group.add(ring);
+
+      scene.add(group);
+
+      boss = {
+        group,
+        mesh,
+        ring,
+        position: new THREE.Vector3(x, y, z),
+        prevPosition: new THREE.Vector3(x, y, z),
+        hp: 1200 + stats.floor * 350,
+        maxHp: 1200 + stats.floor * 350,
+        speed: 6.0,
+        velocity: new THREE.Vector3(),
+        attackTimer: 0,
+        phase: 1
+      };
+
+      document.getElementById('boss-hud').classList.add('active');
+      document.getElementById('boss-name').textContent = `CYBER OVERLORD : FL FLOOR ${stats.floor}`;
+    }
+
     /* ========================================================
-       6. Combat, Active Skills & Gimmick Interaction
+       6. Combat, Hazards & Active Skills
        ======================================================== */
     function triggerSlash() {
       if (playerPhysics.isSlashing) return;
       playerPhysics.isSlashing = true;
-      playerPhysics.slashTime = 0.22;
+      playerPhysics.slashTime = playerPhysics.slashDuration;
       playerPhysics.slashHitTriggered = false;
 
       audio.playSlash();
@@ -977,29 +1167,12 @@
       stats.skillCooldown = stats.skillMaxCooldown;
       audio.playSkill();
 
-      if (stats.activeSkillType === 'issen') {
-        // High Speed Dash Slash
-        playerPhysics.isDashing = true;
-        playerPhysics.dashTimer = 0.3;
-        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerPhysics.quaternion);
-        playerPhysics.velocity.copy(forward.multiplyScalar(28.0));
-        showKillFeed("【一閃】 居合突進！");
-      } else if (stats.activeSkillType === 'clock') {
-        // Slow enemies
-        enemies.forEach(e => e.speed *= 0.3);
-        showKillFeed("【クロックダウン】 時間膨張！");
-        setTimeout(() => {
-          enemies.forEach(e => e.speed /= 0.3);
-        }, 4000);
-      } else {
-        // Phantom Burst (Damage all on screen)
-        enemies.forEach(e => {
-          e.hp -= stats.slashDamage * 2.0;
-          spawnBloodParticles(e.position.clone(), 0xaa00ff);
-        });
-        showKillFeed("【残影解放】 全方位断裁！");
-        cameraShake = 0.8;
-      }
+      // High Speed Dash Slash
+      playerPhysics.isDashing = true;
+      playerPhysics.dashTimer = 0.3;
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerPhysics.quaternion);
+      playerPhysics.velocity.copy(forward.multiplyScalar(30.0));
+      showKillFeed("【一閃】 居合突進！");
     }
 
     function executeSlashHit() {
@@ -1013,6 +1186,49 @@
         samplePoints.push(playerPos.clone().add(forward.clone().multiplyScalar(stats.slashRange * ratio)));
       }
 
+      // Check Boss
+      if (boss) {
+        let hitDetected = false;
+        for (let pt of samplePoints) {
+          if (pt.distanceTo(boss.position) <= 2.8) {
+            hitDetected = true;
+            break;
+          }
+        }
+        if (hitDetected) {
+          const isCrit = Math.random() < stats.critChance;
+          const damage = stats.slashDamage * (isCrit ? 2.2 : 1.0);
+          boss.hp -= damage;
+
+          audio.playHit();
+          hitStopFrames = 8;
+          cameraShake = 0.7;
+          spawnBloodParticles(boss.position.clone(), 0xff0055);
+
+          const hpPct = Math.max(0, (boss.hp / boss.maxHp) * 100);
+          document.getElementById('boss-hp-bar').style.width = `${hpPct}%`;
+          document.getElementById('boss-hp-val').textContent = `${Math.round(hpPct)}%`;
+
+          if (boss.hp <= 0) {
+            stats.score += 2500;
+            updateHUD();
+            showKillFeed("BOSS DESTROYED! +2500");
+            scene.remove(boss.group);
+            boss = null;
+            document.getElementById('boss-hud').classList.remove('active');
+            
+            // Spawn Portal after boss defeat
+            portal = new THREE.Mesh(
+              new THREE.TorusGeometry(2.0, 0.3, 20, 40),
+              new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true })
+            );
+            portal.position.set(boss.position.x, boss.position.y + 1.5, boss.position.z);
+            scene.add(portal);
+          }
+        }
+      }
+
+      // Check Enemies
       enemies.forEach((enemy, idx) => {
         const enemyPos = enemy.position;
         if (Math.abs(enemyPos.y - playerPos.y) < 3.2) {
@@ -1025,12 +1241,10 @@
           }
 
           if (hitDetected) {
-            // Check Shield for Guardian
             if (enemy.shieldMesh) {
               const toPlayer = playerPos.clone().sub(enemyPos).normalize();
               const enemyDir = new THREE.Vector3(0, 0, 1).applyQuaternion(enemy.group.quaternion);
               if (toPlayer.dot(enemyDir) < 0.2) {
-                // Hit front shield -> Break down mechanic
                 enemy.hp -= stats.slashDamage * 0.3;
                 showKillFeed("GUARD BLOCKED!");
                 spawnBloodParticles(enemyPos.clone(), 0xffaa00);
@@ -1066,19 +1280,25 @@
         }
       });
 
-      // Check Gimmicks
-      gimmicks.forEach(g => {
-        if (g.active && g.mesh.position.distanceTo(playerPos) < 2.2) {
-          if (g.type === 'terminal') {
-            g.active = false;
-            scene.remove(g.mesh);
-            stats.score += 300;
-            showKillFeed("TERMINAL HACKED! +300");
-            // Damage nearby enemies via hacking
-            enemies.forEach(e => {
-              e.hp -= 80;
-              spawnBloodParticles(e.position.clone(), 0x0088ff);
-            });
+      // Check Hazards (Explosive Containers)
+      hazards.forEach(h => {
+        if (h.active && h.type === 'explosive' && h.position.distanceTo(playerPos) <= stats.slashRange) {
+          h.active = false;
+          scene.remove(h.mesh);
+          audio.playExplosion();
+          cameraShake = 1.2;
+          spawnBloodParticles(h.position.clone(), 0xff0055);
+          showKillFeed("EXPLOSION DETONATED!");
+
+          // Damage nearby enemies & boss
+          enemies.forEach(e => {
+            if (e.position.distanceTo(h.position) < 5.0) {
+              e.hp -= 150;
+              spawnBloodParticles(e.position.clone(), 0xffaa00);
+            }
+          });
+          if (boss && boss.position.distanceTo(h.position) < 6.0) {
+            boss.hp -= 200;
           }
         }
       });
@@ -1109,7 +1329,7 @@
     }
 
     /* ========================================================
-       7. Touch Controls & Event Bindings
+       7. Touch Controls & Weapon Selection Bindings
        ======================================================== */
     const stick = { active: false, x: 0, y: 0 };
     const stickArea = document.getElementById('stick-area');
@@ -1157,6 +1377,15 @@
     document.getElementById('btn-skill').addEventListener('touchstart', (e) => {
       e.stopPropagation();
       inputSys.push('skill');
+    });
+
+    // Weapon Card Click Bindings
+    document.querySelectorAll('.weapon-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.weapon-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        applyWeaponConfig(card.getAttribute('data-weapon'));
+      });
     });
 
     /* ========================================================
@@ -1217,6 +1446,7 @@
 
     function triggerGameOver() {
       state = GAME_STATE.GAMEOVER;
+      document.getElementById('boss-hud').classList.remove('active');
       document.getElementById('gameover-summary').textContent = `フロア ${stats.floor} で切断 | スコア: ${stats.score}`;
       document.getElementById('screen-gameover').classList.remove('hidden');
     }
@@ -1227,12 +1457,10 @@
       stats.score = 0;
       stats.floor = 1;
       stats.moveSpeed = 13.0;
-      stats.slashDamage = 40;
-      stats.slashRange = 4.6;
-      stats.critChance = 0.12;
       stats.skillCooldown = 0;
       stats.skillMaxCooldown = 8.0;
 
+      applyWeaponConfig(stats.weaponType);
       inputSys.clear();
       updateHUD();
       generateStage(stats.floor);
@@ -1262,6 +1490,7 @@
       playerPhysics.prevPosition.copy(playerPhysics.position);
       playerPhysics.prevQuaternion.copy(playerPhysics.quaternion);
       enemies.forEach(e => e.prevPosition.copy(e.position));
+      if (boss) boss.prevPosition.copy(boss.position);
 
       let moveX = 0;
       let moveZ = 0;
@@ -1332,7 +1561,7 @@
 
       if (playerPhysics.isSlashing) {
         playerPhysics.slashTime -= delta;
-        const progress = 1.0 - (playerPhysics.slashTime / 0.22);
+        const progress = 1.0 - (playerPhysics.slashTime / playerPhysics.slashDuration);
         katanaGroup.rotation.y = -Math.PI * 0.75 + progress * Math.PI * 1.5;
 
         if (!playerPhysics.slashHitTriggered && progress >= 0.2 && progress <= 0.7) {
@@ -1347,14 +1576,26 @@
         }
       }
 
-      // Check Gimmick Boost Pads
-      gimmicks.forEach(g => {
-        if (g.active && g.type === 'boost' && g.mesh.position.distanceTo(playerPhysics.position) < 1.8) {
-          playerPhysics.velocity.add(new THREE.Vector3(0, 0, -1).applyQuaternion(playerPhysics.quaternion).multiplyScalar(18.0));
-          showKillFeed("BOOST ACCEL!");
-        }
-      });
+      // Update Boss behavior
+      if (boss) {
+        const dir = playerPhysics.position.clone().sub(boss.position);
+        const dist = dir.length();
+        dir.y = 0;
+        dir.normalize();
 
+        boss.mesh.rotation.y += delta * 4.0;
+        boss.ring.rotation.z += delta * 3.0;
+
+        boss.position.add(dir.multiplyScalar(boss.speed * delta));
+        if (dist < 2.2) {
+          stats.hp -= 35 * delta;
+          cameraShake = 0.6;
+          updateHUD();
+          if (stats.hp <= 0) triggerGameOver();
+        }
+      }
+
+      // Update Enemies
       enemies.forEach(enemy => {
         const dir = playerPhysics.position.clone().sub(enemy.position);
         const dist = dir.length();
@@ -1372,7 +1613,6 @@
           const targetRot = Math.atan2(dir.x, dir.z);
           enemy.group.rotation.y = THREE.MathUtils.lerp(enemy.group.rotation.y, targetRot, Math.min(1.0, delta * 18));
 
-          // Gunner keeps distance
           if (enemy.type === 'gunner') {
             if (dist > 12) enemy.position.add(dir.multiplyScalar(enemy.speed * delta));
             else if (dist < 8) enemy.position.add(dir.multiplyScalar(-enemy.speed * delta));
@@ -1444,6 +1684,9 @@
         enemies.forEach(e => {
           e.group.position.copy(e.prevPosition).lerp(e.position, alpha);
         });
+        if (boss) {
+          boss.group.position.copy(boss.prevPosition).lerp(boss.position, alpha);
+        }
 
         const idealOffset = new THREE.Vector3(0, 8.5, 11.0);
         const camTarget = playerGroup.position.clone().add(idealOffset);
