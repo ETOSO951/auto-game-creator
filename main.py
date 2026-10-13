@@ -12,7 +12,7 @@ from playwright.sync_api import sync_playwright
 # ========================================================
 # ⚙️ AIエージェントの設定
 # ========================================================
-QUALITY_UP_ITERATIONS = 20 # 限界まで回す設定
+QUALITY_UP_ITERATIONS = 10 # 限界まで回す設定
 MAX_BUGFIX_LOOPS = 4
 
 # システムプロンプト
@@ -21,7 +21,8 @@ SYSTEM_INSTRUCTION = """あなたは世界的な天才フロントエンドエ�
 - モダンで洗練されたCSSデザイン（アニメーション、グラデーション、影の活用）
 - スムーズなアニメーション（requestAnimationFrameの活用）
 - ユーザーを飽きさせないエフェクトとフィードバック
-- スマホとPC両方で遊べるレスポンシブデザイン"""
+- スマホとPC両方で遊べるレスポンシブデザイン
+- 【重要】要素を無秩序に詰め込む「カオス化」を避け、引き算の美学を意識した統一感のあるUI/UXを維持すること。"""
 
 # --- 1. 初期設定 ---
 client = genai.Client() # 環境変数 GEMINI_API_KEY が自動で読み込まれます
@@ -203,7 +204,20 @@ for i in range(1, QUALITY_UP_ITERATIONS + 1):
     try:
         time.sleep(3)
         print(f"\n【ループ {i}/{QUALITY_UP_ITERATIONS}】改善案の作成中...")
-        prompt_idea = f"現在のコード:\n```html\n{html_content}\n```\nこのゲームをさらに面白く、リッチにする追加アイデアを3つ文章で挙げてください。コードは書かないでください。"
+        
+        # --- 段階的ディレクション（進捗に応じた計画的なプロンプト切り替え） ---
+        progress_ratio = i / QUALITY_UP_ITERATIONS
+        
+        if progress_ratio < 0.3:
+            phase_instruction = "【フェーズ: 基礎固め】 新しいゲームシステムや要素は一切追加せず、現在のゲームのコアメカニクス（操作性、当たり判定、基本ルール）を完璧にブラッシュアップし、コードを整理してください。"
+        elif progress_ratio < 0.6:
+            phase_instruction = "【フェーズ: 視覚・聴覚の洗練】 新要素は増やさず、既存の要素のCSSグラフィック、パーティクルエフェクト、アニメーションの滑らかさ、UIの美しさを徹底的に高めてリッチにしてください。"
+        elif progress_ratio < 0.8:
+            phase_instruction = "【フェーズ: UI整理と引き算の美学】 画面がごちゃごちゃしている場合は不要な要素を削除・整理し、プレイヤーが直感的に遊べるように洗練させてください。バランス調整に専念してください。"
+        else:
+            phase_instruction = "【フェーズ: 最終仕上げ】 ゲーム全体の完成度を商業レベルに引き上げるため、タイトル画面やゲームオーバー画面の演出強化、細かいディテールの磨き上げを行ってください。"
+
+        prompt_idea = f"現在のコード:\n```html\n{html_content}\n```\nあなたはプロのゲームディレクターです。\n{phase_instruction}\nこの方針に厳格に従い、現在のコードをより洗練させるための具体的な改善案を3つ文章で挙げてください。コードは書かないでください。"
         
         # 修正: アイデア出しもリトライ・フォールバック関数（call_gemini_api）を経由させる
         ideas = call_gemini_api(prompt_idea, extract_html=False)
