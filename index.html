@@ -243,6 +243,10 @@
       pointer-events: auto;
       display: none;
       z-index: 8;
+      touch-action: none;
+    }
+    .touch-actions {
+      touch-action: none;
     }
     @media (hover: none) and (pointer: coarse) {
       .touch-surface { display: block; }
@@ -1414,6 +1418,12 @@
         applyWeapon(card.getAttribute('data-val'));
       });
     });
+
+    document.addEventListener('touchmove', e => {
+      if (e.target.closest('.touch-surface') || e.target.closest('.touch-actions')) {
+        e.preventDefault();
+      }
+    }, { passive: false });
 
     const PERKS = [
       { name: 'アタックオーバードライブ', desc: '斬撃攻撃力 +35%', apply: () => stats.slashDamage = Math.round(stats.slashDamage * 1.35) },
