@@ -184,12 +184,12 @@
 
     .boss-hud {
       position: absolute;
-      top: 24px;
+      top: 18px;
       left: 50%;
       transform: translateX(-50%);
       width: 420px;
-      max-width: 85%;
-      background: rgba(20, 10, 25, 0.95);
+      max-width: 82%;
+      background: rgba(18, 8, 24, 0.96);
       border: 1px solid rgba(255, 0, 85, 0.95);
       border-radius: 12px;
       padding: 10px 18px;
@@ -197,21 +197,33 @@
       flex-direction: column;
       gap: 6px;
       backdrop-filter: blur(12px);
-      box-shadow: 0 10px 35px rgba(255, 0, 85, 0.6);
+      box-shadow: 0 12px 40px rgba(255, 0, 85, 0.65);
       z-index: 12;
       animation: bossHudPulse 1.2s ease infinite alternate;
     }
     @keyframes bossHudPulse {
       0% { box-shadow: 0 10px 25px rgba(255, 0, 85, 0.4); }
-      100% { box-shadow: 0 10px 40px rgba(255, 0, 85, 0.8); }
+      100% { box-shadow: 0 10px 45px rgba(255, 0, 85, 0.85); }
     }
     @media (max-width: 768px) {
       .boss-hud {
-        top: 72px;
+        top: auto;
+        bottom: 96px;
         left: 50%;
-        right: auto;
         transform: translateX(-50%);
-        width: 92%;
+        width: 94%;
+        padding: 8px 14px;
+        z-index: 20;
+      }
+      .hud-top {
+        align-items: flex-start;
+      }
+      .unified-panel {
+        width: 200px;
+        padding: 8px 12px;
+      }
+      .score-panel {
+        min-width: 100px;
         padding: 8px 12px;
       }
     }
@@ -1264,34 +1276,45 @@
       triggerGlitchEffect();
       triggerHitFlash();
       
-      // 究極奥義「CYBER NOVA STRIKE」：全画面を覆う衝撃波＋全敵吸引ブラックホール効果＋無敵付与＆大ダメージ
-      stats.invulnerableTimer = 1.2;
+      // 究極奥義「CYBER NOVA STRIKE」：ド派手な全画面二重衝撃波＋全敵吸引ブラックホール＆無敵・HP回復＋大ダメージ
+      stats.invulnerableTimer = 1.8;
+      stats.hp = Math.min(stats.maxHp, stats.hp + 25);
       const pPos = playerPhysics.position.clone();
       spawnParticles(pPos, 0x00ffff);
-      cameraShake = 0.95;
+      spawnParticles(pPos, 0xff0055);
+      cameraShake = 1.2;
+      hitStopFrames = 12;
 
-      const novaGeo = new THREE.RingGeometry(0.5, 14, 48);
+      const novaGeo = new THREE.RingGeometry(0.5, 18, 64);
       novaGeo.rotateX(-Math.PI / 2);
       const novaMesh = new THREE.Mesh(novaGeo, new THREE.MeshBasicMaterial({
-        color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.9
+        color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.95
       }));
-      novaMesh.position.set(pPos.x, pPos.y + 0.1, pPos.z);
+      novaMesh.position.set(pPos.x, pPos.y + 0.15, pPos.z);
       scene.add(novaMesh);
-      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 35.0, speed: 30.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 42.0, speed: 38.0, platform: playerPhysics.currentPlatform });
 
-      // 周囲の敵をプレイヤー付近に引き寄せるブラックホール吸引効果 ＆ ダメージ
+      const novaGeo2 = new THREE.RingGeometry(0.5, 12, 48);
+      novaGeo2.rotateX(-Math.PI / 2);
+      const novaMesh2 = new THREE.Mesh(novaGeo2, new THREE.MeshBasicMaterial({
+        color: 0xff0077, side: THREE.DoubleSide, transparent: true, opacity: 0.9
+      }));
+      novaMesh2.position.set(pPos.x, pPos.y + 0.2, pPos.z);
+      scene.add(novaMesh2);
+      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 30.0, speed: 28.0, platform: playerPhysics.currentPlatform });
+
+      // 周囲の敵をプレイヤー付近に引き寄せるブラックホール吸引効果 ＆ 甚大なダメージ
       enemies.forEach((e, idx) => {
         const dist = e.position.distanceTo(pPos);
-        if (dist <= 16.0) {
-          // 引き寄せ
+        if (dist <= 22.0) {
           const pullDir = pPos.clone().sub(e.position);
           pullDir.y = 0;
-          e.position.add(pullDir.multiplyScalar(0.75));
+          e.position.add(pullDir.multiplyScalar(0.85));
 
-          e.hp -= stats.slashDamage * 2.8;
+          e.hp -= stats.slashDamage * 3.5;
           spawnParticles(e.position, 0x00ffcc);
           if (e.hp <= 0) {
-            stats.score += 350;
+            stats.score += 450;
             scene.remove(e.group);
             enemies.splice(idx, 1);
           }
@@ -1300,8 +1323,8 @@
 
       if (boss) {
         const bDist = boss.position.distanceTo(pPos);
-        if (bDist <= 18.0) {
-          boss.hp -= stats.slashDamage * 2.2;
+        if (bDist <= 24.0) {
+          boss.hp -= stats.slashDamage * 2.8;
           const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
           document.getElementById('boss-hp-bar').style.width = `${pct}%`;
           document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
@@ -1311,7 +1334,7 @@
       projectiles.forEach(pr => scene.remove(pr.mesh));
       projectiles = [];
 
-      showFeed('【超絶奥義】 CYBER NOVA BLACKHOLE STRIKE');
+      showFeed('【究極奥義】 CYBER NOVA BLACKHOLE STRIKE!');
     }
 
     function executeSlashHit() {
@@ -1547,13 +1570,14 @@
     }, { passive: false });
 
     const PERKS = [
-      { name: 'オーバークロック・セイバー', desc: '斬撃ダメージが45%増加し、さらに刃が巨大化する', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.45); stats.slashRange *= 1.15; } },
-      { name: 'クアンタム・リープ', desc: '移動速度が30%上昇し、スキルのクールダウン時間が大幅短縮', apply: () => { stats.moveSpeed *= 1.3; stats.skillMaxCooldown = Math.max(1.5, stats.skillMaxCooldown * 0.65); } },
-      { name: 'ナノマシン・リジェネ', desc: '最大HPが50増加し、即座にHPが全快する', apply: () => { stats.maxHp += 50; stats.hp = stats.maxHp; } },
-      { name: 'サイバー・ヴァンパイア', desc: '敵撃破時にHPが35回復し、スコア獲得量が1.5倍になる', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 35); stats.perks.vampirism = true; } },
-      { name: 'プラズマ・オーラ爆発', desc: '敵撃破時に周囲の敵を巻き込むプラズマチェイン爆発が発生する', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.2); } },
-      { name: 'ホーミング・プラズマブレード', desc: '斬撃時に前方に敵を追尾するプラズマ弾が自動発射される', apply: () => { stats.perks.homingBlade = true; } },
-      { name: 'メテオ・スラッシュ・ドライブ', desc: 'ジャンプ中の下方向斬撃が超強力なメテオスマッシュになる', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.2; } }
+      { name: 'オーバークロック・セイバー', desc: '斬撃ダメージが45%増加し、さらに刃のリーチと範囲が拡大する', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.45); stats.slashRange *= 1.2; } },
+      { name: 'クアンタム・リープ', desc: '移動速度が30%上昇し、スキルのクールダウン時間が大幅に短縮される', apply: () => { stats.moveSpeed *= 1.3; stats.skillMaxCooldown = Math.max(1.2, stats.skillMaxCooldown * 0.6); } },
+      { name: 'ナノマシン・リジェネ', desc: '最大HPが60増加し、即座にバイタル（HP）が完全回復する', apply: () => { stats.maxHp += 60; stats.hp = stats.maxHp; } },
+      { name: 'サイバー・ヴァンパイア', desc: '敵撃破時にHPが40回復し、さらに強力なライフスティール効果を得る', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 40); stats.perks.vampirism = true; } },
+      { name: 'プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む高威力チェインプラズマ爆発が発生する', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.25); } },
+      { name: 'ホーミング・プラズマブレード', desc: '斬撃時に前方に敵をどこまでも自動追尾するプラズマエナジー弾が放たれる', apply: () => { stats.perks.homingBlade = true; } },
+      { name: 'メテオ・スラッシュ・ドライブ', desc: '空中ジャンプからの急降下下方向斬撃が、全画面級のメテオスマッシュに進化する', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.25; } },
+      { name: 'ネクサス・シールドバリア', desc: '受けるダメージを35%軽減し、さらに敵の弾丸を高確率で自動弾き返す', apply: () => { stats.maxHp += 30; stats.hp = Math.min(stats.maxHp, stats.hp + 30); stats.perks.shieldReflect = true; } }
     ];
 
     function showPerkScreen() {
