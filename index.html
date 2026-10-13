@@ -206,15 +206,35 @@
       0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
       100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
     }
-    /* ボス戦中のHUD干渉・見切れを完全解消する専用レイアウト */
+    /* ボス戦中のHUD干渉・見切れを完全解消する専用レイアウト（洗練された引き算の美学） */
     body.boss-active .ui-layer {
-      padding: 12px 16px;
+      padding: 14px 20px;
     }
     body.boss-active .hud-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-top: 72px;
+      margin-top: 76px;
+      gap: 12px;
+    }
+    body.boss-active .unified-panel {
+      width: 210px;
+      padding: 8px 14px;
+      background: rgba(10, 15, 30, 0.96);
+      border-color: rgba(0, 255, 204, 0.5);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+    body.boss-active .score-panel {
+      text-align: right;
+      min-width: 115px;
+      padding: 8px 14px;
+      background: rgba(10, 15, 30, 0.96);
+    }
+    body.boss-active .boss-hud {
+      top: 12px;
+      display: flex;
+      width: 560px;
+      max-width: 92%;
     }
     body.boss-active .unified-panel {
       width: 220px;
@@ -1351,19 +1371,19 @@
       triggerHitFlash();
       
       // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：極限まで洗練された全画面一掃・カメラ演出・完全無敵＆大回復
-      stats.invulnerableTimer = 10.0;
-      stats.hp = Math.min(stats.maxHp, stats.hp + 250);
+      stats.invulnerableTimer = 12.0;
+      stats.hp = Math.min(stats.maxHp, stats.hp + 300);
       updateHUD();
       const pPos = playerPhysics.position.clone();
       
-      for (let k = 0; k < 50; k++) {
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*18, 0, (Math.random()-0.5)*18)), 0x00ffff);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*18, 0, (Math.random()-0.5)*18)), 0xff0077);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*18, 0, (Math.random()-0.5)*18)), 0xffaa00);
+      for (let k = 0; k < 60; k++) {
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*20, 0, (Math.random()-0.5)*20)), 0x00ffff);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*20, 0, (Math.random()-0.5)*20)), 0xff0077);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*20, 0, (Math.random()-0.5)*20)), 0xffaa00);
       }
 
-      cameraShake = 22.0;
-      hitStopFrames = 180;
+      cameraShake = 26.0;
+      hitStopFrames = 210;
 
       // 3連重畳ブラックホール・ノヴァ衝撃波
       [
@@ -1679,16 +1699,16 @@
     }, { passive: false });
 
     const PERKS = [
-      { id: 'assault', name: '【進撃】オーバークロック・セイバー', desc: '斬撃ダメージが70%増加し、さらに刃のリーチと衝撃範囲が拡大する。', synergy: '🔥 ASSAULT BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.7); stats.slashRange *= 1.35; bladeMat.color.set(0xff0055); bladeMat.emissive.set(0xff0055); } },
-      { id: 'agility', name: '【機動】クアンタム・リープ', desc: '移動速度が50%上昇し、スキルのクールダウンがさらに高速化する', synergy: '⚡ AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.5; stats.skillMaxCooldown = Math.max(0.7, stats.skillMaxCooldown * 0.4); } },
-      { id: 'survival', name: '【再生】ナノマシン・リジェネ', desc: '最大HPが120増加し、即座にバイタル（HP）が完全回復する', synergy: '🛡️ SURVIVAL BUILD', apply: () => { stats.maxHp += 120; stats.hp = stats.maxHp; } },
-      { id: 'vampirism', name: '【吸血】サイバー・ヴァンパイア', desc: '敵撃破時にHPが75回復し、さらに攻撃範囲・スピードがシナジー強化される', synergy: '🧛 VAMPIRIC BUILD', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 75); stats.perks.vampirism = true; stats.slashDamage = Math.round(stats.slashDamage * 1.3); } },
-      { id: 'plasma', name: '【爆発】プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む超強力チェインプラズマ爆発が発生する', synergy: '💥 EXPLOSIVE BUILD', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.45); } },
-      { id: 'homing', name: '【追尾】ホーミング・プラズマブレード', desc: '斬撃時に前方に敵をどこまでも自動追尾するプラズマエナジー弾が連続放射される', synergy: '🎯 HOMING BUILD', apply: () => { stats.perks.homingBlade = true; stats.slashDamage = Math.round(stats.slashDamage * 1.2); } },
-      { id: 'meteor', name: '【急降下】メテオ・スラッシュ・ドライブ', desc: '空中ジャンプからの急降下下方向斬撃が、全画面級の巨大メテオスマッシュに進化する', synergy: '☄️ METEOR BUILD', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.45; } },
-      { id: 'shield', name: '【防御】ネクサス・シールドバリア', desc: '受けるダメージを55%軽減し、さらに敵の弾丸を高確率で自動弾き返すシールドを展開', synergy: '🛡️ SHIELD BUILD', apply: () => { stats.maxHp += 60; stats.hp = Math.min(stats.maxHp, stats.hp + 60); stats.perks.shieldReflect = true; } },
-      { id: 'drone', name: '【支援】デュアル・オービタルドローン', desc: 'プレイヤーの周囲を高速旋回し、接近する敵を全自動レーザーで連続迎撃するドローンが2機に増加', synergy: '🤖 DRONE BUILD', apply: () => { stats.perks.orbitalDrone = true; const dg = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 3.5})); scene.add(dg); orbitalDroneMesh = dg; } },
-      { id: 'overdrive', name: '【神速】サイバー・オーバードライブ', desc: '全ステータス（攻撃力・機動力・スキル回転率）が限界突破し、無類の強さを誇る。', synergy: '🌟 OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.6); stats.moveSpeed *= 1.4; stats.skillMaxCooldown = Math.max(0.5, stats.skillMaxCooldown * 0.35); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); } }
+      { id: 'assault', name: '【進撃】オーバークロック・セイバー', desc: '斬撃ダメージが85%増加し、さらに刃のリーチと衝撃範囲が拡大する。', synergy: '🔥 ASSAULT BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.85); stats.slashRange *= 1.4; bladeMat.color.set(0xff0055); bladeMat.emissive.set(0xff0055); bladeMat.emissiveIntensity = 3.8; } },
+      { id: 'agility', name: '【機動】クアンタム・リープ', desc: '移動速度が60%上昇し、スキルのクールダウンがさらに高速化する', synergy: '⚡ AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.6; stats.skillMaxCooldown = Math.max(0.6, stats.skillMaxCooldown * 0.35); } },
+      { id: 'survival', name: '【再生】ナノマシン・リジェネ', desc: '最大HPが150増加し、即座にバイタル（HP）が完全回復する', synergy: '🛡️ SURVIVAL BUILD', apply: () => { stats.maxHp += 150; stats.hp = stats.maxHp; } },
+      { id: 'vampirism', name: '【吸血】サイバー・ヴァンパイア', desc: '敵撃破時にHPが90回復し、さらに攻撃範囲・スピードがシナジー強化される', synergy: '🧛 VAMPIRIC BUILD', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 90); stats.perks.vampirism = true; stats.slashDamage = Math.round(stats.slashDamage * 1.35); } },
+      { id: 'plasma', name: '【爆発】プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む超強力チェインプラズマ爆発が発生する', synergy: '💥 EXPLOSIVE BUILD', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.5); } },
+      { id: 'homing', name: '【追尾】ホーミング・プラズマブレード', desc: '斬撃時に前方に敵をどこまでも自動追尾するプラズマエナジー弾が連続放射される', synergy: '🎯 HOMING BUILD', apply: () => { stats.perks.homingBlade = true; stats.slashDamage = Math.round(stats.slashDamage * 1.25); } },
+      { id: 'meteor', name: '【急降下】メテオ・スラッシュ・ドライブ', desc: '空中ジャンプからの急降下下方向斬撃が、全画面級の巨大メテオスマッシュに進化する', synergy: '☄️ METEOR BUILD', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.5; } },
+      { id: 'shield', name: '【防御】ネクサス・シールドバリア', desc: '受けるダメージを60%軽減し、さらに敵の弾丸を高確率で自動弾き返すシールドを展開', synergy: '🛡️ SHIELD BUILD', apply: () => { stats.maxHp += 80; stats.hp = Math.min(stats.maxHp, stats.hp + 80); stats.perks.shieldReflect = true; } },
+      { id: 'drone', name: '【支援】デュアル・オービタルドローン', desc: 'プレイヤーの周囲を高速旋回し、接近する敵を全自動レーザーで連続迎撃するドローンが2機に増加', synergy: '🤖 DRONE BUILD', apply: () => { stats.perks.orbitalDrone = true; const dg = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 4.0})); scene.add(dg); orbitalDroneMesh = dg; } },
+      { id: 'overdrive', name: '【神速】サイバー・オーバードライブ', desc: '全ステータス（攻撃力・機動力・スキル回転率）が限界突破し、無類の強さを誇る。', synergy: '🌟 OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.75); stats.moveSpeed *= 1.45; stats.skillMaxCooldown = Math.max(0.4, stats.skillMaxCooldown * 0.3); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); bladeMat.emissiveIntensity = 4.2; } }
     ];
 
     function showPerkScreen() {
