@@ -64,7 +64,7 @@
       100% { box-shadow: inset 0 0 200px rgba(255, 0, 85, 0.9); }
     }
 
-    /* UI Base Layer (Negative Space & Minimalism) */
+    /* UI Base Layer (Negative Space & Minimalism - 統合された左上UI) */
     .ui-layer {
       position: absolute;
       top: 0;
@@ -83,38 +83,39 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      width: 100%;
     }
 
-    /* Minimal Status Panel */
-    .status-panel {
-      background: rgba(3, 5, 11, 0.75);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+    /* Minimal Unified Status Panel (アイデア1に基づく統合HUD) */
+    .unified-panel {
+      background: rgba(3, 5, 11, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 12px;
       padding: 16px 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      width: 260px;
+      gap: 12px;
+      width: 280px;
     }
 
     .hud-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 10px;
+      font-size: 9px;
       letter-spacing: 2px;
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(255, 255, 255, 0.5);
       font-weight: 700;
     }
 
     .bar-outer {
       width: 100%;
-      height: 4px;
+      height: 3px;
       background: rgba(255, 255, 255, 0.06);
-      border-radius: 2px;
+      border-radius: 1.5px;
       overflow: hidden;
     }
 
@@ -122,8 +123,8 @@
       width: 100%;
       height: 100%;
       background: var(--accent);
-      box-shadow: 0 0 12px var(--accent-glow);
-      transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 0 10px var(--accent-glow);
+      transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .hp-inner {
@@ -133,25 +134,25 @@
     /* Score & Floor (Right Side) */
     .score-panel {
       text-align: right;
-      background: rgba(3, 5, 11, 0.75);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(3, 5, 11, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 12px;
       padding: 16px 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
 
     .floor-indicator {
-      font-size: 10px;
+      font-size: 9px;
       letter-spacing: 2px;
       color: var(--accent);
       font-weight: 700;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
 
     .score-val {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 800;
       letter-spacing: 1px;
       font-variant-numeric: tabular-nums;
@@ -165,14 +166,14 @@
       transform: translateX(-50%);
       width: 380px;
       max-width: 85%;
-      background: rgba(11, 3, 5, 0.85);
-      border: 1px solid rgba(255, 0, 85, 0.3);
+      background: rgba(11, 3, 5, 0.75);
+      border: 1px solid rgba(255, 0, 85, 0.2);
       border-radius: 12px;
-      padding: 14px 20px;
+      padding: 12px 20px;
       display: none;
       flex-direction: column;
-      gap: 8px;
-      backdrop-filter: blur(20px);
+      gap: 6px;
+      backdrop-filter: blur(16px);
     }
     .boss-hud.active { display: flex; }
     .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
@@ -187,28 +188,33 @@
       text-align: center;
     }
     .kill-feed {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       letter-spacing: 3px;
       color: var(--accent);
       opacity: 0;
-      transform: translateY(15px);
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      text-shadow: 0 0 20px var(--accent-glow);
+      transform: translateY(12px);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      text-shadow: 0 0 16px var(--accent-glow);
     }
     .kill-feed.show {
       opacity: 1;
       transform: translateY(0);
     }
 
-    /* Touch Controls (Simplified & Clean) */
+    /* Touch Controls (アイデア2に基づく動的半透明化・洗練されたフロートデザイン) */
     .touch-controls {
       display: none;
       width: 100%;
       justify-content: space-between;
       align-items: flex-end;
-      padding-bottom: 8px;
+      padding-bottom: 12px;
       pointer-events: auto;
+      opacity: 0.35;
+      transition: opacity 0.3s ease;
+    }
+    .touch-controls:active, .touch-controls.active-touch {
+      opacity: 0.9;
     }
 
     @media (hover: none) and (pointer: coarse) {
@@ -216,26 +222,26 @@
     }
 
     .stick-area {
-      width: 130px;
-      height: 130px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      width: 120px;
+      height: 120px;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 50%;
       position: relative;
       touch-action: none;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(8px);
     }
 
     .stick-nub {
-      width: 50px;
-      height: 50px;
-      background: rgba(0, 255, 204, 0.8);
+      width: 44px;
+      height: 44px;
+      background: rgba(0, 255, 204, 0.7);
       border-radius: 50%;
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      box-shadow: 0 0 20px var(--accent-glow);
+      box-shadow: 0 0 16px var(--accent-glow);
       pointer-events: none;
     }
 
@@ -247,7 +253,7 @@
 
     .act-btn {
       border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       font-weight: 800;
       color: #fff;
       display: flex;
@@ -256,39 +262,40 @@
       cursor: pointer;
       touch-action: manipulation;
       transition: transform 0.1s ease, background 0.2s ease;
+      backdrop-filter: blur(8px);
     }
-    .act-btn:active { transform: scale(0.9); }
+    .act-btn:active { transform: scale(0.92); }
 
     .btn-slash {
-      width: 78px; height: 78px; font-size: 15px;
-      background: rgba(255, 0, 85, 0.25);
-      border-color: rgba(255, 0, 85, 0.5);
-      box-shadow: 0 0 25px var(--danger-glow);
+      width: 74px; height: 74px; font-size: 14px;
+      background: rgba(255, 0, 85, 0.2);
+      border-color: rgba(255, 0, 85, 0.4);
+      box-shadow: 0 0 20px var(--danger-glow);
     }
     .btn-skill {
-      width: 60px; height: 60px; font-size: 11px;
-      background: rgba(0, 136, 255, 0.25);
-      border-color: rgba(0, 136, 255, 0.5);
+      width: 56px; height: 56px; font-size: 10px;
+      background: rgba(0, 136, 255, 0.2);
+      border-color: rgba(0, 136, 255, 0.4);
     }
     .btn-jump {
-      width: 60px; height: 60px; font-size: 11px;
-      background: rgba(0, 255, 204, 0.2);
-      border-color: rgba(0, 255, 204, 0.4);
+      width: 56px; height: 56px; font-size: 10px;
+      background: rgba(0, 255, 204, 0.15);
+      border-color: rgba(0, 255, 204, 0.3);
     }
 
-    /* Screen Overlays (Minimalism & Negative Space) */
+    /* Screen Overlays (アイデア3に基づく余白の確保と洗練されたミニマルレイアウト) */
     .screen-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       z-index: 100;
-      background: rgba(3, 5, 11, 0.9);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      background: rgba(3, 5, 11, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 40px;
+      padding: 40px 24px;
       text-align: center;
       transition: opacity 0.3s ease, visibility 0.3s;
     }
@@ -297,20 +304,20 @@
     }
 
     .screen-title {
-      font-size: clamp(28px, 5vw, 56px);
+      font-size: clamp(26px, 4vw, 48px);
       font-weight: 900;
-      letter-spacing: 8px;
+      letter-spacing: 6px;
       color: #fff;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       text-transform: uppercase;
-      text-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
+      text-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
     }
 
     .screen-sub {
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 10px;
       letter-spacing: 4px;
-      margin-bottom: 40px;
+      margin-bottom: 36px;
       font-weight: 600;
     }
 
@@ -319,18 +326,18 @@
       background: #fff;
       color: #03050b;
       border: none;
-      padding: 16px 44px;
-      font-size: 13px;
+      padding: 15px 40px;
+      font-size: 12px;
       font-weight: 800;
       letter-spacing: 3px;
-      border-radius: 30px;
+      border-radius: 28px;
       cursor: pointer;
-      box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .primary-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 0 50px rgba(0, 255, 204, 0.4);
+      box-shadow: 0 0 40px rgba(0, 255, 204, 0.3);
     }
 
     /* Minimal Selectors */
@@ -340,32 +347,32 @@
       margin-bottom: 32px;
       flex-wrap: wrap;
       justify-content: center;
-      max-width: 600px;
+      max-width: 540px;
     }
     .select-card {
       pointer-events: auto;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 10px;
-      padding: 12px 18px;
+      padding: 14px 16px;
       cursor: pointer;
-      width: 140px;
+      width: 130px;
       text-align: center;
       transition: all 0.2s ease;
     }
     .select-card.selected, .select-card:hover {
-      background: rgba(0, 255, 204, 0.1);
+      background: rgba(0, 255, 204, 0.06);
       border-color: var(--accent);
-      box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+      box-shadow: 0 0 16px rgba(0, 255, 204, 0.15);
     }
     .card-name {
       font-weight: 700;
-      font-size: 12px;
+      font-size: 11px;
       color: #fff;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .card-detail {
-      font-size: 9px;
+      font-size: 8px;
       color: rgba(255, 255, 255, 0.4);
     }
 
@@ -374,36 +381,37 @@
       display: flex;
       gap: 16px;
       width: 100%;
-      max-width: 800px;
+      max-width: 760px;
       justify-content: center;
       flex-wrap: wrap;
+      margin-bottom: 8px;
     }
     .perk-card {
       pointer-events: auto;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 12px;
-      padding: 24px 20px;
-      width: 230px;
+      padding: 22px 18px;
+      width: 210px;
       cursor: pointer;
-      transition: all 0.25s ease;
+      transition: all 0.2s ease;
       text-align: left;
     }
     .perk-card:hover {
-      background: rgba(0, 255, 204, 0.08);
+      background: rgba(0, 255, 204, 0.06);
       border-color: var(--accent);
-      transform: translateY(-4px);
+      transform: translateY(-3px);
     }
     .perk-title {
       font-weight: 700;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--accent);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .perk-desc {
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.6);
-      line-height: 1.5;
+      font-size: 9px;
+      color: rgba(255, 255, 255, 0.5);
+      line-height: 1.4;
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -413,10 +421,10 @@
   <div id="canvas-container"></div>
   <div id="vignette"></div>
 
-  <!-- Ingame Minimal HUD -->
+  <!-- Ingame Minimal HUD (アイデア1に基づく統合型) -->
   <div class="ui-layer">
     <div class="hud-top">
-      <div class="status-panel">
+      <div class="unified-panel">
         <div class="hud-row">
           <span>VITAL</span>
           <span id="biome-label" style="color: var(--accent);">NEON CITY</span>
@@ -424,7 +432,7 @@
         <div class="bar-outer">
           <div id="hp-bar" class="bar-inner hp-inner"></div>
         </div>
-        <div class="hud-row" style="margin-top: 4px;">
+        <div class="hud-row" style="margin-top: 2px;">
           <span>SKILL [E]</span>
         </div>
         <div class="bar-outer">
@@ -453,8 +461,8 @@
       <div id="kill-feed" class="kill-feed">SLASHED</div>
     </div>
 
-    <!-- Simplified Mobile Controls -->
-    <div class="touch-controls">
+    <!-- Simplified Mobile Controls (アイデア2に基づく動的フェード) -->
+    <div id="touch-controls" class="touch-controls">
       <div id="stick-area" class="stick-area">
         <div id="stick-nub" class="stick-nub"></div>
       </div>
@@ -466,12 +474,12 @@
     </div>
   </div>
 
-  <!-- Start Screen -->
+  <!-- Start Screen (アイデア3に基づく統一感・十分な余白) -->
   <div id="screen-start" class="screen-overlay">
     <h1 class="screen-title">斬影 : ZANEI</h1>
     <p class="screen-sub">CYBERNETIC SLASHER</p>
     
-    <div style="font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.4); margin-bottom: 12px; font-weight: 700;">WEAPON TYPE</div>
+    <div style="font-size: 9px; letter-spacing: 2px; color: rgba(255,255,255,0.35); margin-bottom: 12px; font-weight: 700;">WEAPON TYPE</div>
     <div class="selector-container" id="weapon-selector">
       <div class="select-card selected" data-val="saber">
         <div class="card-name">セイバー</div>
@@ -492,7 +500,7 @@
 
   <!-- Roguelike Perk Screen -->
   <div id="screen-perk" class="screen-overlay hidden">
-    <h2 class="screen-title" style="font-size: 28px;">FLOOR CLEAR</h2>
+    <h2 class="screen-title" style="font-size: 26px;">FLOOR CLEAR</h2>
     <p class="screen-sub">ニューラルモジュールを選択</p>
     <div id="perk-list" class="perk-cards"></div>
   </div>
@@ -561,7 +569,7 @@
         });
         window.addEventListener('keyup', e => { this.keys[e.code] = false; });
         window.addEventListener('pointerdown', e => {
-          if (state === GAME_STATE.PLAYING && e.target.tagName !== 'BUTTON') {
+          if (state === GAME_STATE.PLAYING && e.target.tagName !== 'BUTTON' && e.clientX > 80 && e.clientY > 80) {
             this.push('slash');
           }
         });
@@ -807,7 +815,6 @@
 
     function executeSlashHit() {
       const pPos = playerPhysics.position;
-      const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(playerPhysics.quaternion);
       
       if (boss && pPos.distanceTo(boss.position) <= stats.slashRange + 1.5) {
         boss.hp -= stats.slashDamage;
@@ -876,10 +883,22 @@
     const stick = { active: false, x: 0, y: 0 };
     const stickArea = document.getElementById('stick-area');
     const stickNub = document.getElementById('stick-nub');
+    const touchControlsElem = document.getElementById('touch-controls');
 
-    stickArea.addEventListener('touchstart', e => { stick.active = true; updateStick(e); }, { passive: false });
+    stickArea.addEventListener('touchstart', e => { 
+      stick.active = true; 
+      touchControlsElem.classList.add('active-touch');
+      updateStick(e); 
+    }, { passive: false });
+
     window.addEventListener('touchmove', e => { if (stick.active) updateStick(e); }, { passive: false });
-    window.addEventListener('touchend', () => { stick.active = false; stick.x = 0; stick.y = 0; stickNub.style.transform = 'translate(-50%, -50%)'; });
+    window.addEventListener('touchend', () => { 
+      stick.active = false; 
+      stick.x = 0; 
+      stick.y = 0; 
+      stickNub.style.transform = 'translate(-50%, -50%)';
+      touchControlsElem.classList.remove('active-touch');
+    });
 
     function updateStick(e) {
       const t = e.touches[0];
@@ -893,9 +912,12 @@
       stickNub.style.transform = `translate(calc(-50% + ${stick.x * 35}px), calc(-50% + ${stick.y * 35}px))`;
     }
 
-    document.getElementById('btn-slash').addEventListener('touchstart', (e) => { e.stopPropagation(); inputSys.push('slash'); });
-    document.getElementById('btn-jump').addEventListener('touchstart', (e) => { e.stopPropagation(); inputSys.push('jump'); });
-    document.getElementById('btn-skill').addEventListener('touchstart', (e) => { e.stopPropagation(); inputSys.push('skill'); });
+    document.getElementById('btn-slash').addEventListener('touchstart', (e) => { e.stopPropagation(); touchControlsElem.classList.add('active-touch'); inputSys.push('slash'); });
+    document.getElementById('btn-jump').addEventListener('touchstart', (e) => { e.stopPropagation(); touchControlsElem.classList.add('active-touch'); inputSys.push('jump'); });
+    document.getElementById('btn-skill').addEventListener('touchstart', (e) => { e.stopPropagation(); touchControlsElem.classList.add('active-touch'); inputSys.push('skill'); });
+    document.getElementById('btn-slash').addEventListener('touchend', () => touchControlsElem.classList.remove('active-touch'));
+    document.getElementById('btn-jump').addEventListener('touchend', () => touchControlsElem.classList.remove('active-touch'));
+    document.getElementById('btn-skill').addEventListener('touchend', () => touchControlsElem.classList.remove('active-touch'));
 
     document.querySelectorAll('#weapon-selector .select-card').forEach(card => {
       card.addEventListener('click', () => {
