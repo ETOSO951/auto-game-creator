@@ -714,7 +714,7 @@
       invulnerableTimer: 0
     };
 
-    let enemies = [], particles = [], platforms = [], boss = null, portal = null;
+    let enemies = [], projectiles = [], shockwaves = [], particles = [], platforms = [], boss = null, portal = null;
     let cameraShake = 0, hitStopFrames = 0;
 
     const BIOMES = [
@@ -726,22 +726,49 @@
     const playerGroup = new THREE.Group();
     scene.add(playerGroup);
 
+    // プレイヤーを黒基調（サイバーブラック）に変更
     const bodyMesh = new THREE.Mesh(
       new THREE.CylinderGeometry(0.32, 0.24, 1.25, 16),
-      new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.2, metalness: 0.5, emissive: 0x0284c7, emissiveIntensity: 0.6 })
+      new THREE.MeshStandardMaterial({ 
+        color: 0x12151c, 
+        roughness: 0.35, 
+        metalness: 0.9, 
+        emissive: 0x07090e, 
+        emissiveIntensity: 0.4 
+      })
     );
     bodyMesh.position.y = 0.625;
     bodyMesh.castShadow = true;
     playerGroup.add(bodyMesh);
 
+    // 胸部に水色のサイバーライン
+    const chestCore = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, 0.4, 0.28),
+      new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00d4ff, emissiveIntensity: 1.8 })
+    );
+    chestCore.position.set(0, 0.72, 0.05);
+    playerGroup.add(chestCore);
+
     const headMesh = new THREE.Mesh(
       new THREE.SphereGeometry(0.26, 16, 16),
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, emissive: 0x00ffcc, emissiveIntensity: 1.2 })
+      new THREE.MeshStandardMaterial({ 
+        color: 0x1e2230, 
+        roughness: 0.2, 
+        metalness: 0.85, 
+        emissive: 0x00f0ff, 
+        emissiveIntensity: 0.5 
+      })
     );
     headMesh.position.y = 1.42;
     playerGroup.add(headMesh);
 
-    const bladeMat = new THREE.MeshStandardMaterial({ color: 0x00ffcc, emissive: 0x00ffcc, emissiveIntensity: 2.5, roughness: 0.1 });
+    // 水色（シアン/アクアブルー）に光り輝く刀身
+    const bladeMat = new THREE.MeshStandardMaterial({ 
+      color: 0x00e5ff, 
+      emissive: 0x00d4ff, 
+      emissiveIntensity: 2.8, 
+      roughness: 0.05 
+    });
     const katanaGroup = new THREE.Group();
     katanaGroup.position.set(0.35, 0.65, 0.1);
     const bladeMesh = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.35, 0.08), bladeMat);
@@ -806,6 +833,8 @@
     function clearLevel() {
       platforms.forEach(p => scene.remove(p.parentGroup)); platforms = [];
       enemies.forEach(e => scene.remove(e.group)); enemies = [];
+      projectiles.forEach(pr => scene.remove(pr.mesh)); projectiles = [];
+      shockwaves.forEach(sw => scene.remove(sw.mesh)); shockwaves = [];
       if (boss) { scene.remove(boss.group); boss = null; document.getElementById('boss-hud').classList.remove('active'); }
       if (portal) { scene.remove(portal); portal = null; }
     }
@@ -836,11 +865,29 @@
       );
       group.add(line);
 
-      const grid = new THREE.GridHelper(Math.max(w, d), Math.round(Math.max(w, d) / 1.5), edgeColor, edgeColor);
-      grid.position.y = h / 2 + 0.01;
-      grid.material.opacity = 0.5;
-      grid.material.transparent = true;
-      group.add(grid);
+      // 足場サイズ(w, d)にぴったり一致する正確な網目グリッドを作成（ズレの解消）
+      const step = 2.0;
+      const gridPts = [];
+      const halfW = w / 2;
+      const halfD = d / 2;
+
+      // X方向の平行線
+      for (let zPos = -halfD; zPos <= halfD + 0.001; zPos += step) {
+        gridPts.push(new THREE.Vector3(-halfW, h / 2 + 0.015, zPos));
+        gridPts.push(new THREE.Vector3(halfW, h / 2 + 0.015, zPos));
+      }
+      // Z方向の平行線
+      for (let xPos = -halfW; xPos <= halfW + 0.001; xPos += step) {
+        gridPts.push(new THREE.Vector3(xPos, h / 2 + 0.015, -halfD));
+        gridPts.push(new THREE.Vector3(xPos, h / 2 + 0.015, halfD));
+      }
+
+      const gridGeo = new THREE.BufferGeometry().setFromPoints(gridPts);
+      const gridLine = new THREE.LineSegments(
+        gridGeo,
+        new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.4 })
+      );
+      group.add(gridLine);
 
       scene.add(group);
 
@@ -869,55 +916,87 @@
       playerPhysics.currentPlatform = startPlat;
 
       if (isBoss) {
-        const bossPlat = createPlatform(0, -0.5, -28, 22, 1, 22, biome.basePlate, biome.edgeColor);
+        // ボスフロア：スタート足場とボスアリーナを接続する通路（安全なブリッジ）を追加して落下リスクを緩和
+        const bridgePlat = createPlatform(0, -0.5, -12, 8, 1, 10, biome.basePlate, biome.edgeColor);
+        const bossPlat = createPlatform(0, -0.5, -28, 24, 1, 24, biome.basePlate, biome.edgeColor);
         spawnBoss(0, bossPlat.topY, -28, bossPlat);
       } else {
-        const pathLen = 5 + floorNum;
+        // ステージ構造の多彩なバリエーション（一直線だけでなく、クランク・二股分岐・広場アリーナ構造）
+        const layoutType = (floorNum % 3);
         let currPos = new THREE.Vector3(0, -0.5, 0);
 
-        for (let i = 0; i < pathLen; i++) {
-          currPos.x += (Math.random() - 0.5) * 8;
-          currPos.z -= (10 + Math.random() * 4);
-          currPos.y += (Math.random() - 0.35) * 1.5;
-          const pw = 7 + Math.random() * 3;
-          const pd = 7 + Math.random() * 3;
-          const pData = createPlatform(currPos.x, currPos.y, currPos.z, pw, 1, pd, biome.basePlate, biome.edgeColor);
+        if (layoutType === 0) {
+          // パターンA: クランク＆ジグザグ（左右へダイナミックに展開するルート）
+          const steps = 5;
+          let dir = 1;
+          for (let i = 0; i < steps; i++) {
+            currPos.x += dir * (9 + Math.random() * 3);
+            currPos.z -= (8 + Math.random() * 2);
+            currPos.y += (i % 2 === 0 ? 0.8 : -0.6);
+            dir *= -1;
+            const pData = createPlatform(currPos.x, currPos.y, currPos.z, 8, 1, 8, biome.basePlate, biome.edgeColor);
+            spawnEnemy(currPos.x, pData.topY, currPos.z, pData, i % 2 === 0 ? 'shooter' : 'striker');
+          }
+        } else if (layoutType === 1) {
+          // パターンB: 分岐・合流アリーナ（左右に分かれて中央の広いハブで合流）
+          const leftP = createPlatform(-8, 0.2, -10, 8, 1, 8, biome.basePlate, biome.edgeColor);
+          const rightP = createPlatform(8, -0.4, -10, 8, 1, 8, biome.basePlate, biome.edgeColor);
+          spawnEnemy(-8, leftP.topY, -10, leftP, 'shooter');
+          spawnEnemy(8, rightP.topY, -10, rightP, 'striker');
 
-          if (i > 0) {
-            const count = 1 + Math.floor(Math.random() * 2);
-            for (let e = 0; e < count; e++) {
-              spawnEnemy(
-                currPos.x + (Math.random() - 0.5) * (pw * 0.4),
-                pData.topY,
-                currPos.z + (Math.random() - 0.5) * (pd * 0.4),
-                pData
-              );
-            }
+          // 中央合流アリーナ（広場）
+          currPos.set(0, 0, -22);
+          const hubPlat = createPlatform(0, 0, -22, 16, 1, 14, biome.basePlate, biome.edgeColor);
+          spawnEnemy(-3, hubPlat.topY, -22, hubPlat, 'striker');
+          spawnEnemy(3, hubPlat.topY, -22, hubPlat, 'shooter');
+        } else {
+          // パターンC: 高低差ステップ（立体的な昇降アスレチック）
+          const steps = 5;
+          for (let i = 0; i < steps; i++) {
+            currPos.x += (Math.random() - 0.5) * 6;
+            currPos.z -= 9;
+            currPos.y += 1.2;
+            const pData = createPlatform(currPos.x, currPos.y, currPos.z, 8, 1, 8, biome.basePlate, biome.edgeColor);
+            spawnEnemy(currPos.x, pData.topY, currPos.z, pData, (i === 2 || i === 4) ? 'shooter' : 'striker');
           }
         }
 
+        // ゴールポータル足場
         currPos.z -= 11;
-        createPlatform(currPos.x, currPos.y, currPos.z, 9, 1, 9, biome.basePlate, biome.edgeColor);
+        const endPlat = createPlatform(currPos.x, currPos.y, currPos.z, 9, 1, 9, biome.basePlate, biome.edgeColor);
         portal = new THREE.Mesh(
           new THREE.TorusGeometry(1.8, 0.22, 16, 32),
           new THREE.MeshBasicMaterial({ color: biome.lightColor, wireframe: true })
         );
-        portal.position.set(currPos.x, currPos.y + 2.0, currPos.z);
+        portal.position.set(currPos.x, endPlat.topY + 2.0, currPos.z);
         scene.add(portal);
       }
     }
 
-    function spawnEnemy(x, platformTopY, z, platformData) {
+    function spawnEnemy(x, platformTopY, z, platformData, type = 'striker') {
       const group = new THREE.Group();
       group.position.set(x, platformTopY + 0.8, z);
 
+      let geo, col, emisCol;
+      if (type === 'shooter') {
+        // シューター（遠隔ビット型）：立方体・琥珀/橙
+        geo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+        col = 0xffaa00;
+        emisCol = 0xff8800;
+      } else {
+        // ストライカー（突進型）：八面体・深紅
+        geo = new THREE.OctahedronGeometry(0.75, 0);
+        col = 0xff0055;
+        emisCol = 0xff0055;
+      }
+
       const mesh = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.75, 0),
+        geo,
         new THREE.MeshStandardMaterial({ 
-          color: 0xff0055, 
-          roughness: 0.1, 
+          color: col, 
+          roughness: 0.15, 
           metalness: 0.8, 
-          emissive: 0xff0055, 
+          emissive: emisCol, 
           emissiveIntensity: 2.0 
         })
       );
@@ -926,27 +1005,27 @@
 
       const warnRing = new THREE.Mesh(
         new THREE.RingGeometry(0.7, 0.95, 24),
-        new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.4 })
+        new THREE.MeshBasicMaterial({ color: emisCol, side: THREE.DoubleSide, transparent: true, opacity: 0.4 })
       );
       warnRing.rotation.x = -Math.PI / 2;
       warnRing.position.y = -0.75;
       group.add(warnRing);
 
-      const enemyLight = new THREE.PointLight(0xff0055, 2.2, 10);
+      const enemyLight = new THREE.PointLight(emisCol, 2.0, 9);
       enemyLight.position.set(0, 0.3, 0);
       group.add(enemyLight);
 
       scene.add(group);
 
       enemies.push({
-        group, mesh, warnRing,
+        group, mesh, warnRing, type,
         position: new THREE.Vector3(x, platformTopY + 0.8, z),
         floorY: platformTopY,
         platform: platformData,
-        hp: 45 + stats.floor * 15,
-        maxHp: 45 + stats.floor * 15,
-        speed: 3.2,
-        attackCooldown: 1.0,
+        hp: type === 'shooter' ? 35 + stats.floor * 10 : 50 + stats.floor * 15,
+        maxHp: type === 'shooter' ? 35 + stats.floor * 10 : 50 + stats.floor * 15,
+        speed: type === 'shooter' ? 1.8 : 3.4,
+        attackCooldown: 1.0 + Math.random() * 0.5,
         isWarning: false,
         warningTimer: 0
       });
@@ -954,42 +1033,51 @@
 
     function spawnBoss(x, platformTopY, z, platformData) {
       const group = new THREE.Group();
-      group.position.set(x, platformTopY + 1.6, z);
+      group.position.set(x, platformTopY + 1.8, z);
       const mesh = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(2.0, 1),
-        new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.1, metalness: 0.8, emissive: 0xff0055, emissiveIntensity: 2.5 })
+        new THREE.IcosahedronGeometry(2.1, 1),
+        new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.1, metalness: 0.9, emissive: 0xff0044, emissiveIntensity: 2.2 })
       );
       mesh.castShadow = true;
       group.add(mesh);
 
+      // 内側の核
+      const innerCore = new THREE.Mesh(
+        new THREE.OctahedronGeometry(1.2, 0),
+        new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00f0ff, emissiveIntensity: 3.0 })
+      );
+      group.add(innerCore);
+
       const warnRing = new THREE.Mesh(
-        new THREE.RingGeometry(2.0, 2.5, 32),
+        new THREE.RingGeometry(2.2, 2.8, 32),
         new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.5 })
       );
       warnRing.rotation.x = -Math.PI / 2;
-      warnRing.position.y = -1.55;
+      warnRing.position.y = -1.75;
       group.add(warnRing);
 
-      const bossLight = new THREE.PointLight(0xff0055, 4.5, 25);
+      const bossLight = new THREE.PointLight(0xff0055, 5.0, 28);
       group.add(bossLight);
 
       scene.add(group);
 
       boss = {
-        group, mesh, warnRing,
-        position: new THREE.Vector3(x, platformTopY + 1.6, z),
+        group, mesh, innerCore, warnRing,
+        position: new THREE.Vector3(x, platformTopY + 1.8, z),
         floorY: platformTopY,
         platform: platformData,
-        hp: 700 + stats.floor * 250,
-        maxHp: 700 + stats.floor * 250,
-        speed: 3.5,
-        attackCooldown: 1.2,
+        hp: 750 + stats.floor * 280,
+        maxHp: 750 + stats.floor * 280,
+        speed: 3.6,
+        attackCooldown: 1.5,
+        specialCooldown: 4.5,
+        attackType: 'melee', // 'melee' or 'shockwave'
         isWarning: false,
         warningTimer: 0
       };
 
       document.getElementById('boss-hud').classList.add('active');
-      document.getElementById('boss-name').textContent = `OVERLORD : SECTOR ${stats.floor}`;
+      document.getElementById('boss-name').textContent = `NEXUS OVERLORD [FL ${stats.floor}]`;
     }
 
     function triggerGlitchEffect() {
@@ -1082,11 +1170,23 @@
           spawnParticles(e.position.clone(), 0x00ffcc);
 
           if (e.hp <= 0) {
-            stats.score += 150;
-            showFeed('ENEMY DESTROYED +150');
+            stats.score += e.type === 'shooter' ? 180 : 150;
+            showFeed(e.type === 'shooter' ? 'SNIPER NEUTRALIZED +180' : 'STRIKER SLASHED +150');
             scene.remove(e.group);
             enemies.splice(i, 1);
           }
+        }
+      }
+
+      // 斬撃で敵の光弾を相殺・打ち消し可能（パリィフィードバック）
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const pr = projectiles[i];
+        if (pr.mesh.position.distanceTo(pPos) <= stats.slashRange + 0.8) {
+          audio.play('hit');
+          spawnParticles(pr.mesh.position, 0x00ffcc);
+          scene.remove(pr.mesh);
+          projectiles.splice(i, 1);
+          showFeed('BULLET DEFLECTED');
         }
       }
 
@@ -1410,7 +1510,7 @@
         }
       }
 
-      // 改善3: 見えない敵からの被弾バグの解消（同一足場かつ正面視認範囲のみに限定）
+      // ボスロジック（近接強打撃 ＋ ジャンプ回避必須の衝撃波ショックウェーブ）
       if (boss) {
         const u = boss.platform;
         const pPlat = playerPhysics.currentPlatform;
@@ -1420,46 +1520,93 @@
         toPlayer.y = 0;
         const dist = toPlayer.length();
 
-        if (onSamePlatform && dist > 2.5) {
+        if (onSamePlatform && dist > 2.8) {
           toPlayer.normalize();
           boss.position.add(toPlayer.multiplyScalar(boss.speed * delta));
-          boss.position.x = Math.max(u.x - u.w / 2 + 1.5, Math.min(u.x + u.w / 2 - 1.5, boss.position.x));
-          boss.position.z = Math.max(u.z - u.d / 2 + 1.5, Math.min(u.z + u.d / 2 - 1.5, boss.position.z));
+          boss.position.x = Math.max(u.x - u.w / 2 + 1.8, Math.min(u.x + u.w / 2 - 1.8, boss.position.x));
+          boss.position.z = Math.max(u.z - u.d / 2 + 1.8, Math.min(u.z + u.d / 2 - 1.8, boss.position.z));
         }
 
-        boss.position.y = boss.floorY + 1.2 + Math.sin(performance.now() * 0.003) * 0.25;
+        boss.position.y = boss.floorY + 1.4 + Math.sin(performance.now() * 0.003) * 0.25;
         boss.mesh.rotation.y += delta * 1.8;
         boss.mesh.rotation.x += delta * 1.2;
+        if (boss.innerCore) {
+          boss.innerCore.rotation.y -= delta * 2.5;
+          boss.innerCore.rotation.z += delta * 1.5;
+        }
         boss.group.position.copy(boss.position);
 
         if (boss.attackCooldown > 0) boss.attackCooldown -= delta;
+        if (boss.specialCooldown > 0) boss.specialCooldown -= delta;
 
-        if (onSamePlatform && dist < 4.0 && boss.attackCooldown <= 0) {
-          if (!boss.isWarning) {
-            boss.isWarning = true;
-            boss.warningTimer = 0.45;
-          }
+        // 特殊技：地面衝撃波（距離が離れていても定期的に発動）
+        if (onSamePlatform && boss.specialCooldown <= 0 && !boss.isWarning) {
+          boss.isWarning = true;
+          boss.attackType = 'shockwave';
+          boss.warningTimer = 0.75;
+          showFeed('WARNING: SHOCKWAVE COMING');
+        } else if (onSamePlatform && dist < 4.5 && boss.attackCooldown <= 0 && !boss.isWarning) {
+          boss.isWarning = true;
+          boss.attackType = 'melee';
+          boss.warningTimer = 0.45;
         }
 
         if (boss.isWarning) {
           boss.warningTimer -= delta;
-          boss.warnRing.material.opacity = 0.9;
-          boss.warnRing.scale.setScalar(1.0 + (0.45 - boss.warningTimer) * 0.8);
+          boss.warnRing.material.opacity = 0.95;
+          const maxWarn = boss.attackType === 'shockwave' ? 0.75 : 0.45;
+          boss.warnRing.scale.setScalar(1.0 + (maxWarn - boss.warningTimer) * 1.2);
 
           if (boss.warningTimer <= 0) {
-            boss.isWarning = false;
-            boss.attackCooldown = 1.3;
             boss.warnRing.material.opacity = 0.5;
             boss.warnRing.scale.setScalar(1.0);
 
-            const finalDist = playerPhysics.position.clone().sub(boss.position).length();
-            if (pPlat === u && finalDist < 4.5) {
-              takeDamage(22);
+            if (boss.attackType === 'shockwave') {
+              boss.specialCooldown = 5.0;
+              // 衝撃波リングを生成
+              const waveGeo = new THREE.RingGeometry(0.5, 1.2, 32);
+              waveGeo.rotateX(-Math.PI / 2);
+              const waveMesh = new THREE.Mesh(waveGeo, new THREE.MeshBasicMaterial({
+                color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.9
+              }));
+              waveMesh.position.set(boss.position.x, boss.floorY + 0.15, boss.position.z);
+              scene.add(waveMesh);
+              shockwaves.push({ mesh: waveMesh, radius: 1.0, maxRadius: 18.0, speed: 14.0, platform: u });
+              audio.play('hurt');
+            } else {
+              boss.attackCooldown = 1.4;
+              const finalDist = playerPhysics.position.clone().sub(boss.position).length();
+              if (pPlat === u && finalDist < 4.8) {
+                takeDamage(24);
+              }
             }
+            boss.isWarning = false;
           }
         }
       }
 
+      // 衝撃波の更新（ジャンプで跳び越えられる！）
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        sw.radius += sw.speed * delta;
+        sw.mesh.scale.setScalar(sw.radius);
+        sw.mesh.material.opacity = Math.max(0, 1.0 - (sw.radius / sw.maxRadius));
+
+        // プレイヤーとの判定：地上（Yが足場付近）にいて半径の境界に当たると被弾
+        const pDist = new THREE.Vector2(playerPhysics.position.x - sw.mesh.position.x, playerPhysics.position.z - sw.mesh.position.z).length();
+        if (playerPhysics.currentPlatform === sw.platform) {
+          if (Math.abs(pDist - sw.radius) < 0.9 && playerPhysics.position.y <= sw.platform.topY + 0.4) {
+            takeDamage(20);
+          }
+        }
+
+        if (sw.radius >= sw.maxRadius) {
+          scene.remove(sw.mesh);
+          shockwaves.splice(i, 1);
+        }
+      }
+
+      // 敵の挙動（突進型・遠隔射撃型）
       for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
 
@@ -1477,42 +1624,119 @@
         toPlayer.y = 0;
         const dist = toPlayer.length();
 
-        if (onSamePlatform && dist > 1.6) {
-          toPlayer.normalize();
-          e.position.add(toPlayer.multiplyScalar(e.speed * delta));
-          e.position.x = Math.max(u.x - u.w / 2 + 0.6, Math.min(u.x + u.w / 2 - 0.6, e.position.x));
-          e.position.z = Math.max(u.z - u.d / 2 + 0.6, Math.min(u.z + u.d / 2 - 0.6, e.position.z));
+        if (e.type === 'shooter') {
+          // シューター：距離を保ちながら射撃
+          if (onSamePlatform) {
+            if (dist < 4.0) {
+              toPlayer.normalize().negate(); // 離れる
+              e.position.add(toPlayer.multiplyScalar(e.speed * delta));
+            } else if (dist > 7.0) {
+              toPlayer.normalize(); // 近づく
+              e.position.add(toPlayer.multiplyScalar(e.speed * delta));
+            }
+            e.position.x = Math.max(u.x - u.w / 2 + 0.7, Math.min(u.x + u.w / 2 - 0.7, e.position.x));
+            e.position.z = Math.max(u.z - u.d / 2 + 0.7, Math.min(u.z + u.d / 2 - 0.7, e.position.z));
+          }
+
+          if (e.attackCooldown > 0) e.attackCooldown -= delta;
+
+          if (onSamePlatform && e.attackCooldown <= 0) {
+            if (!e.isWarning) {
+              e.isWarning = true;
+              e.warningTimer = 0.55;
+            }
+          }
+
+          if (e.isWarning) {
+            e.warningTimer -= delta;
+            e.warnRing.material.opacity = 0.9;
+            e.warnRing.scale.setScalar(1.0 + (0.55 - e.warningTimer) * 1.0);
+
+            if (e.warningTimer <= 0) {
+              e.isWarning = false;
+              e.attackCooldown = 2.2;
+              e.warnRing.material.opacity = 0.4;
+              e.warnRing.scale.setScalar(1.0);
+
+              // プレイヤーに向けて光弾を発射
+              const bulletMesh = new THREE.Mesh(
+                new THREE.SphereGeometry(0.22, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0xffaa00 })
+              );
+              bulletMesh.position.copy(e.position);
+              scene.add(bulletMesh);
+
+              const shootDir = playerPhysics.position.clone().add(new THREE.Vector3(0, 0.6, 0)).sub(e.position).normalize();
+              projectiles.push({
+                mesh: bulletMesh,
+                dir: shootDir,
+                speed: 11.0,
+                life: 3.0
+              });
+              audio.play('jump');
+            }
+          }
+
+        } else {
+          // ストライカー（近接突進）
+          if (onSamePlatform && dist > 1.6) {
+            toPlayer.normalize();
+            e.position.add(toPlayer.multiplyScalar(e.speed * delta));
+            e.position.x = Math.max(u.x - u.w / 2 + 0.6, Math.min(u.x + u.w / 2 - 0.6, e.position.x));
+            e.position.z = Math.max(u.z - u.d / 2 + 0.6, Math.min(u.z + u.d / 2 - 0.6, e.position.z));
+          }
+
+          if (e.attackCooldown > 0) e.attackCooldown -= delta;
+
+          if (onSamePlatform && dist < 2.3 && e.attackCooldown <= 0) {
+            if (!e.isWarning) {
+              e.isWarning = true;
+              e.warningTimer = 0.35;
+            }
+          }
+
+          if (e.isWarning) {
+            e.warningTimer -= delta;
+            e.warnRing.material.opacity = 0.9;
+            e.warnRing.scale.setScalar(1.0 + (0.35 - e.warningTimer) * 1.0);
+
+            if (e.warningTimer <= 0) {
+              e.isWarning = false;
+              e.attackCooldown = 1.1;
+              e.warnRing.material.opacity = 0.4;
+              e.warnRing.scale.setScalar(1.0);
+
+              const finalDist = playerPhysics.position.clone().sub(e.position).length();
+              if (pPlat === u && finalDist < 2.6) {
+                takeDamage(14);
+              }
+            }
+          }
         }
         
         e.position.y = e.floorY + 0.75 + Math.sin(performance.now() * 0.005 + e.position.x) * 0.15;
         e.mesh.rotation.y += delta * 2.2;
+        e.mesh.rotation.x += delta * 1.1;
         e.group.position.copy(e.position);
+      }
 
-        if (e.attackCooldown > 0) e.attackCooldown -= delta;
+      // 遠隔敵の光弾更新
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const pr = projectiles[i];
+        pr.mesh.position.addScaledVector(pr.dir, pr.speed * delta);
+        pr.life -= delta;
 
-        if (onSamePlatform && dist < 2.2 && e.attackCooldown <= 0) {
-          if (!e.isWarning) {
-            e.isWarning = true;
-            e.warningTimer = 0.35;
-          }
+        // プレイヤーへの命中判定
+        if (pr.mesh.position.distanceTo(playerPhysics.position.clone().add(new THREE.Vector3(0, 0.6, 0))) < 0.75) {
+          takeDamage(12);
+          scene.remove(pr.mesh);
+          projectiles.splice(i, 1);
+          continue;
         }
 
-        if (e.isWarning) {
-          e.warningTimer -= delta;
-          e.warnRing.material.opacity = 0.9;
-          e.warnRing.scale.setScalar(1.0 + (0.35 - e.warningTimer) * 1.0);
-
-          if (e.warningTimer <= 0) {
-            e.isWarning = false;
-            e.attackCooldown = 1.0;
-            e.warnRing.material.opacity = 0.4;
-            e.warnRing.scale.setScalar(1.0);
-
-            const finalDist = playerPhysics.position.clone().sub(e.position).length();
-            if (pPlat === u && finalDist < 2.6) {
-              takeDamage(12);
-            }
-          }
+        if (pr.life <= 0) {
+          scene.remove(pr.mesh);
+          projectiles.splice(i, 1);
         }
       }
 
