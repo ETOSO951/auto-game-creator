@@ -83,7 +83,27 @@
       100% { transform: translate(0, 0); filter: none; }
     }
 
-    /* アイデア3: 強烈な打撃ヒット時のモノクロームフラッシュ残像エフェクト */
+    /* アイデア3: コンボ・ゾーン状態に応じたRGB色収差（クロマティック・アベレーション）エフェクト */
+    .chromatic-aberration {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 6;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      mix-blend-mode: screen;
+      background: transparent;
+      box-shadow: inset 0 0 50px rgba(0,255,204,0.1);
+    }
+    .chromatic-aberration.active {
+      opacity: 0.8;
+      animation: chromAnim 0.2s infinite alternate;
+    }
+    @keyframes chromAnim {
+      0% { text-shadow: -2px 0 var(--danger), 2px 0 var(--accent); filter: drop-shadow(-2px 0 var(--danger)) drop-shadow(2px 0 var(--accent)); }
+      100% { text-shadow: 2px 0 var(--danger), -2px 0 var(--accent); filter: drop-shadow(2px 0 var(--danger)) drop-shadow(-2px 0 var(--accent)); }
+    }
+
     .hit-flash-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -343,15 +363,15 @@
       opacity: 0; visibility: hidden; pointer-events: none;
     }
 
-    /* アイデア2: システム再起動時の激しいグリッチ画面変形アニメーション */
+    /* アイデア2: ブラウン管シャッター効果＆マルチレイヤー再接続リブートアニメーション */
     .screen-overlay.rebooting {
-      animation: systemRebootGlitch 0.4s steps(4, end) forwards;
+      animation: systemRebootShutter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    @keyframes systemRebootGlitch {
-      0% { transform: scale(1) skew(0deg); filter: invert(0) blur(0); opacity: 1; }
-      30% { transform: scale(1.05) skew(15deg); filter: invert(0.8) contrast(300%) blur(4px); }
-      60% { transform: scale(0.95) skew(-15deg); filter: invert(0.2) contrast(200%) blur(2px); }
-      100% { transform: scale(1.2); filter: brightness(3) blur(10px); opacity: 0; }
+    @keyframes systemRebootShutter {
+      0% { transform: scale(1) skew(0deg); filter: brightness(1) contrast(1); opacity: 1; }
+      40% { transform: scale(1.02, 0.02) skew(20deg); filter: brightness(3) contrast(300%) blur(2px); opacity: 1; }
+      70% { transform: scale(0.01, 1.2); filter: brightness(5) blur(8px); opacity: 0.8; background: #fff; }
+      100% { transform: scale(1, 1); filter: brightness(1) blur(0); opacity: 0; }
     }
 
     .screen-title {
@@ -383,7 +403,6 @@
       font-weight: 600;
     }
 
-    /* アイデア2: 高密度マトリックスフォントによるハッキングログ表示 */
     .data-summary-box {
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(255, 255, 255, 0.06);
@@ -511,6 +530,21 @@
       color: rgba(255, 255, 255, 0.5);
       line-height: 1.5;
     }
+
+    /* アイデア1用：クリック時のサイバー波紋エフェクト */
+    .cyber-ripple {
+      position: absolute;
+      border: 1px solid var(--accent);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      animation: rippleAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      z-index: 2;
+    }
+    @keyframes rippleAnim {
+      0% { width: 0px; height: 0px; opacity: 1; box-shadow: 0 0 20px var(--accent-glow); }
+      100% { width: 180px; height: 180px; opacity: 0; box-shadow: 0 0 0px transparent; }
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -519,6 +553,7 @@
   <div id="canvas-container"></div>
   <div id="vignette"></div>
   <div id="glitch-overlay" class="glitch-overlay"></div>
+  <div id="chromatic-aberration" class="chromatic-aberration"></div>
   <div id="hit-flash-overlay" class="hit-flash-overlay"></div>
 
   <div class="ui-layer">
@@ -606,7 +641,7 @@
     <div class="data-summary-box" id="gameover-summary">
       <div>SESSION_FLOOR: <span id="summary-floor">0</span></div>
       <div>FINAL_SCORE: <span id="summary-score">0</span></div>
-      <div>ERROR_CODE: <span class="matrix-code" id="summary-error">ERR_NEURAL_SIG_0X9F4</span></div>
+      <div>ERROR_CODE: <span class="matrix-code" id="summary-error">ERR_NEURAL_SIG_LOST_0X9F4</span></div>
       <div>STATUS: <span style="color: var(--danger);" id="summary-status">INITIALIZING...</span></div>
     </div>
     <button id="btn-restart" class="primary-btn">REBOOT</button>
@@ -644,6 +679,13 @@
           gain.gain.setValueAtTime(0.2, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
           osc.start(now); osc.stop(now + 0.2);
+        } else if (type === 'reboot') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(80, now);
+          osc.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+          gain.gain.setValueAtTime(0.5, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+          osc.start(now); osc.stop(now + 0.5);
         }
       }
     }
@@ -719,7 +761,8 @@
     const stats = {
       maxHp: 100, hp: 100, score: 0, floor: 1,
       moveSpeed: 12.0, slashDamage: 45, slashRange: 4.5,
-      skillCooldown: 0, skillMaxCooldown: 6.0, weaponType: 'saber'
+      skillCooldown: 0, skillMaxCooldown: 6.0, weaponType: 'saber',
+      combo: 0
     };
 
     let enemies = [], particles = [], platforms = [], boss = null, portal = null;
@@ -801,7 +844,7 @@
       pointLight.color.set(biome.lightColor);
 
       document.getElementById('biome-label').textContent = isBoss ? 'BOSS ARENA' : biome.name;
-      document.getElementById('biome-label').style.color = `#${biome.lightColor.toString(16)}`;
+      document.getElementById('biome-label'].style = `color: #${biome.lightColor.toString(16)}`;
 
       createPlatform(0, -0.5, 0, 14, 1, 14, biome.color);
       playerPhysics.position.set(0, 2, 0);
@@ -894,10 +937,18 @@
       setTimeout(() => flash.classList.remove('active'), 40);
     }
 
+    function updateChromaticAberration() {
+      const chrom = document.getElementById('chromatic-aberration');
+      if (stats.combo >= 3) {
+        chrom.classList.add('active');
+      } else {
+        chrom.classList.remove('active');
+      }
+    }
+
     function triggerSlash() {
       if (playerPhysics.isSlashing) return;
       playerPhysics.isSlashing = true;
-      // アイデア3: 武器種による攻撃持続時間とモーション変更
       playerPhysics.slashDuration = stats.weaponType === 'odachi' ? 0.28 : (stats.weaponType === 'dual' ? 0.12 : 0.2);
       playerPhysics.slashTime = playerPhysics.slashDuration;
       playerPhysics.slashHitTriggered = false;
@@ -920,11 +971,12 @@
     function executeSlashHit() {
       const pPos = playerPhysics.position;
       const isHeavy = stats.weaponType === 'odachi';
+      let hitAny = false;
       
       if (boss && pPos.distanceTo(boss.position) <= stats.slashRange + 1.5) {
         boss.hp -= stats.slashDamage;
+        hitAny = true;
         audio.play('hit');
-        // アイデア3: 大太刀の重撃ヒット時は強力なヒットストップとカメラシェイク・フラッシュを発動
         hitStopFrames = isHeavy ? 14 : 8; 
         cameraShake = isHeavy ? 1.0 : 0.6;
         if (isHeavy) triggerHitFlash();
@@ -953,6 +1005,7 @@
       enemies.forEach((enemy, idx) => {
         if (pPos.distanceTo(enemy.position) <= stats.slashRange) {
           enemy.hp -= stats.slashDamage;
+          hitAny = true;
           audio.play('hit');
           hitStopFrames = isHeavy ? 10 : 5; 
           cameraShake = isHeavy ? 0.7 : 0.35;
@@ -969,6 +1022,13 @@
           }
         }
       });
+
+      if (hitAny) {
+        stats.combo++;
+      } else {
+        stats.combo = Math.max(0, stats.combo - 1);
+      }
+      updateChromaticAberration();
       updateHUD();
     }
 
@@ -1093,7 +1153,7 @@
       const skillPct = Math.max(0, (1 - stats.skillCooldown / stats.skillMaxCooldown) * 100);
       document.getElementById('skill-bar').style.width = `${skillPct}%`;
       document.getElementById('score-display').textContent = stats.score;
-      document.getElementById('floor-badge').textContent = `FLOOR ${stats.floor}`;
+      document.getElementById('floor-badge').textContent = `FLOOR ${stats.floor} ${stats.combo > 0 ? '| COMBO x' + stats.combo : ''}`;
 
       const vignette = document.getElementById('vignette');
       if (hpPct < 30) {
@@ -1106,7 +1166,10 @@
 
     function gameOver() {
       state = GAME_STATE.GAMEOVER;
+      stats.combo = 0;
+      updateChromaticAberration();
       triggerGlitchEffect();
+      audio.play('reboot');
       document.getElementById('boss-hud').classList.remove('active');
       const goScreen = document.getElementById('screen-gameover');
       goScreen.classList.remove('rebooting');
@@ -1140,23 +1203,39 @@
 
     function startGame() {
       audio.init();
+      audio.play('reboot');
       const goScreen = document.getElementById('screen-gameover');
       goScreen.classList.add('rebooting');
       
       setTimeout(() => {
         goScreen.classList.add('hidden');
         goScreen.classList.remove('rebooting');
-        stats.hp = stats.maxHp; stats.score = 0; stats.floor = 1; stats.skillCooldown = 0;
+        stats.hp = stats.maxHp; stats.score = 0; stats.floor = 1; stats.skillCooldown = 0; stats.combo = 0;
+        updateChromaticAberration();
         inputSys.clear();
         updateHUD();
         generateStage(stats.floor);
         document.getElementById('screen-start').classList.add('hidden');
         state = GAME_STATE.PLAYING;
-      }, 350);
+      }, 500);
     }
 
     document.getElementById('btn-start').addEventListener('click', startGame);
     document.getElementById('btn-restart').addEventListener('click', startGame);
+
+    // アイデア1: タイトル画面のインタラクティブ・ハッキング演出（クリック/タップで波紋＆グリッチ）
+    window.addEventListener('pointerdown', e => {
+      if (state === GAME_STATE.TITLE) {
+        audio.init();
+        const ripple = document.createElement('div');
+        ripple.className = 'cyber-ripple';
+        ripple.style.left = `${e.clientX}px`;
+        ripple.style.top = `${e.clientY}px`;
+        document.body.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+        triggerGlitchEffect();
+      }
+    });
 
     generateStage(1);
 
@@ -1165,7 +1244,6 @@
 
     function update(delta) {
       if (state === GAME_STATE.TITLE) {
-        // アイデア1: タイトル画面のアトラクトデモ（自動走行・自動斬撃アクションループ）
         const time = performance.now() * 0.001;
         playerGroup.position.x = Math.sin(time * 1.5) * 3;
         playerGroup.position.z = Math.cos(time * 1.2) * 4;
@@ -1178,7 +1256,6 @@
         camera.position.set(camX, 4 + Math.sin(time * 0.5) * 1.5, camZ);
         camera.lookAt(playerGroup.position);
 
-        // ライトカラーの滑らかなグラデーション変化
         const hueShift = (time * 0.1) % 1;
         dirLight.color.setHSL(hueShift, 0.8, 0.6);
         pointLight.color.setHSL(1.0 - hueShift, 0.9, 0.5);
@@ -1267,6 +1344,7 @@
         boss.mesh.rotation.y += delta * 3;
         if (boss.position.distanceTo(playerPhysics.position) < 2.0) {
           stats.hp -= 20 * delta; updateHUD(); triggerHUDActive();
+          stats.combo = 0; updateChromaticAberration();
           triggerGlitchEffect();
           if (stats.hp <= 0) gameOver();
         }
@@ -1279,6 +1357,7 @@
         e.mesh.rotation.y += delta * 2;
         if (e.position.distanceTo(playerPhysics.position) < 1.4) {
           stats.hp -= 15 * delta; updateHUD(); triggerHUDActive();
+          stats.combo = 0; updateChromaticAberration();
           triggerGlitchEffect();
           if (stats.hp <= 0) gameOver();
         }
