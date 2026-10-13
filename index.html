@@ -184,38 +184,37 @@
 
     .boss-hud {
       position: absolute;
-      top: 22px;
-      right: 24px;
-      width: 320px;
-      max-width: 45%;
-      background: rgba(10, 5, 18, 0.92);
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 420px;
+      max-width: 85%;
+      background: rgba(10, 5, 18, 0.95);
       border: 2px solid rgba(255, 0, 85, 0.95);
       border-radius: 12px;
-      padding: 10px 16px;
+      padding: 8px 18px;
       display: none;
       flex-direction: column;
-      gap: 5px;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 12px 35px rgba(255, 0, 85, 0.65);
-      z-index: 50;
+      gap: 4px;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 12px 40px rgba(255, 0, 85, 0.7);
+      z-index: 60;
       animation: bossHudPulse 1.2s ease infinite alternate;
     }
     @keyframes bossHudPulse {
-      0% { box-shadow: 0 6px 20px rgba(255, 0, 85, 0.35); }
-      100% { box-shadow: 0 12px 38px rgba(255, 0, 85, 0.8); }
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
     }
     @media (max-width: 768px) {
       .boss-hud {
-        top: auto;
-        bottom: 110px;
+        top: 12px;
         left: 50%;
-        right: auto;
         transform: translateX(-50%);
         width: 92%;
         max-width: 92%;
-        padding: 8px 12px;
-        z-index: 50;
+        padding: 6px 12px;
+        z-index: 60;
       }
       .hud-top {
         flex-direction: column;
@@ -1287,49 +1286,49 @@
       triggerGlitchEffect();
       triggerHitFlash();
       
-      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：圧倒的演出＆全画面一掃・全弾薬消去・HP大回復
-      stats.invulnerableTimer = 4.0;
-      stats.hp = Math.min(stats.maxHp, stats.hp + 75);
+      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：究極演出＆全画面一掃・全弾薬消去・HP大回復
+      stats.invulnerableTimer = 4.5;
+      stats.hp = Math.min(stats.maxHp, stats.hp + 90);
       const pPos = playerPhysics.position.clone();
       
-      for (let k = 0; k < 6; k++) {
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*4, 0, (Math.random()-0.5)*4)), 0x00ffff);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*4, 0, (Math.random()-0.5)*4)), 0xff0055);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*4, 0, (Math.random()-0.5)*4)), 0xffaa00);
+      for (let k = 0; k < 8; k++) {
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*5, 0, (Math.random()-0.5)*5)), 0x00ffff);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*5, 0, (Math.random()-0.5)*5)), 0xff0055);
+        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*5, 0, (Math.random()-0.5)*5)), 0xffaa00);
       }
 
-      cameraShake = 5.2;
-      hitStopFrames = 65; // さらにドラマチックなヒットストップ
+      cameraShake = 6.0;
+      hitStopFrames = 75; // 極上のドラマチックヒットストップ
 
-      const novaGeo = new THREE.RingGeometry(0.5, 50, 64);
+      const novaGeo = new THREE.RingGeometry(0.5, 60, 64);
       novaGeo.rotateX(-Math.PI / 2);
       const novaMesh = new THREE.Mesh(novaGeo, new THREE.MeshBasicMaterial({
         color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.98
       }));
       novaMesh.position.set(pPos.x, pPos.y + 0.15, pPos.z);
       scene.add(novaMesh);
-      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 90.0, speed: 70.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 100.0, speed: 75.0, platform: playerPhysics.currentPlatform });
 
-      const novaGeo2 = new THREE.RingGeometry(0.5, 35, 48);
+      const novaGeo2 = new THREE.RingGeometry(0.5, 45, 48);
       novaGeo2.rotateX(-Math.PI / 2);
       const novaMesh2 = new THREE.Mesh(novaGeo2, new THREE.MeshBasicMaterial({
         color: 0xff0077, side: THREE.DoubleSide, transparent: true, opacity: 0.95
       }));
       novaMesh2.position.set(pPos.x, pPos.y + 0.2, pPos.z);
       scene.add(novaMesh2);
-      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 70.0, speed: 55.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 80.0, speed: 60.0, platform: playerPhysics.currentPlatform });
 
       enemies.forEach((e, idx) => {
         const dist = e.position.distanceTo(pPos);
-        if (dist <= 50.0) {
+        if (dist <= 60.0) {
           const pullDir = pPos.clone().sub(e.position);
           pullDir.y = 0;
           e.position.add(pullDir.multiplyScalar(0.98));
 
-          e.hp -= stats.slashDamage * 9.0;
+          e.hp -= stats.slashDamage * 12.0;
           spawnParticles(e.position, 0x00ffcc);
           if (e.hp <= 0) {
-            stats.score += 1200;
+            stats.score += 1500;
             scene.remove(e.group);
             enemies.splice(idx, 1);
           }
@@ -1338,11 +1337,26 @@
 
       if (boss) {
         const bDist = boss.position.distanceTo(pPos);
-        if (bDist <= 55.0) {
-          boss.hp -= stats.slashDamage * 6.8;
+        if (bDist <= 65.0) {
+          boss.hp -= stats.slashDamage * 8.5;
           const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
           document.getElementById('boss-hp-bar').style.width = `${pct}%`;
           document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
+
+          if (boss.hp <= 0) {
+            stats.score += 5000;
+            showFeed('BOSS ANNIHILATED +5000');
+            scene.remove(boss.group);
+            boss = null;
+            document.getElementById('boss-hud').classList.remove('active');
+
+            portal = new THREE.Mesh(
+              new THREE.TorusGeometry(1.8, 0.22, 16, 32),
+              new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true })
+            );
+            portal.position.set(pPos.x, pPos.y + 2, pPos.z - 6);
+            scene.add(portal);
+          }
         }
       }
 
@@ -1585,17 +1599,16 @@
     }, { passive: false });
 
     const PERKS = [
-      { name: '【進撃】オーバークロック・セイバー', desc: '斬撃ダメージが55%増加し、さらに刃のリーチと衝撃範囲が拡大する。武器オーラが真紅に進化', synergy: 'ASSAULT BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.55); stats.slashRange *= 1.25; bladeMat.color.set(0xff0055); bladeMat.emissive.set(0xff0055); } },
-      { name: '【機動】クアンタム・リープ', desc: '移動速度が40%上昇し、スキルのクールダウンが大幅に短縮される', synergy: 'AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.4; stats.skillMaxCooldown = Math.max(0.9, stats.skillMaxCooldown * 0.5); } },
-      { name: '【再生】ナノマシン・リジェネ', desc: '最大HPが80増加し、即座にバイタル（HP）が完全回復する', synergy: 'SURVIVAL BUILD', apply: () => { stats.maxHp += 80; stats.hp = stats.maxHp; } },
-      { name: '【吸血】サイバー・ヴァンパイア', desc: '敵撃破時にHPが50回復し、さらに攻撃範囲・スピードがシナジー強化される', synergy: 'VAMPIRIC BUILD', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 50); stats.perks.vampirism = true; stats.slashDamage = Math.round(stats.slashDamage * 1.2); } },
-      { name: '【爆発】プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む高威力チェインプラズマ爆発が発生する', synergy: 'EXPLOSIVE BUILD', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.35); } },
-      { name: '【追尾】ホーミング・プラズマブレード', desc: '斬撃時に前方に敵をどこまでも自動追尾するプラズマエナジー弾が連続放射される', synergy: 'HOMING BUILD', apply: () => { stats.perks.homingBlade = true; } },
-      { name: '【急降下】メテオ・スラッシュ・ドライブ', desc: '空中ジャンプからの急降下下方向斬撃が、全画面級の巨大メテオスマッシュに進化する', synergy: 'METEOR BUILD', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.35; } },
-      { name: '【防御】ネクサス・シールドバリア', desc: '受けるダメージを45%軽減し、さらに敵の弾丸を高確率で自動弾き返すシールドを展開', synergy: 'SHIELD BUILD', apply: () => { stats.maxHp += 45; stats.hp = Math.min(stats.maxHp, stats.hp + 45); stats.perks.shieldReflect = true; } },
-      { name: '【支援】オービタル・サイバードローン', desc: 'プレイヤーの周囲を高速旋回し、接近する敵を全自動レーザーで連続迎撃するドローン', synergy: 'DRONE BUILD', apply: () => { stats.perks.orbitalDrone = true; const dg = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 3.0})); scene.add(dg); orbitalDroneMesh = dg; } },
-      { name: '【回避】量子テレポート・ブリンク', desc: '被弾時に高確率で自動回避（ブリンク）を発動し、ダメージを完全無効化する超能力', synergy: 'QUANTUM BUILD', apply: () => { stats.perks.quantumBlink = true; stats.maxHp += 35; stats.hp = Math.min(stats.maxHp, stats.hp + 35); } },
-      { name: '【極限】サイバー・オーバードライブ', desc: '全ステータス（攻撃力・機動力・スキル回転率）が限界突破し、無類の強さを誇る。武器オーラが金色に輝く', synergy: 'OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.45); stats.moveSpeed *= 1.3; stats.skillMaxCooldown = Math.max(0.7, stats.skillMaxCooldown * 0.45); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); } }
+      { name: '【進撃】オーバークロック・セイバー', desc: '斬撃ダメージが60%増加し、さらに刃のリーチと衝撃範囲が拡大する。武器オーラが真紅に進化', synergy: 'ASSAULT BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.6); stats.slashRange *= 1.3; bladeMat.color.set(0xff0055); bladeMat.emissive.set(0xff0055); } },
+      { name: '【機動】クアンタム・リープ', desc: '移動速度が45%上昇し、スキルのクールダウンがさらに高速化する', synergy: 'AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.45; stats.skillMaxCooldown = Math.max(0.8, stats.skillMaxCooldown * 0.45); } },
+      { name: '【再生】ナノマシン・リジェネ', desc: '最大HPが100増加し、即座にバイタル（HP）が完全回復する', synergy: 'SURVIVAL BUILD', apply: () => { stats.maxHp += 100; stats.hp = stats.maxHp; } },
+      { name: '【吸血】サイバー・ヴァンパイア', desc: '敵撃破時にHPが60回復し、さらに攻撃範囲・スピードがシナジー強化される', synergy: 'VAMPIRIC BUILD', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 60); stats.perks.vampirism = true; stats.slashDamage = Math.round(stats.slashDamage * 1.25); } },
+      { name: '【爆発】プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む超強力チェインプラズマ爆発が発生する', synergy: 'EXPLOSIVE BUILD', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.4); } },
+      { name: '【追尾】ホーミング・プラズマブレード', desc: '斬撃時に前方に敵をどこまでも自動追尾するプラズマエナジー弾が連続放射される', synergy: 'HOMING BUILD', apply: () => { stats.perks.homingBlade = true; stats.slashDamage = Math.round(stats.slashDamage * 1.15); } },
+      { name: '【急降下】メテオ・スラッシュ・ドライブ', desc: '空中ジャンプからの急降下下方向斬撃が、全画面級の巨大メテオスマッシュに進化する', synergy: 'METEOR BUILD', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.4; } },
+      { name: '【防御】ネクサス・シールドバリア', desc: '受けるダメージを50%軽減し、さらに敵の弾丸を高確率で自動弾き返すシールドを展開', synergy: 'SHIELD BUILD', apply: () => { stats.maxHp += 50; stats.hp = Math.min(stats.maxHp, stats.hp + 50); stats.perks.shieldReflect = true; } },
+      { name: '【支援】デュアル・オービタルドローン', desc: 'プレイヤーの周囲を高速旋回し、接近する敵を全自動レーザーで連続迎撃するドローンが2機に増加', synergy: 'DRONE BUILD', apply: () => { stats.perks.orbitalDrone = true; const dg = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 3.5})); scene.add(dg); orbitalDroneMesh = dg; } },
+      { name: '【神速】サイバー・オーバードライブ', desc: '全ステータス（攻撃力・機動力・スキル回転率）が限界突破し、無類の強さを誇る。武器オーラが金色に輝く', synergy: 'OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.5); stats.moveSpeed *= 1.35; stats.skillMaxCooldown = Math.max(0.6, stats.skillMaxCooldown * 0.4); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); } }
     ];
 
     function showPerkScreen() {
