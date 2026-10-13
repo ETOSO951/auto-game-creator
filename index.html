@@ -932,7 +932,7 @@
 
         if (layoutType === 0) {
           // パターンA: クランク＆ジグザグ（左右へダイナミックに展開するルート）
-          const steps = 5;
+          const steps = 6;
           let dir = 1;
           for (let i = 0; i < steps; i++) {
             currPos.x += dir * (9 + Math.random() * 3);
@@ -940,29 +940,32 @@
             currPos.y += (i % 2 === 0 ? 0.8 : -0.6);
             dir *= -1;
             const pData = createPlatform(currPos.x, currPos.y, currPos.z, 8, 1, 8, biome.basePlate, biome.edgeColor);
-            spawnEnemy(currPos.x, pData.topY, currPos.z, pData, i % 2 === 0 ? 'shooter' : 'striker');
+            const eType = i % 3 === 0 ? 'shooter' : (i % 3 === 1 ? 'phantom' : 'striker');
+            spawnEnemy(currPos.x, pData.topY, currPos.z, pData, eType);
           }
         } else if (layoutType === 1) {
           // パターンB: 分岐・合流アリーナ（左右に分かれて中央の広いハブで合流）
           const leftP = createPlatform(-8, 0.2, -10, 8, 1, 8, biome.basePlate, biome.edgeColor);
           const rightP = createPlatform(8, -0.4, -10, 8, 1, 8, biome.basePlate, biome.edgeColor);
           spawnEnemy(-8, leftP.topY, -10, leftP, 'shooter');
-          spawnEnemy(8, rightP.topY, -10, rightP, 'striker');
+          spawnEnemy(8, rightP.topY, -10, rightP, 'phantom');
 
           // 中央合流アリーナ（広場）
           currPos.set(0, 0, -22);
           const hubPlat = createPlatform(0, 0, -22, 16, 1, 14, biome.basePlate, biome.edgeColor);
           spawnEnemy(-3, hubPlat.topY, -22, hubPlat, 'striker');
           spawnEnemy(3, hubPlat.topY, -22, hubPlat, 'shooter');
+          spawnEnemy(0, hubPlat.topY, -24, hubPlat, 'phantom');
         } else {
           // パターンC: 高低差ステップ（立体的な昇降アスレチック）
-          const steps = 5;
+          const steps = 6;
           for (let i = 0; i < steps; i++) {
             currPos.x += (Math.random() - 0.5) * 6;
             currPos.z -= 9;
-            currPos.y += 1.2;
+            currPos.y += 1.0;
             const pData = createPlatform(currPos.x, currPos.y, currPos.z, 8, 1, 8, biome.basePlate, biome.edgeColor);
-            spawnEnemy(currPos.x, pData.topY, currPos.z, pData, (i === 2 || i === 4) ? 'shooter' : 'striker');
+            const eType = i % 3 === 0 ? 'phantom' : (i % 3 === 1 ? 'shooter' : 'striker');
+            spawnEnemy(currPos.x, pData.topY, currPos.z, pData, eType);
           }
         }
 
@@ -988,6 +991,11 @@
         geo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
         col = 0xffaa00;
         emisCol = 0xff8800;
+      } else if (type === 'phantom') {
+        // ファントム（高速ステルス型）：円錐・紫
+        geo = new THREE.ConeGeometry(0.7, 1.2, 4);
+        col = 0x9900ff;
+        emisCol = 0xcc00ff;
       } else {
         // ストライカー（突進型）：八面体・深紅
         geo = new THREE.OctahedronGeometry(0.75, 0);
@@ -1022,14 +1030,15 @@
 
       scene.add(group);
 
+      const maxHpVal = type === 'shooter' ? 35 + stats.floor * 10 : (type === 'phantom' ? 45 + stats.floor * 12 : 60 + stats.floor * 18);
       enemies.push({
         group, mesh, warnRing, type,
         position: new THREE.Vector3(x, platformTopY + 0.8, z),
         floorY: platformTopY,
         platform: platformData,
-        hp: type === 'shooter' ? 35 + stats.floor * 10 : 50 + stats.floor * 15,
-        maxHp: type === 'shooter' ? 35 + stats.floor * 10 : 50 + stats.floor * 15,
-        speed: type === 'shooter' ? 1.8 : 3.4,
+        hp: maxHpVal,
+        maxHp: maxHpVal,
+        speed: type === 'shooter' ? 1.8 : (type === 'phantom' ? 4.2 : 3.4),
         attackCooldown: 1.0 + Math.random() * 0.5,
         isWarning: false,
         warningTimer: 0
@@ -1335,7 +1344,9 @@
     const PERKS = [
       { name: 'アタックオーバードライブ', desc: '斬撃攻撃力 +35%', apply: () => stats.slashDamage = Math.round(stats.slashDamage * 1.35) },
       { name: 'リーチエクスパンション', desc: '斬撃範囲 +25%', apply: () => { stats.slashRange *= 1.25; } },
-      { name: 'ナノマシン全換装', desc: 'HP全回復 & 最大HP +35', apply: () => { stats.maxHp += 35; stats.hp = stats.maxHp; } }
+      { name: 'ナノマシン全換装', desc: 'HP全回復 & 最大HP +35', apply: () => { stats.maxHp += 35; stats.hp = stats.maxHp; } },
+      { name: 'キネティック・アクセラレータ', desc: '移動速度 +25% & スキル冷却短縮', apply: () => { stats.moveSpeed *= 1.25; stats.skillMaxCooldown = Math.max(2.0, stats.skillMaxCooldown * 0.75); } },
+      { name: 'ブラッド・サイフォン', desc: '敵撃破時にHP 25 回復', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 25); } }
     ];
 
     function showPerkScreen() {
