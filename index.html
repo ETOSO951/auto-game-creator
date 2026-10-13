@@ -20,29 +20,40 @@
             font-family: 'Orbitron', sans-serif;
         }
         .glass-panel {
-            background: rgba(10, 10, 25, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 243, 255, 0.2);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+            background: rgba(10, 10, 25, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.12);
         }
         .neon-glow {
             text-shadow: 0 0 10px rgba(0, 243, 255, 0.8), 0 0 20px rgba(0, 243, 255, 0.5);
         }
         .neon-border {
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 15px rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4), inset 0 0 15px rgba(0, 243, 255, 0.2);
         }
         @keyframes pulse-slow {
-            0%, 100% { opacity: 0.8; transform: scale(1); }
+            0%, 100% { opacity: 0.85; transform: scale(1); }
             50% { opacity: 1; transform: scale(1.02); }
         }
         .animate-pulse-slow {
             animation: pulse-slow 3s infinite ease-in-out;
         }
+        /* スキャンラインエフェクト */
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 0, 0, 0.3) 50%,
+                rgba(0, 0, 0, 0.3)
+            );
+            background-size: 100% 4px;
+        }
     </style>
 </head>
-<body class="relative w-screen h-screen flex flex-col items-center justify-center select-none">
+<body class="relative w-screen h-screen flex flex-col items-center justify-center select-none scanlines">
 
-    <!-- 背景Canvas（エフェクト用） -->
+    <!-- 背景Canvas（エフェクト・星用） -->
     <canvas id="bgCanvas" class="absolute inset-0 z-0"></canvas>
     <!-- メインゲームCanvas -->
     <canvas id="gameCanvas" class="absolute inset-0 z-10 cursor-crosshair"></canvas>
@@ -51,120 +62,120 @@
     <div id="uiLayer" class="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-4 md:p-8">
         
         <!-- ヘッダーUI (ゲーム中のみ表示) -->
-        <div id="hudTop" class="flex justify-between items-center w-full max-w-4xl mx-auto opacity-0 transition-opacity duration-300">
-            <div class="glass-panel px-4 py-2 rounded-xl flex items-center space-x-4">
+        <div id="hudTop" class="flex justify-between items-center w-full max-w-5xl mx-auto opacity-0 transition-opacity duration-300">
+            <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center space-x-6">
                 <div>
-                    <div class="text-xs text-cyan-400 font-orbitron">INTEGRITY</div>
-                    <div class="w-32 md:w-48 h-3 bg-gray-800 rounded-full overflow-hidden mt-1 border border-cyan-500/30">
-                        <div id="hpBar" class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 w-full transition-all duration-200"></div>
+                    <div class="text-[10px] text-cyan-400 font-orbitron tracking-wider">INTEGRITY</div>
+                    <div class="w-28 md:w-44 h-2.5 bg-gray-900 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
+                        <div id="hpBar" class="h-full bg-gradient-to-r from-cyan-400 to-blue-500 w-full transition-all duration-200"></div>
                     </div>
                 </div>
                 <div>
-                    <div class="text-xs text-purple-400 font-orbitron">SHIELD</div>
-                    <div class="w-20 md:w-32 h-2 bg-gray-800 rounded-full overflow-hidden mt-1 border border-purple-500/30">
-                        <div id="shieldBar" class="h-full bg-purple-400 w-full transition-all duration-200"></div>
+                    <div class="text-[10px] text-purple-400 font-orbitron tracking-wider">SHIELD</div>
+                    <div class="w-20 md:w-32 h-2 bg-gray-900 rounded-full overflow-hidden mt-1 border border-purple-500/40">
+                        <div id="shieldBar" class="h-full bg-gradient-to-r from-purple-400 to-pink-500 w-full transition-all duration-200"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="glass-panel px-6 py-2 rounded-xl text-center">
-                <div class="text-xs text-cyan-400 font-orbitron">SCORE</div>
-                <div id="scoreDisplay" class="text-xl md:text-2xl font-bold font-orbitron neon-glow">0000000</div>
+            <div class="glass-panel px-6 py-2.5 rounded-2xl text-center">
+                <div class="text-[10px] text-cyan-400 font-orbitron tracking-wider">SCORE</div>
+                <div id="scoreDisplay" class="text-xl md:text-3xl font-black font-orbitron neon-glow tracking-widest">0000000</div>
             </div>
 
-            <div class="glass-panel px-4 py-2 rounded-xl flex items-center space-x-4">
+            <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center space-x-6">
                 <div>
-                    <div class="text-xs text-yellow-400 font-orbitron">CREDITS</div>
-                    <div id="creditDisplay" class="text-lg font-bold font-orbitron text-yellow-300">0 ¢</div>
+                    <div class="text-[10px] text-yellow-400 font-orbitron tracking-wider">CREDITS</div>
+                    <div id="creditDisplay" class="text-base md:text-lg font-bold font-orbitron text-yellow-300">0 ¢</div>
                 </div>
                 <div>
-                    <div class="text-xs text-red-400 font-orbitron">SECTOR</div>
-                    <div id="waveDisplay" class="text-lg font-bold font-orbitron text-white">1 / 5</div>
+                    <div class="text-[10px] text-red-400 font-orbitron tracking-wider">SECTOR</div>
+                    <div id="waveDisplay" class="text-base md:text-lg font-bold font-orbitron text-white">1 / 5</div>
                 </div>
             </div>
         </div>
 
         <!-- フッター/操作ヒント -->
-        <div id="hudBottom" class="flex justify-between items-end w-full max-w-4xl mx-auto opacity-0 transition-opacity duration-300">
+        <div id="hudBottom" class="flex justify-between items-end w-full max-w-5xl mx-auto opacity-0 transition-opacity duration-300">
             <div class="glass-panel px-4 py-2 rounded-xl text-xs text-gray-400 hidden md:block">
-                移動: マウス / タッチ / WASD<br>自動攻撃・回避システム稼働中
+                操作: マウスドラッグ / タッチ / WASD / 矢印キー<br>オートファイヤー・精密コアシステム稼働中
             </div>
-            <button id="pauseBtn" class="pointer-events-auto glass-panel px-4 py-2 rounded-xl text-cyan-400 font-orbitron hover:bg-cyan-500/25 transition">
+            <button id="pauseBtn" class="pointer-events-auto glass-panel px-5 py-2 rounded-xl text-cyan-400 font-orbitron hover:bg-cyan-500/20 active:scale-95 transition">
                 PAUSE
             </button>
         </div>
     </div>
 
     <!-- スタート画面 -->
-    <div id="startScreen" class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md p-6 transition-opacity duration-500">
+    <div id="startScreen" class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/85 backdrop-blur-xl p-6 transition-opacity duration-500">
         <div class="glass-panel p-8 md:p-12 rounded-3xl max-w-lg w-full text-center neon-border animate-pulse-slow">
-            <div class="text-cyan-400 text-sm tracking-widest font-orbitron mb-2">ADVANCED TACTICAL SIMULATOR</div>
-            <h1 class="text-4xl md:text-6xl font-black font-orbitron tracking-wider neon-glow mb-4 bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+            <div class="text-cyan-400 text-xs tracking-[0.3em] font-orbitron mb-2">ADVANCED TACTICAL SIMULATOR</div>
+            <h1 class="text-4xl md:text-6xl font-black font-orbitron tracking-wider neon-glow mb-4 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500 bg-clip-text text-transparent">
                 NEON ODYSSEY
             </h1>
-            <p class="text-gray-300 text-sm mb-8 leading-relaxed">
+            <p class="text-gray-300 text-sm mb-8 leading-relaxed font-light">
                 極限のサイバー空間を駆け抜けろ。<br>次世代型ハイスピード・シューティングアクション。
             </p>
-            <button id="startBtn" class="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold font-orbitron text-lg rounded-xl shadow-lg shadow-cyan-500/30 transition transform hover:scale-105 active:scale-95">
+            <button id="startBtn" class="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold font-orbitron text-base rounded-2xl shadow-xl shadow-cyan-500/30 transition transform hover:scale-105 active:scale-95">
                 MISSION START
             </button>
-            <div class="mt-6 text-xs text-gray-500 font-orbitron">v2.4.0 - ENTERPRISE EDITION</div>
+            <div class="mt-6 text-[10px] text-gray-500 font-orbitron tracking-widest">v2.5.0 - QUANTUM EDITION</div>
         </div>
     </div>
 
     <!-- ショップ・アップグレード画面 (ステージクリア時) -->
-    <div id="shopScreen" class="absolute inset-0 z-30 hidden flex-col items-center justify-center bg-black/85 backdrop-blur-lg p-6">
+    <div id="shopScreen" class="absolute inset-0 z-30 hidden flex-col items-center justify-center bg-black/90 backdrop-blur-xl p-6">
         <div class="glass-panel p-6 md:p-10 rounded-3xl max-w-xl w-full text-center neon-border">
-            <div class="text-cyan-400 text-sm font-orbitron mb-1">SECTOR CLEAR</div>
-            <h2 class="text-3xl font-bold font-orbitron mb-6 neon-glow">UPGRADE SYSTEM</h2>
+            <div class="text-cyan-400 text-xs tracking-[0.2em] font-orbitron mb-1">SECTOR CLEAR</div>
+            <h2 class="text-3xl font-black font-orbitron mb-6 neon-glow tracking-wider">UPGRADE SYSTEM</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-left">
-                <div class="glass-panel p-4 rounded-xl flex flex-col justify-between">
+                <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between border-cyan-500/30">
                     <div>
-                        <div class="font-bold text-cyan-300 font-orbitron">MAIN WEAPON</div>
-                        <div class="text-xs text-gray-400 mt-1">弾数と威力を強化します</div>
+                        <div class="font-bold text-cyan-300 font-orbitron text-sm">MAIN WEAPON</div>
+                        <div class="text-xs text-gray-400 mt-1">弾数と連射性能を大幅に強化します</div>
                     </div>
-                    <div class="flex justify-between items-center mt-4">
-                        <span id="costWeapon" class="text-yellow-300 font-orbitron text-sm">100 ¢</span>
-                        <button onclick="upgrade('weapon')" class="px-3 py-1.5 bg-cyan-500/30 hover:bg-cyan-500/50 border border-cyan-400 rounded-lg text-cyan-300 text-xs font-orbitron transition">強化</button>
+                    <div class="flex justify-between items-center mt-6">
+                        <span id="costWeapon" class="text-yellow-300 font-orbitron text-sm font-bold">100 ¢</span>
+                        <button onclick="upgrade('weapon')" class="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-400 rounded-xl text-cyan-300 text-xs font-orbitron transition active:scale-95">強化</button>
                     </div>
                 </div>
-                <div class="glass-panel p-4 rounded-xl flex flex-col justify-between">
+                <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between border-purple-500/30">
                     <div>
-                        <div class="font-bold text-purple-300 font-orbitron">SHIELD GENERATOR</div>
-                        <div class="text-xs text-gray-400 mt-1">シールドの回復力と容量を向上</div>
+                        <div class="font-bold text-purple-300 font-orbitron text-sm">SHIELD GENERATOR</div>
+                        <div class="text-xs text-gray-400 mt-1">シールドの最大容量と復元力を向上</div>
                     </div>
-                    <div class="flex justify-between items-center mt-4">
-                        <span id="costShield" class="text-yellow-300 font-orbitron text-sm">150 ¢</span>
-                        <button onclick="upgrade('shield')" class="px-3 py-1.5 bg-purple-500/30 hover:bg-purple-500/50 border border-purple-400 rounded-lg text-purple-300 text-xs font-orbitron transition">強化</button>
+                    <div class="flex justify-between items-center mt-6">
+                        <span id="costShield" class="text-yellow-300 font-orbitron text-sm font-bold">150 ¢</span>
+                        <button onclick="upgrade('shield')" class="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-400 rounded-xl text-purple-300 text-xs font-orbitron transition active:scale-95">強化</button>
                     </div>
                 </div>
             </div>
 
-            <button id="nextWaveBtn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold font-orbitron text-lg rounded-xl shadow-lg shadow-purple-500/30 transition transform hover:scale-105 active:scale-95">
+            <button id="nextWaveBtn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold font-orbitron text-base rounded-2xl shadow-xl shadow-purple-500/30 transition transform hover:scale-105 active:scale-95">
                 NEXT SECTOR 突入
             </button>
         </div>
     </div>
 
     <!-- ゲームオーバー画面 -->
-    <div id="gameOverScreen" class="absolute inset-0 z-30 hidden flex-col items-center justify-center bg-black/90 backdrop-blur-md p-6">
-        <div class="glass-panel p-8 md:p-12 rounded-3xl max-w-md w-full text-center border-red-500/30 shadow-[0_0_30px_rgba(255,0,0,0.2)]">
-            <div class="text-red-500 text-sm tracking-widest font-orbitron mb-2">CRITICAL FAILURE</div>
+    <div id="gameOverScreen" class="absolute inset-0 z-30 hidden flex-col items-center justify-center bg-black/95 backdrop-blur-xl p-6">
+        <div class="glass-panel p-8 md:p-12 rounded-3xl max-w-md w-full text-center border-red-500/40 shadow-[0_0_40px_rgba(255,0,0,0.25)]">
+            <div class="text-red-500 text-xs tracking-[0.3em] font-orbitron mb-2">CRITICAL FAILURE</div>
             <h2 class="text-4xl font-black font-orbitron text-red-500 mb-6 tracking-wider">GAME OVER</h2>
             
             <div class="space-y-3 mb-8 text-sm">
-                <div class="flex justify-between border-b border-gray-800 pb-2">
+                <div class="flex justify-between border-b border-gray-800 pb-3">
                     <span class="text-gray-400 font-orbitron">FINAL SCORE</span>
                     <span id="finalScore" class="font-bold font-orbitron text-white">0000000</span>
                 </div>
-                <div class="flex justify-between border-b border-gray-800 pb-2">
+                <div class="flex justify-between border-b border-gray-800 pb-3">
                     <span class="text-gray-400 font-orbitron">REACHED SECTOR</span>
                     <span id="finalWave" class="font-bold font-orbitron text-white">1</span>
                 </div>
             </div>
 
-            <button id="restartBtn" class="w-full py-4 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold font-orbitron text-lg rounded-xl shadow-lg shadow-red-500/30 transition transform hover:scale-105 active:scale-95">
+            <button id="restartBtn" class="w-full py-4 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold font-orbitron text-base rounded-2xl shadow-xl shadow-red-500/30 transition transform hover:scale-105 active:scale-95">
                 RETRY SYSTEM
             </button>
         </div>
@@ -194,34 +205,37 @@
         let wave = 1;
         let maxWaves = 5;
 
-        // プレイヤーデータ
+        // プレイヤーデータ (精密な当たり判定用コア半径を設定)
         let player = {
             x: canvas.width / 2,
-            y: canvas.height - 100,
+            y: canvas.height - 120,
             radius: 18,
-            speed: 6,
+            coreRadius: 4, // 被弾判定は中心のコアのみ
+            speed: 7,
             hp: 100,
             maxHp: 100,
             shield: 50,
             maxShield: 50,
             weaponLevel: 1,
             shieldLevel: 1,
-            targetX: canvas.width / 2,
-            targetY: canvas.height - 100,
             isMoving: false
         };
 
         // 入力管理
         const keys = {};
-        let pointer = { x: canvas.width / 2, y: canvas.height - 100, isDown: false };
+        let pointer = { x: canvas.width / 2, y: canvas.height - 120, isDown: false, offsetX: 0, offsetY: 0 };
 
         window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
+        // ダイレクト＆スムーズなタッチ/ポインタ操作
         canvas.addEventListener('pointerdown', e => {
             pointer.isDown = true;
             pointer.x = e.clientX;
             pointer.y = e.clientY;
+            // タップした瞬間から自機へダイレクトに引き寄せるオフセット計算
+            pointer.offsetX = player.x - e.clientX;
+            pointer.offsetY = player.y - e.clientY;
         });
         canvas.addEventListener('pointermove', e => {
             if (pointer.isDown) {
@@ -230,6 +244,7 @@
             }
         });
         canvas.addEventListener('pointerup', () => pointer.isDown = false);
+        canvas.addEventListener('pointercancel', () => pointer.isDown = false);
 
         // エンティティ配列
         let bullets = [];
@@ -238,34 +253,35 @@
         let particles = [];
         let stars = [];
 
-        // 背景の星生成
-        for (let i = 0; i < 100; i++) {
+        // 背景の星生成（奥行き感のある多層スクロール）
+        for (let i = 0; i < 120; i++) {
             stars.push({
                 x: Math.random() * bgCanvas.width,
                 y: Math.random() * bgCanvas.height,
-                size: Math.random() * 2,
-                speed: Math.random() * 2 + 0.5
+                size: Math.random() * 2.2 + 0.3,
+                speed: Math.random() * 2.5 + 0.5,
+                alpha: Math.random() * 0.7 + 0.3
             });
         }
 
         // パーティクル生成
-        function createParticles(x, y, color, count = 10) {
+        function createParticles(x, y, color, count = 10, speedMultiplier = 1) {
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 4 + 1;
+                const speed = (Math.random() * 5 + 1) * speedMultiplier;
                 particles.push({
                     x, y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
                     alpha: 1,
-                    decay: Math.random() * 0.03 + 0.01,
+                    decay: Math.random() * 0.03 + 0.015,
                     color,
-                    size: Math.random() * 3 + 1
+                    size: Math.random() * 3.5 + 1
                 });
             }
         }
 
-        // サウンドエフェクト簡易生成 (Web Audio API)
+        // Web Audio API サウンドシステム
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(type) {
             if (!audioCtx) return;
@@ -278,54 +294,76 @@
             let time = audioCtx.currentTime;
             if (type === 'shoot') {
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(600, time);
-                osc.frequency.exponentialRampToValueAtTime(100, time + 0.1);
-                gain.gain.setValueAtTime(0.1, time);
-                gain.gain.linearRampToValueAtTime(0.01, time + 0.1);
+                osc.frequency.setValueAtTime(700, time);
+                osc.frequency.exponentialRampToValueAtTime(150, time + 0.08);
+                gain.gain.setValueAtTime(0.08, time);
+                gain.gain.linearRampToValueAtTime(0.001, time + 0.08);
                 osc.start(time);
-                osc.stop(time + 0.1);
+                osc.stop(time + 0.08);
             } else if (type === 'explosion') {
                 osc.type = 'square';
-                osc.frequency.setValueAtTime(150, time);
-                osc.frequency.linearRampToValueAtTime(30, time + 0.3);
+                osc.frequency.setValueAtTime(180, time);
+                osc.frequency.linearRampToValueAtTime(30, time + 0.4);
                 gain.gain.setValueAtTime(0.2, time);
-                gain.gain.linearRampToValueAtTime(0.01, time + 0.3);
+                gain.gain.linearRampToValueAtTime(0.001, time + 0.4);
                 osc.start(time);
-                osc.stop(time + 0.3);
+                osc.stop(time + 0.4);
             } else if (type === 'hit') {
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(200, time);
+                osc.frequency.setValueAtTime(250, time);
                 osc.frequency.setValueAtTime(100, time + 0.05);
                 gain.gain.setValueAtTime(0.15, time);
-                gain.gain.linearRampToValueAtTime(0.01, time + 0.1);
+                gain.gain.linearRampToValueAtTime(0.001, time + 0.1);
                 osc.start(time);
                 osc.stop(time + 0.1);
             }
         }
 
-        // 敵のスポーン制御
+        // 敵のスポーン制御（ウェーブごとの緩急を設計）
         let spawnTimer = 0;
+        let waveSpawnCount = 0;
+        const waveTotalEnemies = 15;
+
         function spawnWave() {
             spawnTimer++;
-            let interval = Math.max(30, 90 - wave * 10);
-            if (spawnTimer > interval) {
+            let interval = Math.max(25, 70 - wave * 8);
+            
+            if (spawnTimer > interval && waveSpawnCount < waveTotalEnemies) {
                 spawnTimer = 0;
-                let type = Math.random() < 0.7 ? 'drone' : (Math.random() < 0.85 ? 'hunter' : 'carrier');
-                if (wave === maxWaves && enemies.length === 0 && spawnTimer === 0) {
-                    type = 'boss';
-                }
-                
-                let x = Math.random() * (canvas.width - 100) + 50;
+                waveSpawnCount++;
+
+                let rand = Math.random();
+                let type = 'drone';
+                if (wave >= 2 && rand < 0.35) type = 'hunter';
+                if (wave >= 3 && rand < 0.2) type = 'carrier';
+
+                let x = Math.random() * (canvas.width - 120) + 60;
                 let enemy = {
-                    x, y: -50,
-                    vx: 0, vy: type === 'boss' ? 1 : Math.random() * 2 + 1,
-                    radius: type === 'boss' ? 40 : (type === 'carrier' ? 25 : 15),
-                    hp: type === 'boss' ? 200 + wave * 50 : (type === 'carrier' ? 30 : 10),
-                    maxHp: type === 'boss' ? 200 + wave * 50 : (type === 'carrier' ? 30 : 10),
+                    x, y: -60,
+                    vx: 0, vy: type === 'hunter' ? 2.5 : Math.random() * 1.5 + 1.2,
+                    radius: type === 'carrier' ? 28 : (type === 'hunter' ? 16 : 14),
+                    hp: type === 'carrier' ? 40 + wave * 10 : (type === 'hunter' ? 18 + wave * 5 : 10 + wave * 3),
+                    maxHp: type === 'carrier' ? 40 + wave * 10 : (type === 'hunter' ? 18 + wave * 5 : 10 + wave * 3),
                     type,
-                    shootTimer: 0
+                    shootTimer: Math.random() * 30
                 };
                 enemies.push(enemy);
+            }
+
+            // ボススポーン判定 (各ウェーブの終盤 or 最終ウェーブ)
+            if (waveSpawnCount >= waveTotalEnemies && enemies.length === 0 && !window.bossSpawnedThisWave) {
+                window.bossSpawnedThisWave = true;
+                let bossType = wave === maxWaves ? 'finalBoss' : 'boss';
+                let boss = {
+                    x: canvas.width / 2, y: -80,
+                    vx: 1.5, vy: 1,
+                    radius: bossType === 'finalBoss' ? 50 : 35,
+                    hp: 300 + wave * 120,
+                    maxHp: 300 + wave * 120,
+                    type: bossType,
+                    shootTimer: 0
+                };
+                enemies.push(boss);
             }
         }
 
@@ -337,11 +375,13 @@
             player.hp = player.maxHp;
             player.shield = player.maxShield;
             player.x = canvas.width / 2;
-            player.y = canvas.height - 100;
+            player.y = canvas.height - 120;
             bullets = [];
             enemyBullets = [];
             enemies = [];
             particles = [];
+            waveSpawnCount = 0;
+            window.bossSpawnedThisWave = false;
             updateHUD();
         }
 
@@ -354,7 +394,7 @@
             } else if (type === 'shield' && credits >= 150 * player.shieldLevel) {
                 credits -= 150 * player.shieldLevel;
                 player.shieldLevel++;
-                player.maxShield += 25;
+                player.maxShield += 30;
                 player.shield = player.maxShield;
                 document.getElementById('costShield').innerText = (150 * player.shieldLevel) + ' ¢';
             }
@@ -366,8 +406,8 @@
             document.getElementById('scoreDisplay').innerText = String(score).padStart(7, '0');
             document.getElementById('creditDisplay').innerText = credits + ' ¢';
             document.getElementById('waveDisplay').innerText = wave + ' / ' + maxWaves;
-            document.getElementById('hpBar').style.width = (player.hp / player.maxHp * 100) + '%';
-            document.getElementById('shieldBar').style.width = (player.shield / player.maxShield * 100) + '%';
+            document.getElementById('hpBar').style.width = Math.max(0, (player.hp / player.maxHp * 100)) + '%';
+            document.getElementById('shieldBar').style.width = Math.max(0, (player.shield / player.maxShield * 100)) + '%';
         }
 
         // ショップ表示
@@ -386,6 +426,8 @@
             document.getElementById('hudBottom').classList.remove('opacity-0');
             wave++;
             if (wave > maxWaves) wave = maxWaves;
+            waveSpawnCount = 0;
+            window.bossSpawnedThisWave = false;
             gameState = 'PLAYING';
         });
 
@@ -425,22 +467,22 @@
         function gameLoop() {
             requestAnimationFrame(gameLoop);
 
-            // 背景描画
+            // 背景描画（多層スクロール星空）
             bgCtx.fillStyle = '#05050a';
             bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-            bgCtx.fillStyle = 'rgba(0, 243, 255, 0.5)';
             stars.forEach(star => {
                 star.y += star.speed;
                 if (star.y > bgCanvas.height) star.y = 0;
+                bgCtx.fillStyle = `rgba(0, 243, 255, ${star.alpha})`;
                 bgCtx.fillRect(star.x, star.y, star.size, star.size);
             });
 
             if (gameState !== 'PLAYING') return;
             frameCount++;
 
-            // プレイヤー移動処理 (キーボード ＆ ポインター)
+            // プレイヤー移動処理（キーボード ＆ ダイレクトポインタ追従）
             let dx = 0, dy = 0;
-            if (keys['w'] || keys['allowup']) dy = -1;
+            if (keys['w'] || keys['arrowup'] || keys['z']) dy = -1;
             if (keys['s'] || keys['arrowdown']) dy = 1;
             if (keys['a'] || keys['arrowleft']) dx = -1;
             if (keys['d'] || keys['arrowright']) dx = 1;
@@ -450,26 +492,35 @@
                 player.x += (dx / len) * player.speed;
                 player.y += (dy / len) * player.speed;
             } else if (pointer.isDown) {
-                player.x += (pointer.x - player.x) * 0.15;
-                player.y += (pointer.y - player.y) * 0.15;
+                // 指の位置に遅延なくダイレクト追従
+                let targetX = pointer.x + pointer.offsetX;
+                let targetY = pointer.y + pointer.offsetY;
+                player.x += (targetX - player.x) * 0.35;
+                player.y += (targetY - player.y) * 0.35;
             }
 
             // 画面外制限
             player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
             player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
 
-            // 自動攻撃
-            if (frameCount % Math.max(5, 15 - player.weaponLevel * 2) === 0) {
+            // 自動攻撃（ウェポンレベルに応じた弾幕強化）
+            if (frameCount % Math.max(4, 14 - player.weaponLevel * 2) === 0) {
                 playSound('shoot');
                 if (player.weaponLevel === 1) {
-                    bullets.push({ x: player.x, y: player.y - 20, vx: 0, vy: -12, radius: 4 });
+                    bullets.push({ x: player.x, y: player.y - 20, vx: 0, vy: -14, radius: 4 });
                 } else if (player.weaponLevel === 2) {
-                    bullets.push({ x: player.x - 10, y: player.y - 20, vx: 0, vy: -12, radius: 4 });
-                    bullets.push({ x: player.x + 10, y: player.y - 20, vx: 0, vy: -12, radius: 4 });
+                    bullets.push({ x: player.x - 10, y: player.y - 20, vx: 0, vy: -14, radius: 4 });
+                    bullets.push({ x: player.x + 10, y: player.y - 20, vx: 0, vy: -14, radius: 4 });
+                } else if (player.weaponLevel === 3) {
+                    bullets.push({ x: player.x, y: player.y - 22, vx: 0, vy: -16, radius: 5 });
+                    bullets.push({ x: player.x - 16, y: player.y - 16, vx: -0.8, vy: -14, radius: 4 });
+                    bullets.push({ x: player.x + 16, y: player.y - 16, vx: 0.8, vy: -14, radius: 4 });
                 } else {
-                    bullets.push({ x: player.x, y: player.y - 20, vx: 0, vy: -14, radius: 5 });
-                    bullets.push({ x: player.x - 15, y: player.y - 15, vx: -1, vy: -12, radius: 4 });
-                    bullets.push({ x: player.x + 15, y: player.y - 15, vx: 1, vy: -12, radius: 4 });
+                    bullets.push({ x: player.x, y: player.y - 22, vx: 0, vy: -16, radius: 5 });
+                    bullets.push({ x: player.x - 18, y: player.y - 15, vx: -1.5, vy: -14, radius: 4 });
+                    bullets.push({ x: player.x + 18, y: player.y - 15, vx: 1.5, vy: -14, radius: 4 });
+                    bullets.push({ x: player.x - 8, y: player.y - 20, vx: -0.5, vy: -16, radius: 4 });
+                    bullets.push({ x: player.x + 8, y: player.y - 20, vx: 0.5, vy: -16, radius: 4 });
                 }
             }
 
@@ -479,9 +530,9 @@
             // キャンバスクリア
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 弾の更新・描画
+            // プレイヤー弾の更新・描画
             ctx.fillStyle = '#00f3ff';
-            ctx.shadowBlur = 10;
+            ctx.shadowBlur = 12;
             ctx.shadowColor = '#00f3ff';
             bullets.forEach((b, index) => {
                 b.x += b.vx;
@@ -489,10 +540,10 @@
                 ctx.beginPath();
                 ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
                 ctx.fill();
-                if (b.y < 0) bullets.splice(index, 1);
+                if (b.y < -20 || b.x < 0 || b.x > canvas.width) bullets.splice(index, 1);
             });
 
-            // 敵弾更新
+            // 敵弾更新・精密判定
             ctx.fillStyle = '#ff0055';
             ctx.shadowColor = '#ff0055';
             enemyBullets.forEach((eb, index) => {
@@ -502,17 +553,17 @@
                 ctx.arc(eb.x, eb.y, eb.radius, 0, Math.PI * 2);
                 ctx.fill();
 
-                // プレイヤーとの衝突
-                let dist = Math.hypot(player.x - eb.x, player.y - eb.y);
-                if (dist < player.radius + eb.radius) {
+                // プレイヤーの「コア」との衝突判定（精密判定による回避爽快感）
+                let distToCore = Math.hypot(player.x - eb.x, player.y - eb.y);
+                if (distToCore < player.coreRadius + eb.radius) {
                     enemyBullets.splice(index, 1);
                     playSound('hit');
-                    createParticles(eb.x, eb.y, '#ff0055', 5);
+                    createParticles(eb.x, eb.y, '#ff0055', 8);
                     if (player.shield > 0) {
-                        player.shield -= 15;
+                        player.shield -= 20;
                         if (player.shield < 0) player.shield = 0;
                     } else {
-                        player.hp -= 20;
+                        player.hp -= 25;
                     }
                     updateHUD();
                     if (player.hp <= 0) {
@@ -525,39 +576,56 @@
                         document.getElementById('hudBottom').classList.add('opacity-0');
                     }
                 }
-                if (eb.y > canvas.height || eb.x < 0 || eb.x > canvas.width) enemyBullets.splice(index, 1);
+                if (eb.y > canvas.height + 30 || eb.x < -30 || eb.x > canvas.width + 30) enemyBullets.splice(index, 1);
             });
 
             // 敵の更新・描画
             enemies.forEach((e, eIndex) => {
-                e.y += e.vy;
-                if (e.type === 'hunter') {
-                    if (e.x < player.x) e.x += 1;
-                    if (e.x > player.x) e.x -= 1;
+                if (e.type === 'boss' || e.type === 'finalBoss') {
+                    if (e.y < 90) e.y += e.vy;
+                    e.x += e.vx;
+                    if (e.x < 70 || e.x > canvas.width - 70) e.vx *= -1;
+                } else {
+                    e.y += e.vy;
+                    if (e.type === 'hunter') {
+                        if (e.x < player.x) e.x += 1.2;
+                        if (e.x > player.x) e.x -= 1.2;
+                    }
                 }
 
-                // 敵の攻撃
+                // 敵の攻撃パターン
                 e.shootTimer++;
-                if (e.shootTimer > 60) {
+                let fireInterval = (e.type === 'boss' || e.type === 'finalBoss') ? 45 : 75;
+                if (e.shootTimer > fireInterval) {
                     e.shootTimer = 0;
-                    if (e.type === 'boss') {
+                    if (e.type === 'finalBoss') {
+                        for (let i = -3; i <= 3; i++) {
+                            enemyBullets.push({ x: e.x, y: e.y, vx: i * 1.8, vy: 4.5, radius: 5 });
+                        }
+                    } else if (e.type === 'boss') {
                         for (let i = -2; i <= 2; i++) {
                             enemyBullets.push({ x: e.x, y: e.y, vx: i * 1.5, vy: 4, radius: 5 });
                         }
                     } else if (e.type === 'carrier') {
-                        enemyBullets.push({ x: e.x, y: e.y, vx: 0, vy: 3, radius: 6 });
+                        enemyBullets.push({ x: e.x, y: e.y - 10, vx: -1, vy: 3.5, radius: 6 });
+                        enemyBullets.push({ x: e.x, y: e.y - 10, vx: 1, vy: 3.5, radius: 6 });
+                    } else {
+                        enemyBullets.push({ x: e.x, y: e.y, vx: 0, vy: 4, radius: 4 });
                     }
                 }
 
-                // 描画
+                // 敵の描画
                 ctx.save();
                 ctx.translate(e.x, e.y);
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = e.type === 'boss' ? '#a855f7' : '#ff0055';
-                ctx.fillStyle = e.type === 'boss' ? '#a855f7' : '#ff0055';
+                ctx.shadowBlur = 18;
+                let glowColor = (e.type === 'boss' || e.type === 'finalBoss') ? '#a855f7' : '#ff0055';
+                ctx.shadowColor = glowColor;
+                ctx.fillStyle = glowColor;
                 ctx.beginPath();
-                if (e.type === 'boss') {
+                if (e.type === 'boss' || e.type === 'finalBoss') {
                     ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+                } else if (e.type === 'carrier') {
+                    ctx.rect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
                 } else {
                     ctx.moveTo(0, e.radius);
                     ctx.lineTo(-e.radius, -e.radius);
@@ -573,30 +641,43 @@
                     if (dist < e.radius + b.radius) {
                         bullets.splice(bIndex, 1);
                         e.hp -= 10;
-                        createParticles(b.x, b.y, '#00f3ff', 3);
+                        createParticles(b.x, b.y, '#00f3ff', 3, 0.6);
                         if (e.hp <= 0) {
                             playSound('explosion');
-                            createParticles(e.x, e.y, e.type === 'boss' ? '#a855f7' : '#ff0055', 20);
+                            let isBoss = (e.type === 'boss' || e.type === 'finalBoss');
+                            createParticles(e.x, e.y, isBoss ? '#a855f7' : '#ff0055', isBoss ? 35 : 15);
                             enemies.splice(eIndex, 1);
-                            score += e.type === 'boss' ? 5000 : 100;
-                            credits += e.type === 'boss' ? 200 : 10;
+                            score += isBoss ? 8000 : 150;
+                            credits += isBoss ? 250 : 15;
                             updateHUD();
 
-                            // ボス撃破でショップへ
-                            if (e.type === 'boss') {
-                                showShop();
+                            // ボス撃破でショップまたはクリア判定
+                            if (isBoss) {
+                                if (wave >= maxWaves) {
+                                    gameState = 'GAMEOVER';
+                                    document.getElementById('gameOverScreen').querySelector('h2').innerText = 'MISSION COMPLETE';
+                                    document.getElementById('gameOverScreen').querySelector('.text-red-500').innerText = 'ALL SECTORS CLEARED';
+                                    document.getElementById('finalScore').innerText = String(score).padStart(7, '0');
+                                    document.getElementById('finalWave').innerText = wave + ' (MAX)';
+                                    document.getElementById('gameOverScreen').classList.remove('hidden');
+                                    document.getElementById('gameOverScreen').classList.add('flex');
+                                    document.getElementById('hudTop').classList.add('opacity-0');
+                                    document.getElementById('hudBottom').classList.add('opacity-0');
+                                } else {
+                                    showShop();
+                                }
                             }
                         }
                     }
                 });
 
-                // 画面外・プレイヤー衝突
+                // プレイヤー機体との衝突判定
                 let distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
                 if (distToPlayer < player.radius + e.radius) {
                     enemies.splice(eIndex, 1);
                     playSound('explosion');
-                    createParticles(e.x, e.y, '#ff0055', 15);
-                    player.hp -= 30;
+                    createParticles(e.x, e.y, '#ff0055', 20);
+                    player.hp -= 35;
                     updateHUD();
                     if (player.hp <= 0) {
                         gameState = 'GAMEOVER';
@@ -609,7 +690,7 @@
                     }
                 }
 
-                if (e.y > canvas.height + 50) enemies.splice(eIndex, 1);
+                if (e.y > canvas.height + 80) enemies.splice(eIndex, 1);
             });
 
             // パーティクル描画
@@ -626,35 +707,36 @@
                 if (p.alpha <= 0) particles.splice(index, 1);
             });
 
-            // プレイヤー描画 (ネオンシップ)
+            // プレイヤー描画 (ネオンシップ ＆ 精密コア)
             ctx.save();
             ctx.translate(player.x, player.y);
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = 22;
             ctx.shadowColor = '#00f3ff';
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
             ctx.moveTo(0, -player.radius);
             ctx.lineTo(-player.radius, player.radius);
-            ctx.lineTo(0, player.radius * 0.5);
+            ctx.lineTo(0, player.radius * 0.6);
             ctx.lineTo(player.radius, player.radius);
             ctx.closePath();
             ctx.fill();
 
+            // 精密判定用コアの描画（中心の赤いドットが被弾判定点）
+            ctx.fillStyle = '#ff0055';
+            ctx.shadowColor = '#ff0055';
+            ctx.beginPath();
+            ctx.arc(0, 0, player.coreRadius, 0, Math.PI * 2);
+            ctx.fill();
+
             // シールドエフェクト
             if (player.shield > 0) {
-                ctx.strokeStyle = 'rgba(168, 85, 247, 0.6)';
+                ctx.strokeStyle = 'rgba(168, 85, 247, 0.7)';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.arc(0, 0, player.radius + 6, 0, Math.PI * 2);
+                ctx.arc(0, 0, player.radius + 7, 0, Math.PI * 2);
                 ctx.stroke();
             }
             ctx.restore();
-
-            // ウェーブクリア判定（ボス以外）
-            if (enemies.length === 0 && spawnTimer > 150 && wave < maxWaves && frameCount > 300) {
-                showShop();
-                spawnTimer = 0;
-            }
         }
 
         requestAnimationFrame(gameLoop);
