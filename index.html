@@ -207,7 +207,7 @@
     }
     @media (max-width: 768px) {
       .boss-hud {
-        top: 16px;
+        top: 72px;
         left: 50%;
         right: auto;
         transform: translateX(-50%);
@@ -216,6 +216,19 @@
       }
     }
     .boss-hud.active { display: flex; }
+    
+    .status-badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--danger);
+      background: rgba(255, 0, 85, 0.15);
+      border: 1px solid rgba(255, 0, 85, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+      display: none;
+    }
+    .status-badge.active { display: inline-block; }
     .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
 
     .feed-container {
@@ -732,7 +745,8 @@
       moveSpeed: 11.5, slashDamage: 50, slashRange: 4.8,
       skillCooldown: 0, skillMaxCooldown: 5.0, weaponType: 'saber',
       invulnerableTimer: 0,
-      perks: { plasmaExplosion: false, vampirism: false, jumpMaster: false, shieldReflect: false }
+      slowTimer: 0, hackTimer: 0,
+      perks: { plasmaExplosion: false, vampirism: false, jumpMaster: false, shieldReflect: false, homingBlade: false, meteorSlash: false }
     };
 
     let enemies = [], projectiles = [], shockwaves = [], particles = [], platforms = [], boss = null, portal = null;
@@ -1241,35 +1255,43 @@
 
     function triggerSkill() {
       if (stats.skillCooldown > 0) return;
+      if (stats.hackTimer > 0) {
+        showFeed('HACKED: SKILL LOCKED');
+        return;
+      }
       stats.skillCooldown = stats.skillMaxCooldown;
       audio.play('slash');
       triggerGlitchEffect();
       triggerHitFlash();
       
-      // 究極奥義「CYBER NOVA STRIKE」：全画面を覆う衝撃波エフェクト＋無敵付与＋全敵大ダメージ＆弾丸完全消滅
+      // 究極奥義「CYBER NOVA STRIKE」：全画面を覆う衝撃波＋全敵吸引ブラックホール効果＋無敵付与＆大ダメージ
       stats.invulnerableTimer = 1.2;
       const pPos = playerPhysics.position.clone();
       spawnParticles(pPos, 0x00ffff);
       cameraShake = 0.95;
 
-      // 巨大なリング衝撃波ビジュアルを生成
-      const novaGeo = new THREE.RingGeometry(0.5, 12, 48);
+      const novaGeo = new THREE.RingGeometry(0.5, 14, 48);
       novaGeo.rotateX(-Math.PI / 2);
       const novaMesh = new THREE.Mesh(novaGeo, new THREE.MeshBasicMaterial({
         color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.9
       }));
       novaMesh.position.set(pPos.x, pPos.y + 0.1, pPos.z);
       scene.add(novaMesh);
-      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 30.0, speed: 28.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 35.0, speed: 30.0, platform: playerPhysics.currentPlatform });
 
-      // 周囲の全敵に壊滅的ダメージ
+      // 周囲の敵をプレイヤー付近に引き寄せるブラックホール吸引効果 ＆ ダメージ
       enemies.forEach((e, idx) => {
         const dist = e.position.distanceTo(pPos);
-        if (dist <= 12.0) {
-          e.hp -= stats.slashDamage * 2.5;
+        if (dist <= 16.0) {
+          // 引き寄せ
+          const pullDir = pPos.clone().sub(e.position);
+          pullDir.y = 0;
+          e.position.add(pullDir.multiplyScalar(0.75));
+
+          e.hp -= stats.slashDamage * 2.8;
           spawnParticles(e.position, 0x00ffcc);
           if (e.hp <= 0) {
-            stats.score += 300;
+            stats.score += 350;
             scene.remove(e.group);
             enemies.splice(idx, 1);
           }
@@ -1278,29 +1300,48 @@
 
       if (boss) {
         const bDist = boss.position.distanceTo(pPos);
-        if (bDist <= 14.0) {
-          boss.hp -= stats.slashDamage * 2.0;
+        if (bDist <= 18.0) {
+          boss.hp -= stats.slashDamage * 2.2;
           const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
           document.getElementById('boss-hp-bar').style.width = `${pct}%`;
           document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
         }
       }
 
-      // 弾丸全消去
       projectiles.forEach(pr => scene.remove(pr.mesh));
       projectiles = [];
 
-      showFeed('【極限奥義】 CYBER NOVA STRIKE');
+      showFeed('【超絶奥義】 CYBER NOVA BLACKHOLE STRIKE');
     }
 
     function executeSlashHit() {
       const pPos = playerPhysics.position;
       const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(playerPhysics.quaternion);
-      const isJumpAttack = !playerPhysics.isGrounded && stats.perks.jumpMaster;
-      const currentDmg = isJumpAttack ? stats.slashDamage * 3 : stats.slashDamage;
+      const isJumpAttack = !playerPhysics.isGrounded;
+      const isMeteor = isJumpAttack && stats.perks.meteorSlash;
+      const currentDmg = isMeteor ? stats.slashDamage * 3.8 : (isJumpAttack ? stats.slashDamage * 2.2 : stats.slashDamage);
 
-      if (isJumpAttack) {
+      if (isMeteor) {
+        showFeed('METEOR SMASH SLASHER!');
+        cameraShake = 0.7;
+        spawnParticles(pPos, 0xff0055);
+        // 急降下衝撃波
+        const mGeo = new THREE.RingGeometry(0.5, 8, 32);
+        mGeo.rotateX(-Math.PI / 2);
+        const mMesh = new THREE.Mesh(mGeo, new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
+        mMesh.position.set(pPos.x, pPos.y + 0.1, pPos.z);
+        scene.add(mMesh);
+        shockwaves.push({ mesh: mMesh, radius: 1.0, maxRadius: 16.0, speed: 20.0, platform: playerPhysics.currentPlatform });
+      } else if (isJumpAttack) {
         showFeed('CRITICAL JUMP SLASH!');
+      }
+
+      // 追尾プラズマブレードPerk：一定確率で敵を追尾するプラズマ弾を発射
+      if (stats.perks.homingBlade) {
+        const bMesh = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.6), new THREE.MeshBasicMaterial({ color: 0x00ffff, emissive: 0x00ffff }));
+        bMesh.position.copy(pPos);
+        scene.add(bMesh);
+        projectiles.push({ mesh: bMesh, dir: fwd, speed: 16.0, life: 2.5, isPlayerBullet: true });
       }
 
       if (boss) {
@@ -1509,10 +1550,10 @@
       { name: 'オーバークロック・セイバー', desc: '斬撃ダメージが45%増加し、さらに刃が巨大化する', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.45); stats.slashRange *= 1.15; } },
       { name: 'クアンタム・リープ', desc: '移動速度が30%上昇し、スキルのクールダウン時間が大幅短縮', apply: () => { stats.moveSpeed *= 1.3; stats.skillMaxCooldown = Math.max(1.5, stats.skillMaxCooldown * 0.65); } },
       { name: 'ナノマシン・リジェネ', desc: '最大HPが50増加し、即座にHPが全快する', apply: () => { stats.maxHp += 50; stats.hp = stats.maxHp; } },
-      { name: 'サイバー・ヴァンパイア', desc: '敵撃破時にHPが35回復し、スコア獲得量が1.5倍になる', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 35); } },
-      { name: 'プラズマ・オーラ', desc: '攻撃力が20%増加し、さらに最大HPが20上昇して全快する', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.2); stats.maxHp += 20; stats.hp = stats.maxHp; } },
-      { name: 'ハイパースラッシュ・ドライブ', desc: '斬撃の有効範囲とスピードが極限まで増大する', apply: () => { stats.slashRange *= 1.3; stats.slashDamage = Math.round(stats.slashDamage * 1.3); } },
-      { name: 'ニューラル・リフレクター', desc: '被ダメージを常に15%軽減し、移動・跳躍性能が向上する', apply: () => { stats.moveSpeed *= 1.15; stats.maxHp += 30; stats.hp = stats.maxHp; } }
+      { name: 'サイバー・ヴァンパイア', desc: '敵撃破時にHPが35回復し、スコア獲得量が1.5倍になる', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 35); stats.perks.vampirism = true; } },
+      { name: 'プラズマ・オーラ爆発', desc: '敵撃破時に周囲の敵を巻き込むプラズマチェイン爆発が発生する', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.2); } },
+      { name: 'ホーミング・プラズマブレード', desc: '斬撃時に前方に敵を追尾するプラズマ弾が自動発射される', apply: () => { stats.perks.homingBlade = true; } },
+      { name: 'メテオ・スラッシュ・ドライブ', desc: 'ジャンプ中の下方向斬撃が超強力なメテオスマッシュになる', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.2; } }
     ];
 
     function showPerkScreen() {
@@ -1544,6 +1585,11 @@
       document.getElementById('skill-bar').style.width = `${skillPct}%`;
       document.getElementById('score-display').textContent = stats.score;
       document.getElementById('floor-badge').textContent = `FLOOR ${stats.floor}`;
+
+      const slowBadge = document.getElementById('status-slow');
+      const hackBadge = document.getElementById('status-hack');
+      if (stats.slowTimer > 0) slowBadge.classList.add('active'); else slowBadge.classList.remove('active');
+      if (stats.hackTimer > 0) hackBadge.classList.add('active'); else hackBadge.classList.remove('active');
 
       const vignette = document.getElementById('vignette');
       if (hpPct < 30) {
@@ -1621,6 +1667,9 @@
       inputSys.update();
 
       if (stats.skillCooldown > 0) stats.skillCooldown = Math.max(0, stats.skillCooldown - delta);
+      if (stats.slowTimer > 0) stats.slowTimer = Math.max(0, stats.slowTimer - delta);
+      if (stats.hackTimer > 0) stats.hackTimer = Math.max(0, stats.hackTimer - delta);
+
       if (stats.invulnerableTimer > 0) {
         stats.invulnerableTimer = Math.max(0, stats.invulnerableTimer - delta);
         playerGroup.visible = Math.floor(performance.now() / 60) % 2 === 0;
@@ -1635,14 +1684,15 @@
       if (inputSys.keys['KeyD'] || inputSys.keys['ArrowRight']) mx += 1;
       if (stick.active) { mx = stick.x; mz = stick.y; }
 
+      const currentSpeed = stats.slowTimer > 0 ? stats.moveSpeed * 0.55 : stats.moveSpeed;
       const moveVec = new THREE.Vector2(mx, mz);
       if (moveVec.length() > 0.1) {
         moveVec.normalize();
         const angle = Math.atan2(moveVec.x, moveVec.y) + Math.PI;
         playerPhysics.targetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
         playerPhysics.quaternion.slerp(playerPhysics.targetQuaternion, 0.3);
-        playerPhysics.velocity.x = moveVec.x * stats.moveSpeed;
-        playerPhysics.velocity.z = moveVec.y * stats.moveSpeed;
+        playerPhysics.velocity.x = moveVec.x * currentSpeed;
+        playerPhysics.velocity.z = moveVec.y * currentSpeed;
       } else {
         playerPhysics.velocity.x *= 0.78;
         playerPhysics.velocity.z *= 0.78;
@@ -1976,23 +2026,67 @@
         e.group.position.copy(e.position);
       }
 
-      // 遠隔敵の光弾更新
+      // 遠隔敵の光弾・プレイヤーのホーミング弾更新
       for (let i = projectiles.length - 1; i >= 0; i--) {
         const pr = projectiles[i];
-        pr.mesh.position.addScaledVector(pr.dir, pr.speed * delta);
-        pr.life -= delta;
 
-        // プレイヤーへの命中判定
-        if (pr.mesh.position.distanceTo(playerPhysics.position.clone().add(new THREE.Vector3(0, 0.6, 0))) < 0.75) {
-          takeDamage(12);
-          scene.remove(pr.mesh);
-          projectiles.splice(i, 1);
-          continue;
-        }
+        if (pr.isPlayerBullet) {
+          // ホーミング弾：最も近い敵へ誘導
+          let nearestEnemy = null;
+          let minDist = Infinity;
+          enemies.forEach(e => {
+            const d = e.position.distanceTo(pr.mesh.position);
+            if (d < minDist) { minDist = d; nearestEnemy = e; }
+          });
+          if (nearestEnemy) {
+            const tDir = nearestEnemy.position.clone().sub(pr.mesh.position).normalize();
+            pr.dir.lerp(tDir, 0.15).normalize();
+          }
+          pr.mesh.position.addScaledVector(pr.dir, pr.speed * delta);
+          pr.life -= delta;
 
-        if (pr.life <= 0) {
-          scene.remove(pr.mesh);
-          projectiles.splice(i, 1);
+          // 敵への命中判定
+          let hit = false;
+          for (let j = enemies.length - 1; j >= 0; j--) {
+            if (enemies[j].position.distanceTo(pr.mesh.position) < 1.2) {
+              enemies[j].hp -= Math.round(stats.slashDamage * 0.7);
+              spawnParticles(enemies[j].position, 0x00ffff);
+              if (enemies[j].hp <= 0) {
+                stats.score += 200;
+                scene.remove(enemies[j].group);
+                enemies.splice(j, 1);
+              }
+              hit = true;
+              break;
+            }
+          }
+          if (hit || pr.life <= 0) {
+            scene.remove(pr.mesh);
+            projectiles.splice(i, 1);
+          }
+        } else {
+          pr.mesh.position.addScaledVector(pr.dir, pr.speed * delta);
+          pr.life -= delta;
+
+          // プレイヤーへの命中判定（状態異常スロウ/ハック付与確率つき）
+          if (pr.mesh.position.distanceTo(playerPhysics.position.clone().add(new THREE.Vector3(0, 0.6, 0))) < 0.75) {
+            takeDamage(12);
+            if (Math.random() < 0.4) {
+              stats.slowTimer = 2.5;
+              showFeed('STATUS: SLOWED DOWN');
+            } else if (Math.random() < 0.25) {
+              stats.hackTimer = 3.0;
+              showFeed('STATUS: SKILL HACKED');
+            }
+            scene.remove(pr.mesh);
+            projectiles.splice(i, 1);
+            continue;
+          }
+
+          if (pr.life <= 0) {
+            scene.remove(pr.mesh);
+            projectiles.splice(i, 1);
+          }
         }
       }
 
