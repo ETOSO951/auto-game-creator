@@ -184,43 +184,56 @@
 
     .boss-hud {
       position: absolute;
-      top: 16px;
+      top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      width: 460px;
-      max-width: 88%;
-      background: rgba(12, 6, 20, 0.98);
-      border: 1.5px solid rgba(255, 0, 85, 0.95);
+      width: 500px;
+      max-width: 86%;
+      background: rgba(10, 5, 18, 0.98);
+      border: 2px solid rgba(255, 0, 85, 0.98);
       border-radius: 14px;
-      padding: 12px 20px;
+      padding: 14px 22px;
       display: none;
       flex-direction: column;
-      gap: 6px;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 16px 45px rgba(255, 0, 85, 0.7);
-      z-index: 35;
+      gap: 8px;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 18px 50px rgba(255, 0, 85, 0.85);
+      z-index: 50;
       animation: bossHudPulse 1.2s ease infinite alternate;
     }
     @keyframes bossHudPulse {
-      0% { box-shadow: 0 10px 25px rgba(255, 0, 85, 0.45); }
-      100% { box-shadow: 0 12px 50px rgba(255, 0, 85, 0.9); }
+      0% { box-shadow: 0 12px 30px rgba(255, 0, 85, 0.5); }
+      100% { box-shadow: 0 16px 55px rgba(255, 0, 85, 0.95); }
     }
     @media (max-width: 768px) {
       .boss-hud {
-        top: 64px;
-        width: 94%;
-        padding: 8px 14px;
-        z-index: 35;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        padding: 10px 14px;
+        z-index: 50;
+      }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 54px;
       }
       .unified-panel {
-        width: 160px;
-        padding: 6px 8px;
+        width: 100%;
+        padding: 8px 12px;
       }
       .score-panel {
-        min-width: 84px;
-        padding: 6px 8px;
+        width: 100%;
+        text-align: center;
+        padding: 6px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
+      .controls-hint { display: none; }
     }
     .boss-hud.active { display: flex; }
     
@@ -1272,45 +1285,46 @@
       triggerGlitchEffect();
       triggerHitFlash();
       
-      // 究極奥義「CYBER NOVA STRIKE」の演出大幅強化：カメラダイナミックズームイン＆タイムストップ演出
-      stats.invulnerableTimer = 2.2;
-      stats.hp = Math.min(stats.maxHp, stats.hp + 35);
+      // 究極奥義「CYBER NOVA BLACKHOLE STRIKE」：圧倒的な演出、全画面ブラックホール吸引＆全弾幕消去
+      stats.invulnerableTimer = 2.5;
+      stats.hp = Math.min(stats.maxHp, stats.hp + 45);
       const pPos = playerPhysics.position.clone();
       spawnParticles(pPos, 0x00ffff);
       spawnParticles(pPos, 0xff0055);
-      cameraShake = 1.8;
-      hitStopFrames = 20; // 圧倒的な爽快感を生む長めのヒットストップ
+      spawnParticles(pPos, 0xffaa00);
+      cameraShake = 2.4;
+      hitStopFrames = 25; // さらに爽快感を極めた極上のヒットストップ
 
-      const novaGeo = new THREE.RingGeometry(0.5, 18, 64);
+      const novaGeo = new THREE.RingGeometry(0.5, 24, 64);
       novaGeo.rotateX(-Math.PI / 2);
       const novaMesh = new THREE.Mesh(novaGeo, new THREE.MeshBasicMaterial({
-        color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.95
+        color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.98
       }));
       novaMesh.position.set(pPos.x, pPos.y + 0.15, pPos.z);
       scene.add(novaMesh);
-      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 42.0, speed: 38.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: 50.0, speed: 42.0, platform: playerPhysics.currentPlatform });
 
-      const novaGeo2 = new THREE.RingGeometry(0.5, 12, 48);
+      const novaGeo2 = new THREE.RingGeometry(0.5, 16, 48);
       novaGeo2.rotateX(-Math.PI / 2);
       const novaMesh2 = new THREE.Mesh(novaGeo2, new THREE.MeshBasicMaterial({
-        color: 0xff0077, side: THREE.DoubleSide, transparent: true, opacity: 0.9
+        color: 0xff0077, side: THREE.DoubleSide, transparent: true, opacity: 0.95
       }));
       novaMesh2.position.set(pPos.x, pPos.y + 0.2, pPos.z);
       scene.add(novaMesh2);
-      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 30.0, speed: 28.0, platform: playerPhysics.currentPlatform });
+      shockwaves.push({ mesh: novaMesh2, radius: 1.0, maxRadius: 38.0, speed: 32.0, platform: playerPhysics.currentPlatform });
 
-      // 周囲の敵をプレイヤー付近に引き寄せるブラックホール吸引効果 ＆ 甚大なダメージ
+      // 強力なブラックホール求心力で周囲の敵をプレイヤーに一網打尽に引き寄せる
       enemies.forEach((e, idx) => {
         const dist = e.position.distanceTo(pPos);
-        if (dist <= 22.0) {
+        if (dist <= 28.0) {
           const pullDir = pPos.clone().sub(e.position);
           pullDir.y = 0;
-          e.position.add(pullDir.multiplyScalar(0.85));
+          e.position.add(pullDir.multiplyScalar(0.92));
 
-          e.hp -= stats.slashDamage * 3.5;
+          e.hp -= stats.slashDamage * 4.5;
           spawnParticles(e.position, 0x00ffcc);
           if (e.hp <= 0) {
-            stats.score += 450;
+            stats.score += 600;
             scene.remove(e.group);
             enemies.splice(idx, 1);
           }
@@ -1319,8 +1333,8 @@
 
       if (boss) {
         const bDist = boss.position.distanceTo(pPos);
-        if (bDist <= 24.0) {
-          boss.hp -= stats.slashDamage * 2.8;
+        if (bDist <= 30.0) {
+          boss.hp -= stats.slashDamage * 3.5;
           const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
           document.getElementById('boss-hp-bar').style.width = `${pct}%`;
           document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
@@ -1330,7 +1344,7 @@
       projectiles.forEach(pr => scene.remove(pr.mesh));
       projectiles = [];
 
-      showFeed('【究極奥義】 CYBER NOVA BLACKHOLE STRIKE!');
+      showFeed('【神速奥義】 CYBER NOVA BLACKHOLE STRIKE!');
     }
 
     function executeSlashHit() {
