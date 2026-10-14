@@ -9904,18 +9904,23 @@
       if (type === 'saber') { 
         stats.slashDamage = 50; stats.slashRange = 4.8; bladeMesh.scale.set(1, 1, 1);
         slashGeo = buildSlashGeometry(1.5, 4.8, Math.PI * 0.5);
+        stats.skillMaxCooldown = 8.0;
       } else if (type === 'odachi') { 
         stats.slashDamage = 95; stats.slashRange = 6.4; bladeMesh.scale.set(1.5, 1.4, 1.4);
         slashGeo = buildSlashGeometry(1.8, 6.4, Math.PI * 0.65);
+        stats.skillMaxCooldown = 12.0;
       } else if (type === 'dual') { 
         stats.slashDamage = 35; stats.slashRange = 3.8; bladeMesh.scale.set(0.7, 0.8, 0.8);
         slashGeo = buildSlashGeometry(1.2, 3.8, Math.PI * 0.45);
+        stats.skillMaxCooldown = 6.5;
       } else if (type === 'gauntlet') {
         stats.slashDamage = 110; stats.slashRange = 3.2; bladeMesh.scale.set(1.8, 0.9, 1.8);
         slashGeo = buildSlashGeometry(1.0, 3.2, Math.PI * 0.85);
+        stats.skillMaxCooldown = 10.0;
       } else if (type === 'whip') {
         stats.slashDamage = 42; stats.slashRange = 7.2; bladeMesh.scale.set(0.6, 2.2, 0.6);
         slashGeo = buildSlashGeometry(2.0, 7.2, Math.PI * 0.9);
+        stats.skillMaxCooldown = 7.5;
       }
       slashArc.geometry = slashGeo;
     }
@@ -10338,91 +10343,116 @@
       triggerGlitchEffect();
       triggerHitFlash();
       
-      // 神速究極奥義「CYBER NOVA BLACKHOLE STRIKE」：極限まで洗練された全画面一掃・ダイナミックカメラ・完全無敵＆大回復
-      stats.invulnerableTimer = 10.0;
-      stats.hp = Math.min(stats.maxHp, stats.hp + 250);
-      updateHUD();
       const pPos = playerPhysics.position.clone();
-      
-      for (let k = 0; k < 60; k++) {
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*20, 0, (Math.random()-0.5)*20)), 0x00ffff);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*20, 0, (Math.random()-0.5)*20)), 0xff0077);
-        spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*20, 0, (Math.random()-0.5)*20)), 0xffaa00);
+      stats.invulnerableTimer = 6.0;
+
+      // 武器ごとに異なる専用スキル・奥義発動
+      if (stats.weaponType === 'odachi') {
+        // 重粒子大太刀：隕石メテオ・グランドクラッシュ
+        stats.hp = Math.min(stats.maxHp, stats.hp + 200);
+        cameraShake = 1.4;
+        hitStopFrames = 15;
+        showFeed('☄️ ODICHI SKILL: GRAND METEOR CRASH!!');
+        const waveMesh = new THREE.Mesh(new THREE.RingGeometry(0.5, 35, 64), new THREE.MeshBasicMaterial({ color: 0xff8800, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
+        waveMesh.rotation.x = -Math.PI / 2;
+        waveMesh.position.set(pPos.x, pPos.y + 0.1, pPos.z);
+        scene.add(waveMesh);
+        shockwaves.push({ mesh: waveMesh, radius: 1.0, maxRadius: 38.0, speed: 24.0, platform: playerPhysics.currentPlatform });
+
+        enemies.forEach((e, idx) => {
+          if (e.position.distanceTo(pPos) < 35.0) {
+            e.hp -= stats.slashDamage * 15.0;
+            spawnParticles(e.position, 0xff8800);
+          }
+        });
+        if (boss) {
+          boss.hp -= stats.slashDamage * 12.0;
+        }
+      } else if (stats.weaponType === 'dual') {
+        // 双プラズマ刃：クアンタム・ラピッドラッシュ（超高速連続全方位分身斬撃）
+        stats.hp = Math.min(stats.maxHp, stats.hp + 120);
+        cameraShake = 0.9;
+        hitStopFrames = 10;
+        showFeed('⚡ DUAL BLADE SKILL: QUANTUM RAPID FURY!!');
+        for (let k = 0; k < 12; k++) {
+          const angle = k * (Math.PI / 6);
+          const bMesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 1.2), new THREE.MeshBasicMaterial({ color: 0x00ffff, emissive: 0x00ffff }));
+          bMesh.position.copy(pPos);
+          scene.add(bMesh);
+          projectiles.push({ mesh: bMesh, dir: new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)), speed: 22.0, life: 1.8, isPlayerBullet: true });
+        }
+      } else if (stats.weaponType === 'gauntlet') {
+        // プラズマ拳：ガイア・ショックウェーブ（強烈な拳撃による連続超衝撃波）
+        stats.hp = Math.min(stats.maxHp, stats.hp + 250);
+        cameraShake = 1.6;
+        hitStopFrames = 14;
+        showFeed('💥 GAUNTLET SKILL: GAIA SHOCKWAVE DESTROYER!!');
+        [15, 25, 35].forEach((r, idx) => {
+          const wm = new THREE.Mesh(new THREE.RingGeometry(0.5, r, 48), new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide, transparent: true, opacity: 0.85 - idx * 0.2 }));
+          wm.rotation.x = -Math.PI / 2;
+          wm.position.set(pPos.x, pPos.y + 0.05 + idx * 0.05, pPos.z);
+          scene.add(wm);
+          shockwaves.push({ mesh: wm, radius: 1.0, maxRadius: r + 5, speed: 20.0 + idx * 4, platform: playerPhysics.currentPlatform });
+        });
+        enemies.forEach(e => {
+          if (e.position.distanceTo(pPos) < 32.0) {
+            e.hp -= stats.slashDamage * 18.0;
+            spawnParticles(e.position, 0xff0055);
+          }
+        });
+      } else if (stats.weaponType === 'whip') {
+        // レーザーウィップ：サイバー・エレクトロネット（広範囲電磁ネット拘束＆全敵引き寄せ）
+        stats.hp = Math.min(stats.maxHp, stats.hp + 150);
+        cameraShake = 1.0;
+        hitStopFrames = 10;
+        showFeed('🌀 WHIP SKILL: CYBER ELECTRO-VORTEX NET!!');
+        enemies.forEach(e => {
+          if (e.position.distanceTo(pPos) < 40.0) {
+            const pull = pPos.clone().sub(e.position).normalize().multiplyScalar(6.0);
+            e.position.add(pull);
+            e.hp -= stats.slashDamage * 10.0;
+            spawnParticles(e.position, 0x00ffcc);
+          }
+        });
+      } else {
+        // 標準サイバー刀：ブレード・ノヴァ閃光全画面一掃
+        stats.hp = Math.min(stats.maxHp, stats.hp + 180);
+        cameraShake = 1.1;
+        hitStopFrames = 12;
+        showFeed('⚡ SABER SKILL: CYBER BLADE NOVA FLASH!!');
+        const waveMesh = new THREE.Mesh(new THREE.RingGeometry(0.5, 30, 64), new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
+        waveMesh.rotation.x = -Math.PI / 2;
+        waveMesh.position.set(pPos.x, pPos.y + 0.1, pPos.z);
+        scene.add(waveMesh);
+        shockwaves.push({ mesh: waveMesh, radius: 1.0, maxRadius: 32.0, speed: 22.0, platform: playerPhysics.currentPlatform });
+
+        enemies.forEach(e => {
+          if (e.position.distanceTo(pPos) < 30.0) {
+            e.hp -= stats.slashDamage * 14.0;
+            spawnParticles(e.position, 0x00ffcc);
+          }
+        });
       }
 
-      cameraShake = 1.2;
-      hitStopFrames = 12;
-
-      // 4連重畳ブラックホール・ノヴァ衝撃波
-      [
-        { r: 180, color: 0x00ffcc, speed: 160 },
-        { r: 140, color: 0xff0066, speed: 140 },
-        { r: 100, color: 0xffaa00, speed: 120 },
-        { r: 60, color: 0xffffff, speed: 100 }
-      ].forEach((ring, idx) => {
-        const novaGeo = new THREE.RingGeometry(0.5, ring.r, 64);
-        novaGeo.rotateX(-Math.PI / 2);
-        const novaMesh = new THREE.Mesh(novaGeo, new THREE.MeshBasicMaterial({
-          color: ring.color, side: THREE.DoubleSide, transparent: true, opacity: 0.99 - idx * 0.08
-        }));
-        novaMesh.position.set(pPos.x, pPos.y + 0.15 + idx * 0.05, pPos.z);
-        scene.add(novaMesh);
-        shockwaves.push({ mesh: novaMesh, radius: 1.0, maxRadius: ring.r + 18, speed: ring.speed, platform: playerPhysics.currentPlatform });
-      });
-
-      for (let i = enemies.length - 1; i >= 0; i--) {
-        const e = enemies[i];
-        const dist = e.position.distanceTo(pPos);
-        if (dist <= 160.0) {
-          const pullDir = pPos.clone().sub(e.position);
-          pullDir.y = 0;
-          e.position.add(pullDir.multiplyScalar(0.99));
-          const u = e.platform;
-          if (u) {
-            e.position.x = Math.max(u.x - u.w / 2 + 0.6, Math.min(u.x + u.w / 2 - 0.6, e.position.x));
-            e.position.z = Math.max(u.z - u.d / 2 + 0.6, Math.min(u.z + u.d / 2 - 0.6, e.position.z));
-          }
-
-          e.hp -= stats.slashDamage * 80.0;
-          spawnParticles(e.position, 0x00ffcc);
-          if (e.hp <= 0) {
-            stats.score += 5000;
-            scene.remove(e.group);
-            enemies.splice(i, 1);
-          }
+      if (boss && boss.position.distanceTo(pPos) < 35.0) {
+        boss.hp -= stats.slashDamage * 15.0;
+        const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
+        document.getElementById('boss-hp-bar').style.width = `${pct}%`;
+        document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
+        if (boss.hp <= 0) {
+          stats.score += 30000;
+          showFeed('BOSS ANNIHILATED +30000');
+          scene.remove(boss.group);
+          boss = null;
+          document.body.classList.remove('boss-active');
+          document.getElementById('boss-hud').classList.remove('active');
+          portal = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.22, 16, 32), new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true }));
+          portal.position.set(pPos.x, pPos.y + 2, pPos.z - 6);
+          scene.add(portal);
         }
       }
 
-      if (boss) {
-        const bDist = boss.position.distanceTo(pPos);
-        if (bDist <= 180.0) {
-          boss.hp -= stats.slashDamage * 28.0;
-          const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
-          document.getElementById('boss-hp-bar').style.width = `${pct}%`;
-          document.getElementById('boss-hp-val').textContent = `${Math.round(pct)}%`;
-
-          if (boss.hp <= 0) {
-            stats.score += 40000;
-            showFeed('BOSS ANNIHILATED +40000');
-            scene.remove(boss.group);
-            boss = null;
-            document.body.classList.remove('boss-active');
-            document.getElementById('boss-hud').classList.remove('active');
-
-            portal = new THREE.Mesh(
-              new THREE.TorusGeometry(1.8, 0.22, 16, 32),
-              new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true })
-            );
-            portal.position.set(pPos.x, pPos.y + 2, pPos.z - 6);
-            scene.add(portal);
-          }
-        }
-      }
-
-      projectiles.forEach(pr => scene.remove(pr.mesh));
-      projectiles = [];
-
-      showFeed('⚡【神速究極奥義】 CYBER NOVA BLACKHOLE STRIKE!!');
+      updateHUD();
     }
 
     function addCombo() {
@@ -10688,9 +10718,10 @@
 
     const PERKS = [
       { id: 'assault', name: '【進撃】オーバークロック・セイバー', desc: '斬撃ダメージが85%増加し、さらに刃のリーチと衝撃範囲が拡大する。', synergy: '🔥 ASSAULT BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.85); stats.slashRange *= 1.4; bladeMat.color.set(0xff0055); bladeMat.emissive.set(0xff0055); bladeMat.emissiveIntensity = 3.8; } },
-      { id: 'skill_boost', name: '【覚醒】ニューラル・スキルチャージ', desc: 'スキルの必要チャージ量が大幅に軽減され、スキルをより高頻度で使用可能にする', synergy: '⚡ SKILL BUILD', apply: () => { stats.skillMaxCooldown = Math.max(1.0, stats.skillMaxCooldown * 0.6); stats.skillCooldown = 0; } },
-      { id: 'skill_damage', name: '【極超】オーバーロード・マキシマイザー', desc: 'スキルおよび斬撃の威力が劇的に向上し、敵を圧倒する', synergy: '🌟 OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.5); stats.skillMaxCooldown = Math.max(0.8, stats.skillMaxCooldown * 0.7); } },
-      { id: 'agility', name: '【機動】クアンタム・リープ', desc: '移動速度が60%上昇し、スキルのクールダウンがさらに高速化する', synergy: '⚡ AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.6; stats.skillMaxCooldown = Math.max(0.6, stats.skillMaxCooldown * 0.35); bladeMat.color.set(0x00ffcc); bladeMat.emissive.set(0x00ffcc); bladeMat.emissiveIntensity = 4.2; slashMat.color.set(0x00ffcc); } },
+      { id: 'skill_boost', name: '【覚醒】ニューラル・スキルチャージ', desc: 'スキルの必要チャージ量が大幅に軽減され、スキルをより高頻度で使用可能にする', synergy: '⚡ SKILL BUILD', apply: () => { stats.skillMaxCooldown = Math.max(1.5, stats.skillMaxCooldown * 0.55); stats.skillCooldown = 0; } },
+      { id: 'skill_powerup', name: '【特化】アルティメット・スキルマスター', desc: 'スキル威力が2.5倍に跳ね上がり、発動時の無敵時間が延長される', synergy: '⚡ SKILL MASTER', apply: () => { stats.skillMaxCooldown = Math.max(1.2, stats.skillMaxCooldown * 0.7); stats.slashDamage = Math.round(stats.slashDamage * 1.3); } },
+      { id: 'skill_damage', name: '【極超】オーバーロード・マキシマイザー', desc: 'スキルおよび斬撃の威力が劇的に向上し、敵を圧倒する', synergy: '🌟 OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.5); stats.skillMaxCooldown = Math.max(1.0, stats.skillMaxCooldown * 0.7); } },
+      { id: 'agility', name: '【機動】クアンタム・リープ', desc: '移動速度が60%上昇し、スキルのクールダウンがさらに高速化する', synergy: '⚡ AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.6; stats.skillMaxCooldown = Math.max(1.0, stats.skillMaxCooldown * 0.4); bladeMat.color.set(0x00ffcc); bladeMat.emissive.set(0x00ffcc); bladeMat.emissiveIntensity = 4.2; slashMat.color.set(0x00ffcc); } },
       { id: 'survival', name: '【再生】ナノマシン・リジェネ', desc: '最大HPが150増加し、即座にバイタル（HP）が完全回復する', synergy: '🛡️ SURVIVAL BUILD', apply: () => { stats.maxHp += 150; stats.hp = stats.maxHp; } },
       { id: 'vampirism', name: '【吸血】サイバー・ヴァンパイア', desc: '敵撃破時にHPが90回復し、さらに攻撃範囲・スピードがシナジー強化される', synergy: '🧛 VAMPIRIC BUILD', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 90); stats.perks.vampirism = true; stats.slashDamage = Math.round(stats.slashDamage * 1.35); } },
       { id: 'plasma', name: '【爆発】プラズマ・オーラ爆発', desc: '斬撃ヒット時に周囲の敵全てを巻き込む超強力チェインプラズマ爆発が発生する', synergy: '💥 EXPLOSIVE BUILD', apply: () => { stats.perks.plasmaExplosion = true; stats.slashDamage = Math.round(stats.slashDamage * 1.5); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); bladeMat.emissiveIntensity = 4.5; slashMat.color.set(0xffaa00); } },
@@ -10698,7 +10729,7 @@
       { id: 'meteor', name: '【急降下】メテオ・スラッシュ・ドライブ', desc: '空中ジャンプからの急降下下方向斬撃が、全画面級の巨大メテオスマッシュに進化する', synergy: '☄️ METEOR BUILD', apply: () => { stats.perks.meteorSlash = true; stats.slashRange *= 1.5; } },
       { id: 'shield', name: '【防御】ネクサス・シールドバリア', desc: '受けるダメージを60%軽減し、さらに敵の弾丸を高確率で自動弾き返すシールドを展開', synergy: '🛡️ SHIELD BUILD', apply: () => { stats.maxHp += 80; stats.hp = Math.min(stats.maxHp, stats.hp + 80); stats.perks.shieldReflect = true; } },
       { id: 'drone', name: '【支援】デュアル・オービタルドローン', desc: 'プレイヤーの周囲を高速旋回し、接近する敵を全自動レーザーで連続迎撃するドローンが2機に増加', synergy: '🤖 DRONE BUILD', apply: () => { stats.perks.orbitalDrone = true; const dg = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 4.0})); scene.add(dg); orbitalDroneMesh = dg; } },
-      { id: 'overdrive', name: '【神速】サイバー・オーバードライブ', desc: '全ステータス（攻撃力・機動力・スキル回転率）が限界突破し、無類の強さを誇る。', synergy: '🌟 OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.75); stats.moveSpeed *= 1.45; stats.skillMaxCooldown = Math.max(0.4, stats.skillMaxCooldown * 0.3); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); bladeMat.emissiveIntensity = 4.2; } },
+      { id: 'overdrive', name: '【神速】サイバー・オーバードライブ', desc: '全ステータス（攻撃力・機動力・スキル回転率）が限界突破し、無類の強さを誇る。', synergy: '🌟 OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.75); stats.moveSpeed *= 1.45; stats.skillMaxCooldown = Math.max(0.8, stats.skillMaxCooldown * 0.35); bladeMat.color.set(0xffaa00); bladeMat.emissive.set(0xffaa00); bladeMat.emissiveIntensity = 4.2; } },
       { id: 'berserk', name: '【狂乱】ベルセルク・プラズマコア', desc: 'HPが減少するほど斬撃の威力が最大3倍まで跳ね上がり、クリティカル率が激増する', synergy: '⚡ BERSERK BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 2.2); stats.maxHp += 50; stats.hp = stats.maxHp; } },
       { id: 'quantum_shift', name: '【次元】クアンタム・シフト・バースト', desc: '回避時やジャンプ時に周囲の弾幕を完全消去し、スコアボーナスを獲得する', synergy: '🌀 QUANTUM BUILD', apply: () => { stats.score += 1500; stats.moveSpeed *= 1.3; } },
       { id: 'surprise_buff', name: '【幸運】サプライズ・ニューラルチップ', desc: '即座にスコア+5000＆全スキルのクールダウンが完全リセットされる超幸運モジュール', synergy: '🍀 LUCKY SURPRISE', apply: () => { stats.score += 5000; stats.skillCooldown = 0; showFeed('🍀 LUCKY SURPRISE BONUS ACQUIRED!'); } }
@@ -11476,8 +11507,10 @@
 
       if (portal) {
         portal.rotation.z += delta * 1.8;
-        if (playerPhysics.position.distanceTo(portal.position) < 2.0) {
-          portal = null; // ゴール接触時のフリーズ（連続呼び出し）を完全に防止
+        if (playerPhysics.position.distanceTo(portal.position) < 2.2) {
+          const reachedPortal = portal;
+          portal = null; // ゴール接触時のフリーズ・二重呼び出しを完全に阻止
+          scene.remove(reachedPortal);
           showPerkScreen();
         }
       }
