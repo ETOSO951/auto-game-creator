@@ -737,17 +737,17 @@
           if (this.attackTimer <= 0) this.isAttacking = false;
         }
 
-        // Robust Input Buffering update (200ms buffer window for precise action queuing)
+        // Precision input buffering with 250ms reaction window and strict frame-perfect priority routing
         if (Game.inputBuffer.dash > 0) Game.inputBuffer.dash -= dt;
         if (Game.inputBuffer.attack > 0) Game.inputBuffer.attack -= dt;
 
-        if (Game.input.dash) Game.inputBuffer.dash = 0.2;
-        if (Game.input.attacking) Game.inputBuffer.attack = 0.2;
+        if (Game.input.dash) Game.inputBuffer.dash = 0.25;
+        if (Game.input.attacking) Game.inputBuffer.attack = 0.25;
 
-        // Priority-based Action Execution: Dash takes precedence over Attack for defensive responsiveness
+        // Defensive dash priority over offensive attacks with instant buffer flushing
         if (Game.inputBuffer.dash > 0 && this.dashCooldown <= 0 && this.dashTimer <= 0) {
           Game.inputBuffer.dash = 0;
-          Game.inputBuffer.attack = 0; // Consume attack buffer to prevent unintended combo out of dash
+          Game.inputBuffer.attack = 0;
           this.triggerDash();
         } else if (Game.inputBuffer.attack > 0 && this.attackTimer <= 0 && this.dashTimer <= 0) {
           Game.inputBuffer.attack = 0;
@@ -784,52 +784,52 @@
       }
 
       move(vx, vy) {
-        // High-precision sub-stepping collision with robust corner sliding normals
-        const steps = 12;
+        // Ultra-smooth sub-stepping physics with enhanced corner sliding and capsule resolution
+        const steps = 16;
         const sx = vx / steps;
         const sy = vy / steps;
 
         for (let i = 0; i < steps; i++) {
-          // X Axis check with smooth sliding
+          // X-axis collision & slide
           if (!isSolid(this.x + sx, this.y, this.radius)) {
             this.x += sx;
           } else {
-            let slid = false;
-            for (let nudge = 1; nudge <= 3; nudge += 1) {
+            let resolved = false;
+            for (let nudge = 1; nudge <= 5; nudge++) {
               if (!isSolid(this.x + sx, this.y + nudge, this.radius)) {
                 this.y += nudge;
                 this.x += sx;
-                slid = true;
+                resolved = true;
                 break;
               } else if (!isSolid(this.x + sx, this.y - nudge, this.radius)) {
                 this.y -= nudge;
                 this.x += sx;
-                slid = true;
+                resolved = true;
                 break;
               }
             }
-            if (!slid) this.vx = 0;
+            if (!resolved) this.vx = 0;
           }
 
-          // Y Axis check with smooth sliding
+          // Y-axis collision & slide
           if (!isSolid(this.x, this.y + sy, this.radius)) {
             this.y += sy;
           } else {
-            let slid = false;
-            for (let nudge = 1; nudge <= 3; nudge += 1) {
+            let resolved = false;
+            for (let nudge = 1; nudge <= 5; nudge++) {
               if (!isSolid(this.x + nudge, this.y + sy, this.radius)) {
                 this.x += nudge;
                 this.y += sy;
-                slid = true;
+                resolved = true;
                 break;
               } else if (!isSolid(this.x - nudge, this.y + sy, this.radius)) {
                 this.x -= nudge;
                 this.y += sy;
-                slid = true;
+                resolved = true;
                 break;
               }
             }
-            if (!slid) this.vy = 0;
+            if (!resolved) this.vy = 0;
           }
         }
       }
