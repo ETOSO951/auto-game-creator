@@ -10780,7 +10780,11 @@
       gScreen.classList.remove('hidden');
     }
 
-    function startGame() {
+    function startGame(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       try {
         audio.init();
         stats.hp = stats.maxHp; 
@@ -10801,14 +10805,17 @@
         if (startScreen) {
           startScreen.classList.add('hidden');
           startScreen.style.display = 'none';
+          startScreen.style.pointerEvents = 'none';
         }
         if (perkScreen) {
           perkScreen.classList.add('hidden');
           perkScreen.style.display = 'none';
+          perkScreen.style.pointerEvents = 'none';
         }
         if (gameOverScreen) {
           gameOverScreen.classList.add('hidden');
           gameOverScreen.style.display = 'none';
+          gameOverScreen.style.pointerEvents = 'none';
         }
         
         state = GAME_STATE.PLAYING;
@@ -10818,24 +10825,16 @@
       }
     }
 
-    function setupButtonHandler(id, handler) {
-      const btn = document.getElementById(id);
-      if (!btn) return;
-      let handled = false;
-      const wrap = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (handled) return;
-        handled = true;
-        setTimeout(() => { handled = false; }, 300);
-        handler();
-      };
-      btn.addEventListener('pointerdown', wrap);
-      btn.addEventListener('click', wrap);
+    const btnStart = document.getElementById('btn-start');
+    if (btnStart) {
+      btnStart.addEventListener('click', startGame);
+      btnStart.addEventListener('touchend', startGame);
     }
-
-    setupButtonHandler('btn-start', startGame);
-    setupButtonHandler('btn-restart', startGame);
+    const btnRestart = document.getElementById('btn-restart');
+    if (btnRestart) {
+      btnRestart.addEventListener('click', startGame);
+      btnRestart.addEventListener('touchend', startGame);
+    }
 
     generateStage(1);
 
