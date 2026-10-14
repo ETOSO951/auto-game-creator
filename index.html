@@ -10697,17 +10697,14 @@
     document.getElementById('btn-skill').addEventListener('touchstart', (e) => { e.stopPropagation(); inputSys.push('skill'); });
 
     document.querySelectorAll('#weapon-selector .select-card').forEach(card => {
-      card.addEventListener('click', () => {
+      const selectCardHandler = (e) => {
+        if (e && e.cancelable) e.preventDefault();
         document.querySelectorAll('#weapon-selector .select-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
         applyWeapon(card.getAttribute('data-val'));
-      });
-      card.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('#weapon-selector .select-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        applyWeapon(card.getAttribute('data-val'));
-      });
+      };
+      card.addEventListener('click', selectCardHandler);
+      card.addEventListener('touchend', selectCardHandler, { passive: false });
     });
 
     document.addEventListener('touchmove', e => {
@@ -10894,20 +10891,26 @@
 
     const btnStart = document.getElementById('btn-start');
     if (btnStart) {
-      ['click', 'pointerdown', 'touchend'].forEach(evt => {
-        btnStart.addEventListener(evt, (e) => {
-          startGame(e);
-        }, { passive: false });
-      });
+      const startHandler = (e) => {
+        if (e && e.cancelable) e.preventDefault();
+        if (e && e.stopPropagation) e.stopPropagation();
+        startGame(e);
+      };
+      btnStart.addEventListener('click', startHandler);
+      btnStart.addEventListener('touchend', startHandler, { passive: false });
+      btnStart.addEventListener('pointerdown', startHandler);
     }
 
     const btnRestart = document.getElementById('btn-restart');
     if (btnRestart) {
-      ['click', 'pointerdown', 'touchend'].forEach(evt => {
-        btnRestart.addEventListener(evt, (e) => {
-          startGame(e);
-        }, { passive: false });
-      });
+      const restartHandler = (e) => {
+        if (e && e.cancelable) e.preventDefault();
+        if (e && e.stopPropagation) e.stopPropagation();
+        startGame(e);
+      };
+      btnRestart.addEventListener('click', restartHandler);
+      btnRestart.addEventListener('touchend', restartHandler, { passive: false });
+      btnRestart.addEventListener('pointerdown', restartHandler);
     }
 
     generateStage(1);
