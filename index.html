@@ -768,12 +768,19 @@
       }
 
       move(vx, vy) {
-        // Simple circle-tile collision
-        const newX = this.x + vx;
-        const newY = this.y + vy;
+        // Sub-stepping sliding collision to prevent getting stuck on corners
+        const steps = 2;
+        const sx = vx / steps;
+        const sy = vy / steps;
 
-        if (!isSolid(newX, this.y, this.radius)) this.x = newX;
-        if (!isSolid(this.x, newY, this.radius)) this.y = newY;
+        for (let i = 0; i < steps; i++) {
+          if (!isSolid(this.x + sx, this.y, this.radius)) {
+            this.x += sx;
+          }
+          if (!isSolid(this.x, this.y + sy, this.radius)) {
+            this.y += sy;
+          }
+        }
       }
 
       triggerAttack() {
@@ -995,10 +1002,18 @@
       }
 
       move(vx, vy) {
-        const nx = this.x + vx;
-        const ny = this.y + vy;
-        if (!isSolid(nx, this.y, this.radius)) this.x = nx;
-        if (!isSolid(this.x, ny, this.radius)) this.y = ny;
+        const steps = 2;
+        const sx = vx / steps;
+        const sy = vy / steps;
+
+        for (let i = 0; i < steps; i++) {
+          if (!isSolid(this.x + sx, this.y, this.radius)) {
+            this.x += sx;
+          }
+          if (!isSolid(this.x, this.y + sy, this.radius)) {
+            this.y += sy;
+          }
+        }
       }
 
       takeDamage(amount, fromX, fromY, knockback = 240) {
@@ -1500,32 +1515,41 @@
     }
 
     /* =========================================================
-       MAIN LOOP & HUD UPDATE
+       MAIN LOOP & HUD UPDATE (Fixed Timestep)
        ========================================================= */
+    let accumulator = 0;
+    const fixedTimeStep = 1 / 60;
+
     function gameLoop(time) {
-      const dt = Math.min((time - Game.lastTime) / 1000, 0.1);
+      const frameTime = Math.min((time - Game.lastTime) / 1000, 0.1);
       Game.lastTime = time;
 
       if (Game.active) {
-        // Updates
-        Game.player.update(dt);
+        accumulator += frameTime;
+        while (accumulator >= fixedTimeStep) {
+          const dt = fixedTimeStep;
+          // Updates with fixed dt
+          Game.player.update(dt);
 
-        for (let enemy of Game.enemies) enemy.update(dt);
-        for (let proj of Game.projectiles) proj.update(dt);
-        for (let drop of Game.drops) drop.update(dt);
-        for (let p of Game.particles) p.update(dt);
+          for (let enemy of Game.enemies) enemy.update(dt);
+          for (let proj of Game.projectiles) proj.update(dt);
+          for (let drop of Game.drops) drop.update(dt);
+          for (let p of Game.particles) p.update(dt);
 
-        // Filter out expired items
-        Game.projectiles = Game.projectiles.filter(p => p.life > 0);
-        Game.particles = Game.particles.filter(p => p.life > 0);
+          // Filter out expired items
+          Game.projectiles = Game.projectiles.filter(p => p.life > 0);
+          Game.particles = Game.particles.filter(p => p.life > 0);
 
-        // Update floating combat texts
-        for (let ft of floatingTexts) {
-          ft.y += ft.vy * dt;
-          ft.life -= dt;
-        }
-        for (let i = floatingTexts.length - 1; i >= 0; i--) {
-          if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+          // Update floating combat texts
+          for (let ft of floatingTexts) {
+            ft.y += ft.vy * dt;
+            ft.life -= dt;
+          }
+          for (let i = floatingTexts.length - 1; i >= 0; i--) {
+            if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+          }
+
+          accumulator -= dt;
         }
 
         updateHUD();
@@ -1612,9 +1636,17 @@
 
     function handleJoystick(cx, cy) {
       const maxDist = 45;
+      const deadZone = 6;
       let dx = cx - joyCenter.x;
       let dy = cy - joyCenter.y;
       const dist = Math.hypot(dx, dy);
+
+      if (dist < deadZone) {
+        Game.input.x = 0;
+        Game.input.y = 0;
+        joyKnob.style.transform = `translate(-50%, -50%)`;
+        return;
+      }
 
       if (dist > maxDist) {
         dx = (dx / dist) * maxDist;
