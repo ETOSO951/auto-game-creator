@@ -734,14 +734,14 @@
         // Movement
         if (this.dashTimer > 0) {
           this.dashTimer -= dt;
-          const dashSpeed = 460;
+          const dashSpeed = 480;
           this.move(this.dashDir.x * dashSpeed * dt, this.dashDir.y * dashSpeed * dt);
           createDashTrail(this.x, this.y);
         } else {
           let mx = Game.input.x;
           let my = Game.input.y;
           const len = Math.hypot(mx, my);
-          if (len > 0.1) {
+          if (len > 0.05) {
             mx /= len;
             my /= len;
             this.angle = Math.atan2(my, mx);
@@ -768,17 +768,27 @@
       }
 
       move(vx, vy) {
-        // Robust sub-stepping collision with safe sliding and axis separation
-        const steps = 4;
+        // High precision sub-stepping collision with corner sliding
+        const steps = 6;
         const sx = vx / steps;
         const sy = vy / steps;
 
         for (let i = 0; i < steps; i++) {
           if (!isSolid(this.x + sx, this.y, this.radius)) {
             this.x += sx;
+          } else {
+            // Try sliding along Y axis if X is blocked
+            if (!isSolid(this.x, this.y + sy, this.radius)) {
+              this.y += sy;
+            }
           }
           if (!isSolid(this.x, this.y + sy, this.radius)) {
             this.y += sy;
+          } else {
+            // Try sliding along X axis if Y is blocked
+            if (!isSolid(this.x + sx, this.y, this.radius)) {
+              this.x += sx;
+            }
           }
         }
       }
@@ -1002,7 +1012,7 @@
       }
 
       move(vx, vy) {
-        const steps = 4;
+        const steps = 5;
         const sx = vx / steps;
         const sy = vy / steps;
 
@@ -1515,34 +1525,32 @@
     }
 
     /* =========================================================
-       MAIN LOOP & HUD UPDATE (Fixed Timestep)
+       MAIN LOOP & HUD UPDATE (Strict Fixed Timestep Accumulator)
        ========================================================= */
     let accumulator = 0;
     const fixedTimeStep = 1 / 60;
 
     function gameLoop(time) {
-      const frameTime = Math.min((time - Game.lastTime) / 1000, 0.05);
+      const frameTime = Math.min((time - Game.lastTime) / 1000, 0.1);
       Game.lastTime = time;
 
       if (Game.active) {
         accumulator += frameTime;
-        // Prevent spiral of death on heavy lag spikes by capping accumulator iterations
         let loops = 0;
-        while (accumulator >= fixedTimeStep && loops < 5) {
-          const dt = fixedTimeStep;
-          // Updates with fixed dt
-          Game.player.update(dt);
+        const maxLoops = 5;
 
+        while (accumulator >= fixedTimeStep && loops < maxLoops) {
+          const dt = fixedTimeStep;
+          
+          Game.player.update(dt);
           for (let enemy of Game.enemies) enemy.update(dt);
           for (let proj of Game.projectiles) proj.update(dt);
           for (let drop of Game.drops) drop.update(dt);
           for (let p of Game.particles) p.update(dt);
 
-          // Filter out expired items
           Game.projectiles = Game.projectiles.filter(p => p.life > 0);
           Game.particles = Game.particles.filter(p => p.life > 0);
 
-          // Update floating combat texts
           for (let ft of floatingTexts) {
             ft.y += ft.vy * dt;
             ft.life -= dt;
@@ -1556,7 +1564,7 @@
         }
 
         if (accumulator >= fixedTimeStep) {
-          accumulator = 0; // Drop excessive lag debt safely
+          accumulator = 0; // Prevent spiral of death on severe lag spikes
         }
 
         updateHUD();
@@ -1601,26 +1609,28 @@
     }
 
     /* =========================================================
-       INPUT SYSTEM (TOUCH JOYSTICK & KEYBOARD)
+       INPUT SYSTEM (STRICT EXCLUSIVE TOUCH & KEYBOARD)
        ========================================================= */
     const joyContainer = document.getElementById('joystick-container');
     const joyKnob = document.getElementById('joystick-knob');
-    let touchId = null;
+    let activeTouchId = null;
     let joyCenter = { x: 0, y: 0 };
+    let inputSource = 'none'; // 'touch' or 'keyboard'
 
     joyContainer.addEventListener('touchstart', (e) => {
       Sound.init();
       const touch = e.changedTouches[0];
-      touchId = touch.identifier;
+      activeTouchId = touch.identifier;
+      inputSource = 'touch';
       const rect = joyContainer.getBoundingClientRect();
       joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
       handleJoystick(touch.clientX, touch.clientY);
     });
 
     window.addEventListener('touchmove', (e) => {
-      if (touchId === null) return;
+      if (inputSource !== 'touch' || activeTouchId === null) return;
       for (let t of e.changedTouches) {
-        if (t.identifier === touchId) {
+        if (t.identifier === activeTouchId) {
           handleJoystick(t.clientX, t.clientY);
           break;
         }
@@ -1628,22 +1638,25 @@
     });
 
     const resetJoystick = () => {
-      touchId = null;
-      Game.input.x = 0;
-      Game.input.y = 0;
+      activeTouchId = null;
+      if (inputSource === 'touch') {
+        Game.input.x = 0;
+        Game.input.y = 0;
+        inputSource = 'none';
+      }
       joyKnob.style.transform = `translate(-50%, -50%)`;
     };
 
     window.addEventListener('touchend', (e) => {
       for (let t of e.changedTouches) {
-        if (t.identifier === touchId) resetJoystick();
+        if (t.identifier === activeTouchId) resetJoystick();
       }
     });
     window.addEventListener('touchcancel', resetJoystick);
 
     function handleJoystick(cx, cy) {
       const maxDist = 45;
-      const deadZone = 8;
+      const deadZone = 6;
       let dx = cx - joyCenter.x;
       let dy = cy - joyCenter.y;
       const dist = Math.hypot(dx, dy);
@@ -1655,20 +1668,18 @@
         return;
       }
 
-      // Smooth radial clamping and velocity normalization
       let clampedDist = Math.min(dist, maxDist);
       let nx = dx / dist;
       let ny = dy / dist;
 
       joyKnob.style.transform = `translate(calc(-50% + ${nx * clampedDist}px), calc(-50% + ${ny * clampedDist}px))`;
       
-      // Magnitude scaling with smooth curve for precise analog control
       const magnitude = Math.min(1.0, (dist - deadZone) / (maxDist - deadZone));
       Game.input.x = nx * magnitude;
       Game.input.y = ny * magnitude;
     }
 
-    // Touch Action Buttons
+    // Touch Action Buttons with exclusive source tracking
     const btnAttack = document.getElementById('btn-attack');
     const btnDash = document.getElementById('btn-dash');
     const btnSkill = document.getElementById('btn-skill');
@@ -1677,6 +1688,7 @@
       btn.addEventListener('touchstart', (e) => {
         e.preventDefault();
         Sound.init();
+        inputSource = 'touch';
         Game.input[key] = true;
       });
       btn.addEventListener('touchend', (e) => {
@@ -1692,11 +1704,12 @@
     bindTouchAction(btnDash, 'dash');
     bindTouchAction(btnSkill, 'skill');
 
-    // Keyboard Fallback (PC)
+    // Keyboard Fallback with strict exclusion when touch is active
     const keys = {};
     window.addEventListener('keydown', (e) => {
-      if (touchId !== null) return; // Touch priority: ignore keyboard if touching
+      if (inputSource === 'touch' && activeTouchId !== null) return;
       Sound.init();
+      inputSource = 'keyboard';
       keys[e.code] = true;
       if (['Space', 'KeyJ'].includes(e.code)) Game.input.attacking = true;
       if (['ShiftLeft', 'ShiftRight', 'KeyK'].includes(e.code)) Game.input.dash = true;
@@ -1705,6 +1718,7 @@
     });
 
     window.addEventListener('keyup', (e) => {
+      if (inputSource === 'touch') return;
       keys[e.code] = false;
       if (['Space', 'KeyJ'].includes(e.code)) Game.input.attacking = false;
       if (['ShiftLeft', 'ShiftRight', 'KeyK'].includes(e.code)) Game.input.dash = false;
@@ -1712,8 +1726,12 @@
       updateKeyboardInput();
     });
 
-    window.addEventListener('blur', () => {
-      // Clear all inputs and reset state cleanly on window blur / visibility change
+    window.addEventListener('blur', clearAllInputs);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) clearAllInputs();
+    });
+
+    function clearAllInputs() {
       for (let k in keys) keys[k] = false;
       resetJoystick();
       Game.input.x = 0;
@@ -1721,22 +1739,11 @@
       Game.input.attacking = false;
       Game.input.dash = false;
       Game.input.skill = false;
-    });
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        for (let k in keys) keys[k] = false;
-        resetJoystick();
-        Game.input.x = 0;
-        Game.input.y = 0;
-        Game.input.attacking = false;
-        Game.input.dash = false;
-        Game.input.skill = false;
-      }
-    });
+      inputSource = 'none';
+    }
 
     function updateKeyboardInput() {
-      if (touchId !== null) return; // Touch priority
+      if (inputSource === 'touch') return;
       let kx = 0;
       let ky = 0;
       if (keys['KeyW'] || keys['ArrowUp']) ky -= 1;
