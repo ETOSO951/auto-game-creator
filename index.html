@@ -615,6 +615,10 @@
         attacking: false,
         dash: false,
         skill: false
+      },
+      inputBuffer: {
+        attack: 0,
+        dash: 0
       }
     };
 
@@ -749,11 +753,20 @@
           }
         }
 
-        // Actions trigger
-        if (Game.input.dash && this.dashCooldown <= 0) {
+        // Input Buffering update
+        if (Game.inputBuffer.dash > 0) Game.inputBuffer.dash -= dt;
+        if (Game.inputBuffer.attack > 0) Game.inputBuffer.attack -= dt;
+
+        if (Game.input.dash) Game.inputBuffer.dash = 0.15;
+        if (Game.input.attacking) Game.inputBuffer.attack = 0.15;
+
+        // Actions trigger with Buffer
+        if (Game.inputBuffer.dash > 0 && this.dashCooldown <= 0) {
+          Game.inputBuffer.dash = 0;
           this.triggerDash();
         }
-        if (Game.input.attacking && this.attackTimer <= 0) {
+        if (Game.inputBuffer.attack > 0 && this.attackTimer <= 0) {
+          Game.inputBuffer.attack = 0;
           this.triggerAttack();
         }
         if (Game.input.skill && this.artifact.timer <= 0) {
@@ -768,26 +781,38 @@
       }
 
       move(vx, vy) {
-        // High precision sub-stepping collision with corner sliding
-        const steps = 6;
+        // High precision sub-stepping collision with advanced corner sliding normals
+        const steps = 8;
         const sx = vx / steps;
         const sy = vy / steps;
 
         for (let i = 0; i < steps; i++) {
+          // X Axis check
           if (!isSolid(this.x + sx, this.y, this.radius)) {
             this.x += sx;
           } else {
-            // Try sliding along Y axis if X is blocked
-            if (!isSolid(this.x, this.y + sy, this.radius)) {
-              this.y += sy;
+            // Corner slide nudge
+            const nudge = 1.2;
+            if (!isSolid(this.x + sx, this.y + nudge, this.radius)) {
+              this.y += nudge;
+              this.x += sx;
+            } else if (!isSolid(this.x + sx, this.y - nudge, this.radius)) {
+              this.y -= nudge;
+              this.x += sx;
             }
           }
+
+          // Y Axis check
           if (!isSolid(this.x, this.y + sy, this.radius)) {
             this.y += sy;
           } else {
-            // Try sliding along X axis if Y is blocked
-            if (!isSolid(this.x + sx, this.y, this.radius)) {
-              this.x += sx;
+            const nudge = 1.2;
+            if (!isSolid(this.x + nudge, this.y + sy, this.radius)) {
+              this.x += nudge;
+              this.y += sy;
+            } else if (!isSolid(this.x - nudge, this.y + sy, this.radius)) {
+              this.x -= nudge;
+              this.y += sy;
             }
           }
         }
