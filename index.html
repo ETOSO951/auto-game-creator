@@ -9904,23 +9904,23 @@
       if (type === 'saber') { 
         stats.slashDamage = 50; stats.slashRange = 4.8; bladeMesh.scale.set(1, 1, 1);
         slashGeo = buildSlashGeometry(1.5, 4.8, Math.PI * 0.5);
-        stats.skillMaxCooldown = 8.0;
+        stats.skillMaxCooldown = 14.0;
       } else if (type === 'odachi') { 
         stats.slashDamage = 95; stats.slashRange = 6.4; bladeMesh.scale.set(1.5, 1.4, 1.4);
         slashGeo = buildSlashGeometry(1.8, 6.4, Math.PI * 0.65);
-        stats.skillMaxCooldown = 12.0;
+        stats.skillMaxCooldown = 18.0;
       } else if (type === 'dual') { 
         stats.slashDamage = 35; stats.slashRange = 3.8; bladeMesh.scale.set(0.7, 0.8, 0.8);
         slashGeo = buildSlashGeometry(1.2, 3.8, Math.PI * 0.45);
-        stats.skillMaxCooldown = 6.5;
+        stats.skillMaxCooldown = 12.0;
       } else if (type === 'gauntlet') {
         stats.slashDamage = 110; stats.slashRange = 3.2; bladeMesh.scale.set(1.8, 0.9, 1.8);
         slashGeo = buildSlashGeometry(1.0, 3.2, Math.PI * 0.85);
-        stats.skillMaxCooldown = 10.0;
+        stats.skillMaxCooldown = 16.0;
       } else if (type === 'whip') {
         stats.slashDamage = 42; stats.slashRange = 7.2; bladeMesh.scale.set(0.6, 2.2, 0.6);
         slashGeo = buildSlashGeometry(2.0, 7.2, Math.PI * 0.9);
-        stats.skillMaxCooldown = 7.5;
+        stats.skillMaxCooldown = 13.0;
       }
       slashArc.geometry = slashGeo;
     }
