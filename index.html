@@ -1679,7 +1679,7 @@
       Game.input.y = ny * magnitude;
     }
 
-    // Touch Action Buttons with exclusive source tracking
+    // Touch Action Buttons with exclusive source tracking and buttery-smooth responsiveness
     const btnAttack = document.getElementById('btn-attack');
     const btnDash = document.getElementById('btn-dash');
     const btnSkill = document.getElementById('btn-skill');
@@ -1690,15 +1690,15 @@
         Sound.init();
         inputSource = 'touch';
         Game.input[key] = true;
-      });
+      }, { passive: false });
       btn.addEventListener('touchend', (e) => {
         e.preventDefault();
         Game.input[key] = false;
-      });
+      }, { passive: false });
       btn.addEventListener('touchcancel', (e) => {
         e.preventDefault();
         Game.input[key] = false;
-      });
+      }, { passive: false });
     };
     bindTouchAction(btnAttack, 'attacking');
     bindTouchAction(btnDash, 'dash');
