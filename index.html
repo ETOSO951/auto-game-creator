@@ -56,7 +56,7 @@
       image-rendering: pixelated;
     }
 
-    /* HUD UI */
+    /* HUD UI with Deep Glassmorphism & Micro-Interactions */
     .hud-layer {
       position: absolute;
       top: 0;
@@ -67,7 +67,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 16px;
+      padding: 20px;
       z-index: 10;
     }
 
@@ -75,17 +75,23 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 12px;
+      gap: 16px;
     }
 
     .status-panel {
-      background: var(--panel-bg);
-      border: 1px solid var(--panel-border);
-      backdrop-filter: blur(8px);
-      padding: 10px 14px;
-      border-radius: 12px;
-      min-width: 180px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      background: linear-gradient(135deg, rgba(20, 24, 38, 0.9), rgba(15, 17, 26, 0.8));
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      padding: 12px 16px;
+      border-radius: 14px;
+      min-width: 200px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+      animation: panelFloat 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes panelFloat {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-2px); }
     }
 
     .bar-container {
@@ -124,39 +130,46 @@
     }
 
     .floor-badge {
-      background: var(--panel-bg);
-      border: 1px solid var(--panel-border);
-      backdrop-filter: blur(8px);
-      padding: 8px 16px;
-      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(20, 24, 38, 0.9), rgba(15, 17, 26, 0.8));
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      backdrop-filter: blur(12px);
+      padding: 10px 20px;
+      border-radius: 24px;
       font-weight: 800;
       font-size: 14px;
       color: var(--accent-gold);
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15), inset 0 1px 0 rgba(255,255,255,0.15);
     }
 
     .gear-quick-view {
       position: absolute;
-      top: 80px;
-      left: 16px;
+      top: 96px;
+      left: 20px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
 
     .mini-gear-slot {
-      background: var(--panel-bg);
+      background: linear-gradient(135deg, rgba(20, 24, 38, 0.9), rgba(15, 17, 26, 0.8));
       border: 1px solid var(--panel-border);
-      border-radius: 8px;
-      padding: 4px 8px;
+      border-radius: 10px;
+      padding: 6px 12px;
       font-size: 11px;
       display: flex;
       align-items: center;
-      gap: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      gap: 8px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+      backdrop-filter: blur(8px);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .mini-gear-slot:hover {
+      transform: translateX(4px);
     }
 
     /* On-Screen Mobile Controls */
@@ -723,6 +736,7 @@
         this.dashCooldown = 0;
         this.dashDir = { x: 0, y: 0 };
         this.invulnTimer = 0;
+        this.walkCycle = 0;
       }
 
       update(dt) {
@@ -943,15 +957,35 @@
           ctx.globalAlpha = 0.4;
         }
 
+        // Dynamic Glow / Environmental Aura from Artifact or Weapon
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        const grad = ctx.createRadialGradient(0, 0, 5, 0, 0, 48);
+        grad.addColorStop(0, this.weapon.rarity.color + '44');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, 48, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
         // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.beginPath();
         ctx.ellipse(0, 14, 16, 7, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Body (Voxel Block Style)
-        ctx.fillStyle = '#3b82f6';
+        // Walking bobbing motion calculation
+        const isMoving = Math.hypot(Game.input.x, Game.input.y) > 0.05 || this.dashTimer > 0;
+        const bob = isMoving ? Math.sin(performance.now() * 0.02) * 3 : 0;
+
+        // Body (Voxel Block Style with depth shadow)
+        ctx.save();
+        ctx.translate(0, bob);
+        ctx.fillStyle = '#1e40af';
         ctx.fillRect(-12, -14, 24, 24);
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(-10, -12, 20, 20);
 
         // Head
         ctx.fillStyle = '#fed7aa';
@@ -962,6 +996,7 @@
         ctx.fillStyle = '#1e293b';
         ctx.fillRect(-6 + eyeOffset, -22, 3, 3);
         ctx.fillRect(2 + eyeOffset, -22, 3, 3);
+        ctx.restore();
 
         // Weapon
         ctx.rotate(this.angle);
@@ -970,17 +1005,25 @@
           const slashAngle = (swingP - 0.5) * this.weapon.type.arc;
           ctx.rotate(slashAngle);
 
-          // Blade slash arc
+          // Blade slash glowing arc with screen blend mode
+          ctx.save();
+          ctx.globalCompositeOperation = 'screen';
           ctx.strokeStyle = this.weapon.rarity.color;
-          ctx.lineWidth = 3;
+          ctx.lineWidth = 5;
+          ctx.shadowColor = this.weapon.rarity.color;
+          ctx.shadowBlur = 12;
           ctx.beginPath();
-          ctx.arc(0, 0, this.weapon.type.range, -0.4, 0.4);
+          ctx.arc(0, 0, this.weapon.type.range, -0.5, 0.5);
           ctx.stroke();
+          ctx.restore();
         }
 
         ctx.fillStyle = this.weapon.rarity.color;
-        ctx.fillRect(14, -3, 16, 6); // Weapon blade
+        ctx.shadowColor = this.weapon.rarity.color;
+        ctx.shadowBlur = 6;
+        ctx.fillRect(14, -3, 18, 6); // Weapon blade
         ctx.fillStyle = '#78350f';
+        ctx.shadowBlur = 0;
         ctx.fillRect(10, -2, 4, 4); // Hilt
 
         ctx.restore();
@@ -1187,25 +1230,37 @@
       constructor(x, y, color) {
         this.x = x;
         this.y = y;
-        this.vx = (Math.random() - 0.5) * 160;
-        this.vy = (Math.random() - 0.5) * 160;
+        this.vx = (Math.random() - 0.5) * 220;
+        this.vy = (Math.random() - 0.5) * 220;
         this.color = color;
-        this.life = 0.35 + Math.random() * 0.25;
+        this.life = 0.4 + Math.random() * 0.3;
         this.maxLife = this.life;
-        this.size = 3 + Math.random() * 4;
+        this.size = 3 + Math.random() * 5;
+        this.spin = Math.random() * Math.PI * 2;
+        this.spinSpeed = (Math.random() - 0.5) * 10;
       }
 
       update(dt) {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
+        this.vx *= 0.92; // friction
+        this.vy *= 0.92;
+        this.spin += this.spinSpeed * dt;
         this.life -= dt;
       }
 
       draw(ctx) {
         ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.spin);
         ctx.fillStyle = this.color;
+        ctx.globalCompositeOperation = 'screen';
         ctx.globalAlpha = Math.max(0, this.life / this.maxLife);
-        ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+        
+        // Glowing star/spark particle representation
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 8;
+        ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
         ctx.restore();
       }
     }
@@ -1485,17 +1540,17 @@
       if (!Game.player) return;
 
       // Phase 3: Advanced predictive look-ahead camera damping & ergonomic smoothing curve
-      const lookAheadDist = 85;
+      const lookAheadDist = 110;
       const inputMagnitude = Math.min(1, Math.hypot(Game.input.x, Game.input.y));
-      const targetLookX = Math.cos(Game.player.angle) * lookAheadDist * (inputMagnitude > 0.05 ? inputMagnitude : 0.75);
-      const targetLookY = Math.sin(Game.player.angle) * lookAheadDist * (inputMagnitude > 0.05 ? inputMagnitude : 0.75);
+      const targetLookX = Math.cos(Game.player.angle) * lookAheadDist * (inputMagnitude > 0.05 ? inputMagnitude : 0.85);
+      const targetLookY = Math.sin(Game.player.angle) * lookAheadDist * (inputMagnitude > 0.05 ? inputMagnitude : 0.85);
 
       let targetCamX = Game.player.x + targetLookX - CANVAS.width / 2;
       let targetCamY = Game.player.y + targetLookY - CANVAS.height / 2;
 
       // Smooth interpolation with adaptive easing for high-speed fluidity without jarring motion
-      Game.camera.x += (targetCamX - Game.camera.x) * 0.12;
-      Game.camera.y += (targetCamY - Game.camera.y) * 0.12;
+      Game.camera.x += (targetCamX - Game.camera.x) * 0.14;
+      Game.camera.y += (targetCamY - Game.camera.y) * 0.14;
 
       let cx = Game.camera.x;
       let cy = Game.camera.y;
@@ -1503,14 +1558,14 @@
       if (cameraShake > 0) {
         cx += (Math.random() - 0.5) * cameraShake;
         cy += (Math.random() - 0.5) * cameraShake;
-        cameraShake *= 0.9;
+        cameraShake *= 0.88;
         if (cameraShake < 0.2) cameraShake = 0;
       }
 
       CTX.save();
       CTX.translate(-Math.floor(cx), -Math.floor(cy));
 
-      // Draw Tiles (Minecraft Dungeons Isometric/Voxel look)
+      // Draw Tiles (Minecraft Dungeons Isometric/Voxel look with atmospheric depth)
       const startTX = Math.max(0, Math.floor(cx / TILE_SIZE) - 1);
       const endTX = Math.min(Game.mapW, Math.ceil((cx + CANVAS.width) / TILE_SIZE) + 1);
       const startTY = Math.max(0, Math.floor(cy / TILE_SIZE) - 1);
@@ -1521,35 +1576,45 @@
           const rx = x * TILE_SIZE;
           const ry = y * TILE_SIZE;
           if (Game.map[y][x] === 1) {
-            // Solid Wall Block (3D top + face shadow)
-            CTX.fillStyle = '#1e2433';
+            // Solid Wall Block (3D top + face shadow + ambient rim)
+            CTX.fillStyle = '#171c28';
             CTX.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
-            CTX.fillStyle = '#0f131d';
+            CTX.fillStyle = '#0b0e16';
             CTX.fillRect(rx, ry + TILE_SIZE - 12, TILE_SIZE, 12); // block depth
-            CTX.strokeStyle = 'rgba(255,255,255,0.04)';
+            CTX.strokeStyle = 'rgba(255,255,255,0.03)';
             CTX.strokeRect(rx, ry, TILE_SIZE, TILE_SIZE);
           } else {
-            // Floor Tile
-            CTX.fillStyle = ((x + y) % 2 === 0) ? '#282f44' : '#22283a';
+            // Floor Tile with subtle texture variation
+            CTX.fillStyle = ((x + y) % 2 === 0) ? '#22293c' : '#1d2333';
             CTX.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
           }
         }
       }
 
-      // Draw Exit Portal
+      // Draw Exit Portal with dynamic glowing aura
       CTX.save();
       CTX.translate(Game.exitPos.x, Game.exitPos.y);
-      const portalPulse = Math.sin(performance.now() * 0.005) * 6;
-      CTX.fillStyle = 'rgba(6, 182, 212, 0.25)';
-      CTX.beginPath();
-      CTX.arc(0, 0, 32 + portalPulse, 0, Math.PI * 2);
-      CTX.fill();
+      const portalPulse = Math.sin(performance.now() * 0.005) * 8;
+      
+      CTX.save();
+      CTX.globalCompositeOperation = 'screen';
+      const pGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, 50 + portalPulse);
+      pGrad.addColorStop(0, 'rgba(6, 182, 212, 0.4)');
+      pGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = pGrad;
+      ctx.beginPath();
+      ctx.arc(0, 0, 50 + portalPulse, 0, Math.PI * 2);
+      ctx.fill();
+      CTX.restore();
+
       CTX.fillStyle = '#06b6d4';
-      CTX.fillRect(-16, -16, 32, 32);
+      ctx.shadowColor = '#06b6d4';
+      ctx.shadowBlur = 16;
+      ctx.fillRect(-18, -18, 36, 36);
       CTX.fillStyle = '#fff';
-      CTX.font = '12px sans-serif';
-      CTX.textAlign = 'center';
-      CTX.fillText('GATE', 0, 4);
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('GATE', 0, 4);
       CTX.restore();
 
       // Drops
