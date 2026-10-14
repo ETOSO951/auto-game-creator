@@ -10826,20 +10826,14 @@
         if (startScreen) {
           startScreen.classList.add('hidden');
           startScreen.style.display = 'none';
-          startScreen.style.visibility = 'hidden';
-          startScreen.style.pointerEvents = 'none';
         }
         if (perkScreen) {
           perkScreen.classList.add('hidden');
           perkScreen.style.display = 'none';
-          perkScreen.style.visibility = 'hidden';
-          perkScreen.style.pointerEvents = 'none';
         }
         if (gameOverScreen) {
           gameOverScreen.classList.add('hidden');
           gameOverScreen.style.display = 'none';
-          gameOverScreen.style.visibility = 'hidden';
-          gameOverScreen.style.pointerEvents = 'none';
         }
         
         state = GAME_STATE.PLAYING;
@@ -10851,37 +10845,21 @@
         if (startScreen) {
           startScreen.classList.add('hidden');
           startScreen.style.display = 'none';
-          startScreen.style.pointerEvents = 'none';
         }
       }
     }
 
     const btnStart = document.getElementById('btn-start');
     if (btnStart) {
-      ['click', 'pointerdown', 'touchend'].forEach(evt => {
-        btnStart.addEventListener(evt, (e) => {
-          startGame(e);
-        }, { passive: false });
+      btnStart.addEventListener('click', (e) => {
+        startGame(e);
       });
     }
 
     const btnRestart = document.getElementById('btn-restart');
     if (btnRestart) {
-      ['click', 'pointerdown', 'touchend'].forEach(evt => {
-        btnRestart.addEventListener(evt, (e) => {
-          startGame(e);
-        }, { passive: false });
-      });
-    }
-
-    const startScreenOverlay = document.getElementById('screen-start');
-    if (startScreenOverlay) {
-      ['click', 'pointerdown'].forEach(evt => {
-        startScreenOverlay.addEventListener(evt, (e) => {
-          if (state === GAME_STATE.TITLE && e.target === startScreenOverlay) {
-            startGame(e);
-          }
-        });
+      btnRestart.addEventListener('click', (e) => {
+        startGame(e);
       });
     }
 
@@ -11177,18 +11155,19 @@
         }
       }
 
-      // 衝撃波の更新（ジャンプで跳び越えられる！）
+      // 衝撃波の更新（プレイヤー発動の衝撃波は自傷ダメージを除外）
       for (let i = shockwaves.length - 1; i >= 0; i--) {
         const sw = shockwaves[i];
         sw.radius += sw.speed * delta;
         sw.mesh.scale.setScalar(sw.radius);
         sw.mesh.material.opacity = Math.max(0, 1.0 - (sw.radius / sw.maxRadius));
 
-        // プレイヤーとの判定：地上（Yが足場付近）にいて半径の境界に当たると被弾
-        const pDist = new THREE.Vector2(playerPhysics.position.x - sw.mesh.position.x, playerPhysics.position.z - sw.mesh.position.z).length();
-        if (playerPhysics.currentPlatform === sw.platform) {
-          if (Math.abs(pDist - sw.radius) < 0.9 && playerPhysics.position.y <= sw.platform.topY + 0.4) {
-            takeDamage(20);
+        if (!sw.isPlayer) {
+          const pDist = new THREE.Vector2(playerPhysics.position.x - sw.mesh.position.x, playerPhysics.position.z - sw.mesh.position.z).length();
+          if (playerPhysics.currentPlatform === sw.platform) {
+            if (Math.abs(pDist - sw.radius) < 0.9 && playerPhysics.position.y <= sw.platform.topY + 0.4) {
+              takeDamage(20);
+            }
           }
         }
 
@@ -11206,16 +11185,23 @@
         orbitalDroneMesh.position.copy(dronePos);
         orbitalDroneMesh.rotation.y += delta * 4;
 
-        // 周囲の敵を自動攻撃
+        // 周囲の敵を自動攻撃（安全な配列走査に修正）
+        const toRemoveEnemies = [];
         enemies.forEach(e => {
           if (e.position.distanceTo(dronePos) < 6.0 && Math.random() < 0.12) {
             e.hp -= 15;
             spawnParticles(e.position, 0x00ffff);
             if (e.hp <= 0) {
               stats.score += 150;
-              scene.remove(e.group);
-              enemies.splice(enemies.indexOf(e), 1);
+              toRemoveEnemies.push(e);
             }
+          }
+        });
+        toRemoveEnemies.forEach(e => {
+          const idx = enemies.indexOf(e);
+          if (idx !== -1) {
+            scene.remove(e.group);
+            enemies.splice(idx, 1);
           }
         });
       }
