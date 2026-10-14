@@ -265,38 +265,6 @@
       100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
     }
 
-    @media (max-width: 768px) {
-      .boss-hud {
-        top: 110px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 92%;
-        max-width: 92%;
-        padding: 6px 12px;
-        z-index: 60;
-      }
-      .hud-top {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-        padding-top: 10px;
-      }
-      .unified-panel {
-        width: 100%;
-        padding: 8px 12px;
-      }
-      .score-panel {
-        width: 100%;
-        text-align: center;
-        padding: 6px 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .controls-hint { display: none; }
-    }
-    .boss-hud.active { display: flex; }
-====
       .unified-panel {
         width: 48%;
         padding: 5px 6px;
@@ -497,6 +465,1114 @@
       .controls-hint { display: none; }
     }
     .boss-hud.active { display: flex; }
+    
+    .status-badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--danger);
+      background: rgba(255, 0, 85, 0.15);
+      border: 1px solid rgba(255, 0, 85, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+      display: none;
+    }
+    .status-badge.active { display: inline-block; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      margin-top: 4px;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+      text-shadow: 0 0 10px var(--accent-glow);
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+====
+      .unified-panel {
+        width: 48%;
+        padding: 5px 6px;
+      }
+      body.boss-active .score-panel {
+        width: 48%;
+        padding: 5px 6px;
+        text-align: right;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+    @media (max-width: 768px) {
+      .controls-hint { display: none; }
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+      .unified-panel {
+        width: 48%;
+        padding: 5px 6px;
+      }
+      body.boss-active .score-panel {
+        width: 48%;
+        padding: 5px 6px;
+        text-align: right;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+    @media (max-width: 768px) {
+      .controls-hint { display: none; }
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 8px 12px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+    
+    .status-badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--danger);
+      background: rgba(255, 0, 85, 0.15);
+      border: 1px solid rgba(255, 0, 85, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+      display: none;
+    }
+    .status-badge.active { display: inline-block; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 8px 12px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+      .unified-panel {
+        width: 48%;
+        padding: 5px 6px;
+      }
+      body.boss-active .score-panel {
+        width: 48%;
+        padding: 5px 6px;
+        text-align: right;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+    @media (max-width: 768px) {
+      .controls-hint { display: none; }
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 8px 12px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+    
+    .status-badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--danger);
+      background: rgba(255, 0, 85, 0.15);
+      border: 1px solid rgba(255, 0, 85, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+      display: none;
+    }
+    .status-badge.active { display: inline-block; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      margin-top: 4px;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+      text-shadow: 0 0 10px var(--accent-glow);
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    .status-badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--danger);
+      background: rgba(255, 0, 85, 0.15);
+      border: 1px solid rgba(255, 0, 85, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+      display: none;
+    }
+    .status-badge.active { display: inline-block; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+      .unified-panel {
+        width: 48%;
+        padding: 5px 6px;
+      }
+      body.boss-active .score-panel {
+        width: 48%;
+        padding: 5px 6px;
+        text-align: right;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+    @media (max-width: 768px) {
+      .controls-hint { display: none; }
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 8px 12px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+    
+    .status-badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--danger);
+      background: rgba(255, 0, 85, 0.15);
+      border: 1px solid rgba(255, 0, 85, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+      display: none;
+    }
+    .status-badge.active { display: inline-block; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 8px 12px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+      .unified-panel {
+        width: 48%;
+        padding: 5px 6px;
+      }
+      body.boss-active .score-panel {
+        width: 48%;
+        padding: 5px 6px;
+        text-align: right;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+    @media (max-width: 768px) {
+      .controls-hint { display: none; }
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 8px 12px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+    
+    .status-badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--danger);
+      background: rgba(255, 0, 85, 0.15);
+      border: 1px solid rgba(255, 0, 85, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+      display: none;
+    }
+    .status-badge.active { display: inline-block; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      margin-top: 4px;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+      text-shadow: 0 0 10px var(--accent-glow);
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+====
+      .unified-panel {
+        width: 48%;
+        padding: 5px 6px;
+      }
+      body.boss-active .score-panel {
+        width: 48%;
+        padding: 5px 6px;
+        text-align: right;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+    @media (max-width: 768px) {
+      .controls-hint { display: none; }
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+      .unified-panel {
+        width: 48%;
+        padding: 5px 6px;
+      }
+      body.boss-active .score-panel {
+        width: 48%;
+        padding: 5px 6px;
+        text-align: right;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+    @media (max-width: 768px) {
+      .controls-hint { display: none; }
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 8px 12px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+    
+    .status-badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--danger);
+      background: rgba(255, 0, 85, 0.15);
+      border: 1px solid rgba(255, 0, 85, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+      display: none;
+    }
+    .status-badge.active { display: inline-block; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 8px 12px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+      .unified-panel {
+        width: 48%;
+        padding: 5px 6px;
+      }
+      body.boss-active .score-panel {
+        width: 48%;
+        padding: 5px 6px;
+        text-align: right;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+    @media (max-width: 768px) {
+      .controls-hint { display: none; }
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 8px 12px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+    
+    .status-badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--danger);
+      background: rgba(255, 0, 85, 0.15);
+      border: 1px solid rgba(255, 0, 85, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+      display: none;
+    }
+    .status-badge.active { display: inline-block; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+====
+    @media (max-width: 768px) {
+      body.boss-active .ui-layer {
+        padding: 6px 10px;
+      }
+      body.boss-active .boss-hud {
+        top: 4px;
+        width: 96%;
+        padding: 4px 10px;
+      }
+      body.boss-active .hud-top {
+        margin-top: 54px;
+        gap: 6px;
+        flex-direction: row;
+      }
+      .unified-panel {
+        width: 50%;
+        padding: 8px 10px;
+      }
+      .score-panel {
+        min-width: 110px;
+        padding: 8px 10px;
+      }
+      .controls-hint { display: none; }
+    }
+
+    .boss-hud.active { display: flex; }
+    .boss-bar { background: linear-gradient(90deg, var(--danger), var(--warning)); }
+
+    .combo-badge {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 900;
+      margin-top: 4px;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.15s ease;
+      text-shadow: 0 0 10px var(--accent-glow);
+    }
+    .combo-badge.active {
+      opacity: 1;
+      transform: scale(1);
+    }
     
     .status-badge {
       font-size: 10px;
@@ -833,6 +1909,7 @@
       <div id="score-panel" class="score-panel">
         <div id="floor-badge" class="floor-indicator">FLOOR 1</div>
         <div id="score-display" class="score-val">0</div>
+        <div id="combo-display" class="combo-badge">0 HIT COMBO</div>
       </div>
     </div>
 
@@ -905,7 +1982,12 @@
   <script>
     class SoundFX {
       constructor() { this.ctx = null; }
-      init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      init() { 
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
       play(type) {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
@@ -1040,7 +2122,7 @@
     let state = GAME_STATE.TITLE;
 
     const stats = {
-      maxHp: 100, hp: 100, score: 0, floor: 1,
+      maxHp: 100, hp: 100, score: 0, floor: 1, combo: 0, comboTimer: 0,
       moveSpeed: 11.5, slashDamage: 50, slashRange: 4.8,
       skillCooldown: 0, skillMaxCooldown: 5.0, weaponType: 'saber',
       invulnerableTimer: 0,
@@ -1672,6 +2754,13 @@
       showFeed('⚡【神速究極奥義】 CYBER NOVA BLACKHOLE STRIKE!!');
     }
 
+    function addCombo() {
+      stats.combo++;
+      stats.comboTimer = 2.5;
+      stats.score += stats.combo * 20;
+      updateHUD();
+    }
+
     function executeSlashHit() {
       const pPos = playerPhysics.position;
       const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(playerPhysics.quaternion);
@@ -1782,6 +2871,7 @@
             });
           }
 
+          addCombo();
           if (e.hp <= 0) {
             stats.score += stats.perks.vampirism ? 300 : 200;
             if (stats.perks.vampirism) {
@@ -2001,6 +3091,16 @@
       document.getElementById('score-display').textContent = stats.score;
       document.getElementById('floor-badge').textContent = `FLOOR ${stats.floor}`;
 
+      const comboDisp = document.getElementById('combo-display');
+      if (comboDisp) {
+        if (stats.combo > 1) {
+          comboDisp.textContent = `${stats.combo} HIT COMBO`;
+          comboDisp.classList.add('active');
+        } else {
+          comboDisp.classList.remove('active');
+        }
+      }
+
       const slowBadge = document.getElementById('status-slow');
       const hackBadge = document.getElementById('status-hack');
       if (slowBadge) {
@@ -2029,48 +3129,49 @@
     }
 
     function startGame() {
-      audio.init();
-      stats.hp = stats.maxHp; 
-      stats.score = 0; 
-      stats.floor = 1; 
-      stats.skillCooldown = 0;
-      stats.invulnerableTimer = 0;
-      inputSys.clear();
-      updateHUD();
-      generateStage(stats.floor);
-      
-      const startScreen = document.getElementById('screen-start');
-      const gameOverScreen = document.getElementById('screen-gameover');
-      if (startScreen) startScreen.classList.add('hidden');
-      if (gameOverScreen) gameOverScreen.classList.add('hidden');
-      
-      state = GAME_STATE.PLAYING;
-      showFeed('NEURAL LINK ESTABLISHED: ENGAGE');
+      try {
+        audio.init();
+        stats.hp = stats.maxHp; 
+        stats.score = 0; 
+        stats.floor = 1; 
+        stats.combo = 0;
+        stats.comboTimer = 0;
+        stats.skillCooldown = 0;
+        stats.invulnerableTimer = 0;
+        inputSys.clear();
+        updateHUD();
+        generateStage(stats.floor);
+        
+        const startScreen = document.getElementById('screen-start');
+        const gameOverScreen = document.getElementById('screen-gameover');
+        if (startScreen) startScreen.classList.add('hidden');
+        if (gameOverScreen) gameOverScreen.classList.add('hidden');
+        
+        state = GAME_STATE.PLAYING;
+        showFeed('NEURAL LINK ESTABLISHED: ENGAGE');
+      } catch (err) {
+        console.error("Failed to start game:", err);
+      }
     }
 
-    const btnStart = document.getElementById('btn-start');
-    if (btnStart) {
-      btnStart.addEventListener('click', (e) => {
+    function setupButtonHandler(id, handler) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      let handled = false;
+      const wrap = (e) => {
         e.preventDefault();
-        startGame();
-      });
-      btnStart.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        startGame();
-      });
+        e.stopPropagation();
+        if (handled) return;
+        handled = true;
+        setTimeout(() => { handled = false; }, 300);
+        handler();
+      };
+      btn.addEventListener('pointerdown', wrap);
+      btn.addEventListener('click', wrap);
     }
 
-    const btnRestart = document.getElementById('btn-restart');
-    if (btnRestart) {
-      btnRestart.addEventListener('click', (e) => {
-        e.preventDefault();
-        startGame();
-      });
-      btnRestart.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        startGame();
-      });
-    }
+    setupButtonHandler('btn-start', startGame);
+    setupButtonHandler('btn-restart', startGame);
 
     generateStage(1);
 
@@ -2116,6 +3217,14 @@
 
       if (state !== GAME_STATE.PLAYING) return;
       inputSys.update();
+
+      if (stats.comboTimer > 0) {
+        stats.comboTimer -= delta;
+        if (stats.comboTimer <= 0) {
+          stats.combo = 0;
+          updateHUD();
+        }
+      }
 
       if (stats.skillCooldown > 0) stats.skillCooldown = Math.max(0, stats.skillCooldown - delta);
       if (stats.slowTimer > 0) stats.slowTimer = Math.max(0, stats.slowTimer - delta);
