@@ -404,35 +404,41 @@
       color: #fff;
     }
 
-    /* Loot Notification */
+    /* Loot Notification with Enhanced Glassmorphism & Bounce Micro-Interactions */
     .loot-notify {
       position: absolute;
       top: 80px;
-      right: 16px;
+      right: 20px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
       pointer-events: none;
       z-index: 30;
     }
 
     .loot-card {
-      background: var(--panel-bg);
-      border: 1px solid var(--panel-border);
-      border-radius: 8px;
-      padding: 8px 12px;
-      min-width: 160px;
-      animation: lootPop 3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      background: linear-gradient(135deg, rgba(20, 24, 38, 0.95), rgba(12, 15, 24, 0.9));
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 12px;
+      padding: 10px 16px;
+      min-width: 190px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.3);
+      animation: lootPop 3.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     @keyframes lootPop {
-      0% { transform: translateX(50px); opacity: 0; }
-      15% { transform: translateX(0); opacity: 1; }
-      80% { transform: translateX(0); opacity: 1; }
-      100% { transform: translateY(-20px); opacity: 0; }
+      0% { transform: translateX(80px) scale(0.85); opacity: 0; }
+      15% { transform: translateX(0) scale(1.03); opacity: 1; }
+      22% { transform: translateX(0) scale(1.0); opacity: 1; }
+      82% { transform: translateX(0) scale(1.0); opacity: 1; }
+      100% { transform: translateY(-30px) scale(0.95); opacity: 0; }
     }
 
     .tier-common { color: #cbd5e1; border-color: #64748b; }
@@ -556,15 +562,15 @@
           const AudioContext = window.AudioContext || window.webkitAudioContext;
           this.ctx = new AudioContext();
           
-          // Generate realistic dungeon acoustic impulse response for reverb simulation
+          // Generate ultra-realistic vaulted dungeon acoustic impulse response with rich convolutional reflections
           this.convolver = this.ctx.createConvolver();
           const rate = this.ctx.sampleRate;
-          const length = rate * 1.2; // 1.2s reverb tail
+          const length = rate * 1.8; // Extended 1.8s architectural acoustic reverb tail
           const impulse = this.ctx.createBuffer(2, length, rate);
           for (let ch = 0; ch < 2; ch++) {
             const data = impulse.getChannelData(ch);
             for (let i = 0; i < length; i++) {
-              data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (rate * 0.25));
+              data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (rate * 0.35)) * Math.sin(i * 0.01);
             }
           }
           this.convolver.buffer = impulse;
@@ -581,83 +587,83 @@
         const gain = this.ctx.createGain();
         const filter = this.ctx.createBiquadFilter();
 
-        // Dungeon acoustic spatial lowpass filter & reverb routing
+        // Advanced multi-stage acoustic lowpass filter & spatial reverb routing
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(1400, now);
+        filter.frequency.setValueAtTime(1800, now);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
         if (this.convolver) {
-          gain.connect(this.convolver); // Route through dungeon spatial reverb
+          gain.connect(this.convolver); // Route through vault reverb
         }
 
-        const pitchVar = 0.96 + Math.random() * 0.08;
+        const pitchVar = 0.97 + Math.random() * 0.06;
 
         switch (type) {
           case 'hit':
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(210 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
-            filter.frequency.setValueAtTime(900, now); // Deep acoustic muffling on impact
-            filter.frequency.exponentialRampToValueAtTime(300, now + 0.25);
-            gain.gain.setValueAtTime(0.5, now);
+            osc.frequency.setValueAtTime(240 * pitchVar, now);
+            osc.frequency.exponentialRampToValueAtTime(35, now + 0.3);
+            filter.frequency.setValueAtTime(1100, now);
+            filter.frequency.exponentialRampToValueAtTime(250, now + 0.3);
+            gain.gain.setValueAtTime(0.55, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+            break;
+          case 'slash':
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(640 * pitchVar, now);
+            osc.frequency.exponentialRampToValueAtTime(90, now + 0.18);
+            filter.frequency.setValueAtTime(3400, now);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.18);
+            osc.start(now);
+            osc.stop(now + 0.18);
+            break;
+          case 'dash':
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(320 * pitchVar, now);
+            osc.frequency.exponentialRampToValueAtTime(960, now + 0.25);
+            filter.frequency.setValueAtTime(3800, now);
+            gain.gain.setValueAtTime(0.4, now);
             gain.gain.linearRampToValueAtTime(0, now + 0.25);
             osc.start(now);
             osc.stop(now + 0.25);
             break;
-          case 'slash':
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(520 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(70, now + 0.16);
-            filter.frequency.setValueAtTime(2600, now);
-            gain.gain.setValueAtTime(0.3, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.16);
-            osc.start(now);
-            osc.stop(now + 0.16);
-            break;
-          case 'dash':
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(280 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(840, now + 0.22);
-            filter.frequency.setValueAtTime(3200, now);
-            gain.gain.setValueAtTime(0.35, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.22);
-            osc.start(now);
-            osc.stop(now + 0.22);
-            break;
           case 'skill':
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(240 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.6);
-            filter.frequency.setValueAtTime(5400, now); // Brilliant spatial resonance for ancient arcane magic
-            filter.frequency.exponentialRampToValueAtTime(1200, now + 0.6);
-            gain.gain.setValueAtTime(0.45, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.6);
+            osc.frequency.setValueAtTime(280 * pitchVar, now);
+            osc.frequency.exponentialRampToValueAtTime(1500, now + 0.7);
+            filter.frequency.setValueAtTime(6200, now);
+            filter.frequency.exponentialRampToValueAtTime(1400, now + 0.7);
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.7);
             osc.start(now);
-            osc.stop(now + 0.6);
+            osc.stop(now + 0.7);
             break;
           case 'loot':
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(587.33 * pitchVar, now);
-            osc.frequency.setValueAtTime(698.46 * pitchVar, now + 0.08);
-            osc.frequency.setValueAtTime(880.00 * pitchVar, now + 0.16);
-            osc.frequency.setValueAtTime(1174.66 * pitchVar, now + 0.24); // Sparkling harp chord
-            filter.frequency.setValueAtTime(5000, now);
-            gain.gain.setValueAtTime(0.35, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.55);
+            osc.frequency.setValueAtTime(659.25 * pitchVar, now);
+            osc.frequency.setValueAtTime(783.99 * pitchVar, now + 0.08);
+            osc.frequency.setValueAtTime(987.77 * pitchVar, now + 0.16);
+            osc.frequency.setValueAtTime(1318.51 * pitchVar, now + 0.24);
+            filter.frequency.setValueAtTime(5600, now);
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.65);
             osc.start(now);
-            osc.stop(now + 0.55);
+            osc.stop(now + 0.65);
             break;
           case 'level':
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(523.25 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.7);
-            filter.frequency.setValueAtTime(4800, now);
-            gain.gain.setValueAtTime(0.45, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.75);
+            osc.frequency.setValueAtTime(587.33 * pitchVar, now);
+            osc.frequency.exponentialRampToValueAtTime(1567.98, now + 0.85);
+            filter.frequency.setValueAtTime(5200, now);
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.88);
             osc.start(now);
-            osc.stop(now + 0.75);
+            osc.stop(now + 0.88);
             break;
         }
       }
