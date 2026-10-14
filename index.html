@@ -10650,6 +10650,12 @@
         card.classList.add('selected');
         applyWeapon(card.getAttribute('data-val'));
       });
+      card.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('#weapon-selector .select-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        applyWeapon(card.getAttribute('data-val'));
+      });
     });
 
     document.addEventListener('touchmove', e => {
@@ -10782,7 +10788,7 @@
 
     function startGame(e) {
       if (e) {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         e.stopPropagation();
       }
       try {
@@ -10822,18 +10828,41 @@
         showFeed('NEURAL LINK ESTABLISHED: ENGAGE');
       } catch (err) {
         console.error("Failed to start game:", err);
+        // フォールバックとして強制的にプレイ状態に移行
+        state = GAME_STATE.PLAYING;
+        const startScreen = document.getElementById('screen-start');
+        if (startScreen) {
+          startScreen.classList.add('hidden');
+          startScreen.style.display = 'none';
+        }
       }
     }
 
     const btnStart = document.getElementById('btn-start');
     if (btnStart) {
       btnStart.addEventListener('click', startGame);
-      btnStart.addEventListener('touchend', startGame);
+      btnStart.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        startGame(e);
+      });
     }
     const btnRestart = document.getElementById('btn-restart');
     if (btnRestart) {
       btnRestart.addEventListener('click', startGame);
-      btnRestart.addEventListener('touchend', startGame);
+      btnRestart.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        startGame(e);
+      });
+    }
+
+    // スタート画面全体からも確実にゲームを開始できるようにフォールバックリスナーを追加
+    const startScreenOverlay = document.getElementById('screen-start');
+    if (startScreenOverlay) {
+      startScreenOverlay.addEventListener('click', (e) => {
+        if (state === GAME_STATE.TITLE && e.target === startScreenOverlay) {
+          startGame(e);
+        }
+      });
     }
 
     generateStage(1);
