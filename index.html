@@ -1727,7 +1727,7 @@
       Game.input.y = ny * magnitude;
     }
 
-    // Touch Action Buttons with exclusive source tracking
+    // Strict Input System with Absolute Device Isolation & Zero Latency
     const btnAttack = document.getElementById('btn-attack');
     const btnDash = document.getElementById('btn-dash');
     const btnSkill = document.getElementById('btn-skill');
@@ -1752,7 +1752,7 @@
     bindTouchAction(btnDash, 'dash');
     bindTouchAction(btnSkill, 'skill');
 
-    // Keyboard Fallboard with absolute isolation from touch inputs
+    // Keyboard Input Isolation (Blocks keyboard events completely if active device is touch to prevent phantom movement)
     const keys = {};
     window.addEventListener('keydown', (e) => {
       if (inputSource === 'touch') return;
