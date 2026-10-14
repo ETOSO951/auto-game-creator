@@ -9617,9 +9617,13 @@
         <div class="card-name">プラズマ拳</div>
         <div class="card-detail">衝撃波・近接破壊</div>
       </div>
+      <div class="select-card" data-val="whip" style="pointer-events: auto !important;">
+        <div class="card-name">レーザーウィップ</div>
+        <div class="card-detail">超広範囲・鞭撃</div>
+      </div>
     </div>
 
-    <button id="btn-start" class="primary-btn" style="pointer-events: auto !important; z-index: 100000; cursor: pointer;">ENGAGE</button>
+    <button id="btn-start" class="primary-btn" style="pointer-events: auto !important; z-index: 100000; cursor: pointer;" onclick="window.startGameDirect && window.startGameDirect(event)">ENGAGE</button>
   </div>
 
   <div id="screen-perk" class="screen-overlay hidden">
@@ -9787,6 +9791,7 @@
       skillCooldown: 0, skillMaxCooldown: 5.0, weaponType: 'saber',
       invulnerableTimer: 0,
       slowTimer: 0, hackTimer: 0,
+      overloadTimer: 0, overloadActive: false,
       perks: { plasmaExplosion: false, vampirism: false, jumpMaster: false, shieldReflect: false, homingBlade: false, meteorSlash: false, orbitalDrone: false, quantumBlink: false }
     };
     let orbitalDroneMesh = null;
@@ -9908,6 +9913,9 @@
       } else if (type === 'gauntlet') {
         stats.slashDamage = 110; stats.slashRange = 3.2; bladeMesh.scale.set(1.8, 0.9, 1.8);
         slashGeo = buildSlashGeometry(1.0, 3.2, Math.PI * 0.85);
+      } else if (type === 'whip') {
+        stats.slashDamage = 42; stats.slashRange = 7.2; bladeMesh.scale.set(0.6, 2.2, 0.6);
+        slashGeo = buildSlashGeometry(2.0, 7.2, Math.PI * 0.9);
       }
       slashArc.geometry = slashGeo;
     }
@@ -10815,6 +10823,8 @@
         stats.comboTimer = 0;
         stats.skillCooldown = 0;
         stats.invulnerableTimer = 0;
+        stats.overloadTimer = 0;
+        stats.overloadActive = false;
         if (inputSys && inputSys.clear) inputSys.clear();
         updateHUD();
         generateStage(stats.floor);
@@ -10823,21 +10833,16 @@
         const perkScreen = document.getElementById('screen-perk');
         const gameOverScreen = document.getElementById('screen-gameover');
         
-        if (startScreen) {
-          startScreen.classList.add('hidden');
-          startScreen.style.display = 'none';
-        }
-        if (perkScreen) {
-          perkScreen.classList.add('hidden');
-          perkScreen.style.display = 'none';
-        }
-        if (gameOverScreen) {
-          gameOverScreen.classList.add('hidden');
-          gameOverScreen.style.display = 'none';
-        }
+        [startScreen, perkScreen, gameOverScreen].forEach(screen => {
+          if (screen) {
+            screen.classList.add('hidden');
+            screen.style.display = 'none';
+            screen.style.pointerEvents = 'none';
+          }
+        });
         
         state = GAME_STATE.PLAYING;
-        showFeed('NEURAL LINK ESTABLISHED: ENGAGE');
+        showFeed('⚡ OVERLOAD MODE READY: ENGAGE');
       } catch (err) {
         console.error("Failed to start game:", err);
         state = GAME_STATE.PLAYING;
@@ -10849,17 +10854,23 @@
       }
     }
 
+    window.startGameDirect = startGame;
+
     const btnStart = document.getElementById('btn-start');
     if (btnStart) {
-      btnStart.addEventListener('click', (e) => {
-        startGame(e);
+      ['click', 'touchend'].forEach(evt => {
+        btnStart.addEventListener(evt, (e) => {
+          startGame(e);
+        }, { passive: false });
       });
     }
 
     const btnRestart = document.getElementById('btn-restart');
     if (btnRestart) {
-      btnRestart.addEventListener('click', (e) => {
-        startGame(e);
+      ['click', 'touchend'].forEach(evt => {
+        btnRestart.addEventListener(evt, (e) => {
+          startGame(e);
+        }, { passive: false });
       });
     }
 
@@ -10894,6 +10905,16 @@
       if (bulletTimeTimer > 0) {
         bulletTimeTimer = Math.max(0, bulletTimeTimer - delta);
         delta *= 0.35;
+      }
+
+      if (state === GAME_STATE.PLAYING) {
+        stats.overloadTimer += delta;
+        if (!stats.overloadActive && stats.overloadTimer >= 45.0) {
+          stats.overloadActive = true;
+          stats.slashDamage = Math.round(stats.slashDamage * 1.5);
+          triggerGlitchEffect();
+          showFeed('🔥 OVERLOAD PROTOCOL ACTIVATED: POWER SURGE!');
+        }
       }
 
       if (state === GAME_STATE.TITLE) {
