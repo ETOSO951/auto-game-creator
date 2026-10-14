@@ -768,7 +768,7 @@
       }
 
       move(vx, vy) {
-        // Sub-stepping sliding collision with accurate normalization & push-out safety
+        // Robust sub-stepping collision with safe sliding and axis separation
         const steps = 4;
         const sx = vx / steps;
         const sy = vy / steps;
@@ -776,19 +776,9 @@
         for (let i = 0; i < steps; i++) {
           if (!isSolid(this.x + sx, this.y, this.radius)) {
             this.x += sx;
-          } else {
-            // Push out safeguard
-            if (!isSolid(this.x, this.y + sy, this.radius)) {
-              this.y += sy;
-            }
           }
-
           if (!isSolid(this.x, this.y + sy, this.radius)) {
             this.y += sy;
-          } else {
-            if (!isSolid(this.x + sx, this.y, this.radius)) {
-              this.x += sx;
-            }
           }
         }
       }
@@ -1019,18 +1009,9 @@
         for (let i = 0; i < steps; i++) {
           if (!isSolid(this.x + sx, this.y, this.radius)) {
             this.x += sx;
-          } else {
-            if (!isSolid(this.x, this.y + sy, this.radius)) {
-              this.y += sy;
-            }
           }
-
           if (!isSolid(this.x, this.y + sy, this.radius)) {
             this.y += sy;
-          } else {
-            if (!isSolid(this.x + sx, this.y, this.radius)) {
-              this.x += sx;
-            }
           }
         }
       }
@@ -1540,12 +1521,14 @@
     const fixedTimeStep = 1 / 60;
 
     function gameLoop(time) {
-      const frameTime = Math.min((time - Game.lastTime) / 1000, 0.1);
+      const frameTime = Math.min((time - Game.lastTime) / 1000, 0.05);
       Game.lastTime = time;
 
       if (Game.active) {
         accumulator += frameTime;
-        while (accumulator >= fixedTimeStep) {
+        // Prevent spiral of death on heavy lag spikes by capping accumulator iterations
+        let loops = 0;
+        while (accumulator >= fixedTimeStep && loops < 5) {
           const dt = fixedTimeStep;
           // Updates with fixed dt
           Game.player.update(dt);
@@ -1569,6 +1552,11 @@
           }
 
           accumulator -= dt;
+          loops++;
+        }
+
+        if (accumulator >= fixedTimeStep) {
+          accumulator = 0; // Drop excessive lag debt safely
         }
 
         updateHUD();
@@ -1725,14 +1713,26 @@
     });
 
     window.addEventListener('blur', () => {
-      // Clear all inputs on window blur to prevent stuck states
-      keys['KeyW'] = keys['KeyA'] = keys['KeyS'] = keys['KeyD'] = false;
-      keys['ArrowUp'] = keys['ArrowDown'] = keys['ArrowLeft'] = keys['ArrowRight'] = false;
+      // Clear all inputs and reset state cleanly on window blur / visibility change
+      for (let k in keys) keys[k] = false;
+      resetJoystick();
       Game.input.x = 0;
       Game.input.y = 0;
       Game.input.attacking = false;
       Game.input.dash = false;
       Game.input.skill = false;
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        for (let k in keys) keys[k] = false;
+        resetJoystick();
+        Game.input.x = 0;
+        Game.input.y = 0;
+        Game.input.attacking = false;
+        Game.input.dash = false;
+        Game.input.skill = false;
+      }
     });
 
     function updateKeyboardInput() {
