@@ -10813,6 +10813,7 @@
       if (e) {
         if (e.cancelable) e.preventDefault();
         if (e.stopPropagation) e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
       }
       try {
         if (audio && audio.init) audio.init();
@@ -10826,8 +10827,6 @@
         stats.overloadTimer = 0;
         stats.overloadActive = false;
         if (inputSys && inputSys.clear) inputSys.clear();
-        updateHUD();
-        generateStage(stats.floor);
         
         const startScreen = document.getElementById('screen-start');
         const perkScreen = document.getElementById('screen-perk');
@@ -10838,9 +10837,12 @@
             screen.classList.add('hidden');
             screen.style.display = 'none';
             screen.style.pointerEvents = 'none';
+            screen.style.visibility = 'hidden';
           }
         });
-        
+
+        updateHUD();
+        generateStage(stats.floor);
         state = GAME_STATE.PLAYING;
         showFeed('⚡ OVERLOAD MODE READY: ENGAGE');
       } catch (err) {
@@ -10850,6 +10852,7 @@
         if (startScreen) {
           startScreen.classList.add('hidden');
           startScreen.style.display = 'none';
+          startScreen.style.pointerEvents = 'none';
         }
       }
     }
@@ -10858,7 +10861,7 @@
 
     const btnStart = document.getElementById('btn-start');
     if (btnStart) {
-      ['click', 'touchend'].forEach(evt => {
+      ['click', 'pointerdown', 'touchend'].forEach(evt => {
         btnStart.addEventListener(evt, (e) => {
           startGame(e);
         }, { passive: false });
@@ -10867,7 +10870,7 @@
 
     const btnRestart = document.getElementById('btn-restart');
     if (btnRestart) {
-      ['click', 'touchend'].forEach(evt => {
+      ['click', 'pointerdown', 'touchend'].forEach(evt => {
         btnRestart.addEventListener(evt, (e) => {
           startGame(e);
         }, { passive: false });
