@@ -622,6 +622,8 @@
       }
     };
 
+    let inputSource = 'none'; // 'touch' or 'keyboard'
+
     /* =========================================================
        DUNGEON GENERATOR
        ========================================================= */
@@ -724,10 +726,10 @@
       }
 
       update(dt) {
-        // Cooldowns
-        if (this.dashCooldown > 0) this.dashCooldown -= dt;
-        if (this.artifact.timer > 0) this.artifact.timer -= dt;
-        if (this.invulnTimer > 0) this.invulnTimer -= dt;
+        // Cooldowns with precise delta tracking
+        if (this.dashCooldown > 0) this.dashCooldown = Math.max(0, this.dashCooldown - dt);
+        if (this.artifact.timer > 0) this.artifact.timer = Math.max(0, this.artifact.timer - dt);
+        if (this.invulnTimer > 0) this.invulnTimer = Math.max(0, this.invulnTimer - dt);
 
         // Attack cycle
         if (this.attackTimer > 0) {
@@ -735,10 +737,30 @@
           if (this.attackTimer <= 0) this.isAttacking = false;
         }
 
-        // Movement
+        // Input Buffering update (150ms buffer window)
+        if (Game.inputBuffer.dash > 0) Game.inputBuffer.dash -= dt;
+        if (Game.inputBuffer.attack > 0) Game.inputBuffer.attack -= dt;
+
+        if (Game.input.dash) Game.inputBuffer.dash = 0.15;
+        if (Game.input.attacking) Game.inputBuffer.attack = 0.15;
+
+        // Actions trigger with strict priority buffer & cooldown check
+        if (Game.inputBuffer.dash > 0 && this.dashCooldown <= 0) {
+          Game.inputBuffer.dash = 0;
+          this.triggerDash();
+        }
+        if (Game.inputBuffer.attack > 0 && this.attackTimer <= 0) {
+          Game.inputBuffer.attack = 0;
+          this.triggerAttack();
+        }
+        if (Game.input.skill && this.artifact.timer <= 0) {
+          this.triggerSkill();
+        }
+
+        // Movement with dash priority
         if (this.dashTimer > 0) {
           this.dashTimer -= dt;
-          const dashSpeed = 480;
+          const dashSpeed = 520;
           this.move(this.dashDir.x * dashSpeed * dt, this.dashDir.y * dashSpeed * dt);
           createDashTrail(this.x, this.y);
         } else {
@@ -753,26 +775,6 @@
           }
         }
 
-        // Input Buffering update
-        if (Game.inputBuffer.dash > 0) Game.inputBuffer.dash -= dt;
-        if (Game.inputBuffer.attack > 0) Game.inputBuffer.attack -= dt;
-
-        if (Game.input.dash) Game.inputBuffer.dash = 0.15;
-        if (Game.input.attacking) Game.inputBuffer.attack = 0.15;
-
-        // Actions trigger with Buffer
-        if (Game.inputBuffer.dash > 0 && this.dashCooldown <= 0) {
-          Game.inputBuffer.dash = 0;
-          this.triggerDash();
-        }
-        if (Game.inputBuffer.attack > 0 && this.attackTimer <= 0) {
-          Game.inputBuffer.attack = 0;
-          this.triggerAttack();
-        }
-        if (Game.input.skill && this.artifact.timer <= 0) {
-          this.triggerSkill();
-        }
-
         // Check Exit Portal
         const distExit = Math.hypot(this.x - Game.exitPos.x, this.y - Game.exitPos.y);
         if (distExit < 24) {
@@ -781,8 +783,8 @@
       }
 
       move(vx, vy) {
-        // High precision sub-stepping collision with advanced corner sliding normals
-        const steps = 8;
+        // High-precision sub-stepping collision with robust corner sliding normals
+        const steps = 10;
         const sx = vx / steps;
         const sy = vy / steps;
 
@@ -791,8 +793,7 @@
           if (!isSolid(this.x + sx, this.y, this.radius)) {
             this.x += sx;
           } else {
-            // Corner slide nudge
-            const nudge = 1.2;
+            const nudge = 1.4;
             if (!isSolid(this.x + sx, this.y + nudge, this.radius)) {
               this.y += nudge;
               this.x += sx;
@@ -806,7 +807,7 @@
           if (!isSolid(this.x, this.y + sy, this.radius)) {
             this.y += sy;
           } else {
-            const nudge = 1.2;
+            const nudge = 1.4;
             if (!isSolid(this.x + nudge, this.y + sy, this.radius)) {
               this.x += nudge;
               this.y += sy;
@@ -1037,7 +1038,7 @@
       }
 
       move(vx, vy) {
-        const steps = 5;
+        const steps = 6;
         const sx = vx / steps;
         const sy = vy / steps;
 
@@ -1634,13 +1635,12 @@
     }
 
     /* =========================================================
-       INPUT SYSTEM (STRICT EXCLUSIVE TOUCH & KEYBOARD)
+       INPUT SYSTEM (STRICT EXCLUSIVE TOUCH & KEYBOARD ISOLATION)
        ========================================================= */
     const joyContainer = document.getElementById('joystick-container');
     const joyKnob = document.getElementById('joystick-knob');
     let activeTouchId = null;
     let joyCenter = { x: 0, y: 0 };
-    let inputSource = 'none'; // 'touch' or 'keyboard'
 
     joyContainer.addEventListener('touchstart', (e) => {
       Sound.init();
@@ -1650,7 +1650,7 @@
       const rect = joyContainer.getBoundingClientRect();
       joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
       handleJoystick(touch.clientX, touch.clientY);
-    });
+    }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
       if (inputSource !== 'touch' || activeTouchId === null) return;
@@ -1660,7 +1660,7 @@
           break;
         }
       }
-    });
+    }, { passive: false });
 
     const resetJoystick = () => {
       activeTouchId = null;
@@ -1704,7 +1704,7 @@
       Game.input.y = ny * magnitude;
     }
 
-    // Touch Action Buttons with exclusive source tracking and buttery-smooth responsiveness
+    // Touch Action Buttons with exclusive source tracking
     const btnAttack = document.getElementById('btn-attack');
     const btnDash = document.getElementById('btn-dash');
     const btnSkill = document.getElementById('btn-skill');
@@ -1729,10 +1729,10 @@
     bindTouchAction(btnDash, 'dash');
     bindTouchAction(btnSkill, 'skill');
 
-    // Keyboard Fallback with strict exclusion when touch is active
+    // Keyboard Fallboard with absolute isolation from touch inputs
     const keys = {};
     window.addEventListener('keydown', (e) => {
-      if (inputSource === 'touch' && activeTouchId !== null) return;
+      if (inputSource === 'touch') return;
       Sound.init();
       inputSource = 'keyboard';
       keys[e.code] = true;
