@@ -275,7 +275,48 @@
         gap: 4px;
         flex-direction: row;
       }
-      body.boss-active .unified-panel {
+      body.boss-active @media (max-width: 768px) {
+      .controls-hint { display: none; }
+    }
+====
+    @keyframes bossHudPulse {
+      0% { box-shadow: 0 6px 25px rgba(255, 0, 85, 0.4); }
+      100% { box-shadow: 0 12px 45px rgba(255, 0, 85, 0.85); }
+    }
+
+    @media (max-width: 768px) {
+      .boss-hud {
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 92%;
+        padding: 6px 12px;
+        z-index: 60;
+      }
+      .hud-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .unified-panel {
+        width: 100%;
+        padding: 8px 12px;
+      }
+      .score-panel {
+        width: 100%;
+        text-align: center;
+        padding: 6px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .controls-hint { display: none; }
+    }
+    .boss-hud.active { display: flex; }
+====
+      .unified-panel {
         width: 48%;
         padding: 5px 6px;
       }
@@ -286,6 +327,7 @@
       }
       .controls-hint { display: none; }
     }
+    .boss-hud.active { display: flex; }
 ====
     @media (max-width: 768px) {
       .controls-hint { display: none; }
@@ -650,6 +692,10 @@
         <div class="bar-outer">
           <div id="skill-bar" class="bar-inner"></div>
         </div>
+        <div class="status-badges-container">
+          <span id="status-slow" class="status-badge">SLOWED</span>
+          <span id="status-hack" class="status-badge">HACKED</span>
+        </div>
       </div>
 
       <div class="controls-hint">
@@ -767,6 +813,13 @@
           gain.gain.setValueAtTime(0.3, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
           osc.start(now); osc.stop(now + 0.18);
+        } else if (type === 'parry') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now);
+          osc.frequency.exponentialRampToValueAtTime(1760, now + 0.22);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.start(now); osc.stop(now + 0.22);
         }
       }
     }
@@ -1081,10 +1134,16 @@
         const bossPlat = createPlatform(0, -0.5, -30, 28, 1, 28, biome.basePlate, biome.edgeColor);
         spawnBoss(0, bossPlat.topY, -30, bossPlat, Math.floor(floorNum / 3));
       } else {
-        // 8パターンの多彩なステージ構造
+        // 8パターンの多彩なステージ構造（フロア進行で戦術的組み合わせを強化）
         const layoutType = (floorNum % 8);
         let currPos = new THREE.Vector3(0, -0.5, 0);
-        const eTypes = ['striker', 'shooter', 'phantom', 'guardian', 'bomber', 'sniper', 'turret', 'charger', 'supporter'];
+        const pool = floorNum === 1
+          ? ['striker', 'shooter']
+          : floorNum === 2
+          ? ['striker', 'shooter', 'charger', 'guardian']
+          : ['striker', 'shooter', 'phantom', 'guardian', 'bomber', 'sniper', 'turret', 'charger', 'supporter'];
+
+        const pickEnemy = (offset = 0) => pool[(floorNum + offset + Math.floor(Math.random() * pool.length)) % pool.length];
 
         if (layoutType === 0) {
           // パターン0: クランク＆ジグザグ
@@ -1096,20 +1155,20 @@
             currPos.y += (i % 2 === 0 ? 0.8 : -0.6);
             dir *= -1;
             const pData = createPlatform(currPos.x, currPos.y, currPos.z, 8, 1, 8, biome.basePlate, biome.edgeColor);
-            spawnEnemy(currPos.x, pData.topY, currPos.z, pData, eTypes[i % eTypes.length]);
+            spawnEnemy(currPos.x, pData.topY, currPos.z, pData, pickEnemy(i));
           }
         } else if (layoutType === 1) {
           // パターン1: 分岐・合流アリーナ
           const leftP = createPlatform(-8, 0.2, -10, 8, 1, 8, biome.basePlate, biome.edgeColor);
           const rightP = createPlatform(8, -0.4, -10, 8, 1, 8, biome.basePlate, biome.edgeColor);
-          spawnEnemy(-8, leftP.topY, -10, leftP, 'shooter');
-          spawnEnemy(8, rightP.topY, -10, rightP, 'phantom');
+          spawnEnemy(-8, leftP.topY, -10, leftP, pickEnemy(1));
+          spawnEnemy(8, rightP.topY, -10, rightP, pickEnemy(2));
 
           currPos.set(0, 0, -22);
           const hubPlat = createPlatform(0, 0, -22, 16, 1, 14, biome.basePlate, biome.edgeColor);
-          spawnEnemy(-3, hubPlat.topY, -22, hubPlat, 'striker');
-          spawnEnemy(3, hubPlat.topY, -22, hubPlat, 'guardian');
-          spawnEnemy(0, hubPlat.topY, -24, hubPlat, 'bomber');
+          spawnEnemy(-3, hubPlat.topY, -22, hubPlat, pickEnemy(3));
+          spawnEnemy(3, hubPlat.topY, -22, hubPlat, 'charger');
+          if (floorNum >= 2) spawnEnemy(0, hubPlat.topY, -24, hubPlat, 'supporter');
         } else if (layoutType === 2) {
           // パターン2: 高低差立体タワー
           const steps = 6;
@@ -1118,15 +1177,15 @@
             currPos.z -= 9;
             currPos.y += 1.0;
             const pData = createPlatform(currPos.x, currPos.y, currPos.z, 8, 1, 8, biome.basePlate, biome.edgeColor);
-            spawnEnemy(currPos.x, pData.topY, currPos.z, pData, eTypes[(i + 2) % eTypes.length]);
+            spawnEnemy(currPos.x, pData.topY, currPos.z, pData, pickEnemy(i));
           }
         } else if (layoutType === 3) {
           // パターン3: 巨大平原アリーナ
           const arena = createPlatform(0, 0, -14, 22, 1, 20, biome.basePlate, biome.edgeColor);
           spawnEnemy(-5, arena.topY, -10, arena, 'sniper');
           spawnEnemy(5, arena.topY, -10, arena, 'turret');
-          spawnEnemy(0, arena.topY, -18, arena, 'guardian');
-          spawnEnemy(-4, arena.topY, -20, arena, 'bomber');
+          spawnEnemy(0, arena.topY, -18, arena, 'charger');
+          if (floorNum >= 2) spawnEnemy(-4, arena.topY, -20, arena, 'bomber');
           currPos.set(0, 0, -26);
         } else if (layoutType === 4) {
           // パターン4: 迷路風細道回廊
@@ -1134,7 +1193,7 @@
           for (let i = 0; i < 5; i++) {
             const xOffset = (i % 2 === 0 ? -6 : 6);
             const pData = createPlatform(xOffset, i * 0.4, zOffset, 7, 1, 7, biome.basePlate, biome.edgeColor);
-            spawnEnemy(xOffset, pData.topY, zOffset, pData, eTypes[i % eTypes.length]);
+            spawnEnemy(xOffset, pData.topY, zOffset, pData, pickEnemy(i));
             zOffset -= 8;
             currPos.set(xOffset, i * 0.4, zOffset);
           }
@@ -1144,10 +1203,10 @@
           const p2 = createPlatform(-9, 1.2, -16, 6, 1, 6, biome.basePlate, biome.edgeColor);
           const p3 = createPlatform(9, 1.2, -16, 6, 1, 6, biome.basePlate, biome.edgeColor);
           const p4 = createPlatform(0, 2.2, -24, 8, 1, 8, biome.basePlate, biome.edgeColor);
-          spawnEnemy(0, p1.topY, -8, p1, 'shooter');
-          spawnEnemy(-9, p2.topY, -16, p2, 'bomber');
-          spawnEnemy(9, p3.topY, -16, p3, 'sniper');
-          spawnEnemy(0, p4.topY, -24, p4, 'guardian');
+          spawnEnemy(0, p1.topY, -8, p1, pickEnemy(0));
+          spawnEnemy(-9, p2.topY, -16, p2, pickEnemy(1));
+          spawnEnemy(9, p3.topY, -16, p3, pickEnemy(2));
+          spawnEnemy(0, p4.topY, -24, p4, pickEnemy(3));
           currPos.set(0, 2.2, -30);
         } else if (layoutType === 6) {
           // パターン6: 十字クロスロード
@@ -1156,10 +1215,10 @@
           const south = createPlatform(0, 0, -2, 6, 1, 8, biome.basePlate, biome.edgeColor);
           const east = createPlatform(8, 0, -12, 8, 1, 6, biome.basePlate, biome.edgeColor);
           const west = createPlatform(-8, 0, -12, 8, 1, 6, biome.basePlate, biome.edgeColor);
-          spawnEnemy(0, center.topY, -12, center, 'turret');
+          spawnEnemy(0, center.topY, -12, center, pickEnemy(0));
           spawnEnemy(0, north.topY, -22, north, 'sniper');
-          spawnEnemy(8, east.topY, -12, east, 'phantom');
-          spawnEnemy(-8, west.topY, -12, west, 'striker');
+          spawnEnemy(8, east.topY, -12, east, 'charger');
+          spawnEnemy(-8, west.topY, -12, west, 'phantom');
           currPos.set(0, 0, -28);
         } else {
           // パターン7: スパイラル螺旋サーキット
@@ -1169,7 +1228,7 @@
             const px = Math.cos(angle) * radius;
             const pz = Math.sin(angle) * radius - 12;
             const pData = createPlatform(px, i * 0.5, pz, 7, 1, 7, biome.basePlate, biome.edgeColor);
-            spawnEnemy(px, pData.topY, pz, pData, eTypes[i % eTypes.length]);
+            spawnEnemy(px, pData.topY, pz, pData, pickEnemy(i));
             angle += Math.PI * 0.5;
             radius += 2;
             currPos.set(px, i * 0.5, pz);
@@ -1410,8 +1469,8 @@
         spawnParticles(pPos.clone().add(new THREE.Vector3((Math.random()-0.5)*20, 0, (Math.random()-0.5)*20)), 0xffaa00);
       }
 
-      cameraShake = 25.0;
-      hitStopFrames = 200;
+      cameraShake = 1.2;
+      hitStopFrames = 12;
 
       // 4連重畳ブラックホール・ノヴァ衝撃波
       [
@@ -1559,14 +1618,15 @@
 
         if (dist <= stats.slashRange && dot > 0.05 && Math.abs(toEnemy.y) < 2.0) {
           // ジャストパリィシステム：敵の攻撃警告中にタイミングよく斬撃を合わせるとカウンターパリィ発動！
-          if (e.isWarning && e.warningTimer > 0 && e.warningTimer < 0.2) {
-            audio.play('slash');
-            cameraShake = 0.8;
+          if (e.isWarning && e.warningTimer > 0 && e.warningTimer < 0.25) {
+            audio.play('parry');
+            cameraShake = 0.9;
+            bulletTimeTimer = 0.45;
             triggerGlitchEffect();
             triggerHitFlash();
             spawnParticles(e.position, 0xffaa00);
             showFeed('✨ JUST PARRY COUNTER!');
-            e.hp -= currentDmg * 3.0;
+            e.hp -= currentDmg * 3.5;
             e.isWarning = false;
             e.shieldActive = false;
           } else if (e.shieldActive) {
@@ -1815,8 +1875,12 @@
 
       const slowBadge = document.getElementById('status-slow');
       const hackBadge = document.getElementById('status-hack');
-      if (stats.slowTimer > 0) slowBadge.classList.add('active'); else slowBadge.classList.remove('active');
-      if (stats.hackTimer > 0) hackBadge.classList.add('active'); else hackBadge.classList.remove('active');
+      if (slowBadge) {
+        if (stats.slowTimer > 0) slowBadge.classList.add('active'); else slowBadge.classList.remove('active');
+      }
+      if (hackBadge) {
+        if (stats.hackTimer > 0) hackBadge.classList.add('active'); else hackBadge.classList.remove('active');
+      }
 
       const vignette = document.getElementById('vignette');
       if (hpPct < 30) {
@@ -1908,6 +1972,11 @@
     }
 
     function update(delta) {
+      if (bulletTimeTimer > 0) {
+        bulletTimeTimer = Math.max(0, bulletTimeTimer - delta);
+        delta *= 0.35;
+      }
+
       if (state === GAME_STATE.TITLE) {
         const time = performance.now() * 0.001;
         playerGroup.position.set(Math.sin(time) * 3, 0, Math.cos(time) * 3);
