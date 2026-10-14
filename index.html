@@ -9606,9 +9606,13 @@
         <div class="card-name">双プラズマ刃</div>
         <div class="card-detail">超高速連撃</div>
       </div>
+      <div class="select-card" data-val="gauntlet">
+        <div class="card-name">プラズマ拳</div>
+        <div class="card-detail">衝撃波・近接破壊</div>
+      </div>
     </div>
 
-    <button id="btn-start" class="primary-btn">ENGAGE</button>
+    <button id="btn-start" class="primary-btn" style="pointer-events: auto; z-index: 9999;">ENGAGE</button>
   </div>
 
   <div id="screen-perk" class="screen-overlay hidden">
@@ -9894,6 +9898,9 @@
       } else if (type === 'dual') { 
         stats.slashDamage = 35; stats.slashRange = 3.8; bladeMesh.scale.set(0.7, 0.8, 0.8);
         slashGeo = buildSlashGeometry(1.2, 3.8, Math.PI * 0.45);
+      } else if (type === 'gauntlet') {
+        stats.slashDamage = 110; stats.slashRange = 3.2; bladeMesh.scale.set(1.8, 0.9, 1.8);
+        slashGeo = buildSlashGeometry(1.0, 3.2, Math.PI * 0.85);
       }
       slashArc.geometry = slashGeo;
     }
@@ -10789,10 +10796,10 @@
     function startGame(e) {
       if (e) {
         if (e.cancelable) e.preventDefault();
-        e.stopPropagation();
+        if (e.stopPropagation) e.stopPropagation();
       }
       try {
-        audio.init();
+        if (audio && audio.init) audio.init();
         stats.hp = stats.maxHp; 
         stats.score = 0; 
         stats.floor = 1; 
@@ -10800,7 +10807,7 @@
         stats.comboTimer = 0;
         stats.skillCooldown = 0;
         stats.invulnerableTimer = 0;
-        inputSys.clear();
+        if (inputSys && inputSys.clear) inputSys.clear();
         updateHUD();
         generateStage(stats.floor);
         
@@ -10811,16 +10818,19 @@
         if (startScreen) {
           startScreen.classList.add('hidden');
           startScreen.style.display = 'none';
+          startScreen.style.visibility = 'hidden';
           startScreen.style.pointerEvents = 'none';
         }
         if (perkScreen) {
           perkScreen.classList.add('hidden');
           perkScreen.style.display = 'none';
+          perkScreen.style.visibility = 'hidden';
           perkScreen.style.pointerEvents = 'none';
         }
         if (gameOverScreen) {
           gameOverScreen.classList.add('hidden');
           gameOverScreen.style.display = 'none';
+          gameOverScreen.style.visibility = 'hidden';
           gameOverScreen.style.pointerEvents = 'none';
         }
         
@@ -10828,19 +10838,20 @@
         showFeed('NEURAL LINK ESTABLISHED: ENGAGE');
       } catch (err) {
         console.error("Failed to start game:", err);
-        // フォールバックとして強制的にプレイ状態に移行
         state = GAME_STATE.PLAYING;
         const startScreen = document.getElementById('screen-start');
         if (startScreen) {
           startScreen.classList.add('hidden');
           startScreen.style.display = 'none';
+          startScreen.style.pointerEvents = 'none';
         }
       }
     }
 
     const btnStart = document.getElementById('btn-start');
     if (btnStart) {
-      btnStart.addEventListener('click', startGame);
+      btnStart.addEventListener('click', (e) => startGame(e));
+      btnStart.addEventListener('pointerdown', (e) => startGame(e));
       btnStart.addEventListener('touchend', (e) => {
         e.preventDefault();
         startGame(e);
@@ -10848,18 +10859,23 @@
     }
     const btnRestart = document.getElementById('btn-restart');
     if (btnRestart) {
-      btnRestart.addEventListener('click', startGame);
+      btnRestart.addEventListener('click', (e) => startGame(e));
+      btnRestart.addEventListener('pointerdown', (e) => startGame(e));
       btnRestart.addEventListener('touchend', (e) => {
         e.preventDefault();
         startGame(e);
       });
     }
 
-    // スタート画面全体からも確実にゲームを開始できるようにフォールバックリスナーを追加
     const startScreenOverlay = document.getElementById('screen-start');
     if (startScreenOverlay) {
       startScreenOverlay.addEventListener('click', (e) => {
-        if (state === GAME_STATE.TITLE && e.target === startScreenOverlay) {
+        if (state === GAME_STATE.TITLE) {
+          startGame(e);
+        }
+      });
+      startScreenOverlay.addEventListener('pointerdown', (e) => {
+        if (state === GAME_STATE.TITLE) {
           startGame(e);
         }
       });
