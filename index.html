@@ -64,9 +64,15 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      box-shadow: inset 0 0 140px rgba(0,0,0,0.9);
+      box-shadow: inset 0 0 140px rgba(0,0,0,0.9), inset 0 0 60px rgba(6, 182, 212, 0.08);
       z-index: 5;
       transition: box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: vignetteBreathe 6s ease-in-out infinite alternate;
+    }
+
+    @keyframes vignetteBreathe {
+      0% { box-shadow: inset 0 0 140px rgba(0,0,0,0.9), inset 0 0 40px rgba(6, 182, 212, 0.05); }
+      100% { box-shadow: inset 0 0 180px rgba(0,0,0,0.95), inset 0 0 90px rgba(168, 85, 247, 0.12); }
     }
 
     #vignette-overlay.damaged {
@@ -115,8 +121,9 @@
     }
 
     @keyframes panelGlow {
-      0% { border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 16px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15); }
-      100% { border-color: rgba(6, 182, 212, 0.35); box-shadow: 0 16px 48px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(255,255,255,0.25); }
+      0% { border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 16px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15); transform: scale(1); }
+      50% { transform: scale(1.005); }
+      100% { border-color: rgba(6, 182, 212, 0.45); box-shadow: 0 16px 56px rgba(6, 182, 212, 0.25), inset 0 1px 0 rgba(255,255,255,0.35); transform: scale(1); }
     }
 
     @keyframes panelFloat {
@@ -590,13 +597,14 @@
         switch (type) {
           case 'hit':
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(190 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(25, now + 0.22);
-            filter.frequency.setValueAtTime(1100, now);
-            gain.gain.setValueAtTime(0.45, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.22);
+            osc.frequency.setValueAtTime(210 * pitchVar, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
+            filter.frequency.setValueAtTime(900, now); // Deep acoustic muffling on impact
+            filter.frequency.exponentialRampToValueAtTime(300, now + 0.25);
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.25);
             osc.start(now);
-            osc.stop(now + 0.22);
+            osc.stop(now + 0.25);
             break;
           case 'slash':
             osc.type = 'sine';
@@ -621,12 +629,13 @@
           case 'skill':
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(240 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(960, now + 0.5);
-            filter.frequency.setValueAtTime(4200, now);
-            gain.gain.setValueAtTime(0.4, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.5);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.6);
+            filter.frequency.setValueAtTime(5400, now); // Brilliant spatial resonance for ancient arcane magic
+            filter.frequency.exponentialRampToValueAtTime(1200, now + 0.6);
+            gain.gain.setValueAtTime(0.45, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.6);
             osc.start(now);
-            osc.stop(now + 0.5);
+            osc.stop(now + 0.6);
             break;
           case 'loot':
             osc.type = 'triangle';
@@ -1346,6 +1355,7 @@
         this.vy *= 0.86;
         this.spin += this.spinSpeed * dt;
         this.life -= dt;
+        this.emitDynamicLight();
       }
 
       draw(ctx) {
@@ -1677,6 +1687,9 @@
       const startTY = Math.max(0, Math.floor(cy / TILE_SIZE) - 1);
       const endTY = Math.min(Game.mapH, Math.ceil((cy + CANVAS.height) / TILE_SIZE) + 1);
 
+      // Reset or fade dynamic light map each frame
+      if (!Game.mapLightMap) Game.mapLightMap = {};
+
       for (let y = startTY; y < endTY; y++) {
         for (let x = startTX; x < endTX; x++) {
           const rx = x * TILE_SIZE;
@@ -1693,6 +1706,19 @@
             // Floor Tile with subtle texture variation
             CTX.fillStyle = ((x + y) % 2 === 0) ? '#22293c' : '#1d2333';
             CTX.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
+
+            // Render dynamic particle bounce light reflecting onto floor tiles
+            const lightKey = `${x},${y}`;
+            if (Game.mapLightMap[lightKey]) {
+              CTX.save();
+              CTX.globalCompositeOperation = 'screen';
+              CTX.fillStyle = Game.mapLightMap[lightKey].color;
+              CTX.globalAlpha = Game.mapLightMap[lightKey].intensity * 0.35;
+              CTX.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
+              CTX.restore();
+              Game.mapLightMap[lightKey].intensity *= 0.85; // fade out light smoothly
+              if (Game.mapLightMap[lightKey].intensity < 0.02) delete Game.mapLightMap[lightKey];
+            }
           }
         }
       }
