@@ -737,14 +737,14 @@
           if (this.attackTimer <= 0) this.isAttacking = false;
         }
 
-        // Phase 1: Robust input buffering & dynamic cancellation window for evasive priority
+        // Phase 2: Frame-accurate input buffering & precise action cancellation window
         if (Game.inputBuffer.dash > 0) Game.inputBuffer.dash -= dt;
         if (Game.inputBuffer.attack > 0) Game.inputBuffer.attack -= dt;
 
-        if (Game.input.dash) Game.inputBuffer.dash = 0.35;
-        if (Game.input.attacking) Game.inputBuffer.attack = 0.35;
+        if (Game.input.dash) Game.inputBuffer.dash = 0.4;
+        if (Game.input.attacking) Game.inputBuffer.attack = 0.4;
 
-        // Evasive dash overrides active combat and state locks instantly for fluid action feedback
+        // Evasive dash immediately overrides active combat or attack locks for zero-latency responsiveness
         if (Game.inputBuffer.dash > 0 && this.dashCooldown <= 0) {
           Game.inputBuffer.dash = 0;
           Game.inputBuffer.attack = 0;
@@ -786,25 +786,25 @@
       }
 
       move(vx, vy) {
-        // Phase 2: Enhanced sub-step physics & high-precision corner sliding resolution
-        const steps = 24;
+        // Phase 1: High-precision sub-step physics & robust corner sliding resolution
+        const steps = 32;
         const sx = vx / steps;
         const sy = vy / steps;
 
         for (let i = 0; i < steps; i++) {
-          // X-axis movement & corner nudge sliding
+          // X-axis movement & dynamic corner nudge sliding
           if (!isSolid(this.x + sx, this.y, this.radius)) {
             this.x += sx;
           } else {
             let resolved = false;
-            for (let nudge = 1; nudge <= 8; nudge++) {
+            for (let nudge = 1; nudge <= 10; nudge++) {
               if (!isSolid(this.x + sx, this.y + nudge, this.radius)) {
-                this.y += nudge * 0.88;
+                this.y += nudge * 0.92;
                 this.x += sx;
                 resolved = true;
                 break;
               } else if (!isSolid(this.x + sx, this.y - nudge, this.radius)) {
-                this.y -= nudge * 0.88;
+                this.y -= nudge * 0.92;
                 this.x += sx;
                 resolved = true;
                 break;
@@ -813,19 +813,19 @@
             if (!resolved) this.vx = 0;
           }
 
-          // Y-axis movement & corner nudge sliding
+          // Y-axis movement & dynamic corner nudge sliding
           if (!isSolid(this.x, this.y + sy, this.radius)) {
             this.y += sy;
           } else {
             let resolved = false;
-            for (let nudge = 1; nudge <= 8; nudge++) {
+            for (let nudge = 1; nudge <= 10; nudge++) {
               if (!isSolid(this.x + nudge, this.y + sy, this.radius)) {
-                this.x += nudge * 0.88;
+                this.x += nudge * 0.92;
                 this.y += sy;
                 resolved = true;
                 break;
               } else if (!isSolid(this.x - nudge, this.y + sy, this.radius)) {
-                this.x -= nudge * 0.88;
+                this.x -= nudge * 0.92;
                 this.y += sy;
                 resolved = true;
                 break;
@@ -1484,17 +1484,18 @@
 
       if (!Game.player) return;
 
-      // Phase 3: Butter-smooth camera damping with look-ahead prediction & ergonomic easing curve
-      const lookAheadDist = 65;
+      // Phase 3: Advanced predictive look-ahead camera damping & ergonomic smoothing curve
+      const lookAheadDist = 85;
       const inputMagnitude = Math.min(1, Math.hypot(Game.input.x, Game.input.y));
-      const targetLookX = Math.cos(Game.player.angle) * lookAheadDist * (inputMagnitude > 0.05 ? inputMagnitude : 0.6);
-      const targetLookY = Math.sin(Game.player.angle) * lookAheadDist * (inputMagnitude > 0.05 ? inputMagnitude : 0.6);
+      const targetLookX = Math.cos(Game.player.angle) * lookAheadDist * (inputMagnitude > 0.05 ? inputMagnitude : 0.75);
+      const targetLookY = Math.sin(Game.player.angle) * lookAheadDist * (inputMagnitude > 0.05 ? inputMagnitude : 0.75);
 
       let targetCamX = Game.player.x + targetLookX - CANVAS.width / 2;
       let targetCamY = Game.player.y + targetLookY - CANVAS.height / 2;
 
-      Game.camera.x += (targetCamX - Game.camera.x) * 0.10;
-      Game.camera.y += (targetCamY - Game.camera.y) * 0.10;
+      // Smooth interpolation with adaptive easing for high-speed fluidity without jarring motion
+      Game.camera.x += (targetCamX - Game.camera.x) * 0.12;
+      Game.camera.y += (targetCamY - Game.camera.y) * 0.12;
 
       let cx = Game.camera.x;
       let cy = Game.camera.y;
