@@ -4,6 +4,7 @@ import subprocess
 import time
 import random
 import re
+import concurrent.futures
 from google import genai
 from google.genai import types
 from google.genai import errors
@@ -12,7 +13,7 @@ from playwright.sync_api import sync_playwright
 # ========================================================
 # ⚙️ AIエージェントの設定
 # ========================================================
-QUALITY_UP_ITERATIONS = 300 # 新規作成時の限界まで回す設定
+QUALITY_UP_ITERATIONS = 30 # 新規作成時の限界まで回す設定
 MAX_UPDATE_LOOPS = 30 # 既存コード修正時の最大ループ回数（達成度ベース）
 MAX_BUGFIX_LOOPS = 4
 
@@ -44,7 +45,7 @@ ACTIVE_MODELS = [
     "gemini-3.1-pro-preview"
 ]
 
-# --- 2. API呼び出し関数（リトライ強化・指数バックオフ・除外機能付き） ---
+# --- 2. API呼び出し関数（リトライ強化・指数バックオフ・除外・タイムアウト機能付き） ---
 def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
     global ACTIVE_MODELS
     
@@ -58,13 +59,22 @@ def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
 
         for attempt in range(max_retries):
             try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt_text,
-                    config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_INSTRUCTION
+                def api_request():
+                    return client.models.generate_content(
+                        model=model_name,
+                        contents=prompt_text,
+                        config=types.GenerateContentConfig(
+                            system_instruction=SYSTEM_INSTRUCTION
+                        )
                     )
-                )
+                
+                # タイムアウト付きでAPIを呼び出す（無応答ハングアップ防止）
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(api_request)
+                    try:
+                        response = future.result(timeout=120) # 2分でタイムアウト（強制切断）
+                    except concurrent.futures.TimeoutError:
+                        raise TimeoutError("APIレスポンスが無応答のためタイムアウトしました")
                 
                 text = response.text
                 if not extract_html:
@@ -85,6 +95,10 @@ def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
                 
                 return code
 
+            except TimeoutError as e:
+                print(f"⚠️ [{model_name}] {e}。次のモデルへ...")
+                break # タイムアウト時は次のモデルへ
+                
             except errors.APIError as e:
                 # 429エラー (Resource Exhausted / レート制限) 
                 if e.code == 429:
@@ -114,20 +128,26 @@ def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
     # すべてのモデル・リトライが失敗した場合は例外を投げて安全に抜けさせる
     raise RuntimeError("API_LIMIT_REACHED")
 
-# --- 2.5. 中間Push関数 ---
+# --- 2.5. 中間Push関数（タイムアウト対策付き） ---
 def save_and_push(html_code, commit_msg):
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_code)
     try:
-        subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
-        subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
-        subprocess.run(["git", "add", "index.html"], check=True)
-        status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+        subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True, timeout=10)
+        subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True, timeout=10)
+        subprocess.run(["git", "add", "index.html"], check=True, timeout=10)
+        status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, timeout=10)
+        
         if "index.html" in status.stdout:
-            subprocess.run(["git", "commit", "-m", commit_msg], check=True)
-            subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=False)
-            subprocess.run(["git", "push", "origin", "HEAD:main"], check=True)
-            print(f"⬆️ GitHubへ中間Push完了: {commit_msg}")
+            subprocess.run(["git", "commit", "-m", commit_msg], check=True, timeout=10)
+            
+            # コンフリクト時の対話プロンプトでハングアップするのを防ぐためタイムアウトを設定
+            try:
+                subprocess.run(["git", "pull", "--rebase", "-X", "theirs", "origin", "main"], check=False, timeout=30)
+                subprocess.run(["git", "push", "origin", "HEAD:main"], check=True, timeout=30)
+                print(f"⬆️ GitHubへ中間Push完了: {commit_msg}")
+            except subprocess.TimeoutExpired:
+                print("⚠️ Git Push/Pull処理がタイムアウトしました。競合が発生している可能性がありますが処理を継続します。")
         else:
             print("変更なしのためPushスキップ")
     except Exception as e:
