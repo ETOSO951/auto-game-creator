@@ -737,14 +737,14 @@
           if (this.attackTimer <= 0) this.isAttacking = false;
         }
 
-        // Precision input buffering with 250ms reaction window and strict frame-perfect priority routing
+        // Ultra-responsive input buffering with 300ms reaction window and strict priority routing
         if (Game.inputBuffer.dash > 0) Game.inputBuffer.dash -= dt;
         if (Game.inputBuffer.attack > 0) Game.inputBuffer.attack -= dt;
 
-        if (Game.input.dash) Game.inputBuffer.dash = 0.25;
-        if (Game.input.attacking) Game.inputBuffer.attack = 0.25;
+        if (Game.input.dash) Game.inputBuffer.dash = 0.30;
+        if (Game.input.attacking) Game.inputBuffer.attack = 0.30;
 
-        // Defensive dash priority over offensive attacks with instant buffer flushing
+        // Defensive dash priority over offensive attacks with instantaneous buffer flushing
         if (Game.inputBuffer.dash > 0 && this.dashCooldown <= 0 && this.dashTimer <= 0) {
           Game.inputBuffer.dash = 0;
           Game.inputBuffer.attack = 0;
@@ -784,25 +784,25 @@
       }
 
       move(vx, vy) {
-        // Ultra-smooth sub-stepping physics with enhanced corner sliding and capsule resolution
-        const steps = 16;
+        // Mathematically optimized sub-stepping physics with enhanced capsule sliding & corner clearance
+        const steps = 18;
         const sx = vx / steps;
         const sy = vy / steps;
 
         for (let i = 0; i < steps; i++) {
-          // X-axis collision & slide
+          // X-axis collision & slide resolution
           if (!isSolid(this.x + sx, this.y, this.radius)) {
             this.x += sx;
           } else {
             let resolved = false;
-            for (let nudge = 1; nudge <= 5; nudge++) {
+            for (let nudge = 1; nudge <= 6; nudge++) {
               if (!isSolid(this.x + sx, this.y + nudge, this.radius)) {
-                this.y += nudge;
+                this.y += nudge * 0.95;
                 this.x += sx;
                 resolved = true;
                 break;
               } else if (!isSolid(this.x + sx, this.y - nudge, this.radius)) {
-                this.y -= nudge;
+                this.y -= nudge * 0.95;
                 this.x += sx;
                 resolved = true;
                 break;
@@ -811,19 +811,19 @@
             if (!resolved) this.vx = 0;
           }
 
-          // Y-axis collision & slide
+          // Y-axis collision & slide resolution
           if (!isSolid(this.x, this.y + sy, this.radius)) {
             this.y += sy;
           } else {
             let resolved = false;
-            for (let nudge = 1; nudge <= 5; nudge++) {
+            for (let nudge = 1; nudge <= 6; nudge++) {
               if (!isSolid(this.x + nudge, this.y + sy, this.radius)) {
-                this.x += nudge;
+                this.x += nudge * 0.95;
                 this.y += sy;
                 resolved = true;
                 break;
               } else if (!isSolid(this.x - nudge, this.y + sy, this.radius)) {
-                this.x -= nudge;
+                this.x -= nudge * 0.95;
                 this.y += sy;
                 resolved = true;
                 break;
@@ -1482,11 +1482,16 @@
 
       if (!Game.player) return;
 
-      // Camera update (Smooth Follow + Shake)
-      let targetCamX = Game.player.x - CANVAS.width / 2;
-      let targetCamY = Game.player.y - CANVAS.height / 2;
-      Game.camera.x += (targetCamX - Game.camera.x) * 0.12;
-      Game.camera.y += (targetCamY - Game.camera.y) * 0.12;
+      // Camera update with Dynamic Look-Ahead Prediction & Smooth Damping
+      const lookAheadDist = 55;
+      const targetLookX = Math.cos(Game.player.angle) * lookAheadDist * Math.min(1, Math.hypot(Game.input.x, Game.input.y));
+      const targetLookY = Math.sin(Game.player.angle) * lookAheadDist * Math.min(1, Math.hypot(Game.input.x, Game.input.y));
+
+      let targetCamX = Game.player.x + targetLookX - CANVAS.width / 2;
+      let targetCamY = Game.player.y + targetLookY - CANVAS.height / 2;
+
+      Game.camera.x += (targetCamX - Game.camera.x) * 0.14;
+      Game.camera.y += (targetCamY - Game.camera.y) * 0.14;
 
       let cx = Game.camera.x;
       let cy = Game.camera.y;
