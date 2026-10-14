@@ -1641,6 +1641,10 @@
         e.preventDefault();
         Game.input[key] = false;
       });
+      btn.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        Game.input[key] = false;
+      });
     };
     bindTouchAction(btnAttack, 'attacking');
     bindTouchAction(btnDash, 'dash');
@@ -1649,10 +1653,11 @@
     // Keyboard Fallback (PC)
     const keys = {};
     window.addEventListener('keydown', (e) => {
+      if (touchId !== null) return; // Touch priority: ignore keyboard if touching
       Sound.init();
       keys[e.code] = true;
       if (['Space', 'KeyJ'].includes(e.code)) Game.input.attacking = true;
-      if (['ShiftLeft', 'KeyK'].includes(e.code)) Game.input.dash = true;
+      if (['ShiftLeft', 'ShiftRight', 'KeyK'].includes(e.code)) Game.input.dash = true;
       if (['KeyE', 'KeyL'].includes(e.code)) Game.input.skill = true;
       updateKeyboardInput();
     });
@@ -1660,9 +1665,20 @@
     window.addEventListener('keyup', (e) => {
       keys[e.code] = false;
       if (['Space', 'KeyJ'].includes(e.code)) Game.input.attacking = false;
-      if (['ShiftLeft', 'KeyK'].includes(e.code)) Game.input.dash = false;
+      if (['ShiftLeft', 'ShiftRight', 'KeyK'].includes(e.code)) Game.input.dash = false;
       if (['KeyE', 'KeyL'].includes(e.code)) Game.input.skill = false;
       updateKeyboardInput();
+    });
+
+    window.addEventListener('blur', () => {
+      // Clear all inputs on window blur to prevent stuck states
+      keys['KeyW'] = keys['KeyA'] = keys['KeyS'] = keys['KeyD'] = false;
+      keys['ArrowUp'] = keys['ArrowDown'] = keys['ArrowLeft'] = keys['ArrowRight'] = false;
+      Game.input.x = 0;
+      Game.input.y = 0;
+      Game.input.attacking = false;
+      Game.input.dash = false;
+      Game.input.skill = false;
     });
 
     function updateKeyboardInput() {
