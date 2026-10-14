@@ -10688,6 +10688,8 @@
 
     const PERKS = [
       { id: 'assault', name: '【進撃】オーバークロック・セイバー', desc: '斬撃ダメージが85%増加し、さらに刃のリーチと衝撃範囲が拡大する。', synergy: '🔥 ASSAULT BUILD', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.85); stats.slashRange *= 1.4; bladeMat.color.set(0xff0055); bladeMat.emissive.set(0xff0055); bladeMat.emissiveIntensity = 3.8; } },
+      { id: 'skill_boost', name: '【覚醒】ニューラル・スキルチャージ', desc: 'スキルの必要チャージ量が大幅に軽減され、スキルをより高頻度で使用可能にする', synergy: '⚡ SKILL BUILD', apply: () => { stats.skillMaxCooldown = Math.max(1.0, stats.skillMaxCooldown * 0.6); stats.skillCooldown = 0; } },
+      { id: 'skill_damage', name: '【極超】オーバーロード・マキシマイザー', desc: 'スキルおよび斬撃の威力が劇的に向上し、敵を圧倒する', synergy: '🌟 OVERDRIVE', apply: () => { stats.slashDamage = Math.round(stats.slashDamage * 1.5); stats.skillMaxCooldown = Math.max(0.8, stats.skillMaxCooldown * 0.7); } },
       { id: 'agility', name: '【機動】クアンタム・リープ', desc: '移動速度が60%上昇し、スキルのクールダウンがさらに高速化する', synergy: '⚡ AGILITY BUILD', apply: () => { stats.moveSpeed *= 1.6; stats.skillMaxCooldown = Math.max(0.6, stats.skillMaxCooldown * 0.35); bladeMat.color.set(0x00ffcc); bladeMat.emissive.set(0x00ffcc); bladeMat.emissiveIntensity = 4.2; slashMat.color.set(0x00ffcc); } },
       { id: 'survival', name: '【再生】ナノマシン・リジェネ', desc: '最大HPが150増加し、即座にバイタル（HP）が完全回復する', synergy: '🛡️ SURVIVAL BUILD', apply: () => { stats.maxHp += 150; stats.hp = stats.maxHp; } },
       { id: 'vampirism', name: '【吸血】サイバー・ヴァンパイア', desc: '敵撃破時にHPが90回復し、さらに攻撃範囲・スピードがシナジー強化される', synergy: '🧛 VAMPIRIC BUILD', apply: () => { stats.hp = Math.min(stats.maxHp, stats.hp + 90); stats.perks.vampirism = true; stats.slashDamage = Math.round(stats.slashDamage * 1.35); } },
@@ -11475,6 +11477,7 @@
       if (portal) {
         portal.rotation.z += delta * 1.8;
         if (playerPhysics.position.distanceTo(portal.position) < 2.0) {
+          portal = null; // ゴール接触時のフリーズ（連続呼び出し）を完全に防止
           showPerkScreen();
         }
       }
