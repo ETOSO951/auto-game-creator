@@ -737,17 +737,19 @@
           if (this.attackTimer <= 0) this.isAttacking = false;
         }
 
-        // Ultra-responsive input buffering with 300ms reaction window and strict priority routing
+        // Phase 1: Robust input buffering & dynamic cancellation window for evasive priority
         if (Game.inputBuffer.dash > 0) Game.inputBuffer.dash -= dt;
         if (Game.inputBuffer.attack > 0) Game.inputBuffer.attack -= dt;
 
-        if (Game.input.dash) Game.inputBuffer.dash = 0.30;
-        if (Game.input.attacking) Game.inputBuffer.attack = 0.30;
+        if (Game.input.dash) Game.inputBuffer.dash = 0.35;
+        if (Game.input.attacking) Game.inputBuffer.attack = 0.35;
 
-        // Defensive dash priority over offensive attacks with instantaneous buffer flushing
-        if (Game.inputBuffer.dash > 0 && this.dashCooldown <= 0 && this.dashTimer <= 0) {
+        // Evasive dash overrides active combat and state locks instantly for fluid action feedback
+        if (Game.inputBuffer.dash > 0 && this.dashCooldown <= 0) {
           Game.inputBuffer.dash = 0;
           Game.inputBuffer.attack = 0;
+          this.isAttacking = false;
+          this.attackTimer = 0;
           this.triggerDash();
         } else if (Game.inputBuffer.attack > 0 && this.attackTimer <= 0 && this.dashTimer <= 0) {
           Game.inputBuffer.attack = 0;
@@ -761,7 +763,7 @@
         // Movement with dash priority
         if (this.dashTimer > 0) {
           this.dashTimer -= dt;
-          const dashSpeed = 520;
+          const dashSpeed = 540;
           this.move(this.dashDir.x * dashSpeed * dt, this.dashDir.y * dashSpeed * dt);
           createDashTrail(this.x, this.y);
         } else {
@@ -784,25 +786,25 @@
       }
 
       move(vx, vy) {
-        // Mathematically optimized sub-stepping physics with enhanced capsule sliding & corner clearance
-        const steps = 18;
+        // Phase 2: Enhanced sub-step physics & high-precision corner sliding resolution
+        const steps = 24;
         const sx = vx / steps;
         const sy = vy / steps;
 
         for (let i = 0; i < steps; i++) {
-          // X-axis collision & slide resolution
+          // X-axis movement & corner nudge sliding
           if (!isSolid(this.x + sx, this.y, this.radius)) {
             this.x += sx;
           } else {
             let resolved = false;
-            for (let nudge = 1; nudge <= 6; nudge++) {
+            for (let nudge = 1; nudge <= 8; nudge++) {
               if (!isSolid(this.x + sx, this.y + nudge, this.radius)) {
-                this.y += nudge * 0.95;
+                this.y += nudge * 0.88;
                 this.x += sx;
                 resolved = true;
                 break;
               } else if (!isSolid(this.x + sx, this.y - nudge, this.radius)) {
-                this.y -= nudge * 0.95;
+                this.y -= nudge * 0.88;
                 this.x += sx;
                 resolved = true;
                 break;
@@ -811,19 +813,19 @@
             if (!resolved) this.vx = 0;
           }
 
-          // Y-axis collision & slide resolution
+          // Y-axis movement & corner nudge sliding
           if (!isSolid(this.x, this.y + sy, this.radius)) {
             this.y += sy;
           } else {
             let resolved = false;
-            for (let nudge = 1; nudge <= 6; nudge++) {
+            for (let nudge = 1; nudge <= 8; nudge++) {
               if (!isSolid(this.x + nudge, this.y + sy, this.radius)) {
-                this.x += nudge * 0.95;
+                this.x += nudge * 0.88;
                 this.y += sy;
                 resolved = true;
                 break;
               } else if (!isSolid(this.x - nudge, this.y + sy, this.radius)) {
-                this.x -= nudge * 0.95;
+                this.x -= nudge * 0.88;
                 this.y += sy;
                 resolved = true;
                 break;
@@ -1482,16 +1484,17 @@
 
       if (!Game.player) return;
 
-      // Camera update with Dynamic Look-Ahead Prediction & Smooth Damping
-      const lookAheadDist = 55;
-      const targetLookX = Math.cos(Game.player.angle) * lookAheadDist * Math.min(1, Math.hypot(Game.input.x, Game.input.y));
-      const targetLookY = Math.sin(Game.player.angle) * lookAheadDist * Math.min(1, Math.hypot(Game.input.x, Game.input.y));
+      // Phase 3: Butter-smooth camera damping with look-ahead prediction & ergonomic easing curve
+      const lookAheadDist = 65;
+      const inputMagnitude = Math.min(1, Math.hypot(Game.input.x, Game.input.y));
+      const targetLookX = Math.cos(Game.player.angle) * lookAheadDist * (inputMagnitude > 0.05 ? inputMagnitude : 0.6);
+      const targetLookY = Math.sin(Game.player.angle) * lookAheadDist * (inputMagnitude > 0.05 ? inputMagnitude : 0.6);
 
       let targetCamX = Game.player.x + targetLookX - CANVAS.width / 2;
       let targetCamY = Game.player.y + targetLookY - CANVAS.height / 2;
 
-      Game.camera.x += (targetCamX - Game.camera.x) * 0.14;
-      Game.camera.y += (targetCamY - Game.camera.y) * 0.14;
+      Game.camera.x += (targetCamX - Game.camera.x) * 0.10;
+      Game.camera.y += (targetCamY - Game.camera.y) * 0.10;
 
       let cx = Game.camera.x;
       let cy = Game.camera.y;
