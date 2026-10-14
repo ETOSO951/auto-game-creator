@@ -1163,7 +1163,6 @@
       update(dt) {
         if (this.hitFlashTimer > 0) this.hitFlashTimer = Math.max(0, this.hitFlashTimer - dt);
 
-      update(dt) {
         const dx = Game.player.x - this.x;
         const dy = Game.player.y - this.y;
         const dist = Math.hypot(dx, dy);
