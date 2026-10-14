@@ -768,17 +768,27 @@
       }
 
       move(vx, vy) {
-        // Sub-stepping sliding collision to prevent getting stuck on corners
-        const steps = 2;
+        // Sub-stepping sliding collision with accurate normalization & push-out safety
+        const steps = 4;
         const sx = vx / steps;
         const sy = vy / steps;
 
         for (let i = 0; i < steps; i++) {
           if (!isSolid(this.x + sx, this.y, this.radius)) {
             this.x += sx;
+          } else {
+            // Push out safeguard
+            if (!isSolid(this.x, this.y + sy, this.radius)) {
+              this.y += sy;
+            }
           }
+
           if (!isSolid(this.x, this.y + sy, this.radius)) {
             this.y += sy;
+          } else {
+            if (!isSolid(this.x + sx, this.y, this.radius)) {
+              this.x += sx;
+            }
           }
         }
       }
@@ -1002,16 +1012,25 @@
       }
 
       move(vx, vy) {
-        const steps = 2;
+        const steps = 4;
         const sx = vx / steps;
         const sy = vy / steps;
 
         for (let i = 0; i < steps; i++) {
           if (!isSolid(this.x + sx, this.y, this.radius)) {
             this.x += sx;
+          } else {
+            if (!isSolid(this.x, this.y + sy, this.radius)) {
+              this.y += sy;
+            }
           }
+
           if (!isSolid(this.x, this.y + sy, this.radius)) {
             this.y += sy;
+          } else {
+            if (!isSolid(this.x + sx, this.y, this.radius)) {
+              this.x += sx;
+            }
           }
         }
       }
@@ -1636,7 +1655,7 @@
 
     function handleJoystick(cx, cy) {
       const maxDist = 45;
-      const deadZone = 6;
+      const deadZone = 8;
       let dx = cx - joyCenter.x;
       let dy = cy - joyCenter.y;
       const dist = Math.hypot(dx, dy);
@@ -1648,14 +1667,17 @@
         return;
       }
 
-      if (dist > maxDist) {
-        dx = (dx / dist) * maxDist;
-        dy = (dy / dist) * maxDist;
-      }
+      // Smooth radial clamping and velocity normalization
+      let clampedDist = Math.min(dist, maxDist);
+      let nx = dx / dist;
+      let ny = dy / dist;
 
-      joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-      Game.input.x = dx / maxDist;
-      Game.input.y = dy / maxDist;
+      joyKnob.style.transform = `translate(calc(-50% + ${nx * clampedDist}px), calc(-50% + ${ny * clampedDist}px))`;
+      
+      // Magnitude scaling with smooth curve for precise analog control
+      const magnitude = Math.min(1.0, (dist - deadZone) / (maxDist - deadZone));
+      Game.input.x = nx * magnitude;
+      Game.input.y = ny * magnitude;
     }
 
     // Touch Action Buttons
