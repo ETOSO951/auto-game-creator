@@ -56,7 +56,7 @@
       image-rendering: pixelated;
     }
 
-    /* Post-processing & Vignette Effect Layer */
+    /* Post-processing & Cinematic Vignette / Chromatic Aberration Layer */
     #vignette-overlay {
       position: absolute;
       top: 0;
@@ -64,13 +64,20 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      box-shadow: inset 0 0 120px rgba(0,0,0,0.85);
+      box-shadow: inset 0 0 140px rgba(0,0,0,0.9);
       z-index: 5;
-      transition: box-shadow 0.2s ease;
+      transition: box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     #vignette-overlay.damaged {
-      box-shadow: inset 0 0 160px rgba(239, 68, 68, 0.75);
+      box-shadow: inset 0 0 180px rgba(239, 68, 68, 0.85), inset 0 0 60px rgba(6, 182, 212, 0.4);
+      animation: chromaticPulse 0.25s ease;
+    }
+
+    @keyframes chromaticPulse {
+      0% { filter: hue-rotate(0deg); }
+      50% { filter: hue-rotate(15deg) contrast(1.2); }
+      100% { filter: hue-rotate(0deg); }
     }
 
     /* HUD UI with Deep Glassmorphism & Micro-Interactions */
@@ -96,14 +103,19 @@
     }
 
     .status-panel {
-      background: linear-gradient(135deg, rgba(20, 24, 38, 0.9), rgba(15, 17, 26, 0.8));
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(12px);
-      padding: 12px 16px;
-      border-radius: 14px;
-      min-width: 200px;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
-      animation: panelFloat 4s ease-in-out infinite alternate;
+      background: linear-gradient(135deg, rgba(20, 24, 38, 0.92), rgba(15, 17, 26, 0.85));
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(16px);
+      padding: 14px 18px;
+      border-radius: 16px;
+      min-width: 220px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15);
+      animation: panelFloat 4s ease-in-out infinite alternate, panelGlow 6s ease-in-out infinite alternate;
+    }
+
+    @keyframes panelGlow {
+      0% { border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 16px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15); }
+      100% { border-color: rgba(6, 182, 212, 0.35); box-shadow: 0 16px 48px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(255,255,255,0.25); }
     }
 
     @keyframes panelFloat {
@@ -125,17 +137,17 @@
     .hp-fill {
       height: 100%;
       width: 100%;
-      background: linear-gradient(90deg, #dc2626, #ef4444);
+      background: linear-gradient(90deg, #b91c1c, #ef4444, #f87171);
       transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.7);
     }
 
     .exp-fill {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, var(--accent-cyan), #3b82f6);
+      background: linear-gradient(90deg, #0891b2, var(--accent-cyan), #67e8f9);
       transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+      box-shadow: 0 0 14px rgba(6, 182, 212, 0.7);
     }
 
     .hud-stats {
@@ -149,11 +161,11 @@
     }
 
     .floor-badge {
-      background: linear-gradient(135deg, rgba(20, 24, 38, 0.9), rgba(15, 17, 26, 0.8));
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      backdrop-filter: blur(12px);
-      padding: 10px 20px;
-      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(20, 24, 38, 0.92), rgba(15, 17, 26, 0.85));
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      backdrop-filter: blur(16px);
+      padding: 12px 22px;
+      border-radius: 28px;
       font-weight: 800;
       font-size: 14px;
       color: var(--accent-gold);
@@ -161,7 +173,12 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15), inset 0 1px 0 rgba(255,255,255,0.15);
+      box-shadow: 0 10px 28px rgba(245, 158, 11, 0.25), inset 0 1px 0 rgba(255,255,255,0.2);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .floor-badge:hover {
+      transform: scale(1.03);
     }
 
     .gear-quick-view {
@@ -521,14 +538,29 @@
 
   <script>
     /* =========================================================
-       AUDIO SYNTHESIZER (Advanced Web Audio API with Reverb/Filter & Pitch Fluctuation)
+       AUDIO SYNTHESIZER (Advanced Web Audio API with Reverb Convolution & Echo/Filter Depth)
        ========================================================= */
     const Sound = {
       ctx: null,
+      convolver: null,
       init() {
         if (!this.ctx) {
           const AudioContext = window.AudioContext || window.webkitAudioContext;
           this.ctx = new AudioContext();
+          
+          // Generate realistic dungeon acoustic impulse response for reverb simulation
+          this.convolver = this.ctx.createConvolver();
+          const rate = this.ctx.sampleRate;
+          const length = rate * 1.2; // 1.2s reverb tail
+          const impulse = this.ctx.createBuffer(2, length, rate);
+          for (let ch = 0; ch < 2; ch++) {
+            const data = impulse.getChannelData(ch);
+            for (let i = 0; i < length; i++) {
+              data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (rate * 0.25));
+            }
+          }
+          this.convolver.buffer = impulse;
+          this.convolver.connect(this.ctx.destination);
         }
         if (this.ctx.state === 'suspended') {
           this.ctx.resume();
@@ -541,78 +573,81 @@
         const gain = this.ctx.createGain();
         const filter = this.ctx.createBiquadFilter();
 
-        // Dungeon acoustic lowpass filter simulation
+        // Dungeon acoustic spatial lowpass filter & reverb routing
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(1200, now);
+        filter.frequency.setValueAtTime(1400, now);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
+        if (this.convolver) {
+          gain.connect(this.convolver); // Route through dungeon spatial reverb
+        }
 
-        // Random pitch fluctuation for natural variance
-        const pitchVar = 0.95 + Math.random() * 0.1;
+        const pitchVar = 0.96 + Math.random() * 0.08;
 
         switch (type) {
           case 'hit':
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(160 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(35, now + 0.15);
-            filter.frequency.setValueAtTime(800, now);
-            gain.gain.setValueAtTime(0.35, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.15);
-            osc.start(now);
-            osc.stop(now + 0.15);
-            break;
-          case 'slash':
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(420 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(90, now + 0.12);
-            filter.frequency.setValueAtTime(1800, now);
-            gain.gain.setValueAtTime(0.22, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.12);
-            osc.start(now);
-            osc.stop(now + 0.12);
-            break;
-          case 'dash':
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(220 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(640, now + 0.18);
-            filter.frequency.setValueAtTime(2400, now);
-            gain.gain.setValueAtTime(0.28, now);
+            osc.frequency.setValueAtTime(180 * pitchVar, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.18);
+            filter.frequency.setValueAtTime(900, now);
+            gain.gain.setValueAtTime(0.4, now);
             gain.gain.linearRampToValueAtTime(0, now + 0.18);
             osc.start(now);
             osc.stop(now + 0.18);
             break;
+          case 'slash':
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(460 * pitchVar, now);
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.14);
+            filter.frequency.setValueAtTime(2200, now);
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.14);
+            osc.start(now);
+            osc.stop(now + 0.14);
+            break;
+          case 'dash':
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(240 * pitchVar, now);
+            osc.frequency.exponentialRampToValueAtTime(700, now + 0.2);
+            filter.frequency.setValueAtTime(2800, now);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.2);
+            osc.start(now);
+            osc.stop(now + 0.2);
+            break;
           case 'skill':
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(200 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(720, now + 0.4);
-            filter.frequency.setValueAtTime(3000, now);
-            gain.gain.setValueAtTime(0.32, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.4);
+            osc.frequency.setValueAtTime(220 * pitchVar, now);
+            osc.frequency.exponentialRampToValueAtTime(820, now + 0.45);
+            filter.frequency.setValueAtTime(3500, now);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.45);
             osc.start(now);
-            osc.stop(now + 0.4);
+            osc.stop(now + 0.45);
             break;
           case 'loot':
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(523.25 * pitchVar, now); // C5
-            osc.frequency.setValueAtTime(659.25 * pitchVar, now + 0.08); // E5
-            osc.frequency.setValueAtTime(783.99 * pitchVar, now + 0.16); // G5
-            filter.frequency.setValueAtTime(4000, now);
-            gain.gain.setValueAtTime(0.28, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.4);
+            osc.frequency.setValueAtTime(523.25 * pitchVar, now);
+            osc.frequency.setValueAtTime(659.25 * pitchVar, now + 0.08);
+            osc.frequency.setValueAtTime(783.99 * pitchVar, now + 0.16);
+            osc.frequency.setValueAtTime(1046.50 * pitchVar, now + 0.24); // C6 chord sparkle
+            filter.frequency.setValueAtTime(4500, now);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.5);
             osc.start(now);
-            osc.stop(now + 0.4);
+            osc.stop(now + 0.5);
             break;
           case 'level':
             osc.type = 'sine';
             osc.frequency.setValueAtTime(440 * pitchVar, now);
-            osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
-            filter.frequency.setValueAtTime(3500, now);
-            gain.gain.setValueAtTime(0.38, now);
-            gain.gain.linearRampToValueAtTime(0, now + 0.55);
+            osc.frequency.exponentialRampToValueAtTime(987.77, now + 0.6);
+            filter.frequency.setValueAtTime(4000, now);
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.65);
             osc.start(now);
-            osc.stop(now + 0.55);
+            osc.stop(now + 0.65);
             break;
         }
       }
