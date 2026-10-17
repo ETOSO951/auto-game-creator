@@ -425,27 +425,27 @@
 
       <div class="action-buttons">
         <!-- Artifact 1 -->
-        <button class="btn-action" id="btn-art1" ontouchstart="Game.useArtifact(0)" onclick="Game.useArtifact(0)">
+        <button class="btn-action" id="btn-art1" ontouchstart="Game.queueAction('art1')" onclick="Game.queueAction('art1')">
           <span class="icon">⚡</span>
           <span>雷撃</span>
           <div class="cooldown-overlay" id="cd-art1"></div>
         </button>
 
         <!-- Main Attack -->
-        <button class="btn-action attack-btn" id="btn-attack" ontouchstart="Game.playerAttack()" onclick="Game.playerAttack()">
+        <button class="btn-action attack-btn" id="btn-attack" ontouchstart="Game.queueAction('attack')" onclick="Game.queueAction('attack')">
           <span class="icon">⚔️</span>
           <span>攻撃</span>
         </button>
 
         <!-- Artifact 2 (TNT / Blast) -->
-        <button class="btn-action" id="btn-art2" ontouchstart="Game.useArtifact(1)" onclick="Game.useArtifact(1)">
+        <button class="btn-action" id="btn-art2" ontouchstart="Game.queueAction('art2')" onclick="Game.queueAction('art2')">
           <span class="icon">💣</span>
           <span>TNT</span>
           <div class="cooldown-overlay" id="cd-art2"></div>
         </button>
 
         <!-- Potion -->
-        <button class="btn-action" id="btn-heal" style="grid-column: 3;" ontouchstart="Game.usePotion()" onclick="Game.usePotion()">
+        <button class="btn-action" id="btn-heal" style="grid-column: 3;" ontouchstart="Game.queueAction('heal')" onclick="Game.queueAction('heal')">
           <span class="icon">🧪</span>
           <span id="potion-count">薬 (2)</span>
           <div class="cooldown-overlay" id="cd-heal"></div>
@@ -635,7 +635,27 @@ const Game = {
     kbBoss: 140,
     kbNormal: 380,
     kbExplosionNormal: 500,
-    kbExplosionBoss: 200
+    kbExplosionBoss: 200,
+    solverIterations: 3 // 衝突反復解決サイクル数
+  },
+
+  // 統一入力ステート
+  inputState: {
+    moveX: 0,
+    moveY: 0,
+    aimAngle: 0,
+    hasAim: false,
+    attackQueued: false,
+    art1Queued: false,
+    art2Queued: false,
+    healQueued: false
+  },
+
+  // 副作用を物理更新から隔離する単方向イベントキュー
+  eventQueue: {
+    sounds: [],
+    toasts: [],
+    stateChange: null
   },
 
   // Camera & Time
@@ -744,10 +764,10 @@ const Game = {
     // Keyboard
     window.addEventListener('keydown', (e) => {
       this.keys[e.key.toLowerCase()] = true;
-      if (e.key === ' ' || e.key.toLowerCase() === 'j') this.playerAttack();
-      if (e.key.toLowerCase() === 'k') this.useArtifact(0);
-      if (e.key.toLowerCase() === 'l') this.useArtifact(1);
-      if (e.key.toLowerCase() === 'h') this.usePotion();
+      if (e.key === ' ' || e.key.toLowerCase() === 'j') this.inputState.attackQueued = true;
+      if (e.key.toLowerCase() === 'k') this.inputState.art1Queued = true;
+      if (e.key.toLowerCase() === 'l') this.inputState.art2Queued = true;
+      if (e.key.toLowerCase() === 'h') this.inputState.healQueued = true;
       if (e.key.toLowerCase() === 'i') this.toggleInventory();
     });
     window.addEventListener('keyup', (e) => {
@@ -1064,11 +1084,51 @@ const Game = {
     return nearest;
   },
 
-  /* --- Actions & Skills --- */
+  /* --- Actions & Skills (Queue Handlers) --- */
+  queueAction(actionName) {
+    if (this.state !== 'PLAYING') return;
+    if (actionName === 'attack') this.inputState.attackQueued = true;
+    if (actionName === 'art1') this.inputState.art1Queued = true;
+    if (actionName === 'art2') this.inputState.art2Queued = true;
+    if (actionName === 'heal') this.inputState.healQueued = true;
+  },
+
+  emitSound(type) {
+    this.eventQueue.sounds.push(type);
+  },
+
+  emitToast(msg) {
+    this.eventQueue.toasts.push(msg);
+  },
+
+  flushEventQueue() {
+    // 物理シミュレーション確定後に溜まった副作用を一度に処理
+    for (const snd of this.eventQueue.sounds) {
+      Sound.play(snd);
+    }
+    this.eventQueue.sounds.length = 0;
+
+    for (const toast of this.eventQueue.toasts) {
+      this.showLootAlert(toast);
+    }
+    this.eventQueue.toasts.length = 0;
+
+    if (this.eventQueue.stateChange) {
+      const next = this.eventQueue.stateChange;
+      this.eventQueue.stateChange = null;
+      if (next === 'STAGE_CLEAR') {
+        this.state = 'STAGE_CLEAR';
+        this.running = false;
+        document.getElementById('stage-clear-screen').style.display = 'flex';
+      } else if (next === 'GAME_OVER') {
+        this.die();
+      }
+    }
+  },
+
   playerAttack() {
     if (this.state !== 'PLAYING') return;
     if (this.player.attackCooldown > 0) {
-      // 先行入力バッファリング: 攻撃終了間際なら入力をキューに保持
       if (this.player.attackCooldown <= this.config.inputBufferWindow) {
         this.player.attackBuffer = this.config.inputBufferWindow;
       }
@@ -1080,19 +1140,9 @@ const Game = {
   executePlayerAttack() {
     this.player.attackBuffer = 0;
 
-    // 照準ヒエラルキーの純化:
-    // 照準優先判定: PCマウス入力が直近にあればマウス方向、無ければスマートエイム/移動方向
-    const isMouseRecentlyActive = (performance.now() - this.mousePos.lastMovedTime) < (this.config.mouseActiveTimeout * 1000);
-    const target = this.getNearestEnemy(200);
-
-    if (isMouseRecentlyActive) {
-      const worldMouseX = this.mousePos.x - this.camX;
-      const worldMouseY = this.mousePos.y - this.camY;
-      this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
-    } else if (target && (!this.joystick.active || Math.hypot(target.x - this.player.x, target.y - this.player.y) < 140)) {
-      this.player.angle = Math.atan2(target.y - this.player.y, target.x - this.player.x);
-    } else if (Math.hypot(this.player.vx, this.player.vy) > 10) {
-      this.player.angle = Math.atan2(this.player.vy, this.player.vx);
+    // 統一入力ステートからの確定エイム角を使用
+    if (this.inputState.hasAim) {
+      this.player.angle = this.inputState.aimAngle;
     }
 
     const w = this.player.weapon;
@@ -1106,7 +1156,7 @@ const Game = {
     this.player.vx = Math.cos(this.player.angle) * stepPower;
     this.player.vy = Math.sin(this.player.angle) * stepPower;
 
-    Sound.play('slash');
+    this.emitSound('slash');
 
     // スイング中央フレームに厳密同期させたアクティブ攻撃判定
     this.player.activeAttack = {
@@ -1212,7 +1262,7 @@ const Game = {
     }
 
     if (hitAny) {
-      Sound.play('hit');
+      this.emitSound('hit');
       this.hitstopTimer = 0.04; // ヒットストップ
     }
   },
@@ -1221,7 +1271,7 @@ const Game = {
     if (index === 0) { // Lightning artifact
       if (this.player.art1Cooldown > 0) return;
       this.player.art1Cooldown = this.player.art1CooldownMax;
-      Sound.play('thunder');
+      this.emitSound('thunder');
 
       // Strike nearest 3 enemies
       const sorted = [...this.enemies].sort((a,b) => Math.hypot(a.x - this.player.x, a.y - this.player.y) - Math.hypot(b.x - this.player.x, b.y - this.player.y));
@@ -1234,14 +1284,14 @@ const Game = {
     } else if (index === 1) { // TNT Artifact
       if (this.player.art2Cooldown > 0) return;
       this.player.art2Cooldown = this.player.art2CooldownMax;
-      Sound.play('slash');
+      this.emitSound('slash');
       // Drop TNT (ゲームタイムライン同期タスクとして登録)
       const tntX = this.player.x + Math.cos(this.player.angle) * 40;
       const tntY = this.player.y + Math.sin(this.player.angle) * 40;
       this.delayedTasks.push({
         timer: this.config.tntFuseTime,
         action: () => {
-          Sound.play('explosion');
+          this.emitSound('explosion');
           this.createExplosion(tntX, tntY, 90, 75);
         }
       });
@@ -1255,9 +1305,8 @@ const Game = {
     this.player.potionCooldown = this.player.potionCooldownMax;
     const heal = Math.floor(this.player.maxHp * 0.45);
     this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
-    Sound.play('coin');
+    this.emitSound('coin');
     this.createDamageNumber(this.player.x, this.player.y, `+${heal}`, '#2ecc71');
-    this.updateHUD();
   },
 
   createExplosion(x, y, radius, damage) {
@@ -1301,14 +1350,13 @@ const Game = {
     const finalDmg = Math.max(2, amount - armorDef);
     this.player.hp -= finalDmg;
     this.player.invincibleTimer = 0.45; // 0.45 sec invincibility
-    Sound.play('hit');
+    this.emitSound('hit');
     this.createDamageNumber(this.player.x, this.player.y, `-${finalDmg}`, '#e74c3c');
 
     if (this.player.hp <= 0) {
       this.player.hp = 0;
-      this.die();
+      this.eventQueue.stateChange = 'GAME_OVER';
     }
-    this.updateHUD();
   },
 
   die() {
@@ -1332,10 +1380,9 @@ const Game = {
       this.player.baseMaxHp += 12;
       this.recalcStats();
       this.player.hp = this.player.maxHp;
-      Sound.play('level');
-      this.showLootAlert(`レベルアップ！ Lv.${this.player.level}`);
+      this.emitSound('level');
+      this.emitToast(`レベルアップ！ Lv.${this.player.level}`);
     }
-    this.updateHUD();
   },
 
   dropLoot(x, y, isBoss = false) {
@@ -1411,6 +1458,9 @@ const Game = {
       this.renderAlpha = 1.0;
     }
 
+    // イベントキューの副作用を一括消化
+    this.flushEventQueue();
+
     // 物理シミュレーション確定後にHUDを更新（副作用の局所化）
     this.updateHUD();
 
@@ -1430,6 +1480,7 @@ const Game = {
 
   /* --- 物理更新パイプライン（責任分離アーキテクチャ） --- */
   physicsUpdate(dt) {
+    this.pollUnifiedInputs();
     this.processPlayerInput(dt);
     this.updatePlayer(dt);
     this.updateEnemies(dt);
@@ -1440,18 +1491,8 @@ const Game = {
     this.cleanupDestroyedEntities();
   },
 
-  processPlayerInput(dt) {
-    // 先行入力バッファの減衰と最速トリガー
-    if (this.player.attackCooldown > 0) {
-      this.player.attackCooldown = Math.max(0, this.player.attackCooldown - dt);
-    }
-    if (this.player.attackBuffer > 0) {
-      this.player.attackBuffer = Math.max(0, this.player.attackBuffer - dt);
-      if (this.player.attackCooldown <= 0) {
-        this.executePlayerAttack();
-      }
-    }
-
+  /* 入力アダプター層: PC/Mobileの入力を統一正規化ステートへ変換 */
+  pollUnifiedInputs() {
     let mx = 0, my = 0;
     if (this.joystick.active) {
       mx = this.joystick.dirX;
@@ -1464,8 +1505,63 @@ const Game = {
       const len = Math.hypot(mx, my);
       if (len > 0) { mx /= len; my /= len; }
     }
+    this.inputState.moveX = mx;
+    this.inputState.moveY = my;
 
-    // 攻撃スイング中は通常移動入力を適度に減衰させ、踏み込みステップインとの緩急・キレを強調
+    // 照準優先度の統一判定
+    const isMouseRecentlyActive = (performance.now() - this.mousePos.lastMovedTime) < (this.config.mouseActiveTimeout * 1000);
+    const target = this.getNearestEnemy(200);
+
+    if (isMouseRecentlyActive) {
+      const worldMouseX = this.mousePos.x - this.camX;
+      const worldMouseY = this.mousePos.y - this.camY;
+      this.inputState.aimAngle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
+      this.inputState.hasAim = true;
+    } else if (target && (!this.joystick.active || Math.hypot(target.x - this.player.x, target.y - this.player.y) < 140)) {
+      this.inputState.aimAngle = Math.atan2(target.y - this.player.y, target.x - this.player.x);
+      this.inputState.hasAim = true;
+    } else if (Math.hypot(mx, my) > 0.01) {
+      this.inputState.aimAngle = Math.atan2(my, mx);
+      this.inputState.hasAim = true;
+    } else {
+      this.inputState.hasAim = false;
+    }
+  },
+
+  processPlayerInput(dt) {
+    // アクション要求の消化
+    if (this.inputState.attackQueued) {
+      this.inputState.attackQueued = false;
+      this.playerAttack();
+    }
+    if (this.inputState.art1Queued) {
+      this.inputState.art1Queued = false;
+      this.useArtifact(0);
+    }
+    if (this.inputState.art2Queued) {
+      this.inputState.art2Queued = false;
+      this.useArtifact(1);
+    }
+    if (this.inputState.healQueued) {
+      this.inputState.healQueued = false;
+      this.usePotion();
+    }
+
+    // 先行入力バッファの減衰と最速トリガー
+    if (this.player.attackCooldown > 0) {
+      this.player.attackCooldown = Math.max(0, this.player.attackCooldown - dt);
+    }
+    if (this.player.attackBuffer > 0) {
+      this.player.attackBuffer = Math.max(0, this.player.attackBuffer - dt);
+      if (this.player.attackCooldown <= 0) {
+        this.executePlayerAttack();
+      }
+    }
+
+    const mx = this.inputState.moveX;
+    const my = this.inputState.moveY;
+
+    // 攻撃フェーズ管理: スイング中は通常移動入力を減衰させステップインとの緩急を強調
     const moveControlScale = this.player.attackSwing > 0 ? 0.35 : 1.0;
     const targetVx = mx * this.player.speed * moveControlScale;
     const targetVy = my * this.player.speed * moveControlScale;
@@ -1476,16 +1572,9 @@ const Game = {
     this.player.vx += Math.sign(diffVx) * Math.min(Math.abs(diffVx), accelRate * dt);
     this.player.vy += Math.sign(diffVy) * Math.min(Math.abs(diffVy), accelRate * dt);
 
-    // 旋回角の制御: 攻撃スイング中は振り抜き方向を固定し、エイムブレを遮断
-    if (this.player.attackSwing <= 0) {
-      const isMouseRecentlyActive = (performance.now() - this.mousePos.lastMovedTime) < (this.config.mouseActiveTimeout * 1000);
-      if (isMouseRecentlyActive) {
-        const worldMouseX = this.mousePos.x - this.camX;
-        const worldMouseY = this.mousePos.y - this.camY;
-        this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
-      } else if (mx !== 0 || my !== 0) {
-        this.player.angle = Math.atan2(my, mx);
-      }
+    // 攻撃スイング中は振り抜き方向をロックしエイムブレを遮断
+    if (this.player.attackSwing <= 0 && this.inputState.hasAim) {
+      this.player.angle = this.inputState.aimAngle;
     }
   },
 
@@ -1516,9 +1605,7 @@ const Game = {
     // 出口ゲート接触
     const distToExit = Math.hypot(this.player.x - this.exitPos.x, this.player.y - this.exitPos.y);
     if (distToExit < 30) {
-      this.state = 'STAGE_CLEAR';
-      this.running = false;
-      document.getElementById('stage-clear-screen').style.display = 'flex';
+      this.eventQueue.stateChange = 'STAGE_CLEAR';
     }
   },
 
@@ -1545,7 +1632,7 @@ const Game = {
           if (dist < 46) {
             e.fuse += dt;
             if (e.fuse > 0.8) {
-              Sound.play('explosion');
+              this.emitSound('explosion');
               this.createExplosion(e.x, e.y, 80, e.damage);
               e.dead = true;
               continue;
@@ -1645,36 +1732,38 @@ const Game = {
 
       if (item.type === 'chest' && !item.opened && dist < 42) {
         item.opened = true;
-        Sound.play('coin');
+        this.emitSound('coin');
         this.dropLoot(item.x, item.y, true);
-        this.showLootAlert('宝箱を開けた！');
+        this.emitToast('宝箱を開けた！');
       } else if (item.type === 'emerald' && dist < 36) {
-        Sound.play('coin');
+        this.emitSound('coin');
         this.emeralds += item.val;
         item.dead = true;
-        this.updateHUD();
       } else if (item.type === 'equipment' && dist < 36) {
-        Sound.play('coin');
+        this.emitSound('coin');
         this.player.inventory.push(item.item);
-        this.showLootAlert(`${item.item.name} を手に入れた！`);
+        this.emitToast(`${item.item.name} を手に入れた！`);
         item.dead = true;
-        this.renderInventory();
+        if (this.state === 'INVENTORY') this.renderInventory();
       }
     }
   },
 
-  // 群衆物理の分離と壁の整合性パイプライン
+  // サブステップ反復ソルバーによる剛性化物理パイプライン
   resolvePhysicsPipeline(dt) {
-    // エンティティ同士のめり込み分離
-    this.resolveEntitySeparation();
+    const iterations = this.config.solverIterations;
+    for (let iter = 0; iter < iterations; iter++) {
+      // 1. エンティティ間の反発分離
+      this.resolveEntitySeparation();
 
-    // 分離によって壁にめり込まないよう最終軸補正
-    this.resolveCircleWallCollisions(this.player, 'x');
-    this.resolveCircleWallCollisions(this.player, 'y');
-    for (const e of this.enemies) {
-      if (!e.dead) {
-        this.resolveCircleWallCollisions(e, 'x');
-        this.resolveCircleWallCollisions(e, 'y');
+      // 2. タイルAABBとの衝突解決（X軸・Y軸それぞれ微小修正）
+      this.resolveCircleWallCollisions(this.player, 'x');
+      this.resolveCircleWallCollisions(this.player, 'y');
+      for (const e of this.enemies) {
+        if (!e.dead) {
+          this.resolveCircleWallCollisions(e, 'x');
+          this.resolveCircleWallCollisions(e, 'y');
+        }
       }
     }
   },
@@ -1810,15 +1899,17 @@ const Game = {
     }
   },
 
-  // 密集時のジッターを抑える減衰付き反発分離パイプライン
+  // 反復ソルバー向けに最適化した質量感のある分離処理
   resolveEntitySeparation() {
-    const damping = 0.45; // 振動防止の緩和係数
+    const damping = 0.38; // サブステップ反復に最適化した緩和係数
 
     // 1. 敵同士の分離
     for (let i = 0; i < this.enemies.length; i++) {
+      const e1 = this.enemies[i];
+      if (e1.dead) continue;
       for (let j = i + 1; j < this.enemies.length; j++) {
-        const e1 = this.enemies[i];
         const e2 = this.enemies[j];
+        if (e2.dead) continue;
         const dx = e2.x - e1.x;
         const dy = e2.y - e1.y;
         const dist = Math.hypot(dx, dy);
@@ -1837,6 +1928,7 @@ const Game = {
 
     // 2. プレイヤーと敵のめり込み分離
     for (const e of this.enemies) {
+      if (e.dead) continue;
       const dx = e.x - this.player.x;
       const dy = e.y - this.player.y;
       const dist = Math.hypot(dx, dy);
