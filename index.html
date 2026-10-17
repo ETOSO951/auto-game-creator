@@ -314,7 +314,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at center, rgba(8, 12, 22, 0.92) 0%, rgba(2, 4, 8, 0.97) 100%);
+    background: radial-gradient(circle at center, rgba(5, 7, 14, 0.94) 0%, rgba(2, 3, 6, 0.98) 100%);
     backdrop-filter: blur(48px);
     -webkit-backdrop-filter: blur(48px);
     z-index: 100;
@@ -325,7 +325,19 @@
     padding: 20px;
     text-align: center;
     opacity: 1;
-    transition: opacity 0.45s var(--ease-smooth), backdrop-filter 0.45s ease;
+    transition: opacity 0.5s var(--ease-smooth), backdrop-filter 0.5s ease;
+  }
+  .modal-screen::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at 50% 30%, rgba(240, 194, 101, 0.08) 0%, transparent 60%);
+    pointer-events: none;
+    animation: bgLightLeak 6s ease-in-out infinite alternate;
+  }
+  @keyframes bgLightLeak {
+    0% { opacity: 0.5; transform: scale(0.95); }
+    100% { opacity: 1.0; transform: scale(1.05); }
   }
   .modal-screen[style*="display: none"] {
     opacity: 0;
@@ -370,12 +382,19 @@
     100% { transform: translateX(100%) rotate(45deg); }
   }
   .modal-title {
-    font-size: 28px;
+    font-size: 30px;
     font-weight: 900;
     margin-bottom: 12px;
-    color: #ffd166;
-    letter-spacing: 1px;
-    text-shadow: 0 4px 12px rgba(0,0,0,0.8);
+    background: linear-gradient(135deg, #fff 30%, #ffd166 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 1.5px;
+    filter: drop-shadow(0 4px 16px rgba(240,194,101,0.3));
+    animation: titleBreath 3.5s ease-in-out infinite alternate;
+  }
+  @keyframes titleBreath {
+    0% { transform: scale(1); filter: drop-shadow(0 4px 16px rgba(240,194,101,0.25)); }
+    100% { transform: scale(1.02); filter: drop-shadow(0 6px 24px rgba(240,194,101,0.45)); }
   }
   .modal-desc {
     font-size: 13px;
@@ -485,18 +504,23 @@
   .item-slot:active { transform: scale(0.92); }
   .item-slot.common { border-color: rgba(160, 170, 178, 0.4); }
   .item-slot.rare { border-color: rgba(52, 152, 219, 0.6); box-shadow: 0 0 12px rgba(52, 152, 219, 0.22); }
-  .item-slot.unique { border-color: rgba(243, 156, 18, 0.75); box-shadow: 0 0 16px rgba(243, 156, 18, 0.28); }
+  .item-slot.unique { border-color: rgba(243, 156, 18, 0.75); box-shadow: 0 0 20px rgba(243, 156, 18, 0.45); animation: uniqueGlowPulse 2.5s infinite alternate; }
+  @keyframes uniqueGlowPulse {
+    0% { box-shadow: 0 0 12px rgba(243, 156, 18, 0.3); border-color: rgba(243, 156, 18, 0.6); }
+    100% { box-shadow: 0 0 24px rgba(243, 156, 18, 0.65), inset 0 0 8px rgba(243, 156, 18, 0.2); border-color: rgba(255, 215, 0, 0.9); }
+  }
   .item-slot.equipped::after {
     content: "装備中";
     position: absolute;
     bottom: 4px;
     font-size: 7px;
     font-weight: 800;
-    background: rgba(230, 126, 34, 0.92);
+    background: linear-gradient(135deg, #e67e22, #d35400);
     color: #fff;
     padding: 2px 6px;
     border-radius: 4px;
     letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(230,126,34,0.5);
   }
 
   .loot-alert {
@@ -1301,6 +1325,7 @@ const Game = {
       w.upgradeLevel = (w.upgradeLevel || 0) + 1;
       this.emitToast(`${w.name} を鍛錬した！(攻撃力+6)`);
     }
+    Sound.play('level');
     this.recalcStats();
     this.renderInventory();
   },
@@ -1950,8 +1975,11 @@ const Game = {
     Sound.play('explosion');
     this.state = 'GAME_OVER';
     this.running = false;
-    document.getElementById('game-over-stats').innerHTML = `
-      <div style="font-size:12px; line-height:1.8; color:#e2e8f0;">
+    
+    const statsEl = document.getElementById('game-over-stats');
+    statsEl.style.opacity = '0';
+    statsEl.innerHTML = `
+      <div style="font-size:12px; line-height:1.8; color:#e2e8f0; transform: translateY(10px); transition: transform 0.5s var(--ease-spring), opacity 0.5s ease;">
         👑 到達階層: <b style="color:#ffd166;">第 ${this.floor} 階層</b><br>
         ⚔️ 討伐モンスター: <b style="color:#ff6b6b;">${this.killCount} 体</b><br>
         💎 獲得エメラルド: <b style="color:#2ecc71;">${this.emeralds} ◆</b><br>
@@ -1959,6 +1987,10 @@ const Game = {
       </div>
     `;
     document.getElementById('game-over-screen').style.display = 'flex';
+    setTimeout(() => {
+      statsEl.style.opacity = '1';
+      statsEl.firstElementChild.style.transform = 'translateY(0)';
+    }, 100);
   },
 
   gainXp(amount) {
