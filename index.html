@@ -626,6 +626,10 @@
       </div>
     </div>
     <div>
+      <h4 style="font-size:12px; color:#a0aec0; margin-bottom:6px;">ルーンクラフト・パッシブ</h4>
+      <div id="rune-container" style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;"></div>
+    </div>
+    <div>
       <h4 style="font-size:12px; color:#a0aec0; margin-bottom:6px;">所持品 (タップで装備切替)</h4>
       <div class="inv-grid" id="inventory-grid"></div>
     </div>
@@ -1164,6 +1168,7 @@ const Game = {
     RUNES_DB.forEach(r => r.applied = false);
     this.resetVolatileStates();
     this.recalcStats();
+    this.updateHUD();
     this.player.hp = this.player.maxHp;
     this.generateFloor();
     this.state = 'PLAYING';
@@ -1213,10 +1218,11 @@ const Game = {
     this.shockwaves = [];
     this.hazards = [];
 
-    // バイオーム自動決定（古代遺跡・マグマ神殿・氷結遺構・毒沼迷宮）
+    // バイオーム自動決定（通常洞窟・マグマ神殿・古代遺跡・毒沼迷宮・氷結遺構）
     if (this.floor <= 2) this.currentBiome = { name: '通常洞窟', color: '#161922', hazard: 'none' };
     else if (this.floor <= 4) this.currentBiome = { name: 'マグマ神殿', color: '#2a1412', hazard: 'lava' };
     else if (this.floor <= 6) this.currentBiome = { name: '古代遺跡', color: '#1c182a', hazard: 'spikes' };
+    else if (this.floor <= 8) this.currentBiome = { name: '毒沼迷宮', color: '#142a18', hazard: 'poison' };
     else this.currentBiome = { name: '氷結遺構', color: '#12222a', hazard: 'ice' };
 
     const banner = document.getElementById('biome-banner');
@@ -1328,6 +1334,8 @@ const Game = {
         this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize + 20, type: 'lava', radius: 24, timer: 0 });
       } else if (this.currentBiome.hazard === 'spikes' && Math.random() < 0.5) {
         this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize, type: 'spikes', radius: 26, timer: 0 });
+      } else if (this.currentBiome.hazard === 'poison' && Math.random() < 0.6) {
+        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize, type: 'poison', radius: 28 });
       } else if (this.currentBiome.hazard === 'ice' && Math.random() < 0.5) {
         this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize, type: 'ice', radius: 30 });
       }
@@ -1370,7 +1378,7 @@ const Game = {
   },
 
   spawnEnemy(x, y) {
-    const types = ['zombie', 'skeleton', 'creeper', 'shadow', 'protector'];
+    const types = ['zombie', 'skeleton', 'creeper', 'shadow', 'protector', 'priest', 'grappler'];
     const type = types[Math.floor(Math.random() * types.length)];
     const hpScale = 1 + (this.floor - 1) * 0.35;
     const dmgScale = 1 + (this.floor - 1) * 0.25;
@@ -1428,6 +1436,8 @@ const Game = {
       e.damage = Math.floor(e.damage * 1.4);
       if (eliteAura === 'swift') e.speed *= 1.4;
       if (eliteAura === 'tank') e.radius *= 1.2;
+      if (eliteAura === 'priest') e.color = '#e91e63';
+      if (eliteAura === 'grappler') e.color = '#00bcd4';
     }
     e.maxHp = e.hp;
     this.enemies.push(e);
@@ -3071,10 +3081,35 @@ const Game = {
     const grid = document.getElementById('inventory-grid');
     grid.innerHTML = '';
 
+    const runeBox = document.getElementById('rune-container');
+    runeBox.innerHTML = '';
+    RUNES_DB.forEach(r => {
+      const active = this.player.runes.some(run => run.id === r.id);
+      const rBtn = document.createElement('button');
+      rBtn.className = 'primary-btn';
+      rBtn.style.fontSize = '10px';
+      rBtn.style.padding = '5px 10px';
+      rBtn.style.background = active ? 'linear-gradient(135deg, #f39c12, #d35400)' : 'rgba(255,255,255,0.1)';
+      rBtn.innerHTML = `${r.icon} ${r.name} (${active ? '習得中' : r.cost + '◆'})`;
+      rBtn.onclick = () => {
+        if (!active && this.emeralds >= r.cost) {
+          this.emeralds -= r.cost;
+          this.player.runes.push(r);
+          r.applied = true;
+          this.recalcStats();
+          this.updateHUD();
+          this.renderInventory();
+          this.emitToast(`${r.name} を習得した！`);
+        }
+      };
+      runeBox.appendChild(rBtn);
+    });
+
     const statsBox = document.getElementById('equip-stats');
     statsBox.innerHTML = `
       ⚔️ 武器: <b style="color:var(--border-gold);">${this.player.weapon.name}</b> (攻撃力 ${this.player.weapon.dmg})<br>
-      🛡️ 防具: <b style="color:var(--border-gold);">${this.player.armor.name}</b> (追加HP +${this.player.armor.maxHpBonus}, 防御 +${this.player.armor.def})
+      🛡️ 防具: <b style="color:var(--border-gold);">${this.player.armor.name}</b> (追加HP +${this.player.armor.maxHpBonus}, 防御 +${this.player.armor.def})<br>
+      ⚡ ルーン効果数: ${this.player.runes.length}個覚醒中
     `;
 
     this.player.inventory.forEach((item, idx) => {
