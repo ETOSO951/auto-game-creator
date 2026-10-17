@@ -631,6 +631,7 @@ const Game = {
     tntFuseTime: 0.7,
     lootToastDuration: 1.8,
     mouseActiveTimeout: 2.5,
+    inputBufferWindow: 0.15,
     kbBoss: 140,
     kbNormal: 380,
     kbExplosionNormal: 500,
@@ -683,6 +684,7 @@ const Game = {
     xp: 0,
     xpNext: 50,
     attackCooldown: 0,
+    attackBuffer: 0,
     attackSwing: 0,
     attackSwingDuration: 0.22,
     swingDir: 1,
@@ -1065,7 +1067,18 @@ const Game = {
   /* --- Actions & Skills --- */
   playerAttack() {
     if (this.state !== 'PLAYING') return;
-    if (this.player.attackCooldown > 0) return;
+    if (this.player.attackCooldown > 0) {
+      // 先行入力バッファリング: 攻撃終了間際なら入力をキューに保持
+      if (this.player.attackCooldown <= this.config.inputBufferWindow) {
+        this.player.attackBuffer = this.config.inputBufferWindow;
+      }
+      return;
+    }
+    this.executePlayerAttack();
+  },
+
+  executePlayerAttack() {
+    this.player.attackBuffer = 0;
 
     // 照準ヒエラルキーの純化:
     // 照準優先判定: PCマウス入力が直近にあればマウス方向、無ければスマートエイム/移動方向
@@ -1089,7 +1102,7 @@ const Game = {
     this.player.swingDir *= -1;
 
     // 攻撃時のキレのある前進ステップイン（踏み込み慣性）
-    const stepPower = 140;
+    const stepPower = 150;
     this.player.vx = Math.cos(this.player.angle) * stepPower;
     this.player.vy = Math.sin(this.player.angle) * stepPower;
 
@@ -1412,9 +1425,30 @@ const Game = {
     requestAnimationFrame((t) => this.loop(t));
   },
 
-  /* --- 物理更新パイプライン (入力/移動/壁滑り/エンティティ分離) --- */
+  /* --- 物理更新パイプライン（責任分離アーキテクチャ） --- */
   physicsUpdate(dt) {
-    // 1. 入力ベクトルの正規化
+    this.processPlayerInput(dt);
+    this.updatePlayer(dt);
+    this.updateEnemies(dt);
+    this.updateProjectiles(dt);
+    this.updateLootAndInteractables(dt);
+    this.resolvePhysicsPipeline(dt);
+    this.updateTimersAndEffects(dt);
+    this.cleanupDestroyedEntities();
+  },
+
+  processPlayerInput(dt) {
+    // 先行入力バッファの減衰と最速トリガー
+    if (this.player.attackCooldown > 0) {
+      this.player.attackCooldown = Math.max(0, this.player.attackCooldown - dt);
+    }
+    if (this.player.attackBuffer > 0) {
+      this.player.attackBuffer = Math.max(0, this.player.attackBuffer - dt);
+      if (this.player.attackCooldown <= 0) {
+        this.executePlayerAttack();
+      }
+    }
+
     let mx = 0, my = 0;
     if (this.joystick.active) {
       mx = this.joystick.dirX;
@@ -1428,18 +1462,17 @@ const Game = {
       if (len > 0) { mx /= len; my /= len; }
     }
 
-    // 2. プレイヤーの加減速慣性計算
+    // プレイヤー加減速慣性
     const targetVx = mx * this.player.speed;
     const targetVy = my * this.player.speed;
     const accelRate = (mx !== 0 || my !== 0) ? this.player.accel : (this.player.accel * 1.5);
-    
-    // スムーズなイージング加減速
+
     const diffVx = targetVx - this.player.vx;
     const diffVy = targetVy - this.player.vy;
     this.player.vx += Math.sign(diffVx) * Math.min(Math.abs(diffVx), accelRate * dt);
     this.player.vy += Math.sign(diffVy) * Math.min(Math.abs(diffVy), accelRate * dt);
 
-    // 照準方向の更新（攻撃スイング中は振り抜き方向を固定し、エイムブレを遮断）
+    // 旋回角の制御: 攻撃スイング中は振り抜き方向を固定し、エイムブレを遮断
     if (this.player.attackSwing <= 0) {
       const isMouseRecentlyActive = (performance.now() - this.mousePos.lastMovedTime) < (this.config.mouseActiveTimeout * 1000);
       if (isMouseRecentlyActive) {
@@ -1450,14 +1483,16 @@ const Game = {
         this.player.angle = Math.atan2(my, mx);
       }
     }
+  },
 
-    // 3. プレイヤーの移動と壁衝突解決（スライド処理）
+  updatePlayer(dt) {
     this.player.x += this.player.vx * dt;
-    this.resolveCircleWallCollisions(this.player, 'x');
     this.player.y += this.player.vy * dt;
-    this.resolveCircleWallCollisions(this.player, 'y');
 
-    // 4. アクティブ攻撃判定の進行
+    if (this.player.attackSwing > 0) this.player.attackSwing = Math.max(0, this.player.attackSwing - dt);
+    if (this.player.invincibleTimer > 0) this.player.invincibleTimer = Math.max(0, this.player.invincibleTimer - dt);
+
+    // アクティブ攻撃判定の進行
     if (this.player.activeAttack) {
       const atk = this.player.activeAttack;
       atk.timer += dt;
@@ -1470,52 +1505,21 @@ const Game = {
       }
     }
 
-    // 5. 各種クールダウン & タイムライン同期タスクの消化
-    if (this.player.attackCooldown > 0) this.player.attackCooldown = Math.max(0, this.player.attackCooldown - dt);
-    if (this.player.attackSwing > 0) this.player.attackSwing = Math.max(0, this.player.attackSwing - dt);
-    if (this.player.invincibleTimer > 0) this.player.invincibleTimer = Math.max(0, this.player.invincibleTimer - dt);
-
-    if (this.player.art1Cooldown > 0) this.player.art1Cooldown = Math.max(0, this.player.art1Cooldown - dt);
-    if (this.player.art2Cooldown > 0) this.player.art2Cooldown = Math.max(0, this.player.art2Cooldown - dt);
-    if (this.player.potionCooldown > 0) this.player.potionCooldown = Math.max(0, this.player.potionCooldown - dt);
-
-    // 内部同期タイマータスク（TNTなど）
-    for (let i = this.delayedTasks.length - 1; i >= 0; i--) {
-      const task = this.delayedTasks[i];
-      task.timer -= dt;
-      if (task.timer <= 0) {
-        task.action();
-        this.delayedTasks.splice(i, 1);
-      }
-    }
-
-    // トーストUIの同期フェード
-    if (this.lootAlertTimer > 0) {
-      this.lootAlertTimer -= dt;
-      if (this.lootAlertTimer <= 0) {
-        const el = document.getElementById('lootAlert');
-        el.style.opacity = '0';
-        el.style.transform = 'translate(-50%, 0)';
-      }
-    }
-
-    // 6. 出口ゲート接触
+    // 出口ゲート接触
     const distToExit = Math.hypot(this.player.x - this.exitPos.x, this.player.y - this.exitPos.y);
     if (distToExit < 30) {
       this.state = 'STAGE_CLEAR';
       this.running = false;
       document.getElementById('stage-clear-screen').style.display = 'flex';
-      return;
     }
+  },
 
-    // 7. 敵のAIと移動更新
-    for (let i = this.enemies.length - 1; i >= 0; i--) {
-      const e = this.enemies[i];
+  updateEnemies(dt) {
+    for (const e of this.enemies) {
       const dx = this.player.x - e.x;
       const dy = this.player.y - e.y;
       const dist = Math.hypot(dx, dy);
 
-      // ノックバック＋自発移動の統合計算
       let moveX = e.kbX * dt;
       let moveY = e.kbY * dt;
 
@@ -1525,7 +1529,6 @@ const Game = {
       if (Math.abs(e.kbX) < 1) e.kbX = 0;
       if (Math.abs(e.kbY) < 1) e.kbY = 0;
 
-      // 視界内プレイヤー追尾
       if (dist < 420) {
         const nx = dx / (dist || 1);
         const ny = dy / (dist || 1);
@@ -1536,7 +1539,7 @@ const Game = {
             if (e.fuse > 0.8) {
               Sound.play('explosion');
               this.createExplosion(e.x, e.y, 80, e.damage);
-              this.enemies.splice(i, 1);
+              e.dead = true;
               continue;
             }
           } else {
@@ -1581,32 +1584,22 @@ const Game = {
       e.x += moveX;
       e.y += moveY;
 
-      // 死亡判定
-      if (e.hp <= 0) {
+      if (e.hp <= 0 && !e.dead) {
+        e.dead = true;
         this.killCount++;
         this.gainXp(e.type === 'boss' ? 120 : 18);
         this.dropLoot(e.x, e.y, e.type === 'boss');
-        this.enemies.splice(i, 1);
       }
     }
+  },
 
-    // 8. エンティティ間の重なり解消（分離フェーズ）
-    this.resolveEntitySeparation();
-
-    // 9. 壁衝突解決の統合収束（分離後の壁めり込み・ジッターを完全排除）
-    this.resolveCircleWallCollisions(this.player, 'both');
-    for (const e of this.enemies) {
-      this.resolveCircleWallCollisions(e, 'both');
-    }
-
-    // Projectiles
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const p = this.projectiles[i];
+  updateProjectiles(dt) {
+    for (const p of this.projectiles) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
 
       if (this.checkWall(p.x, p.y, p.radius)) {
-        this.projectiles.splice(i, 1);
+        p.dead = true;
         continue;
       }
 
@@ -1614,15 +1607,14 @@ const Game = {
         const pd = Math.hypot(p.x - this.player.x, p.y - this.player.y);
         if (pd < p.radius + this.player.radius) {
           this.damagePlayer(p.damage);
-          this.projectiles.splice(i, 1);
-          continue;
+          p.dead = true;
         }
       }
     }
+  },
 
-    // Loot pickup & Chest interaction
-    for (let i = this.lootItems.length - 1; i >= 0; i--) {
-      const item = this.lootItems[i];
+  updateLootAndInteractables(dt) {
+    for (const item of this.lootItems) {
       const dist = Math.hypot(item.x - this.player.x, item.y - this.player.y);
 
       if (item.type === 'chest' && !item.opened && dist < 42) {
@@ -1633,33 +1625,82 @@ const Game = {
       } else if (item.type === 'emerald' && dist < 36) {
         Sound.play('coin');
         this.emeralds += item.val;
-        this.lootItems.splice(i, 1);
+        item.dead = true;
         this.updateHUD();
       } else if (item.type === 'equipment' && dist < 36) {
         Sound.play('coin');
         this.player.inventory.push(item.item);
         this.showLootAlert(`${item.item.name} を手に入れた！`);
-        this.lootItems.splice(i, 1);
+        item.dead = true;
         this.renderInventory();
       }
     }
+  },
 
-    // Particles
-    for (let i = this.particles.length - 1; i >= 0; i--) {
-      const p = this.particles[i];
+  // 2パス物理解決（壁解決 → エンティティ反発 → 壁再解決）
+  resolvePhysicsPipeline(dt) {
+    // パス1: 壁との一次衝突解決
+    this.resolveCircleWallCollisions(this.player, 'both');
+    for (const e of this.enemies) {
+      if (!e.dead) this.resolveCircleWallCollisions(e, 'both');
+    }
+
+    // パス2: エンティティ同士のめり込み分離
+    this.resolveEntitySeparation();
+
+    // パス3: 反発による壁めり込みの最終修正（ジッター完全防止）
+    this.resolveCircleWallCollisions(this.player, 'both');
+    for (const e of this.enemies) {
+      if (!e.dead) this.resolveCircleWallCollisions(e, 'both');
+    }
+  },
+
+  updateTimersAndEffects(dt) {
+    if (this.player.art1Cooldown > 0) this.player.art1Cooldown = Math.max(0, this.player.art1Cooldown - dt);
+    if (this.player.art2Cooldown > 0) this.player.art2Cooldown = Math.max(0, this.player.art2Cooldown - dt);
+    if (this.player.potionCooldown > 0) this.player.potionCooldown = Math.max(0, this.player.potionCooldown - dt);
+
+    for (let i = this.delayedTasks.length - 1; i >= 0; i--) {
+      const task = this.delayedTasks[i];
+      task.timer -= dt;
+      if (task.timer <= 0) {
+        task.action();
+        this.delayedTasks.splice(i, 1);
+      }
+    }
+
+    if (this.lootAlertTimer > 0) {
+      this.lootAlertTimer -= dt;
+      if (this.lootAlertTimer <= 0) {
+        const el = document.getElementById('lootAlert');
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%, 0)';
+      }
+    }
+
+    // パーティクル
+    for (const p of this.particles) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.life -= dt;
-      if (p.life <= 0) this.particles.splice(i, 1);
+      if (p.life <= 0) p.dead = true;
     }
 
-    // Damage numbers
-    for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
-      const d = this.damageNumbers[i];
+    // ダメージ数値
+    for (const d of this.damageNumbers) {
       d.y -= 42 * dt;
       d.life -= dt;
-      if (d.life <= 0) this.damageNumbers.splice(i, 1);
+      if (d.life <= 0) d.dead = true;
     }
+  },
+
+  // フレーム末尾での一括クリーンアップ（遅延削除アーキテクチャ）
+  cleanupDestroyedEntities() {
+    this.enemies = this.enemies.filter(e => !e.dead);
+    this.projectiles = this.projectiles.filter(p => !p.dead);
+    this.lootItems = this.lootItems.filter(item => !item.dead);
+    this.particles = this.particles.filter(p => !p.dead);
+    this.damageNumbers = this.damageNumbers.filter(d => !d.dead);
   },
 
   checkWall(x, y, radius) {
