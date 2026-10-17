@@ -80,22 +80,36 @@
   }
 
   .stats-card {
-    background: linear-gradient(135deg, rgba(22, 28, 44, 0.82), rgba(10, 14, 22, 0.9));
+    background: linear-gradient(135deg, rgba(24, 30, 48, 0.85), rgba(8, 12, 20, 0.92));
     border: 1px solid var(--panel-border);
     border-radius: 18px;
     padding: 12px 18px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     display: flex;
     flex-direction: column;
     gap: 8px;
     min-width: 200px;
+    position: relative;
+    overflow: hidden;
     transition: transform 0.3s var(--ease-spring), border-color 0.3s ease, box-shadow 0.3s ease;
+    animation: goldGlowPulse 4s infinite alternate ease-in-out;
+  }
+  @keyframes goldGlowPulse {
+    0% { border-color: rgba(229, 184, 92, 0.22); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.15); }
+    100% { border-color: rgba(240, 194, 101, 0.48); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85), 0 0 20px rgba(229, 184, 92, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+  }
+  .stats-card.hp-damaged {
+    animation: hpDamagePulse 0.4s ease;
+  }
+  @keyframes hpDamagePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); border-color: #ff4757; box-shadow: 0 0 25px rgba(255, 71, 87, 0.6); }
   }
   .stats-card:hover {
-    border-color: rgba(229, 184, 92, 0.45);
-    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.75), 0 0 20px rgba(229, 184, 92, 0.1);
+    border-color: rgba(229, 184, 92, 0.6);
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.85), 0 0 24px rgba(229, 184, 92, 0.2);
   }
 
   .bar-container {
@@ -667,36 +681,36 @@ const Sound = {
       const pitchMod = 0.95 + Math.random() * 0.1;
 
       if (type === 'hit') {
-        // 1. サブベース（密度の高い重低音）
+        // 1. 重厚なサブベース (タイトなアタック)
         const subOsc = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
         subOsc.type = 'sine';
-        subOsc.frequency.setValueAtTime(220 * pitchMod, t);
-        subOsc.frequency.exponentialRampToValueAtTime(22, t + 0.28);
-        subGain.gain.setValueAtTime(0.75, t);
-        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        subOsc.frequency.setValueAtTime(280 * pitchMod, t);
+        subOsc.frequency.exponentialRampToValueAtTime(18, t + 0.32);
+        subGain.gain.setValueAtTime(0.85, t);
+        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
         subOsc.connect(subGain);
         subGain.connect(dest);
         subOsc.start(t);
-        subOsc.stop(t + 0.28);
+        subOsc.stop(t + 0.32);
 
-        // 2. 金属的インパクトクラッシュ（ノイズ＋バンドパス）
+        // 2. 鋭い金属打撃アタッククラッシュ（ダイナミックフィルタースイープ）
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
           const nFilter = this.ctx.createBiquadFilter();
           const nGain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           nFilter.type = 'bandpass';
-          nFilter.frequency.setValueAtTime(2400 * pitchMod, t);
-          nFilter.frequency.exponentialRampToValueAtTime(120, t + 0.18);
-          nFilter.Q.value = 2.2;
-          nGain.gain.setValueAtTime(0.6, t);
-          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+          nFilter.frequency.setValueAtTime(3200 * pitchMod, t);
+          nFilter.frequency.exponentialRampToValueAtTime(80, t + 0.2);
+          nFilter.Q.value = 3.0;
+          nGain.gain.setValueAtTime(0.7, t);
+          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
           noise.connect(nFilter);
           nFilter.connect(nGain);
           nGain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.18);
+          noise.stop(t + 0.2);
         }
       } else if (type === 'slash') {
         // 鋭い刃物の風切り音（2段階ハイパス/バンドパスフィルター）
@@ -875,6 +889,9 @@ const Game = {
   shakeIntensity: 0,
   shakeDuration: 0,
   flashTimer: 0,
+  flashColor: 'rgba(255, 255, 255, ',
+  vignetteFlashTimer: 0,
+  vignetteFlashColor: 'rgba(255, 71, 87, 0.6)',
   lastTime: 0,
   accumulator: 0,
   fixedDt: 1 / 60,
@@ -1559,9 +1576,12 @@ const Game = {
 
   createExplosion(x, y, radius, damage) {
     // Camera shake for explosion
-    this.shakeIntensity = Math.max(this.shakeIntensity, 14);
-    this.shakeDuration = Math.max(this.shakeDuration, 0.25);
-    this.flashTimer = 0.08; // 一瞬の画面白光フラッシュ
+    this.shakeIntensity = Math.max(this.shakeIntensity, 16);
+    this.shakeDuration = Math.max(this.shakeDuration, 0.28);
+    this.flashTimer = 0.1; // 一瞬の画面白光フラッシュ
+    this.flashColor = 'rgba(255, 235, 180, ';
+    this.vignetteFlashTimer = 0.3;
+    this.vignetteFlashColor = 'rgba(243, 156, 18, 0.65)';
 
     // 拡大する衝撃波リングを追加
     this.shockwaves.push({
@@ -1613,10 +1633,21 @@ const Game = {
     const finalDmg = Math.max(2, amount - armorDef);
     this.player.hp -= finalDmg;
     this.player.invincibleTimer = 0.45; // 0.45 sec invincibility
-    this.shakeIntensity = Math.max(this.shakeIntensity, 8);
-    this.shakeDuration = Math.max(this.shakeDuration, 0.15);
+    this.shakeIntensity = Math.max(this.shakeIntensity, 10);
+    this.shakeDuration = Math.max(this.shakeDuration, 0.18);
+    this.vignetteFlashTimer = 0.25;
+    this.vignetteFlashColor = 'rgba(255, 30, 50, 0.7)';
+    
+    // HUDのダメージ脈動エフェクト
+    const card = document.querySelector('.stats-card');
+    if (card) {
+      card.classList.remove('hp-damaged');
+      void card.offsetWidth; // reflow
+      card.classList.add('hp-damaged');
+    }
+
     this.emitSound('hit', this.player.x, this.player.y);
-    this.createDamageNumber(this.player.x, this.player.y, `-${finalDmg}`, '#e74c3c');
+    this.createDamageNumber(this.player.x, this.player.y, `-${finalDmg}`, '#ff4757');
 
     if (this.player.hp <= 0) {
       this.player.hp = 0;
@@ -2081,6 +2112,9 @@ const Game = {
 
     if (this.flashTimer > 0) {
       this.flashTimer = Math.max(0, this.flashTimer - dt);
+    }
+    if (this.vignetteFlashTimer > 0) {
+      this.vignetteFlashTimer = Math.max(0, this.vignetteFlashTimer - dt);
     }
 
     // 衝撃波リングの更新
@@ -2648,14 +2682,21 @@ const Game = {
 
     ctx.restore(); // Restore camera
 
-    // Vignette Effect (Cinematic Screen Edge Darkening)
+    // Vignette Effect (Cinematic Screen Edge Darkening & Dynamic Red/Orange Hit Flash)
     ctx.save();
     const vignetteGrad = ctx.createRadialGradient(
-      this.width / 2, this.height / 2, Math.min(this.width, this.height) * 0.45,
+      this.width / 2, this.height / 2, Math.min(this.width, this.height) * 0.4,
       this.width / 2, this.height / 2, Math.max(this.width, this.height) * 0.75
     );
     vignetteGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    vignetteGrad.addColorStop(1, 'rgba(4, 6, 12, 0.65)');
+    
+    if (this.vignetteFlashTimer > 0) {
+      const flashAlpha = (this.vignetteFlashTimer / 0.3);
+      vignetteGrad.addColorStop(1, this.vignetteFlashColor.replace(/[\d\.]+\)$/, `${0.75 * flashAlpha})`));
+    } else {
+      vignetteGrad.addColorStop(1, 'rgba(4, 6, 12, 0.7)');
+    }
+    
     ctx.fillStyle = vignetteGrad;
     ctx.fillRect(0, 0, this.width, this.height);
     ctx.restore();
@@ -2663,7 +2704,8 @@ const Game = {
     // Screen Flash effect (Explosions / Big Hits)
     if (this.flashTimer > 0) {
       ctx.save();
-      ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(0.35, this.flashTimer * 4)})`;
+      const fColor = this.flashColor || 'rgba(255, 255, 255, ';
+      ctx.fillStyle = `${fColor}${Math.min(0.4, this.flashTimer * 4)})`;
       ctx.fillRect(0, 0, this.width, this.height);
       ctx.restore();
     }
