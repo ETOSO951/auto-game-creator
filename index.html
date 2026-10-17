@@ -567,12 +567,12 @@
       </div>
     </div>
     
-    <div id="biome-banner" style="position:absolute; top:75px; left:20px; font-size:10px; font-weight:800; color:#ffd166; background:rgba(12,16,26,0.85); padding:4px 12px; border-radius:12px; border:1px solid rgba(240,194,101,0.25); backdrop-filter:blur(8px); pointer-events:none; transition: opacity 0.5s;">バイオーム: 通常洞窟</div>
+    <div id="biome-banner" style="position:absolute; top:75px; left:50%; transform:translateX(-50%); font-size:11px; font-weight:900; color:#ffd166; background:rgba(12,16,26,0.92); padding:6px 18px; border-radius:16px; border:1px solid rgba(240,194,101,0.4); backdrop-filter:blur(12px); pointer-events:none; opacity:0; transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 10px 30px rgba(0,0,0,0.6);">バイオーム: 通常洞窟</div>
 
     <div class="loot-alert" id="lootAlert">レアアイテム獲得！</div>
 
-    <!-- Mobile Virtual Controls -->
-    <div id="touch-controls">
+    <!-- Mobile Virtual Controls (引き算の美学に基づくアイドル時自動フェード) -->
+    <div id="touch-controls" class="idle">
       <div id="joystick-zone">
         <div id="joystick-base"></div>
         <div id="joystick-stick"></div>
@@ -1354,9 +1354,13 @@ const Game = {
 
     const banner = document.getElementById('biome-banner');
     if (banner) {
-      banner.innerText = `バイオーム: ${this.currentBiome.name} (階層 ${this.floor})`;
+      banner.innerText = `◆ 階層 ${this.floor} : ${this.currentBiome.name} ◆`;
       banner.style.opacity = '1';
-      setTimeout(() => { banner.style.opacity = '0'; }, 3500);
+      banner.style.transform = 'translate(-50%, 6px)';
+      setTimeout(() => {
+        banner.style.opacity = '0';
+        banner.style.transform = 'translate(-50%, -10px)';
+      }, 3200);
     }
 
     // 突発フロアイベント（モンスターハウス / 祭壇生成）
