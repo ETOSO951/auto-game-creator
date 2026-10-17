@@ -111,6 +111,19 @@
   .bar-inner {
     height: 100%;
     transition: width 0.15s ease-out;
+    position: relative;
+    overflow: hidden;
+  }
+  .bar-inner::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+    animation: barShimmer 2s infinite linear;
+  }
+  @keyframes barShimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
   .bar-hp { background: linear-gradient(90deg, #c0392b, #e74c3c); }
   .bar-xp { background: linear-gradient(90deg, #27ae60, #2ecc71); }
@@ -238,7 +251,7 @@
     width: 100%;
     height: 100%;
     background: rgba(8, 10, 16, 0.88);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(12px);
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -246,6 +259,12 @@
     align-items: center;
     padding: 20px;
     text-align: center;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+  }
+  .modal-screen[style*="display: none"] {
+    opacity: 0;
+    pointer-events: none;
   }
   .modal-box {
     background: var(--panel-bg);
@@ -254,7 +273,30 @@
     padding: 24px;
     max-width: 440px;
     width: 90%;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 20px rgba(229,184,92,0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 25px rgba(229,184,92,0.35);
+    animation: modalPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    position: relative;
+    overflow: hidden;
+  }
+  .modal-box::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(229,184,92,0.08), transparent);
+    transform: rotate(45deg);
+    animation: shineSweep 4s infinite linear;
+    pointer-events: none;
+  }
+  @keyframes modalPop {
+    0% { transform: scale(0.85); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes shineSweep {
+    0% { transform: translateX(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) rotate(45deg); }
   }
   .modal-title {
     font-size: 26px;
@@ -513,74 +555,158 @@
 </div>
 
 <script>
-/* --- Simple Audio Synthesizer for Retro SFX --- */
+/* --- High-Quality Audio Synthesizer & Sound Design --- */
 const Sound = {
   ctx: null,
+  noiseBuffer: null,
   init() {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioCtx();
+      this.createNoiseBuffer();
+    }
+  },
+  createNoiseBuffer() {
+    if (!this.ctx) return;
+    const bufferSize = this.ctx.sampleRate * 1.0;
+    this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = this.noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
     }
   },
   play(type) {
     if (!this.ctx) return;
     try {
       const t = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
 
       if (type === 'hit') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(140, t);
-        osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
-        gain.gain.setValueAtTime(0.3, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.12);
-        osc.start(t);
-        osc.stop(t + 0.12);
-      } else if (type === 'slash') {
+        // 重厚な打撃音：低音オシレーター + ノイズのミックス
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(420, t);
-        osc.frequency.exponentialRampToValueAtTime(120, t + 0.09);
-        gain.gain.setValueAtTime(0.2, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.09);
-        osc.start(t);
-        osc.stop(t + 0.09);
-      } else if (type === 'coin') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(987, t);
-        osc.frequency.setValueAtTime(1318, t + 0.08);
-        gain.gain.setValueAtTime(0.2, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.22);
-        osc.start(t);
-        osc.stop(t + 0.22);
-      } else if (type === 'explosion') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(90, t);
-        osc.frequency.exponentialRampToValueAtTime(25, t + 0.35);
-        gain.gain.setValueAtTime(0.4, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.35);
-        osc.start(t);
-        osc.stop(t + 0.35);
-      } else if (type === 'thunder') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(600, t);
-        osc.frequency.exponentialRampToValueAtTime(80, t + 0.25);
+        osc.frequency.setValueAtTime(180, t);
+        osc.frequency.exponentialRampToValueAtTime(30, t + 0.15);
         gain.gain.setValueAtTime(0.35, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.25);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
         osc.start(t);
-        osc.stop(t + 0.25);
+        osc.stop(t + 0.15);
+
+        if (this.noiseBuffer) {
+          const noise = this.ctx.createBufferSource();
+          const nFilter = this.ctx.createBiquadFilter();
+          const nGain = this.ctx.createGain();
+          noise.buffer = this.noiseBuffer;
+          nFilter.type = 'lowpass';
+          nFilter.frequency.setValueAtTime(800, t);
+          nFilter.frequency.exponentialRampToValueAtTime(100, t + 0.1);
+          nGain.gain.setValueAtTime(0.25, t);
+          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+          noise.connect(nFilter);
+          nFilter.connect(nGain);
+          nGain.connect(this.ctx.destination);
+          noise.start(t);
+          noise.stop(t + 0.1);
+        }
+      } else if (type === 'slash') {
+        // 風切り音：ハイパスフィルターノイズ + スウィープ
+        if (this.noiseBuffer) {
+          const noise = this.ctx.createBufferSource();
+          const filter = this.ctx.createBiquadFilter();
+          const gain = this.ctx.createGain();
+          noise.buffer = this.noiseBuffer;
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(1200, t);
+          filter.frequency.exponentialRampToValueAtTime(300, t + 0.1);
+          filter.Q.value = 3;
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start(t);
+          noise.stop(t + 0.1);
+        }
+      } else if (type === 'coin') {
+        // 綺麗な澄んだコイン音（2音アルペジオ）
+        const freqs = [1046.5, 1567.98]; // C6, G6
+        freqs.forEach((f, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, t + i * 0.06);
+          gain.gain.setValueAtTime(0.18, t + i * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.2);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t + i * 0.06);
+          osc.stop(t + i * 0.06 + 0.2);
+        });
+      } else if (type === 'explosion') {
+        // 巨大な爆発音：超低音サブバス + ローパスフィルター爆破ノイズ
+        if (this.noiseBuffer) {
+          const noise = this.ctx.createBufferSource();
+          const filter = this.ctx.createBiquadFilter();
+          const gain = this.ctx.createGain();
+          noise.buffer = this.noiseBuffer;
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1000, t);
+          filter.frequency.exponentialRampToValueAtTime(40, t + 0.4);
+          gain.gain.setValueAtTime(0.5, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start(t);
+          noise.stop(t + 0.45);
+        }
+        const sub = this.ctx.createOscillator();
+        const subGain = this.ctx.createGain();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(100, t);
+        sub.frequency.exponentialRampToValueAtTime(20, t + 0.4);
+        subGain.gain.setValueAtTime(0.4, t);
+        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        sub.connect(subGain);
+        subGain.connect(this.ctx.destination);
+        sub.start(t);
+        sub.stop(t + 0.4);
+      } else if (type === 'thunder') {
+        // 雷撃音：高品位ノイズ + ピッチダウン
+        if (this.noiseBuffer) {
+          const noise = this.ctx.createBufferSource();
+          const filter = this.ctx.createBiquadFilter();
+          const gain = this.ctx.createGain();
+          noise.buffer = this.noiseBuffer;
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(3000, t);
+          filter.frequency.exponentialRampToValueAtTime(200, t + 0.3);
+          filter.Q.value = 1.5;
+          gain.gain.setValueAtTime(0.4, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start(t);
+          noise.stop(t + 0.3);
+        }
       } else if (type === 'level') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(523, t);
-        osc.frequency.setValueAtTime(659, t + 0.1);
-        osc.frequency.setValueAtTime(783, t + 0.2);
-        osc.frequency.setValueAtTime(1046, t + 0.3);
-        gain.gain.setValueAtTime(0.3, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.5);
-        osc.start(t);
-        osc.stop(t + 0.5);
+        // レベルアップ：輝かしい4音和音ファンファーレ
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((f, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, t + i * 0.08);
+          gain.gain.setValueAtTime(0.22, t + i * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t + i * 0.08);
+          osc.stop(t + i * 0.08 + 0.35);
+        });
       }
     } catch (e) {}
   }
@@ -663,6 +789,7 @@ const Game = {
   camY: 0,
   shakeIntensity: 0,
   shakeDuration: 0,
+  flashTimer: 0,
   lastTime: 0,
   accumulator: 0,
   fixedDt: 1 / 60,
@@ -672,6 +799,7 @@ const Game = {
   timeScale: 1.0,
   lootAlertTimer: 0,
   delayedTasks: [], // { timer, action } - ゲームタイムライン完全同期用
+  shockwaves: [], // 爆発や衝撃波のエフェクト用
 
   // HUD Cache for Dirty Checking
   hudCache: {
@@ -886,6 +1014,8 @@ const Game = {
     this.hitstopTimer = 0;
     this.shakeIntensity = 0;
     this.shakeDuration = 0;
+    this.flashTimer = 0;
+    this.shockwaves.length = 0;
     this.accumulator = 0;
   },
 
@@ -946,6 +1076,7 @@ const Game = {
     this.particles = [];
     this.projectiles = [];
     this.damageNumbers = [];
+    this.shockwaves = [];
 
     const numRooms = 6 + Math.min(this.floor, 8);
     for (let i = 0; i < numRooms * 3; i++) {
@@ -1338,8 +1469,19 @@ const Game = {
 
   createExplosion(x, y, radius, damage) {
     // Camera shake for explosion
-    this.shakeIntensity = Math.max(this.shakeIntensity, 12);
-    this.shakeDuration = Math.max(this.shakeDuration, 0.22);
+    this.shakeIntensity = Math.max(this.shakeIntensity, 14);
+    this.shakeDuration = Math.max(this.shakeDuration, 0.25);
+    this.flashTimer = 0.08; // 一瞬の画面白光フラッシュ
+
+    // 拡大する衝撃波リングを追加
+    this.shockwaves.push({
+      x, y,
+      maxRadius: radius * 1.25,
+      currentRadius: 8,
+      life: 0.3,
+      maxLife: 0.3,
+      color: '#f39c12'
+    });
 
     // Spawn explosion particles
     for (let i = 0; i < 28; i++) {
@@ -1844,9 +1986,22 @@ const Game = {
       if (p.life <= 0) p.dead = true;
     }
 
-    // ダメージ数値
+    if (this.flashTimer > 0) {
+      this.flashTimer = Math.max(0, this.flashTimer - dt);
+    }
+
+    // 衝撃波リングの更新
+    for (const s of this.shockwaves) {
+      s.life -= dt;
+      s.currentRadius += ((s.maxRadius - s.currentRadius) / (s.life + 0.05)) * dt;
+      if (s.life <= 0) s.dead = true;
+    }
+
+    // ダメージ数値（パラボラ軌道＆バウンス）
     for (const d of this.damageNumbers) {
-      d.y -= 42 * dt;
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      d.vy += 220 * dt; // 重力加速度
       d.life -= dt;
       if (d.life <= 0) d.dead = true;
     }
@@ -1859,6 +2014,7 @@ const Game = {
     this.lootItems = this.lootItems.filter(item => !item.dead);
     this.particles = this.particles.filter(p => !p.dead);
     this.damageNumbers = this.damageNumbers.filter(d => !d.dead);
+    this.shockwaves = this.shockwaves.filter(s => !s.dead);
   },
 
   checkWall(x, y, radius) {
@@ -2070,20 +2226,34 @@ const Game = {
         const y = r * this.tileSize;
         const type = this.map[r][c];
 
-        if (type === 1) { // Wall block (Cobblestone / Obsidian style)
-          ctx.fillStyle = '#1e2430';
+        if (type === 1) { // Wall block (3D Depth & Lighted Texture)
+          ctx.fillStyle = '#1a1e29';
           ctx.fillRect(x, y, this.tileSize, this.tileSize);
-          ctx.fillStyle = '#2f384b';
+          // Top face with subtle gradient
+          const topGrad = ctx.createLinearGradient(x, y, x, y + this.tileSize - 6);
+          topGrad.addColorStop(0, '#3a445a');
+          topGrad.addColorStop(1, '#272e3d');
+          ctx.fillStyle = topGrad;
           ctx.fillRect(x, y, this.tileSize, this.tileSize - 6);
-          // Block highlight
-          ctx.fillStyle = 'rgba(255,255,255,0.06)';
-          ctx.fillRect(x, y, this.tileSize, 3);
-          ctx.strokeStyle = '#121620';
+          // Bevel highlight
+          ctx.fillStyle = 'rgba(255,255,255,0.12)';
+          ctx.fillRect(x, y, this.tileSize, 2);
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.fillRect(x, y + this.tileSize - 6, this.tileSize, 6);
+          ctx.strokeStyle = '#0f121a';
           ctx.strokeRect(x, y, this.tileSize, this.tileSize);
-        } else { // Ground
+        } else { // Ground with subtle Ambient Occlusion
           ctx.fillStyle = (r + c) % 2 === 0 ? '#181b24' : '#141720';
           ctx.fillRect(x, y, this.tileSize, this.tileSize);
-          // Tile grid
+          
+          // Shadow from adjacent walls (Simulated AO)
+          if (r > 0 && this.map[r - 1][c] === 1) {
+            const aoGrad = ctx.createLinearGradient(x, y, x, y + 12);
+            aoGrad.addColorStop(0, 'rgba(0,0,0,0.45)');
+            aoGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = aoGrad;
+            ctx.fillRect(x, y, this.tileSize, 12);
+          }
           ctx.strokeStyle = 'rgba(255,255,255,0.02)';
           ctx.strokeRect(x, y, this.tileSize, this.tileSize);
         }
@@ -2200,25 +2370,43 @@ const Game = {
     ctx.fillRect(-5 + lookX, -16 + lookY, 3, 3);
     ctx.fillRect(2 + lookX, -16 + lookY, 3, 3);
 
-    // Weapon Swing animation synchronized with attack duration
+    // Weapon Swing animation with luminous Blade Trail
     ctx.save();
     ctx.rotate(this.player.angle);
     if (this.player.attackSwing > 0) {
       const progress = 1 - (this.player.attackSwing / this.player.attackSwingDuration);
-      // 予備動作〜インパクト〜後隙を忠実に表現するイージングスイング
-      const swingAngleSpan = 1.6; // 約92度
+      const swingAngleSpan = 1.7;
       const swingOffset = ((progress - 0.5) * swingAngleSpan) * this.player.swingDir;
       ctx.rotate(swingOffset);
 
-      // 判定アクティブ時間帯に最大輝度となる斬撃アーク
+      // Additive Blending Blade Trail
       const arcAlpha = Math.sin(progress * Math.PI);
-      ctx.strokeStyle = `rgba(255, 255, 255, ${arcAlpha * 0.85})`;
-      ctx.lineWidth = 3.5;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      
+      // Multi-layer glowing arc trail
+      const trailGrad = ctx.createRadialGradient(0, 0, this.player.weapon.range * 0.4, 0, 0, this.player.weapon.range + 8);
+      const isUnique = this.player.weapon.rarity === 'unique';
+      const glowColor = isUnique ? '230, 126, 34' : '52, 152, 219';
+      
+      trailGrad.addColorStop(0, `rgba(${glowColor}, 0)`);
+      trailGrad.addColorStop(0.7, `rgba(${glowColor}, ${arcAlpha * 0.4})`);
+      trailGrad.addColorStop(1, `rgba(255, 255, 255, ${arcAlpha * 0.9})`);
+
+      ctx.fillStyle = trailGrad;
       ctx.beginPath();
-      const arcStart = -0.6 * this.player.swingDir;
-      const arcEnd = 0.6 * this.player.swingDir;
-      ctx.arc(0, 0, this.player.weapon.range, Math.min(arcStart, arcEnd), Math.max(arcStart, arcEnd));
+      ctx.moveTo(0, 0);
+      const aStart = -0.75 * this.player.swingDir;
+      const aEnd = 0.1 * this.player.swingDir;
+      ctx.arc(0, 0, this.player.weapon.range + 6, Math.min(aStart, aEnd), Math.max(aStart, aEnd));
+      ctx.closePath();
+      ctx.fill();
+
+      // Sharp edge line
+      ctx.strokeStyle = `rgba(255, 255, 255, ${arcAlpha})`;
+      ctx.lineWidth = 3;
       ctx.stroke();
+      ctx.restore();
     }
     // Weapon icon
     ctx.font = '18px sans-serif';
@@ -2237,30 +2425,65 @@ const Game = {
       ctx.fill();
     }
 
-    // Particles
+    // Shockwave Rings (Additive Luminous Rings)
+    for (const s of this.shockwaves) {
+      const progress = s.life / s.maxLife;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 4 * progress;
+      ctx.globalAlpha = progress;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.currentRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Particles (Glow Additive Blend)
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
     for (const p of this.particles) {
       ctx.fillStyle = p.color;
       ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
+    ctx.restore();
 
-    // Damage Numbers
+    // Damage Numbers with Scaling & Dynamic Alpha
     for (const d of this.damageNumbers) {
+      const alphaVal = Math.min(1.0, d.life / (d.maxLife * 0.4));
+      ctx.save();
+      ctx.globalAlpha = alphaVal;
       ctx.fillStyle = d.color;
-      ctx.font = 'bold 15px sans-serif';
+      ctx.font = '900 16px "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 4;
       ctx.fillText(d.text, d.x, d.y);
+      ctx.restore();
     }
 
     ctx.restore(); // Restore camera
+
+    // Screen Flash effect (Explosions / Big Hits)
+    if (this.flashTimer > 0) {
+      ctx.save();
+      ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(0.35, this.flashTimer * 4)})`;
+      ctx.fillRect(0, 0, this.width, this.height);
+      ctx.restore();
+    }
   },
 
   createDamageNumber(x, y, text, color) {
     this.damageNumbers.push({
-      x: x + (Math.random() * 16 - 8),
-      y: y - 10,
+      x: x + (Math.random() * 12 - 6),
+      y: y - 12,
+      vx: (Math.random() - 0.5) * 50,
+      vy: -(Math.random() * 60 + 90), // 上方向への跳ね上げ初速
       text,
       color,
-      life: 0.65 // in seconds
+      life: 0.7,
+      maxLife: 0.7,
+      scale: 1.2
     });
   },
 
