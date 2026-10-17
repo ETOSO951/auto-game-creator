@@ -537,8 +537,8 @@
       <div class="action-buttons">
         <!-- Artifact 1 -->
         <button class="btn-action" id="btn-art1" ontouchstart="Game.queueAction('art1')" onclick="Game.queueAction('art1')">
-          <span class="icon">⚡</span>
-          <span>雷撃</span>
+          <span class="icon" id="icon-art1">⚡</span>
+          <span id="name-art1">雷撃</span>
           <div class="cooldown-overlay" id="cd-art1"></div>
         </button>
 
@@ -550,8 +550,8 @@
 
         <!-- Artifact 2 (TNT / Blast) -->
         <button class="btn-action" id="btn-art2" ontouchstart="Game.queueAction('art2')" onclick="Game.queueAction('art2')">
-          <span class="icon">💣</span>
-          <span>TNT</span>
+          <span class="icon" id="icon-art2">💣</span>
+          <span id="name-art2">TNT</span>
           <div class="cooldown-overlay" id="cd-art2"></div>
         </button>
 
@@ -615,6 +615,15 @@
     <div>
       <h4 style="font-size:12px; color:#a0aec0; margin-bottom:6px;">装備中のステータス</h4>
       <div id="equip-stats" style="font-size:12px; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; line-height:1.5;"></div>
+    </div>
+    <div>
+      <h4 style="font-size:12px; color:#a0aec0; margin-bottom:6px;">アーティファクト選択</h4>
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <button class="primary-btn" style="font-size:11px; padding:6px 12px;" onclick="Game.setEquipArt(0, 'art1')">枠1:雷撃</button>
+        <button class="primary-btn" style="font-size:11px; padding:6px 12px;" onclick="Game.setEquipArt(0, 'art3')">枠1:フロスト</button>
+        <button class="primary-btn" style="font-size:11px; padding:6px 12px;" onclick="Game.setEquipArt(1, 'art2')">枠2:TNT</button>
+        <button class="primary-btn" style="font-size:11px; padding:6px 12px;" onclick="Game.setEquipArt(1, 'art4')">枠2:フェニックス</button>
+      </div>
     </div>
     <div>
       <h4 style="font-size:12px; color:#a0aec0; margin-bottom:6px;">所持品 (タップで装備切替)</h4>
@@ -828,6 +837,13 @@ const ARMORS_DB = [
   { id: 'a3', name: 'タイタンプレート', type: 'armor', maxHpBonus: 100, def: 8, rarity: 'unique', icon: '🎽', desc: '圧倒的な体力と防御力を誇る' }
 ];
 
+const ARTIFACTS_DB = [
+  { id: 'art1', name: '雷撃', icon: '⚡', cdMax: 3.0, desc: '周囲の敵に電撃を放つ' },
+  { id: 'art2', name: 'TNT', icon: '💣', cdMax: 4.5, desc: '強力な爆破を引き起こす' },
+  { id: 'art3', name: 'フロスト', icon: '❄️', cdMax: 5.0, desc: '周囲の敵の動きを凍結・減速させる' },
+  { id: 'art4', name: 'フェニックス', icon: '🔥', cdMax: 8.0, desc: '一時的に移動・攻撃速度が劇的向上' }
+];
+
 const RUNES_DB = [
   { id: 'r1', name: '烈風のルーン', icon: '💨', desc: '移動速度と攻撃速度が15%上昇する', cost: 12, type: 'passive', applied: false },
   { id: 'r2', name: '強撃のルーン', icon: '⚡', desc: '武器ダメージが+12されクリティカル率アップ', cost: 18, type: 'passive', applied: false },
@@ -952,6 +968,8 @@ const Game = {
     potions: 2,
     potionCooldown: 0,
     potionCooldownMax: 5.0,
+    art1: ARTIFACTS_DB[0],
+    art2: ARTIFACTS_DB[1],
     art1Cooldown: 0,
     art1CooldownMax: 3.0,
     art2Cooldown: 0,
@@ -1193,8 +1211,9 @@ const Game = {
     this.projectiles = [];
     this.damageNumbers = [];
     this.shockwaves = [];
+    this.hazards = [];
 
-    // バイオーム自動決定 (1-2F: cave, 3-4F: magma, 5-6F: ice, 7F+: swamp)
+    // バイオーム自動決定
     if (this.floor <= 2) this.currentBiome = { name: '通常洞窟', color: '#161922', hazard: 'none' };
     else if (this.floor <= 4) this.currentBiome = { name: '溶岩洞窟', color: '#2a1412', hazard: 'lava' };
     else if (this.floor <= 6) this.currentBiome = { name: '氷結遺構', color: '#12222a', hazard: 'ice' };
@@ -1206,6 +1225,10 @@ const Game = {
       banner.style.opacity = '1';
       setTimeout(() => { banner.style.opacity = '0'; }, 3500);
     }
+
+    // 突発フロアイベント（モンスターハウス / 祭壇生成）
+    const isMonsterHouse = Math.random() < 0.3;
+    const isAltarFloor = Math.random() < 0.25;
 
     const numRooms = 6 + Math.min(this.floor, 8);
     for (let i = 0; i < numRooms * 3; i++) {
@@ -1286,13 +1309,13 @@ const Game = {
 
     for (let i = 1; i < this.rooms.length; i++) {
       const rm = this.rooms[i];
-      const enemyCount = Math.floor(Math.random() * 3) + 2 + Math.floor(this.floor * 0.8);
+      const enemyCount = (isMonsterHouse && i === 2) ? 12 : (Math.floor(Math.random() * 3) + 2 + Math.floor(this.floor * 0.8));
       for (let j = 0; j < enemyCount; j++) {
         const ex = (rm.x + 1 + Math.random() * (rm.w - 2)) * this.tileSize;
         const ey = (rm.y + 1 + Math.random() * (rm.h - 2)) * this.tileSize;
         this.spawnEnemy(ex, ey);
       }
-      if (Math.random() < 0.6) {
+      if (Math.random() < 0.6 || (isMonsterHouse && i === 2)) {
         this.lootItems.push({
           x: rm.cx * this.tileSize,
           y: rm.cy * this.tileSize,
@@ -1300,6 +1323,34 @@ const Game = {
           opened: false
         });
       }
+      // 環境ギミック配置
+      if (this.currentBiome.hazard === 'lava' && Math.random() < 0.5) {
+        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize + 20, type: 'lava', radius: 24 });
+      } else if (this.currentBiome.hazard === 'poison' && Math.random() < 0.5) {
+        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize, type: 'poison', radius: 28 });
+      }
+    }
+
+    // 祭壇の配置
+    if (isAltarFloor && this.rooms.length >= 3) {
+      const altarRoom = this.rooms[1];
+      this.lootItems.push({
+        x: altarRoom.cx * this.tileSize,
+        y: altarRoom.cy * this.tileSize,
+        type: 'altar',
+        interacted: false
+      });
+    }
+
+    // 行商人の配置（3階層ごと）
+    if (this.floor % 3 === 1 && this.rooms.length >= 4) {
+      const merchRoom = this.rooms[2];
+      this.lootItems.push({
+        x: merchRoom.cx * this.tileSize,
+        y: merchRoom.cy * this.tileSize,
+        type: 'merchant',
+        interacted: false
+      });
     }
 
     if (this.floor % 3 === 0) {
@@ -1381,9 +1432,10 @@ const Game = {
       radius: 32,
       hp: Math.floor(300 * hpScale),
       maxHp: Math.floor(300 * hpScale),
-      speed: 84, // px per second
+      speed: 84,
       damage: 24,
       shootCd: 0,
+      phase: 1, // マルチフェーズ
       kbX: 0, kbY: 0,
       color: '#e74c3c'
     });
@@ -1978,6 +2030,16 @@ const Game = {
       const dy = this.player.y - e.y;
       const dist = Math.hypot(dx, dy);
 
+      // ボスのマルチフェーズ移行判定 (HP 50%以下で狂暴化フェーズ2)
+      if (e.type === 'boss' && e.phase === 1 && e.hp <= e.maxHp * 0.5) {
+        e.phase = 2;
+        e.speed *= 1.35;
+        e.damage = Math.floor(e.damage * 1.3);
+        this.emitToast('ボスが狂暴化した！弾幕強化！');
+        this.shakeIntensity = 18;
+        this.shakeDuration = 0.4;
+      }
+
       let moveX = e.kbX * dt;
       let moveY = e.kbY * dt;
 
@@ -2054,6 +2116,24 @@ const Game = {
         }
       }
 
+      // ボスのフェーズ2弾幕攻撃
+      if (e.type === 'boss' && e.phase === 2 && dist < 320) {
+        e.shootCd = (e.shootCd || 0) + dt;
+        if (e.shootCd > 1.8) {
+          e.shootCd = 0;
+          for (let i = 0; i < 4; i++) {
+            const ang = (Math.PI / 2) * i + performance.now() * 0.001;
+            this.projectiles.push({
+              x: e.x, y: e.y,
+              prevX: e.x, prevY: e.y,
+              vx: Math.cos(ang) * 220, vy: Math.sin(ang) * 220,
+              radius: 5, damage: Math.floor(e.damage * 0.8),
+              color: '#e74c3c', fromPlayer: false
+            });
+          }
+        }
+      }
+
       // 敵もX/Y軸分離移動でスタックを排除
       e.x += moveX;
       this.resolveCircleWallCollisions(e, 'x');
@@ -2090,6 +2170,16 @@ const Game = {
   },
 
   updateLootAndInteractables(dt) {
+    // 環境ハザード接触判定 (溶岩・毒沼)
+    if (this.hazards) {
+      for (const h of this.hazards) {
+        if (Math.hypot(this.player.x - h.x, this.player.y - h.y) < h.radius) {
+          if (h.type === 'lava') this.damagePlayer(4);
+          else if (h.type === 'poison') this.damagePlayer(2);
+        }
+      }
+    }
+
     for (const item of this.lootItems) {
       const dist = Math.hypot(item.x - this.player.x, item.y - this.player.y);
 
@@ -2108,6 +2198,22 @@ const Game = {
         this.emitToast(`${item.item.name} を手に入れた！`);
         item.dead = true;
         if (this.state === 'INVENTORY') this.renderInventory();
+      } else if (item.type === 'merchant' && !item.interacted && dist < 40) {
+        item.interacted = true;
+        if (this.emeralds >= 10) {
+          this.emeralds -= 10;
+          this.player.potions = Math.min(3, this.player.potions + 1);
+          this.emitToast('商人からポーションを補充した！(-10◆)');
+        } else {
+          this.emitToast('エメラルドが足りない…');
+        }
+      } else if (item.type === 'altar' && !item.interacted && dist < 40) {
+        item.interacted = true;
+        if (this.player.hp > 30) {
+          this.player.hp -= 30;
+          this.gainXp(100);
+          this.emitToast('祭壇にHPを捧げ、多大なXPを得た！');
+        }
       }
     }
   },
@@ -2463,6 +2569,16 @@ const Game = {
       }
     }
 
+    // 環境ハザード描画
+    if (this.hazards) {
+      for (const h of this.hazards) {
+        ctx.fillStyle = h.type === 'lava' ? 'rgba(231, 76, 60, 0.45)' : 'rgba(46, 204, 113, 0.4);';
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
     // Loot Items (Floating Bobbing Motion & Dynamic Aura)
     const timeSec = performance.now() * 0.003;
     for (const item of this.lootItems) {
@@ -2473,6 +2589,20 @@ const Game = {
         ctx.fillRect(item.x - 14, item.y - 12, 28, 24);
         ctx.fillStyle = '#f1c40f';
         ctx.fillRect(item.x - 4, item.y - 4, 8, 8);
+      } else if (item.type === 'merchant') {
+        ctx.fillStyle = '#f39c12';
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('商', item.x, item.y + 4);
+      } else if (item.type === 'altar') {
+        ctx.fillStyle = '#9b59b6';
+        ctx.fillRect(item.x - 12, item.y - 12, 24, 24);
+        ctx.fillStyle = '#fff';
+        ctx.fillText('祭', item.x, item.y + 4);
       } else if (item.type === 'emerald') {
         const ey = item.y + bobY;
         // Shadow underneath
@@ -2895,6 +3025,21 @@ const Game = {
     if (c.healCdRatio !== healRatio) {
       c.healCdRatio = healRatio;
       document.getElementById('cd-heal').style.transform = `scaleY(${healRatio})`;
+    }
+  },
+
+  setEquipArt(slotIndex, artId) {
+    const found = ARTIFACTS_DB.find(a => a.id === artId);
+    if (found) {
+      if (slotIndex === 0) {
+        this.player.art1 = found;
+        this.player.art1CooldownMax = found.cdMax;
+      } else {
+        this.player.art2 = found;
+        this.player.art2CooldownMax = found.cdMax;
+      }
+      this.updateHUD();
+      this.emitToast(`${found.name} を装備した！`);
     }
   },
 
