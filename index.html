@@ -6,17 +6,18 @@
 <title>BLOCK DUNGEONS: HACK & SLASH</title>
 <style>
   :root {
-    --bg-dark: #0a0c13;
-    --panel-bg: rgba(16, 20, 32, 0.78);
-    --panel-border: rgba(229, 184, 92, 0.3);
-    --border-gold: #e5b85c;
-    --rare-common: #95a5a6;
-    --rare-rare: #3498db;
+    --bg-dark: #07090e;
+    --panel-bg: rgba(14, 18, 28, 0.72);
+    --panel-border: rgba(229, 184, 92, 0.22);
+    --border-gold: #f0c265;
+    --rare-common: #a0aab2;
+    --rare-rare: #4aa3df;
     --rare-unique: #f39c12;
     --accent: #2ecc71;
-    --hp-red: #e74c3c;
-    --xp-green: #2ecc71;
-    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --hp-red: #ff4757;
+    --xp-green: #2ed573;
+    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   * {
@@ -79,21 +80,22 @@
   }
 
   .stats-card {
-    background: linear-gradient(145deg, rgba(20, 26, 42, 0.85), rgba(12, 16, 26, 0.92));
-    border: 1px solid rgba(229, 184, 92, 0.25);
-    border-radius: 16px;
-    padding: 11px 16px;
-    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: linear-gradient(135deg, rgba(22, 28, 44, 0.82), rgba(10, 14, 22, 0.9));
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    padding: 12px 18px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     display: flex;
     flex-direction: column;
-    gap: 7px;
-    min-width: 195px;
-    transition: transform 0.3s var(--ease-spring), border-color 0.3s ease;
+    gap: 8px;
+    min-width: 200px;
+    transition: transform 0.3s var(--ease-spring), border-color 0.3s ease, box-shadow 0.3s ease;
   }
   .stats-card:hover {
-    border-color: rgba(229, 184, 92, 0.5);
+    border-color: rgba(229, 184, 92, 0.45);
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.75), 0 0 20px rgba(229, 184, 92, 0.1);
   }
 
   .bar-container {
@@ -234,7 +236,7 @@
     height: 62px;
     border-radius: 50%;
     background: var(--panel-bg);
-    border: 1.5px solid rgba(255,255,255,0.2);
+    border: 1.5px solid rgba(255,255,255,0.18);
     color: #fff;
     display: flex;
     flex-direction: column;
@@ -242,33 +244,39 @@
     align-items: center;
     font-size: 10px;
     font-weight: 800;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.15);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     touch-action: manipulation;
     position: relative;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.15s var(--ease-spring), border-color 0.2s ease;
+    transition: transform 0.18s var(--ease-spring), border-color 0.25s ease, box-shadow 0.25s ease;
   }
-  .btn-action:active { transform: scale(0.88); }
-  .btn-action .icon { font-size: 20px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+  .btn-action:active { transform: scale(0.86); }
+  .btn-action .icon { font-size: 20px; line-height: 1; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6)); transition: transform 0.2s var(--ease-spring); }
+  .btn-action:active .icon { transform: scale(1.15); }
   .btn-action.attack-btn {
     width: 76px;
     height: 76px;
-    background: linear-gradient(135deg, rgba(231, 76, 60, 0.95), rgba(192, 57, 43, 0.95));
-    border-color: rgba(255, 118, 117, 0.8);
+    background: linear-gradient(135deg, rgba(255, 71, 87, 0.95), rgba(214, 48, 49, 0.95));
+    border-color: rgba(255, 118, 117, 0.85);
     grid-column: 2;
     grid-row: 1 / span 2;
-    box-shadow: 0 8px 28px rgba(231, 76, 60, 0.45);
+    box-shadow: 0 10px 32px rgba(255, 71, 87, 0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  .btn-action.attack-btn:hover {
+    box-shadow: 0 12px 38px rgba(255, 71, 87, 0.65), inset 0 1px 0 rgba(255,255,255,0.4);
   }
   .btn-action .cooldown-overlay {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.7);
+    background: rgba(6, 8, 14, 0.78);
+    backdrop-filter: blur(4px);
     transform-origin: bottom;
     transform: scaleY(0);
     pointer-events: none;
-    transition: transform 0.1s linear;
+    transition: transform 0.1s cubic-bezier(0, 0, 0.2, 1);
   }
 
   /* Modals */
@@ -655,72 +663,74 @@ const Sound = {
       const dest = this.getOutputNode(x, y);
       if (!dest) return;
 
-      // 自然なピッチ微ランダム化 (±4%のピッチ変調)
-      const pitchMod = 0.96 + Math.random() * 0.08;
+      // ±5%の自然なピッチ変調で耳への圧迫感を低減
+      const pitchMod = 0.95 + Math.random() * 0.1;
 
       if (type === 'hit') {
-        // 重低音サブバス衝撃音
+        // 1. サブベース（密度の高い重低音）
         const subOsc = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
         subOsc.type = 'sine';
-        subOsc.frequency.setValueAtTime(180 * pitchMod, t);
-        subOsc.frequency.exponentialRampToValueAtTime(18, t + 0.24);
-        subGain.gain.setValueAtTime(0.7, t);
-        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+        subOsc.frequency.setValueAtTime(220 * pitchMod, t);
+        subOsc.frequency.exponentialRampToValueAtTime(22, t + 0.28);
+        subGain.gain.setValueAtTime(0.75, t);
+        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
         subOsc.connect(subGain);
         subGain.connect(dest);
         subOsc.start(t);
-        subOsc.stop(t + 0.24);
+        subOsc.stop(t + 0.28);
 
-        // 金属的衝撃クラッシュ
+        // 2. 金属的インパクトクラッシュ（ノイズ＋バンドパス）
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
           const nFilter = this.ctx.createBiquadFilter();
           const nGain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
-          nFilter.type = 'lowpass';
-          nFilter.frequency.setValueAtTime(1900 * pitchMod, t);
-          nFilter.frequency.exponentialRampToValueAtTime(100, t + 0.16);
-          nGain.gain.setValueAtTime(0.5, t);
-          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+          nFilter.type = 'bandpass';
+          nFilter.frequency.setValueAtTime(2400 * pitchMod, t);
+          nFilter.frequency.exponentialRampToValueAtTime(120, t + 0.18);
+          nFilter.Q.value = 2.2;
+          nGain.gain.setValueAtTime(0.6, t);
+          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
           noise.connect(nFilter);
           nFilter.connect(nGain);
           nGain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.16);
+          noise.stop(t + 0.18);
         }
       } else if (type === 'slash') {
-        // 鋭い風切り音＋刃の摩擦音
+        // 鋭い刃物の風切り音（2段階ハイパス/バンドパスフィルター）
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
           const filter = this.ctx.createBiquadFilter();
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(2800 * pitchMod, t);
-          filter.frequency.exponentialRampToValueAtTime(240, t + 0.15);
-          filter.Q.value = 5.0;
-          gain.gain.setValueAtTime(0.38, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+          filter.frequency.setValueAtTime(3600 * pitchMod, t);
+          filter.frequency.exponentialRampToValueAtTime(300, t + 0.14);
+          filter.Q.value = 6.0;
+          gain.gain.setValueAtTime(0.42, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
           noise.connect(filter);
           filter.connect(gain);
           gain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.15);
+          noise.stop(t + 0.14);
         }
       } else if (type === 'coin') {
-        const freqs = [1046.5, 1318.51, 1567.98, 2093.00];
+        // クリスタル感あふれるアルペジオ＆倍音
+        const freqs = [1046.5, 1318.51, 1567.98, 2093.00, 2637.02];
         freqs.forEach((f, i) => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(f * pitchMod, t + i * 0.035);
-          gain.gain.setValueAtTime(0.22, t + i * 0.035);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.035 + 0.28);
+          osc.frequency.setValueAtTime(f * pitchMod, t + i * 0.03);
+          gain.gain.setValueAtTime(0.24, t + i * 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.03 + 0.32);
           osc.connect(gain);
           gain.connect(dest);
-          osc.start(t + i * 0.035);
-          osc.stop(t + i * 0.035 + 0.28);
+          osc.start(t + i * 0.03);
+          osc.stop(t + i * 0.03 + 0.32);
         });
       } else if (type === 'explosion') {
         if (this.noiseBuffer) {
@@ -729,27 +739,27 @@ const Sound = {
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(2200 * pitchMod, t);
-          filter.frequency.exponentialRampToValueAtTime(15, t + 0.65);
-          gain.gain.setValueAtTime(0.85, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+          filter.frequency.setValueAtTime(2800 * pitchMod, t);
+          filter.frequency.exponentialRampToValueAtTime(20, t + 0.72);
+          gain.gain.setValueAtTime(0.9, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.72);
           noise.connect(filter);
           filter.connect(gain);
           gain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.65);
+          noise.stop(t + 0.72);
         }
         const sub = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
-        sub.type = 'sine';
-        sub.frequency.setValueAtTime(160 * pitchMod, t);
-        sub.frequency.exponentialRampToValueAtTime(6, t + 0.6);
-        subGain.gain.setValueAtTime(0.8, t);
-        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+        sub.type = 'triangle';
+        sub.frequency.setValueAtTime(180 * pitchMod, t);
+        sub.frequency.exponentialRampToValueAtTime(10, t + 0.68);
+        subGain.gain.setValueAtTime(0.85, t);
+        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.68);
         sub.connect(subGain);
         subGain.connect(dest);
         sub.start(t);
-        sub.stop(t + 0.6);
+        sub.stop(t + 0.68);
       } else if (type === 'thunder') {
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
@@ -757,30 +767,30 @@ const Sound = {
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(4600 * pitchMod, t);
-          filter.frequency.exponentialRampToValueAtTime(100, t + 0.42);
-          filter.Q.value = 2.8;
-          gain.gain.setValueAtTime(0.6, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+          filter.frequency.setValueAtTime(5200 * pitchMod, t);
+          filter.frequency.exponentialRampToValueAtTime(80, t + 0.45);
+          filter.Q.value = 3.5;
+          gain.gain.setValueAtTime(0.65, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
           noise.connect(filter);
           filter.connect(gain);
           gain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.42);
+          noise.stop(t + 0.45);
         }
       } else if (type === 'level') {
         const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
         notes.forEach((f, i) => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(f * pitchMod, t + i * 0.055);
-          gain.gain.setValueAtTime(0.3, t + i * 0.055);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.055 + 0.48);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f * pitchMod, t + i * 0.05);
+          gain.gain.setValueAtTime(0.32, t + i * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.05 + 0.52);
           osc.connect(gain);
           gain.connect(dest);
-          osc.start(t + i * 0.055);
-          osc.stop(t + i * 0.055 + 0.48);
+          osc.start(t + i * 0.05);
+          osc.stop(t + i * 0.05 + 0.52);
         });
       }
     } catch (e) {}
@@ -2310,34 +2320,35 @@ const Game = {
         const type = this.map[r][c];
 
         if (type === 1) { // Wall block (3D Depth & Lighted Texture)
-          ctx.fillStyle = '#1a1e29';
+          ctx.fillStyle = '#141824';
           ctx.fillRect(x, y, this.tileSize, this.tileSize);
           // Top face with subtle gradient
-          const topGrad = ctx.createLinearGradient(x, y, x, y + this.tileSize - 6);
-          topGrad.addColorStop(0, '#3a445a');
-          topGrad.addColorStop(1, '#272e3d');
+          const topGrad = ctx.createLinearGradient(x, y, x, y + this.tileSize - 7);
+          topGrad.addColorStop(0, '#384259');
+          topGrad.addColorStop(1, '#242a38');
           ctx.fillStyle = topGrad;
-          ctx.fillRect(x, y, this.tileSize, this.tileSize - 6);
+          ctx.fillRect(x, y, this.tileSize, this.tileSize - 7);
           // Bevel highlight
-          ctx.fillStyle = 'rgba(255,255,255,0.12)';
+          ctx.fillStyle = 'rgba(255,255,255,0.15)';
           ctx.fillRect(x, y, this.tileSize, 2);
-          ctx.fillStyle = 'rgba(0,0,0,0.3)';
-          ctx.fillRect(x, y + this.tileSize - 6, this.tileSize, 6);
-          ctx.strokeStyle = '#0f121a';
+          ctx.fillRect(x, y, 2, this.tileSize - 7);
+          ctx.fillStyle = 'rgba(0,0,0,0.4)';
+          ctx.fillRect(x, y + this.tileSize - 7, this.tileSize, 7);
+          ctx.strokeStyle = '#0c0f17';
           ctx.strokeRect(x, y, this.tileSize, this.tileSize);
         } else { // Ground with subtle Ambient Occlusion
-          ctx.fillStyle = (r + c) % 2 === 0 ? '#181b24' : '#141720';
+          ctx.fillStyle = (r + c) % 2 === 0 ? '#161922' : '#12141c';
           ctx.fillRect(x, y, this.tileSize, this.tileSize);
           
           // Shadow from adjacent walls (Simulated AO)
           if (r > 0 && this.map[r - 1][c] === 1) {
-            const aoGrad = ctx.createLinearGradient(x, y, x, y + 12);
-            aoGrad.addColorStop(0, 'rgba(0,0,0,0.45)');
+            const aoGrad = ctx.createLinearGradient(x, y, x, y + 16);
+            aoGrad.addColorStop(0, 'rgba(0,0,0,0.55)');
             aoGrad.addColorStop(1, 'rgba(0,0,0,0)');
             ctx.fillStyle = aoGrad;
-            ctx.fillRect(x, y, this.tileSize, 12);
+            ctx.fillRect(x, y, this.tileSize, 16);
           }
-          ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+          ctx.strokeStyle = 'rgba(255,255,255,0.025)';
           ctx.strokeRect(x, y, this.tileSize, this.tileSize);
         }
 
@@ -2593,15 +2604,15 @@ const Game = {
 
     // --- Dynamic Ambient Lighting Layer with Light Flicker & Deep Vignette ---
     ctx.save();
-    const flicker = Math.sin(timeSec * 14) * 12 + Math.cos(timeSec * 27) * 8;
-    const lightRadius = Math.max(200, 280 + flicker + (this.flashTimer > 0 ? 140 : 0));
+    const flicker = Math.sin(timeSec * 16) * 10 + Math.cos(timeSec * 31) * 6;
+    const lightRadius = Math.max(220, 300 + flicker + (this.flashTimer > 0 ? 160 : 0));
     
     // Dynamic Flicker Light Source Glow
-    const lightGrad = ctx.createRadialGradient(px, py, 20, px, py, lightRadius);
+    const lightGrad = ctx.createRadialGradient(px, py, 15, px, py, lightRadius);
     lightGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    lightGrad.addColorStop(0.45, 'rgba(8, 11, 20, 0.38)');
-    lightGrad.addColorStop(0.85, 'rgba(6, 8, 14, 0.82)');
-    lightGrad.addColorStop(1, 'rgba(4, 5, 10, 0.94)');
+    lightGrad.addColorStop(0.4, 'rgba(7, 10, 18, 0.32)');
+    lightGrad.addColorStop(0.82, 'rgba(5, 7, 12, 0.84)');
+    lightGrad.addColorStop(1, 'rgba(3, 4, 8, 0.96)');
 
     ctx.fillStyle = lightGrad;
     ctx.fillRect(
