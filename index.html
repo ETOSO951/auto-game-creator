@@ -866,6 +866,25 @@ const Game = {
     });
   },
 
+  resetVolatileStates() {
+    // 状態遷移時に残留した入力・遅延タスク・キューを完全に初期化
+    this.delayedTasks.length = 0;
+    this.eventQueue.sounds.length = 0;
+    this.eventQueue.toasts.length = 0;
+    this.eventQueue.stateChange = null;
+    this.inputState.attackQueued = false;
+    this.inputState.art1Queued = false;
+    this.inputState.art2Queued = false;
+    this.inputState.healQueued = false;
+    this.player.attackBuffer = 0;
+    this.player.attackSwing = 0;
+    this.player.activeAttack = null;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.hitstopTimer = 0;
+    this.accumulator = 0;
+  },
+
   start() {
     Sound.init();
     document.getElementById('start-screen').style.display = 'none';
@@ -878,6 +897,7 @@ const Game = {
     this.player.weapon = WEAPONS_DB[0];
     this.player.armor = ARMORS_DB[0];
     this.player.inventory = [WEAPONS_DB[0], ARMORS_DB[0]];
+    this.resetVolatileStates();
     this.recalcStats();
     this.player.hp = this.player.maxHp;
     this.generateFloor();
@@ -897,6 +917,7 @@ const Game = {
     this.floor++;
     this.player.potions = Math.min(this.player.potions + 1, 3);
     this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.maxHp * 0.5);
+    this.resetVolatileStates();
     this.generateFloor();
     this.state = 'PLAYING';
     this.running = true;
@@ -1146,27 +1167,29 @@ const Game = {
     }
 
     const w = this.player.weapon;
-    const cooldownSec = Math.max(0.18, 0.48 / w.speed);
-    this.player.attackCooldown = cooldownSec;
-    this.player.attackSwing = this.player.attackSwingDuration;
+    const totalDuration = Math.max(0.18, 0.24 / Math.sqrt(w.speed));
+    this.player.attackSwingDuration = totalDuration;
+    this.player.attackCooldown = Math.max(0.2, 0.48 / w.speed);
+    this.player.attackSwing = totalDuration;
     this.player.swingDir *= -1;
 
     // 攻撃時のキレのある前進ステップイン（踏み込み慣性）
-    const stepPower = 150;
+    const stepPower = 160;
     this.player.vx = Math.cos(this.player.angle) * stepPower;
     this.player.vy = Math.sin(this.player.angle) * stepPower;
 
     this.emitSound('slash');
 
-    // スイング中央フレームに厳密同期させたアクティブ攻撃判定
+    // 攻撃ライフサイクル（予備動作 -> アクティブ薙ぎ払い -> フォロースルー）の三相定義
     this.player.activeAttack = {
       timer: 0,
-      duration: this.player.attackSwingDuration,
-      hitTriggerTime: this.player.attackSwingDuration * 0.38,
+      duration: totalDuration,
+      windupTime: totalDuration * 0.2,
+      activeEndTime: totalDuration * 0.7,
       hasHit: false,
       angle: this.player.angle,
       range: w.range,
-      halfFov: Math.PI * 0.42, // 約75度の扇形半角
+      halfFov: Math.PI * 0.45,
       weapon: w
     };
   },
@@ -1360,6 +1383,7 @@ const Game = {
   },
 
   die() {
+    this.resetVolatileStates();
     this.state = 'GAME_OVER';
     this.running = false;
     document.getElementById('game-over-stats').innerHTML = `
@@ -1589,11 +1613,11 @@ const Game = {
     if (this.player.attackSwing > 0) this.player.attackSwing = Math.max(0, this.player.attackSwing - dt);
     if (this.player.invincibleTimer > 0) this.player.invincibleTimer = Math.max(0, this.player.invincibleTimer - dt);
 
-    // アクティブ攻撃判定の進行
+    // アクティブ攻撃判定の進行（フェーズ完全同期）
     if (this.player.activeAttack) {
       const atk = this.player.activeAttack;
       atk.timer += dt;
-      if (!atk.hasHit && atk.timer >= atk.hitTriggerTime) {
+      if (!atk.hasHit && atk.timer >= atk.windupTime && atk.timer <= atk.activeEndTime) {
         atk.hasHit = true;
         this.performAttackCheck(atk);
       }
@@ -1831,7 +1855,7 @@ const Game = {
     return false;
   },
 
-  // 高精度な円コライダー vs タイルAABBの貫通解消（凸角コーナースライド補正付き）
+  // 高精度な円コライダー vs タイルAABBの貫通解消（ベクトル射影コーナースライド付き）
   resolveCircleWallCollisions(entity, axis = 'both') {
     const r = entity.radius;
     const minCol = Math.max(0, Math.floor((entity.x - r - 2) / this.tileSize));
@@ -1861,37 +1885,45 @@ const Game = {
               const nx = diffX / dist;
               const ny = diffY / dist;
 
-              // コーナースライド補正: 速度ベクトルの法線成分を除去し、接線方向へ逃がす
+              // 壁面および凸角に対する速度ベクトルの滑らかな接線射影 (Wall Sliding)
               if (entity.vx !== undefined && entity.vy !== undefined) {
                 const dot = entity.vx * nx + entity.vy * ny;
                 if (dot < 0) {
                   entity.vx -= dot * nx;
                   entity.vy -= dot * ny;
+                  // コーナー接触時の回り込み推力アシスト（引っ掛かりの完全解消）
+                  const isCorner = (nearestX === tileLeft || nearestX === tileRight) &&
+                                   (nearestY === tileTop || nearestY === tileBottom);
+                  if (isCorner) {
+                    const tangentX = -ny;
+                    const tangentY = nx;
+                    const tanDot = entity.vx * tangentX + entity.vy * tangentY;
+                    const slideSpeed = Math.hypot(entity.vx, entity.vy);
+                    if (slideSpeed > 10) {
+                      const dir = tanDot >= 0 ? 1 : -1;
+                      entity.vx = tangentX * dir * slideSpeed;
+                      entity.vy = tangentY * dir * slideSpeed;
+                    }
+                  }
                 }
               }
 
               if (axis === 'x') {
-                entity.x += Math.sign(diffX || 1) * overlap;
-                if (entity.vx !== undefined && Math.sign(entity.vx) === -Math.sign(diffX)) {
-                  entity.vx = 0;
-                }
+                entity.x += nx * overlap;
               } else if (axis === 'y') {
-                entity.y += Math.sign(diffY || 1) * overlap;
-                if (entity.vy !== undefined && Math.sign(entity.vy) === -Math.sign(diffY)) {
-                  entity.vy = 0;
-                }
+                entity.y += ny * overlap;
               } else {
                 entity.x += nx * overlap;
                 entity.y += ny * overlap;
               }
             } else {
-              // 重心完全一致時のフォールバック押し出し
+              // 重心完全一致時の安全なフォールバック
               const centerX = (tileLeft + tileRight) * 0.5;
               const centerY = (tileTop + tileBottom) * 0.5;
-              const pushDirX = entity.x >= centerX ? 1 : -1;
-              const pushDirY = entity.y >= centerY ? 1 : -1;
-              if (axis === 'x' || axis === 'both') entity.x += pushDirX * r;
-              if (axis === 'y' || axis === 'both') entity.y += pushDirY * r;
+              const pushX = entity.x >= centerX ? 1 : -1;
+              const pushY = entity.y >= centerY ? 1 : -1;
+              if (axis === 'x' || axis === 'both') entity.x += pushX * r;
+              if (axis === 'y' || axis === 'both') entity.y += pushY * r;
             }
           }
         }
@@ -2091,9 +2123,9 @@ const Game = {
       ctx.ellipse(ex, ey + e.radius - 2, e.radius, e.radius * 0.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Body (Minecraft block head style)
+      // Body (Minecraft block head style - 円形コライダー直径と正確に一致)
       ctx.fillStyle = (e.type === 'creeper' && Math.floor(e.fuse * 12) % 2 === 1) ? '#fff' : e.color;
-      const size = e.radius * 1.8;
+      const size = e.radius * 2;
       ctx.fillRect(ex - size / 2, ey - size / 2, size, size);
 
       // Face/Eyes
@@ -2152,16 +2184,19 @@ const Game = {
     ctx.rotate(this.player.angle);
     if (this.player.attackSwing > 0) {
       const progress = 1 - (this.player.attackSwing / this.player.attackSwingDuration);
-      // Sinusoidal swing curve from -0.7 to +0.7 rad
-      const swingOffset = (Math.sin(progress * Math.PI) - 0.5) * 1.5 * this.player.swingDir;
+      // 予備動作〜インパクト〜後隙を忠実に表現するイージングスイング
+      const swingAngleSpan = 1.6; // 約92度
+      const swingOffset = ((progress - 0.5) * swingAngleSpan) * this.player.swingDir;
       ctx.rotate(swingOffset);
 
-      // Slash visual arc with dynamic intensity
-      const arcAlpha = Math.sin(progress * Math.PI) * 0.75;
-      ctx.strokeStyle = `rgba(255, 255, 255, ${arcAlpha})`;
-      ctx.lineWidth = 3;
+      // 判定アクティブ時間帯に最大輝度となる斬撃アーク
+      const arcAlpha = Math.sin(progress * Math.PI);
+      ctx.strokeStyle = `rgba(255, 255, 255, ${arcAlpha * 0.85})`;
+      ctx.lineWidth = 3.5;
       ctx.beginPath();
-      ctx.arc(0, 0, this.player.weapon.range, -0.6, 0.6);
+      const arcStart = -0.6 * this.player.swingDir;
+      const arcEnd = 0.6 * this.player.swingDir;
+      ctx.arc(0, 0, this.player.weapon.range, Math.min(arcStart, arcEnd), Math.max(arcStart, arcEnd));
       ctx.stroke();
     }
     // Weapon icon
