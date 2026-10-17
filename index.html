@@ -1394,6 +1394,17 @@ const Game = {
       }, 3200);
     }
 
+    // バイオーム切替時のシームレスな移行エフェクト（オーロラや炎の色彩フェード）
+    const overlay = document.getElementById('biome-transition-overlay');
+    if (overlay) {
+      const biomeColor = this.currentBiome.color || '#161922';
+      overlay.style.background = `radial-gradient(circle at center, ${biomeColor} 0%, rgba(5,7,14,0.95) 100%)`;
+      overlay.style.opacity = '0.85';
+      setTimeout(() => {
+        overlay.style.opacity = '0';
+      }, 600);
+    }
+
     // 突発フロアイベント（モンスターハウス / 祭壇生成）
     const isMonsterHouse = Math.random() < 0.3;
     const isAltarFloor = Math.random() < 0.25;
@@ -1991,18 +2002,22 @@ const Game = {
     const statsEl = document.getElementById('game-over-stats');
     statsEl.style.opacity = '0';
     statsEl.innerHTML = `
-      <div style="font-size:12px; line-height:1.9; color:#e2e8f0; transform: translateY(16px); transition: transform 0.6s var(--ease-spring), opacity 0.6s ease; display:flex; flex-direction:column; gap:4px;">
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px;"><span>👑 到達階層</span><b style="color:#ffd166;">第 ${this.floor} 階層</b></div>
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px;"><span>⚔️ 討伐モンスター</span><b style="color:#ff6b6b;">${this.killCount} 体</b></div>
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px;"><span>💎 獲得エメラルド</span><b style="color:#2ecc71;">${this.emeralds} ◆</b></div>
-        <div style="display:flex; justify-content:space-between;"><span>✨ 最終到達レベル</span><b style="color:#3498db;">Lv.${this.player.level}</b></div>
+      <div style="font-size:12px; line-height:1.9; color:#e2e8f0; transform: translateY(20px); transition: transform 0.7s var(--ease-spring), opacity 0.7s ease; display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px; opacity:0; transform:translateX(-10px); transition: all 0.4s ease 0.1s;" class="stat-row"><span>👑 到達階層</span><b style="color:#ffd166;">第 ${this.floor} 階層</b></div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px; opacity:0; transform:translateX(-10px); transition: all 0.4s ease 0.25s;" class="stat-row"><span>⚔️ 討伐モンスター</span><b style="color:#ff6b6b;">${this.killCount} 体</b></div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px; opacity:0; transform:translateX(-10px); transition: all 0.4s ease 0.4s;" class="stat-row"><span>💎 獲得エメラルド</span><b style="color:#2ecc71;">${this.emeralds} ◆</b></div>
+        <div style="display:flex; justify-content:space-between; opacity:0; transform:translateX(-10px); transition: all 0.4s ease 0.55s;" class="stat-row"><span>✨ 最終到達レベル</span><b style="color:#3498db;">Lv.${this.player.level}</b></div>
       </div>
     `;
     document.getElementById('game-over-screen').style.display = 'flex';
     setTimeout(() => {
       statsEl.style.opacity = '1';
       statsEl.firstElementChild.style.transform = 'translateY(0)';
-    }, 80);
+      document.querySelectorAll('.stat-row').forEach(row => {
+        row.style.opacity = '1';
+        row.style.transform = 'translateX(0)';
+      });
+    }, 100);
   },
 
   gainXp(amount) {
@@ -2069,7 +2084,7 @@ const Game = {
       });
     }
 
-    // Equipment Drop Chance
+    // Equipment Drop Chance with High-Rarity Impact Frame & Luminous Flash
     const equipChance = isBoss ? 1.0 : 0.16;
     if (Math.random() < equipChance) {
       const pool = Math.random() < 0.6 ? WEAPONS_DB : ARMORS_DB;
@@ -2079,6 +2094,14 @@ const Game = {
         type: 'equipment',
         item: item
       });
+
+      if (item.rarity === 'unique') {
+        this.shakeIntensity = Math.max(this.shakeIntensity, 12);
+        this.shakeDuration = Math.max(this.shakeDuration, 0.22);
+        this.flashTimer = 0.08;
+        this.flashColor = 'rgba(243, 156, 18, ';
+        this.emitToast(`★ 伝説のレジェンダリーアイテム【${item.name}】がドロップした！`);
+      }
     }
   },
 
