@@ -832,7 +832,9 @@ const WEAPONS_DB = [
   { id: 'w2', name: '大槌ハンマー', type: 'weapon', dmg: 32, range: 58, speed: 0.65, rarity: 'rare', icon: '🔨', desc: '重いが広範囲を薙ぎ払う' },
   { id: 'w3', name: '影のダガー', type: 'weapon', dmg: 12, range: 38, speed: 1.6, rarity: 'rare', icon: '🔪', desc: '手数が多く機動力に優れる' },
   { id: 'w4', name: '太陽のクレイモア', type: 'weapon', dmg: 48, range: 66, speed: 0.8, rarity: 'unique', icon: '⚔️', desc: '火炎を纏う伝説の大剣 (高火力)' },
-  { id: 'w5', name: '死神の鎌', type: 'weapon', dmg: 38, range: 62, speed: 1.1, rarity: 'unique', icon: '⛏️', desc: '魂を狩り攻撃時に僅かにHP回復' }
+  { id: 'w5', name: '死神の鎌', type: 'weapon', dmg: 38, range: 62, speed: 1.1, rarity: 'unique', icon: '⛏️', desc: '魂を狩り攻撃時に僅かにHP回復' },
+  { id: 'w6', name: 'ネザー・カタナ', type: 'weapon', dmg: 56, range: 52, speed: 1.3, rarity: 'unique', icon: '🔥', desc: '灼熱の業火を纏う伝説の太刀' },
+  { id: 'w7', name: 'フロスト・バスター', type: 'weapon', dmg: 44, range: 60, speed: 0.95, rarity: 'unique', icon: '❄️', desc: '氷結のオーラで敵の動きを縛る' }
 ];
 
 const ARMORS_DB = [
@@ -1218,12 +1220,11 @@ const Game = {
     this.shockwaves = [];
     this.hazards = [];
 
-    // バイオーム自動決定（通常洞窟・マグマ神殿・古代遺跡・毒沼迷宮・氷結遺構）
+    // 4大属性バイオームの拡張（通常洞窟・灼熱のネザー神殿・深海の凍てつく海底洞窟・不気味な暗黒要塞）
     if (this.floor <= 2) this.currentBiome = { name: '通常洞窟', color: '#161922', hazard: 'none' };
-    else if (this.floor <= 4) this.currentBiome = { name: 'マグマ神殿', color: '#2a1412', hazard: 'lava' };
-    else if (this.floor <= 6) this.currentBiome = { name: '古代遺跡', color: '#1c182a', hazard: 'spikes' };
-    else if (this.floor <= 8) this.currentBiome = { name: '毒沼迷宮', color: '#142a18', hazard: 'poison' };
-    else this.currentBiome = { name: '氷結遺構', color: '#12222a', hazard: 'ice' };
+    else if (this.floor <= 4) this.currentBiome = { name: '灼熱のネザー神殿', color: '#2a1412', hazard: 'lava' };
+    else if (this.floor <= 7) this.currentBiome = { name: '深海の凍てつく海底洞窟', color: '#12222a', hazard: 'ice' };
+    else this.currentBiome = { name: '不気味な暗黒要塞', color: '#1c182a', hazard: 'spikes' };
 
     const banner = document.getElementById('biome-banner');
     if (banner) {
@@ -1341,7 +1342,7 @@ const Game = {
       }
     }
 
-    // 祭壇・ルーンクラフトの配置
+    // 祭壇・呪われた祭壇・ルーンクラフトの配置（リスク・リワード要素強化）
     if (this.rooms.length >= 3) {
       const altarRoom = this.rooms[1];
       this.lootItems.push({
@@ -1350,11 +1351,11 @@ const Game = {
         type: 'altar',
         interacted: false
       });
-      const runeRoom = this.rooms[2];
+      const cursedAltarRoom = this.rooms[Math.min(this.rooms.length - 2, 3)];
       this.lootItems.push({
-        x: runeRoom.cx * this.tileSize,
-        y: runeRoom.cy * this.tileSize,
-        type: 'runeAltar',
+        x: cursedAltarRoom.cx * this.tileSize,
+        y: cursedAltarRoom.cy * this.tileSize,
+        type: 'cursedAltar',
         interacted: false
       });
     }
@@ -1370,8 +1371,10 @@ const Game = {
       });
     }
 
+    // 3階層ごとのエリアボス討伐システム（専用弾幕・固有レジェンダリー報酬）
     if (this.floor % 3 === 0) {
       this.spawnBoss(this.exitPos.x - 60, this.exitPos.y - 60);
+      this.emitToast('警報: フロア最深部にエリアボスが降臨した！');
     }
 
     this.updateHUD();
@@ -1383,9 +1386,9 @@ const Game = {
     const hpScale = 1 + (this.floor - 1) * 0.35;
     const dmgScale = 1 + (this.floor - 1) * 0.25;
 
-    // 精鋭エリート属性の確率付与 (高階層ほど高確率、多彩なアフィックス)
-    const isElite = Math.random() < Math.min(0.4, 0.09 * this.floor);
-    const eliteAura = isElite ? ['flame', 'swift', 'tank', 'grappler', 'priest'][Math.floor(Math.random() * 5)] : null;
+    // 精鋭エリート属性とアフィックスの拡張（ライフスティール、ファイアオーラ、分身など）
+    const isElite = Math.random() < Math.min(0.45, 0.1 * this.floor);
+    const eliteAura = isElite ? ['flame', 'swift', 'tank', 'lifesteal', 'fireaura'][Math.floor(Math.random() * 5)] : null;
 
     let e = {
       x, y,
@@ -1445,20 +1448,24 @@ const Game = {
 
   spawnBoss(x, y) {
     const hpScale = 1 + (this.floor - 1) * 0.5;
+    const bossNames = ['マグマ・ロード', 'フロスト・タイタン', 'シャドウ・ロード', 'ネザー・ガーディアン'];
+    const bossTitle = bossNames[Math.floor((this.floor / 3 - 1)) % bossNames.length] || 'ダンジョン・ロード';
     this.enemies.push({
       x, y,
       prevX: x, prevY: y,
       type: 'boss',
-      radius: 32,
-      hp: Math.floor(300 * hpScale),
-      maxHp: Math.floor(300 * hpScale),
-      speed: 84,
-      damage: 24,
+      name: bossTitle,
+      radius: 34,
+      hp: Math.floor(350 * hpScale),
+      maxHp: Math.floor(350 * hpScale),
+      speed: 88,
+      damage: 28,
       shootCd: 0,
       phase: 1, // マルチフェーズ
       kbX: 0, kbY: 0,
       color: '#e74c3c'
     });
+    this.emitToast(`エリアボス【${bossTitle}】が出現した！`);
   },
 
   getNearestEnemy(maxRange = 260) {
@@ -2190,12 +2197,15 @@ const Game = {
   },
 
   updateLootAndInteractables(dt) {
-    // 環境ハザード接触判定 (溶岩・毒沼)
+    // 環境ハザード接触判定 (溶岩・氷結・スパイク)
     if (this.hazards) {
       for (const h of this.hazards) {
         if (Math.hypot(this.player.x - h.x, this.player.y - h.y) < h.radius) {
           if (h.type === 'lava') this.damagePlayer(4);
-          else if (h.type === 'poison') this.damagePlayer(2);
+          else if (h.type === 'ice') {
+            this.player.vx *= 0.92;
+            this.player.vy *= 0.92;
+          }
         }
       }
     }
@@ -2231,8 +2241,18 @@ const Game = {
         item.interacted = true;
         if (this.player.hp > 30) {
           this.player.hp -= 30;
-          this.gainXp(100);
-          this.emitToast('祭壇にHPを捧げ、多大なXPを得た！');
+          this.gainXp(120);
+          this.emitToast('祭壇にHPを捧げ、大いなるXPを得た！');
+        }
+      } else if (item.type === 'cursedAltar' && !item.interacted && dist < 40) {
+        item.interacted = true;
+        if (Math.random() < 0.55) {
+          this.emeralds += 15;
+          this.gainXp(200);
+          this.emitToast('呪われた祭壇の試練に勝利し、莫大な報酬を手に入れた！');
+        } else {
+          this.damagePlayer(40);
+          this.emitToast('呪いが発動し、大ダメージを受けた…！');
         }
       }
     }
@@ -2623,6 +2643,11 @@ const Game = {
         ctx.fillRect(item.x - 12, item.y - 12, 24, 24);
         ctx.fillStyle = '#fff';
         ctx.fillText('祭', item.x, item.y + 4);
+      } else if (item.type === 'cursedAltar') {
+        ctx.fillStyle = '#8e44ad';
+        ctx.fillRect(item.x - 12, item.y - 12, 24, 24);
+        ctx.fillStyle = '#e74c3c';
+        ctx.fillText('呪', item.x, item.y + 4);
       } else if (item.type === 'emerald') {
         const ey = item.y + bobY;
         // Shadow underneath
