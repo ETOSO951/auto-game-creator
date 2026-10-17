@@ -151,21 +151,24 @@
   }
 
   #joystick-zone {
-    width: 130px;
-    height: 130px;
+    width: 160px;
+    height: 160px;
     position: relative;
     margin-left: 10px;
+    touch-action: none;
   }
   #joystick-base {
     width: 110px;
     height: 110px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(20,20,30,0.55) 70%);
-    border: 2px solid rgba(255,255,255,0.25);
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(20,20,30,0.65) 70%);
+    border: 2px solid rgba(255,255,255,0.3);
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 25px;
+    left: 25px;
     backdrop-filter: blur(4px);
+    transition: opacity 0.2s ease;
+    pointer-events: none;
   }
   #joystick-stick {
     width: 50px;
@@ -175,8 +178,8 @@
     border: 2px solid #fff;
     box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     position: absolute;
-    top: 40px;
-    left: 40px;
+    top: 55px;
+    left: 55px;
     pointer-events: none;
     transform: translate(0, 0);
   }
@@ -640,8 +643,9 @@ const Game = {
   lastTime: 0,
   accumulator: 0,
   fixedDt: 1 / 60,
+  renderAlpha: 0,
   hitstopTimer: 0,
-  mousePos: { x: 0, y: 0, lastMovedTime: 0 },
+  mousePos: { x: 0, y: 0, active: false },
   lootAlertTimer: 0,
   delayedTasks: [], // { timer, action } - ゲームタイムライン完全同期用
 
@@ -663,6 +667,7 @@ const Game = {
   // Player
   player: {
     x: 0, y: 0,
+    prevX: 0, prevY: 0,
     vx: 0, vy: 0,
     baseSpeed: 216, // px per second
     speed: 216,
@@ -729,7 +734,7 @@ const Game = {
     window.addEventListener('mousemove', (e) => {
       this.mousePos.x = e.clientX;
       this.mousePos.y = e.clientY;
-      this.mousePos.lastMovedTime = performance.now();
+      this.mousePos.active = true;
     });
 
     // Keyboard
@@ -745,28 +750,25 @@ const Game = {
       this.keys[e.key.toLowerCase()] = false;
     });
 
-    // Touch Joystick
+    // Dynamic Floating Touch Joystick
     const joyZone = document.getElementById('joystick-zone');
+    const joyBase = document.getElementById('joystick-base');
     const joyStick = document.getElementById('joystick-stick');
-    const maxRadius = 40;
+    const maxRadius = 42;
+    let baseCenterX = 0, baseCenterY = 0;
 
     const handleTouch = (touch) => {
-      const rect = joyZone.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      let dx = touch.clientX - centerX;
-      let dy = touch.clientY - centerY;
+      let dx = touch.clientX - baseCenterX;
+      let dy = touch.clientY - baseCenterY;
       const dist = Math.hypot(dx, dy);
 
-      // Clamp stick visual offset
       const clampedDist = Math.min(dist, maxRadius);
       const angle = Math.atan2(dy, dx);
       const visualX = Math.cos(angle) * clampedDist;
       const visualY = Math.sin(angle) * clampedDist;
       joyStick.style.transform = `translate(${visualX}px, ${visualY}px)`;
 
-      // Deadzone & Easing normalization (15% deadzone)
-      const deadzone = 0.15;
+      const deadzone = 0.12;
       const rawNormalized = dist / maxRadius;
       if (rawNormalized <= deadzone) {
         this.joystick.dirX = 0;
@@ -779,6 +781,7 @@ const Game = {
         this.joystick.dirY = Math.sin(angle) * finalMag;
         this.joystick.active = true;
       }
+      this.mousePos.active = false;
     };
 
     const resetJoy = () => {
@@ -786,6 +789,8 @@ const Game = {
       this.joystick.dirX = 0;
       this.joystick.dirY = 0;
       this.joystick.touchId = null;
+      joyBase.style.left = '25px';
+      joyBase.style.top = '25px';
       joyStick.style.transform = `translate(0, 0)`;
     };
 
@@ -795,12 +800,21 @@ const Game = {
       if (this.joystick.touchId === null) {
         const touch = e.changedTouches[0];
         this.joystick.touchId = touch.identifier;
+        const rect = joyZone.getBoundingClientRect();
+        
+        baseCenterX = touch.clientX;
+        baseCenterY = touch.clientY;
+        const localX = touch.clientX - rect.left - 55;
+        const localY = touch.clientY - rect.top - 55;
+        joyBase.style.left = `${localX}px`;
+        joyBase.style.top = `${localY}px`;
+        
         handleTouch(touch);
       }
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
-      if (!this.joystick.active || this.joystick.touchId === null) return;
+      if (this.joystick.touchId === null) return;
       for (let i = 0; i < e.changedTouches.length; i++) {
         if (e.changedTouches[i].identifier === this.joystick.touchId) {
           handleTouch(e.changedTouches[i]);
@@ -810,7 +824,7 @@ const Game = {
     }, { passive: false });
 
     const handleTouchEnd = (e) => {
-      if (!this.joystick.active) return;
+      if (this.joystick.touchId === null) return;
       for (let i = 0; i < e.changedTouches.length; i++) {
         if (e.changedTouches[i].identifier === this.joystick.touchId) {
           resetJoy();
@@ -822,7 +836,6 @@ const Game = {
     window.addEventListener('touchend', handleTouchEnd);
     window.addEventListener('touchcancel', handleTouchEnd);
 
-    // Reset input states when focus is lost to prevent stuck movements
     window.addEventListener('blur', () => {
       this.keys = {};
       resetJoy();
@@ -978,6 +991,7 @@ const Game = {
 
     let e = {
       x, y,
+      prevX: x, prevY: y,
       type,
       radius: 16,
       vx: 0, vy: 0,
@@ -1020,6 +1034,7 @@ const Game = {
     const hpScale = 1 + (this.floor - 1) * 0.5;
     this.enemies.push({
       x, y,
+      prevX: x, prevY: y,
       type: 'boss',
       radius: 32,
       hp: Math.floor(300 * hpScale),
@@ -1050,19 +1065,16 @@ const Game = {
     if (this.state !== 'PLAYING') return;
     if (this.player.attackCooldown > 0) return;
 
-    // スマートエイム階層解決:
-    // 1. 直近にマウス操作があった場合はカーソル方向
-    // 2. 視界内の最寄り敵への自動補正アシスト
-    // 3. 移動入力方向
-    // 4. 現在の向きを保持
-    const isMouseRecentlyActive = (performance.now() - this.mousePos.lastMovedTime) < (this.config.mouseActiveTimeout * 1000);
-    const target = this.getNearestEnemy(220);
+    // 照準ヒエラルキーの純化:
+    // PC操作時（mousePos.active）はマウスカーソル方向を絶対最優先
+    // モバイル/パッド時で移動中なら移動方向、停止中や近接敵がある場合はスマートエイム
+    const target = this.getNearestEnemy(200);
 
-    if (isMouseRecentlyActive) {
+    if (this.mousePos.active) {
       const worldMouseX = this.mousePos.x - this.camX;
       const worldMouseY = this.mousePos.y - this.camY;
       this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
-    } else if (target) {
+    } else if (target && (!this.joystick.active || Math.hypot(target.x - this.player.x, target.y - this.player.y) < 140)) {
       this.player.angle = Math.atan2(target.y - this.player.y, target.x - this.player.x);
     } else if (Math.hypot(this.player.vx, this.player.vy) > 10) {
       this.player.angle = Math.atan2(this.player.vy, this.player.vx);
@@ -1344,7 +1356,20 @@ const Game = {
     this.lootAlertTimer = this.config.lootToastDuration;
   },
 
-  /* --- Game Loop & Physics (Fixed Timestep Separation) --- */
+  savePrevPositions() {
+    this.player.prevX = this.player.x;
+    this.player.prevY = this.player.y;
+    for (const e of this.enemies) {
+      e.prevX = e.x;
+      e.prevY = e.y;
+    }
+    for (const p of this.projectiles) {
+      p.prevX = p.x;
+      p.prevY = p.y;
+    }
+  },
+
+  /* --- Game Loop & Physics (Interpolated Fixed Timestep) --- */
   loop(timestamp) {
     if (!this.running) return;
     if (!this.lastTime) this.lastTime = timestamp;
@@ -1360,18 +1385,24 @@ const Game = {
       return;
     }
 
-    this.accumulator += frameTime;
-    while (this.accumulator >= this.fixedDt) {
-      if (this.state === 'PLAYING') {
+    if (this.state === 'PLAYING') {
+      this.accumulator += frameTime;
+      while (this.accumulator >= this.fixedDt) {
+        this.savePrevPositions();
         this.physicsUpdate(this.fixedDt);
+        this.accumulator -= this.fixedDt;
       }
-      this.accumulator -= this.fixedDt;
+      this.renderAlpha = this.accumulator / this.fixedDt;
+    } else {
+      this.renderAlpha = 1.0;
     }
 
-    // Smooth Camera Follow
-    const targetCamX = this.width / 2 - this.player.x;
-    const targetCamY = this.height / 2 - this.player.y;
-    const lerpRate = 1 - Math.exp(-14 * frameTime);
+    // Interpolated camera follow for zero micro-stutter
+    const interpolatedPlayerX = this.player.x * this.renderAlpha + this.player.prevX * (1 - this.renderAlpha);
+    const interpolatedPlayerY = this.player.y * this.renderAlpha + this.player.prevY * (1 - this.renderAlpha);
+    const targetCamX = this.width / 2 - interpolatedPlayerX;
+    const targetCamY = this.height / 2 - interpolatedPlayerY;
+    const lerpRate = 1 - Math.exp(-18 * frameTime);
     this.camX += (targetCamX - this.camX) * lerpRate;
     this.camY += (targetCamY - this.camY) * lerpRate;
 
@@ -1481,9 +1512,10 @@ const Game = {
       const dy = this.player.y - e.y;
       const dist = Math.hypot(dx, dy);
 
-      // ノックバック減衰
-      e.x += e.kbX * dt;
-      e.y += e.kbY * dt;
+      // ノックバック＋自発移動の統合計算
+      let moveX = e.kbX * dt;
+      let moveY = e.kbY * dt;
+
       const friction = Math.exp(-12 * dt);
       e.kbX *= friction;
       e.kbY *= friction;
@@ -1515,10 +1547,8 @@ const Game = {
           else if (dist < 130) skelMove = -1;
 
           if (skelMove !== 0) {
-            e.x += nx * e.speed * dt * skelMove;
-            this.resolveCircleWallCollisions(e, 'x');
-            e.y += ny * e.speed * dt * skelMove;
-            this.resolveCircleWallCollisions(e, 'y');
+            moveX += nx * e.speed * dt * skelMove;
+            moveY += ny * e.speed * dt * skelMove;
           }
 
           e.shootCd = (e.shootCd || 0) + dt;
@@ -1526,25 +1556,30 @@ const Game = {
             e.shootCd = 0;
             this.projectiles.push({
               x: e.x, y: e.y,
+              prevX: e.x, prevY: e.y,
               vx: nx * 300, vy: ny * 300,
               radius: 4, damage: e.damage,
               color: '#fff', fromPlayer: false
             });
           }
         } else {
-          e.x += nx * e.speed * dt;
-          this.resolveCircleWallCollisions(e, 'x');
-          e.y += ny * e.speed * dt;
-          this.resolveCircleWallCollisions(e, 'y');
+          moveX += nx * e.speed * dt;
+          moveY += ny * e.speed * dt;
 
           if (dist < e.radius + this.player.radius + 4) {
             this.damagePlayer(e.damage);
             const pushBack = 8;
-            e.x -= nx * pushBack;
-            e.y -= ny * pushBack;
+            moveX -= nx * pushBack;
+            moveY -= ny * pushBack;
           }
         }
       }
+
+      // 1パス目：軸別タイル衝突解決
+      e.x += moveX;
+      this.resolveCircleWallCollisions(e, 'x');
+      e.y += moveY;
+      this.resolveCircleWallCollisions(e, 'y');
 
       // 死亡判定
       if (e.hp <= 0) {
@@ -1555,8 +1590,12 @@ const Game = {
       }
     }
 
-    // 8. エンティティ間の重なり解消（敵同士およびプレイヤーと敵）
+    // 8. エンティティ間の重なり解消と2パスクランプ（エンティティ押し出しによる壁めり込みの完全遮断）
     this.resolveEntitySeparation();
+    this.resolveCircleWallCollisions(this.player, 'both');
+    for (const e of this.enemies) {
+      this.resolveCircleWallCollisions(e, 'both');
+    }
 
     // Projectiles
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -1868,49 +1907,57 @@ const Game = {
       }
     }
 
+    const alpha = this.renderAlpha;
+
     // Enemies
     for (const e of this.enemies) {
+      const ex = e.x * alpha + (e.prevX ?? e.x) * (1 - alpha);
+      const ey = e.y * alpha + (e.prevY ?? e.y) * (1 - alpha);
+
       // Shadow
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.beginPath();
-      ctx.ellipse(e.x, e.y + e.radius - 2, e.radius, e.radius * 0.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(ex, ey + e.radius - 2, e.radius, e.radius * 0.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // Body (Minecraft block head style)
       ctx.fillStyle = (e.type === 'creeper' && Math.floor(e.fuse * 12) % 2 === 1) ? '#fff' : e.color;
       const size = e.radius * 1.8;
-      ctx.fillRect(e.x - size / 2, e.y - size / 2, size, size);
+      ctx.fillRect(ex - size / 2, ey - size / 2, size, size);
 
       // Face/Eyes
       ctx.fillStyle = '#000';
       if (e.type === 'boss') {
         ctx.fillStyle = '#ff0000';
-        ctx.fillRect(e.x - 10, e.y - 6, 6, 6);
-        ctx.fillRect(e.x + 4, e.y - 6, 6, 6);
+        ctx.fillRect(ex - 10, ey - 6, 6, 6);
+        ctx.fillRect(ex + 4, ey - 6, 6, 6);
       } else {
-        ctx.fillRect(e.x - 6, e.y - 4, 3, 3);
-        ctx.fillRect(e.x + 3, e.y - 4, 3, 3);
+        ctx.fillRect(ex - 6, ey - 4, 3, 3);
+        ctx.fillRect(ex + 3, ey - 4, 3, 3);
       }
 
       // HP bar
       if (e.hp < e.maxHp) {
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(e.x - 18, e.y - e.radius - 12, 36, 5);
+        ctx.fillRect(ex - 18, ey - e.radius - 12, 36, 5);
         ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(e.x - 18, e.y - e.radius - 12, (36 * (e.hp / e.maxHp)), 5);
+        ctx.fillRect(ex - 18, ey - e.radius - 12, (36 * (e.hp / e.maxHp)), 5);
       }
     }
 
     // Player Rendering
+    const px = this.player.x * alpha + this.player.prevX * (1 - alpha);
+    const py = this.player.y * alpha + this.player.prevY * (1 - alpha);
+
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
-    ctx.ellipse(this.player.x, this.player.y + 14, 16, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(px, py + 14, 16, 8, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Player Voxel Body
     ctx.save();
-    ctx.translate(this.player.x, this.player.y);
+    ctx.translate(px, py);
 
     if (this.player.invincibleTimer > 0 && Math.floor(this.player.invincibleTimer * 20) % 2 === 0) {
       ctx.globalAlpha = 0.4;
@@ -1955,9 +2002,11 @@ const Game = {
 
     // Projectiles
     for (const p of this.projectiles) {
+      const prx = p.x * alpha + (p.prevX ?? p.x) * (1 - alpha);
+      const pry = p.y * alpha + (p.prevY ?? p.y) * (1 - alpha);
       ctx.fillStyle = p.color;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.arc(prx, pry, p.radius, 0, Math.PI * 2);
       ctx.fill();
     }
 
