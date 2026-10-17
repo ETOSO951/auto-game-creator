@@ -116,10 +116,19 @@
 
   .bar-inner {
     height: 100%;
-    transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-    position: relative;
+    position: absolute;
+    top: 0; left: 0;
+    transition: width 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     border-radius: 6px;
     overflow: hidden;
+  }
+  .bar-delay {
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    background: rgba(255, 255, 255, 0.45);
+    transition: width 0.75s cubic-bezier(0.25, 1, 0.5, 1);
+    border-radius: 6px;
   }
   .bar-inner::after {
     content: '';
@@ -463,12 +472,18 @@
       <div class="stats-card">
         <div class="bar-container">
           <span style="color:#ff6b6b; width:22px;">HP</span>
-          <div class="bar-outer"><div id="hp-bar" class="bar-inner bar-hp" style="width: 100%;"></div></div>
+          <div class="bar-outer">
+            <div id="hp-delay" class="bar-delay" style="width: 100%;"></div>
+            <div id="hp-bar" class="bar-inner bar-hp" style="width: 100%;"></div>
+          </div>
           <span id="hp-text">100/100</span>
         </div>
         <div class="bar-container">
           <span style="color:#2ecc71; width:22px;">XP</span>
-          <div class="bar-outer"><div id="xp-bar" class="bar-inner bar-xp" style="width: 0%;"></div></div>
+          <div class="bar-outer">
+            <div id="xp-delay" class="bar-delay" style="width: 0%;"></div>
+            <div id="xp-bar" class="bar-inner bar-xp" style="width: 0%;"></div>
+          </div>
           <span id="lv-text">Lv.1</span>
         </div>
       </div>
@@ -582,7 +597,7 @@
 </div>
 
 <script>
-/* --- High-Quality Audio Synthesizer & Sound Design --- */
+/* --- High-Quality Audio Synthesizer & Sound Design with Spatial Audio --- */
 const Sound = {
   ctx: null,
   noiseBuffer: null,
@@ -602,24 +617,53 @@ const Sound = {
       data[i] = Math.random() * 2 - 1;
     }
   },
-  play(type) {
+  getOutputNode(x, y) {
+    if (!this.ctx) return null;
+    let master = this.ctx.destination;
+    
+    if (x !== undefined && y !== undefined && typeof Game !== 'undefined') {
+      const px = Game.player.x;
+      const py = Game.player.y;
+      const dx = x - px;
+      const dy = y - py;
+      const dist = Math.hypot(dx, dy);
+      
+      const gainNode = this.ctx.createGain();
+      const atten = Math.max(0.1, 1 - Math.min(dist, 500) / 600);
+      gainNode.gain.value = atten;
+
+      if (this.ctx.createStereoPanner) {
+        const panner = this.ctx.createStereoPanner();
+        const pan = Math.max(-1, Math.min(1, dx / 350));
+        panner.pan.value = pan;
+        panner.connect(master);
+        gainNode.connect(panner);
+      } else {
+        gainNode.connect(master);
+      }
+      return gainNode;
+    }
+    return master;
+  },
+  play(type, x, y) {
     if (!this.ctx) return;
     try {
       const t = this.ctx.currentTime;
+      const dest = this.getOutputNode(x, y);
+      if (!dest) return;
 
       if (type === 'hit') {
-        // 重厚で芯のある打撃音：サブベース(60Hz->20Hz) + 低音スウィープ + インパルスノイズ
         const subOsc = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
         subOsc.type = 'sine';
-        subOsc.frequency.setValueAtTime(140, t);
-        subOsc.frequency.exponentialRampToValueAtTime(25, t + 0.18);
-        subGain.gain.setValueAtTime(0.5, t);
-        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        subOsc.frequency.setValueAtTime(160, t);
+        subOsc.frequency.exponentialRampToValueAtTime(20, t + 0.22);
+        subGain.gain.setValueAtTime(0.65, t);
+        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
         subOsc.connect(subGain);
-        subGain.connect(this.ctx.destination);
+        subGain.connect(dest);
         subOsc.start(t);
-        subOsc.stop(t + 0.18);
+        subOsc.stop(t + 0.22);
 
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
@@ -627,112 +671,107 @@ const Sound = {
           const nGain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           nFilter.type = 'lowpass';
-          nFilter.frequency.setValueAtTime(1200, t);
-          nFilter.frequency.exponentialRampToValueAtTime(150, t + 0.12);
-          nGain.gain.setValueAtTime(0.35, t);
-          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          nFilter.frequency.setValueAtTime(1600, t);
+          nFilter.frequency.exponentialRampToValueAtTime(120, t + 0.15);
+          nGain.gain.setValueAtTime(0.45, t);
+          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
           noise.connect(nFilter);
           nFilter.connect(nGain);
-          nGain.connect(this.ctx.destination);
+          nGain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.12);
+          noise.stop(t + 0.15);
         }
       } else if (type === 'slash') {
-        // 鋭い風切り音：急峻なバンドパスフィルターノイズ + ピッチスウィープ
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
           const filter = this.ctx.createBiquadFilter();
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(1800, t);
-          filter.frequency.exponentialRampToValueAtTime(250, t + 0.12);
-          filter.Q.value = 3.5;
-          gain.gain.setValueAtTime(0.28, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          filter.frequency.setValueAtTime(2400, t);
+          filter.frequency.exponentialRampToValueAtTime(200, t + 0.14);
+          filter.Q.value = 4.5;
+          gain.gain.setValueAtTime(0.35, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
           noise.connect(filter);
           filter.connect(gain);
-          gain.connect(this.ctx.destination);
+          gain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.12);
+          noise.stop(t + 0.14);
         }
       } else if (type === 'coin') {
-        // クリスタルなジュエル音（アルペジオ和音 + 澄んだベル）
-        const freqs = [1046.5, 1318.51, 1567.98]; // C6, E6, G6
+        const freqs = [1046.5, 1318.51, 1567.98, 2093.00];
         freqs.forEach((f, i) => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(f, t + i * 0.05);
-          gain.gain.setValueAtTime(0.2, t + i * 0.05);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.05 + 0.28);
+          osc.frequency.setValueAtTime(f, t + i * 0.04);
+          gain.gain.setValueAtTime(0.22, t + i * 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.04 + 0.3);
           osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(t + i * 0.05);
-          osc.stop(t + i * 0.05 + 0.28);
+          gain.connect(dest);
+          osc.start(t + i * 0.04);
+          osc.stop(t + i * 0.04 + 0.3);
         });
       } else if (type === 'explosion') {
-        // 腹に響く地鳴り爆発音：サブバス(120Hz->10Hz) + ディストーション風ノイズ
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
           const filter = this.ctx.createBiquadFilter();
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(1200, t);
-          filter.frequency.exponentialRampToValueAtTime(30, t + 0.5);
-          gain.gain.setValueAtTime(0.6, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          filter.frequency.setValueAtTime(1800, t);
+          filter.frequency.exponentialRampToValueAtTime(20, t + 0.6);
+          gain.gain.setValueAtTime(0.75, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
           noise.connect(filter);
           filter.connect(gain);
-          gain.connect(this.ctx.destination);
+          gain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.5);
+          noise.stop(t + 0.6);
         }
         const sub = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
         sub.type = 'sine';
-        sub.frequency.setValueAtTime(120, t);
-        sub.frequency.exponentialRampToValueAtTime(10, t + 0.45);
-        subGain.gain.setValueAtTime(0.5, t);
-        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        sub.frequency.setValueAtTime(140, t);
+        sub.frequency.exponentialRampToValueAtTime(8, t + 0.55);
+        subGain.gain.setValueAtTime(0.7, t);
+        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
         sub.connect(subGain);
-        subGain.connect(this.ctx.destination);
+        subGain.connect(dest);
         sub.start(t);
-        sub.stop(t + 0.45);
+        sub.stop(t + 0.55);
       } else if (type === 'thunder') {
-        // 歪みを感じさせる神聖な雷撃音
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
           const filter = this.ctx.createBiquadFilter();
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(3500, t);
-          filter.frequency.exponentialRampToValueAtTime(180, t + 0.35);
-          filter.Q.value = 2.0;
-          gain.gain.setValueAtTime(0.45, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+          filter.frequency.setValueAtTime(4200, t);
+          filter.frequency.exponentialRampToValueAtTime(120, t + 0.4);
+          filter.Q.value = 2.5;
+          gain.gain.setValueAtTime(0.55, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
           noise.connect(filter);
           filter.connect(gain);
-          gain.connect(this.ctx.destination);
+          gain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.35);
+          noise.stop(t + 0.4);
         }
       } else if (type === 'level') {
-        // レベルアップ：倍音豊かで輝かしいファンファーレ
-        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C5, E5, G5, C6, E6
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
         notes.forEach((f, i) => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = 'triangle';
-          osc.frequency.setValueAtTime(f, t + i * 0.07);
-          gain.gain.setValueAtTime(0.25, t + i * 0.07);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.07 + 0.4);
+          osc.frequency.setValueAtTime(f, t + i * 0.06);
+          gain.gain.setValueAtTime(0.28, t + i * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.45);
           osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(t + i * 0.07);
-          osc.stop(t + i * 0.07 + 0.4);
+          gain.connect(dest);
+          osc.start(t + i * 0.06);
+          osc.stop(t + i * 0.06 + 0.45);
         });
       }
     } catch (e) {}
@@ -1276,8 +1315,8 @@ const Game = {
     if (actionName === 'heal') this.inputState.healQueued = true;
   },
 
-  emitSound(type) {
-    this.eventQueue.sounds.push(type);
+  emitSound(type, x, y) {
+    this.eventQueue.sounds.push({ type, x, y });
   },
 
   emitToast(msg) {
@@ -1286,8 +1325,12 @@ const Game = {
 
   flushEventQueue() {
     // 物理シミュレーション確定後に溜まった副作用を一度に処理
-    for (const snd of this.eventQueue.sounds) {
-      Sound.play(snd);
+    for (const item of this.eventQueue.sounds) {
+      if (typeof item === 'string') {
+        Sound.play(item);
+      } else {
+        Sound.play(item.type, item.x, item.y);
+      }
     }
     this.eventQueue.sounds.length = 0;
 
@@ -1340,7 +1383,7 @@ const Game = {
     this.player.vx = Math.cos(this.player.angle) * stepPower;
     this.player.vy = Math.sin(this.player.angle) * stepPower;
 
-    this.emitSound('slash');
+    this.emitSound('slash', this.player.x, this.player.y);
 
     // 攻撃ライフサイクル（予備動作 -> アクティブ薙ぎ払い -> フォロースルー）の三相定義
     this.player.activeAttack = {
@@ -1448,7 +1491,7 @@ const Game = {
     }
 
     if (hitAny) {
-      this.emitSound('hit');
+      this.emitSound('hit', this.player.x, this.player.y);
       this.hitstopTimer = 0.05; // キレのあるヒットストップ
     }
   },
@@ -1457,7 +1500,7 @@ const Game = {
     if (index === 0) { // Lightning artifact
       if (this.player.art1Cooldown > 0) return;
       this.player.art1Cooldown = this.player.art1CooldownMax;
-      this.emitSound('thunder');
+      this.emitSound('thunder', this.player.x, this.player.y);
 
       // Strike nearest 3 enemies
       const sorted = [...this.enemies].sort((a,b) => Math.hypot(a.x - this.player.x, a.y - this.player.y) - Math.hypot(b.x - this.player.x, b.y - this.player.y));
@@ -1470,7 +1513,7 @@ const Game = {
     } else if (index === 1) { // TNT Artifact
       if (this.player.art2Cooldown > 0) return;
       this.player.art2Cooldown = this.player.art2CooldownMax;
-      this.emitSound('slash');
+      this.emitSound('slash', this.player.x, this.player.y);
       // Drop TNT (ゲームタイムライン同期タスクとして登録)
       const tntX = this.player.x + Math.cos(this.player.angle) * 40;
       const tntY = this.player.y + Math.sin(this.player.angle) * 40;
@@ -1491,7 +1534,7 @@ const Game = {
     this.player.potionCooldown = this.player.potionCooldownMax;
     const heal = Math.floor(this.player.maxHp * 0.45);
     this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
-    this.emitSound('coin');
+    this.emitSound('coin', this.player.x, this.player.y);
     this.createDamageNumber(this.player.x, this.player.y, `+${heal}`, '#2ecc71');
   },
 
@@ -1553,7 +1596,7 @@ const Game = {
     this.player.invincibleTimer = 0.45; // 0.45 sec invincibility
     this.shakeIntensity = Math.max(this.shakeIntensity, 8);
     this.shakeDuration = Math.max(this.shakeDuration, 0.15);
-    this.emitSound('hit');
+    this.emitSound('hit', this.player.x, this.player.y);
     this.createDamageNumber(this.player.x, this.player.y, `-${finalDmg}`, '#e74c3c');
 
     if (this.player.hp <= 0) {
@@ -1584,7 +1627,7 @@ const Game = {
       this.player.baseMaxHp += 12;
       this.recalcStats();
       this.player.hp = this.player.maxHp;
-      this.emitSound('level');
+      this.emitSound('level', this.player.x, this.player.y);
       this.emitToast(`レベルアップ！ Lv.${this.player.level}`);
     }
   },
@@ -1842,7 +1885,7 @@ const Game = {
           if (dist < 46) {
             e.fuse += dt;
             if (e.fuse > 0.8) {
-              this.emitSound('explosion');
+              this.emitSound('explosion', e.x, e.y);
               this.createExplosion(e.x, e.y, 80, e.damage);
               e.dead = true;
               continue;
@@ -1942,15 +1985,15 @@ const Game = {
 
       if (item.type === 'chest' && !item.opened && dist < 42) {
         item.opened = true;
-        this.emitSound('coin');
+        this.emitSound('coin', item.x, item.y);
         this.dropLoot(item.x, item.y, true);
         this.emitToast('宝箱を開けた！');
       } else if (item.type === 'emerald' && dist < 36) {
-        this.emitSound('coin');
+        this.emitSound('coin', item.x, item.y);
         this.emeralds += item.val;
         item.dead = true;
       } else if (item.type === 'equipment' && dist < 36) {
-        this.emitSound('coin');
+        this.emitSound('coin', item.x, item.y);
         this.player.inventory.push(item.item);
         this.emitToast(`${item.item.name} を手に入れた！`);
         item.dead = true;
@@ -2336,10 +2379,13 @@ const Game = {
       const ex = e.x * alpha + (e.prevX ?? e.x) * (1 - alpha);
       const ey = e.y * alpha + (e.prevY ?? e.y) * (1 - alpha);
 
-      // Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      // Soft Radial Shadow
+      const shadowGrad = ctx.createRadialGradient(ex, ey + e.radius - 2, 0, ex, ey + e.radius - 2, e.radius * 1.1);
+      shadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0.55)');
+      shadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = shadowGrad;
       ctx.beginPath();
-      ctx.ellipse(ex, ey + e.radius - 2, e.radius, e.radius * 0.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(ex, ey + e.radius - 2, e.radius * 1.1, e.radius * 0.55, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // Body (Minecraft block head style - 円形コライダー直径と正確に一致)
@@ -2371,10 +2417,13 @@ const Game = {
     const px = this.player.x * alpha + this.player.prevX * (1 - alpha);
     const py = this.player.y * alpha + this.player.prevY * (1 - alpha);
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    // Soft Radial Shadow
+    const pShadowGrad = ctx.createRadialGradient(px, py + 14, 0, px, py + 14, 18);
+    pShadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
+    pShadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = pShadowGrad;
     ctx.beginPath();
-    ctx.ellipse(px, py + 14, 16, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(px, py + 14, 18, 9, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Player Voxel Body
@@ -2398,47 +2447,52 @@ const Game = {
     ctx.fillRect(-5 + lookX, -16 + lookY, 3, 3);
     ctx.fillRect(2 + lookX, -16 + lookY, 3, 3);
 
-    // Weapon Swing animation with luminous Blade Trail
+    // Weapon Swing animation with luminous Fluid Blade Trail
     ctx.save();
     ctx.rotate(this.player.angle);
     if (this.player.attackSwing > 0) {
       const progress = 1 - (this.player.attackSwing / this.player.attackSwingDuration);
-      const swingAngleSpan = 1.7;
+      const swingAngleSpan = 1.85;
       const swingOffset = ((progress - 0.5) * swingAngleSpan) * this.player.swingDir;
       ctx.rotate(swingOffset);
 
-      // Additive Blending Blade Trail
       const arcAlpha = Math.sin(progress * Math.PI);
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       
-      // Multi-layer glowing arc trail
-      const trailGrad = ctx.createRadialGradient(0, 0, this.player.weapon.range * 0.4, 0, 0, this.player.weapon.range + 8);
+      const range = this.player.weapon.range;
       const isUnique = this.player.weapon.rarity === 'unique';
-      const glowColor = isUnique ? '230, 126, 34' : '52, 152, 219';
-      
-      trailGrad.addColorStop(0, `rgba(${glowColor}, 0)`);
-      trailGrad.addColorStop(0.7, `rgba(${glowColor}, ${arcAlpha * 0.4})`);
-      trailGrad.addColorStop(1, `rgba(255, 255, 255, ${arcAlpha * 0.9})`);
+      const glowRgb = isUnique ? '243, 156, 18' : '52, 152, 219';
 
-      ctx.fillStyle = trailGrad;
+      for (let layer = 0; layer < 3; layer++) {
+        const layerRange = range + (3 - layer) * 4;
+        const trailGrad = ctx.createRadialGradient(0, 0, range * 0.3, 0, 0, layerRange);
+        const layerAlpha = arcAlpha * (0.3 + layer * 0.25);
+
+        trailGrad.addColorStop(0, `rgba(${glowRgb}, 0)`);
+        trailGrad.addColorStop(0.65, `rgba(${glowRgb}, ${layerAlpha * 0.5})`);
+        trailGrad.addColorStop(0.95, `rgba(255, 255, 255, ${layerAlpha * 0.95})`);
+
+        ctx.fillStyle = trailGrad;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        const aStart = -0.85 * this.player.swingDir;
+        const aEnd = 0.15 * this.player.swingDir;
+        ctx.arc(0, 0, layerRange, Math.min(aStart, aEnd), Math.max(aStart, aEnd));
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.strokeStyle = `rgba(255, 255, 255, ${arcAlpha * 0.95})`;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      const aStart = -0.75 * this.player.swingDir;
-      const aEnd = 0.1 * this.player.swingDir;
-      ctx.arc(0, 0, this.player.weapon.range + 6, Math.min(aStart, aEnd), Math.max(aStart, aEnd));
-      ctx.closePath();
-      ctx.fill();
-
-      // Sharp edge line
-      ctx.strokeStyle = `rgba(255, 255, 255, ${arcAlpha})`;
-      ctx.lineWidth = 3;
+      ctx.arc(0, 0, range + 2, -0.85 * this.player.swingDir, 0.15 * this.player.swingDir, this.player.swingDir < 0);
       ctx.stroke();
+
       ctx.restore();
     }
-    // Weapon icon
     ctx.font = '18px sans-serif';
-    ctx.fillText(this.player.weapon.icon, 20, 4);
+    ctx.fillText(this.player.weapon.icon, 22, 4);
     ctx.restore();
 
     ctx.restore();
@@ -2453,17 +2507,37 @@ const Game = {
       ctx.fill();
     }
 
-    // Shockwave Rings (Additive Luminous Rings)
+    // Shockwave Rings & Flare Rays (Additive Luminous Dynamic Burst)
     for (const s of this.shockwaves) {
       const progress = s.life / s.maxLife;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
+      
+      const rayCount = 8;
+      ctx.strokeStyle = `rgba(255, 220, 130, ${progress * 0.6})`;
+      ctx.lineWidth = 2;
+      for (let i = 0; i < rayCount; i++) {
+        const rayAngle = (Math.PI * 2 / rayCount) * i + (1 - progress);
+        const rayLen = s.currentRadius * 1.35;
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x + Math.cos(rayAngle) * rayLen, s.y + Math.sin(rayAngle) * rayLen);
+        ctx.stroke();
+      }
+
       ctx.strokeStyle = s.color;
-      ctx.lineWidth = 4 * progress;
+      ctx.lineWidth = 5 * progress;
       ctx.globalAlpha = progress;
       ctx.beginPath();
       ctx.arc(s.x, s.y, s.currentRadius, 0, Math.PI * 2);
       ctx.stroke();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2 * progress;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.currentRadius * 0.85, 0, Math.PI * 2);
+      ctx.stroke();
+
       ctx.restore();
     }
 
@@ -2577,6 +2651,10 @@ const Game = {
       c.maxHp = p.maxHp;
       const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
       document.getElementById('hp-bar').style.width = `${hpPct}%`;
+      const hpDelay = document.getElementById('hp-delay');
+      if (hpDelay) {
+        setTimeout(() => { hpDelay.style.width = `${hpPct}%`; }, 120);
+      }
       document.getElementById('hp-text').innerText = `${hpCeil}/${p.maxHp}`;
     }
 
@@ -2586,6 +2664,10 @@ const Game = {
       c.level = p.level;
       const xpPct = Math.min(100, (p.xp / p.xpNext) * 100);
       document.getElementById('xp-bar').style.width = `${xpPct}%`;
+      const xpDelay = document.getElementById('xp-delay');
+      if (xpDelay) {
+        setTimeout(() => { xpDelay.style.width = `${xpPct}%`; }, 120);
+      }
       document.getElementById('lv-text').innerText = `Lv.${p.level}`;
     }
 
