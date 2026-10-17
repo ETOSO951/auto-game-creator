@@ -1285,11 +1285,12 @@ const Game = {
     this.shockwaves = [];
     this.hazards = [];
 
-    // 拡張バイオーム（通常洞窟・灼熱のネザー・古代の神殿跡・虚空の浮遊島）
+    // 拡張バイオーム（通常洞窟・灼熱のネザー・古代の氷河遺跡・狂気の研究所・虚空の浮遊島）
     if (this.floor <= 2) this.currentBiome = { name: '通常洞窟', color: '#161922', hazard: 'none' };
     else if (this.floor <= 4) this.currentBiome = { name: '灼熱のネザー神殿', color: '#2a1412', hazard: 'lava' };
-    else if (this.floor <= 6) this.currentBiome = { name: '古代の神殿跡', color: '#221c12', hazard: 'collapse' };
-    else this.currentBiome = { name: '虚空の浮遊島', color: '#18122a', hazard: 'void' };
+    else if (this.floor <= 6) this.currentBiome = { name: '古代の氷河遺跡', color: '#12222a', hazard: 'ice' };
+    else if (this.floor <= 8) this.currentBiome = { name: '狂気の研究所', color: '#221226', hazard: 'poison' };
+    else this.currentBiome = { name: '虚空の浮遊島', color: '#18122a', hazard: 'collapse' };
 
     const banner = document.getElementById('biome-banner');
     if (banner) {
@@ -1446,7 +1447,7 @@ const Game = {
   },
 
   spawnEnemy(x, y) {
-    const types = ['zombie', 'skeleton', 'creeper', 'shadow', 'protector', 'assassin', 'priest'];
+    const types = ['zombie', 'skeleton', 'creeper', 'shadow', 'protector', 'assassin', 'priest', 'necromancer'];
     const type = types[Math.floor(Math.random() * types.length)];
     const hpScale = 1 + (this.floor - 1) * 0.35;
     const dmgScale = 1 + (this.floor - 1) * 0.25;
@@ -1508,6 +1509,12 @@ const Game = {
       e.damage = Math.floor(10 * dmgScale);
       e.color = '#e91e63';
       e.buffCd = 0;
+    } else if (type === 'necromancer') {
+      e.hp = Math.floor(50 * hpScale);
+      e.speed = 55;
+      e.damage = Math.floor(14 * dmgScale);
+      e.color = '#9b59b6';
+      e.summonCd = 0;
     }
 
     if (isElite) {
@@ -2239,6 +2246,26 @@ const Game = {
               color: '#fff', fromPlayer: false
             });
           }
+        } else if (e.type === 'assassin' && dist < 220) {
+          e.teleportCd = (e.teleportCd || 0) + dt;
+          if (e.teleportCd > 4.0) {
+            e.teleportCd = 0;
+            e.x = this.player.x + (Math.random() - 0.5) * 80;
+            e.y = this.player.y + (Math.random() - 0.5) * 80;
+            this.emitSound('thunder', e.x, e.y);
+          } else {
+            moveX += nx * e.speed * 1.5 * dt;
+            moveY += ny * e.speed * 1.5 * dt;
+          }
+        } else if (e.type === 'necromancer') {
+          e.summonCd = (e.summonCd || 0) + dt;
+          if (e.summonCd > 5.5) {
+            e.summonCd = 0;
+            this.spawnEnemy(e.x + 30, e.y + 30);
+            this.emitToast('死霊術師が亡者を召喚した！');
+          }
+          moveX += nx * e.speed * dt * 0.6;
+          moveY += ny * e.speed * dt * 0.6;
         } else {
           // 【障害物回避ステアリング】進行方向直前の壁を検知して回避力を合成
           let steerX = nx;
