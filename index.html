@@ -653,6 +653,8 @@ const Game = {
     vx: 0, vy: 0,
     baseSpeed: 216, // px per second
     speed: 216,
+    accel: 1800,    // 加速度 (px/s^2)
+    friction: 14,   // 減速摩擦係数
     radius: 16,
     angle: 0,
     hp: 100,
@@ -1035,16 +1037,15 @@ const Game = {
     if (this.state !== 'PLAYING') return;
     if (this.player.attackCooldown > 0) return;
 
-    // Unified Aim Logic on Attack:
-    // 1. Mouse aiming if PC mouse was moved
-    // 2. Nearest enemy lock within range
-    // 3. Keep current direction
+    // 照準優先度の整理:
+    // 1. PCマウス操作が有効な場合はカーソル方向
+    // 2. モバイルまたは非マウス時: 扇形前方の敵、いなければ近接索敵
     if (this.mousePos.active) {
       const worldMouseX = this.mousePos.x - this.camX;
       const worldMouseY = this.mousePos.y - this.camY;
       this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
     } else {
-      const target = this.getNearestEnemy(280);
+      const target = this.getNearestEnemy(240);
       if (target) {
         this.player.angle = Math.atan2(target.y - this.player.y, target.x - this.player.x);
       }
@@ -1055,18 +1056,78 @@ const Game = {
     this.player.attackCooldown = cooldownSec;
     this.player.attackSwing = this.player.attackSwingDuration;
     this.player.swingDir *= -1;
+
+    // 攻撃時のキレのある前進ステップイン（踏み込み慣性インパルス）
+    const stepPower = 110;
+    this.player.vx += Math.cos(this.player.angle) * stepPower;
+    this.player.vy += Math.sin(this.player.angle) * stepPower;
+
     Sound.play('slash');
 
-    // Register active attack synchronized strictly with the middle of the swing animation arc
+    // スイング中央フレームに厳密同期させたアクティブ攻撃判定
     this.player.activeAttack = {
       timer: 0,
       duration: this.player.attackSwingDuration,
-      hitTriggerTime: this.player.attackSwingDuration * 0.4,
+      hitTriggerTime: this.player.attackSwingDuration * 0.38,
       hasHit: false,
       angle: this.player.angle,
       range: w.range,
+      halfFov: Math.PI * 0.42, // 約75度の扇形半角
       weapon: w
     };
+  },
+
+  // 線分と円の最近接距離による交差判定
+  distSqToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const l2 = dx * dx + dy * dy;
+    if (l2 === 0) return Math.hypot(px - x1, py - y1) ** 2;
+    let t = ((px - x1) * dx + (py - y1) * dy) / l2;
+    t = Math.max(0, Math.min(1, t));
+    const nx = x1 + t * dx;
+    const ny = y1 + t * dy;
+    return (px - nx) ** 2 + (py - ny) ** 2;
+  },
+
+  // 厳密な「扇形 (Sector)」と「円 (Circle)」の幾何交差判定
+  isSectorIntersectingCircle(sx, sy, radius, direction, halfFov, cx, cy, cr) {
+    const dx = cx - sx;
+    const dy = cy - sy;
+    const distSq = dx * dx + dy * dy;
+
+    // 1. 範囲外の早期リジェクト
+    const maxReach = radius + cr;
+    if (distSq > maxReach * maxReach) return false;
+
+    // 2. 円が扇形の原点を含んでいる場合
+    if (distSq <= cr * cr) return true;
+
+    // 3. 円の中心が扇形内に収まっているか
+    const dist = Math.sqrt(distSq);
+    const angleToTarget = Math.atan2(dy, dx);
+    let diff = Math.abs(direction - angleToTarget);
+    if (diff > Math.PI) diff = Math.PI * 2 - diff;
+
+    if (diff <= halfFov && dist <= radius + cr) {
+      return true;
+    }
+
+    // 4. 扇形の2本の境界線分（扇の両端の刃）と円の衝突
+    const leftArmX = sx + Math.cos(direction - halfFov) * radius;
+    const leftArmY = sy + Math.sin(direction - halfFov) * radius;
+    if (this.distSqToSegment(cx, cy, sx, sy, leftArmX, leftArmY) <= cr * cr) return true;
+
+    const rightArmX = sx + Math.cos(direction + halfFov) * radius;
+    const rightArmY = sy + Math.sin(direction + halfFov) * radius;
+    if (this.distSqToSegment(cx, cy, sx, sy, rightArmX, rightArmY) <= cr * cr) return true;
+
+    // 5. 扇形の円弧端点と円の接触
+    const arcLeftDistSq = (cx - leftArmX) ** 2 + (cy - leftArmY) ** 2;
+    const arcRightDistSq = (cx - rightArmX) ** 2 + (cy - rightArmY) ** 2;
+    if (arcLeftDistSq <= cr * cr || arcRightDistSq <= cr * cr) return true;
+
+    return false;
   },
 
   performAttackCheck(atk) {
@@ -1074,43 +1135,41 @@ const Game = {
     let hitAny = false;
 
     for (const e of this.enemies) {
-      const dx = e.x - this.player.x;
-      const dy = e.y - this.player.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist < atk.range + e.radius) {
+      // 厳密な幾何交差判定
+      const hit = this.isSectorIntersectingCircle(
+        this.player.x, this.player.y,
+        atk.range, atk.angle, atk.halfFov,
+        e.x, e.y, e.radius
+      );
+
+      if (hit) {
         if (!this.hasLineOfSight(this.player.x, this.player.y, e.x, e.y)) continue;
 
-        const angleToEnemy = Math.atan2(dy, dx);
-        let diff = Math.abs(atk.angle - angleToEnemy);
-        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+        let dmg = w.dmg + Math.floor(Math.random() * 5);
+        const isCrit = Math.random() < 0.2;
+        if (isCrit) dmg = Math.floor(dmg * 1.6);
 
-        if (diff < Math.PI * 0.55) { // 100 deg cone
-          let dmg = w.dmg + Math.floor(Math.random() * 5);
-          const isCrit = Math.random() < 0.2;
-          if (isCrit) dmg = Math.floor(dmg * 1.6);
+        e.hp -= dmg;
+        hitAny = true;
 
-          e.hp -= dmg;
-          hitAny = true;
+        // ノックバックインパルス
+        const kbForce = (e.type === 'boss' ? 140 : 380);
+        e.kbX += Math.cos(atk.angle) * kbForce;
+        e.kbY += Math.sin(atk.angle) * kbForce;
 
-          // Smooth impulse knockback
-          const kbForce = (e.type === 'boss' ? 140 : 380);
-          e.kbX += Math.cos(atk.angle) * kbForce;
-          e.kbY += Math.sin(atk.angle) * kbForce;
-
-          // Vampiric Weapon Perk
-          if (w.id === 'w5') {
-            this.player.hp = Math.min(this.player.maxHp, this.player.hp + 2);
-          }
-
-          this.createDamageNumber(e.x, e.y, dmg, isCrit ? '#ffcc00' : '#ffffff');
-          this.createBlood(e.x, e.y, e.color);
+        // 吸血特性
+        if (w.id === 'w5') {
+          this.player.hp = Math.min(this.player.maxHp, this.player.hp + 2);
         }
+
+        this.createDamageNumber(e.x, e.y, dmg, isCrit ? '#ffcc00' : '#ffffff');
+        this.createBlood(e.x, e.y, e.color);
       }
     }
 
     if (hitAny) {
       Sound.play('hit');
-      this.hitstopTimer = 0.04; // Hitstop freeze: crisp impactful contact feel
+      this.hitstopTimer = 0.04; // ヒットストップ
     }
   },
 
@@ -1304,8 +1363,9 @@ const Game = {
     requestAnimationFrame((t) => this.loop(t));
   },
 
+  /* --- 物理更新パイプライン (入力/移動/壁滑り/エンティティ分離) --- */
   physicsUpdate(dt) {
-    // Movement Vector with deadzone processed
+    // 1. 入力ベクトルの正規化
     let mx = 0, my = 0;
     if (this.joystick.active) {
       mx = this.joystick.dirX;
@@ -1319,28 +1379,33 @@ const Game = {
       if (len > 0) { mx /= len; my /= len; }
     }
 
-    // Player Aim:
-    // Manual PC mouse takes top priority if moved;
-    // Otherwise face movement direction. (Attack action handles snap-assist)
+    // 2. プレイヤーの加減速慣性計算
+    const targetVx = mx * this.player.speed;
+    const targetVy = my * this.player.speed;
+    const accelRate = (mx !== 0 || my !== 0) ? this.player.accel : (this.player.accel * 1.5);
+    
+    // スムーズなイージング加減速
+    const diffVx = targetVx - this.player.vx;
+    const diffVy = targetVy - this.player.vy;
+    this.player.vx += Math.sign(diffVx) * Math.min(Math.abs(diffVx), accelRate * dt);
+    this.player.vy += Math.sign(diffVy) * Math.min(Math.abs(diffVy), accelRate * dt);
+
+    // 攻撃動作中の旋回制御 & 照準方向の更新
     if (this.mousePos.active) {
       const worldMouseX = this.mousePos.x - this.camX;
       const worldMouseY = this.mousePos.y - this.camY;
       this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
-    } else if (mx !== 0 || my !== 0) {
+    } else if (this.player.attackSwing <= 0 && (mx !== 0 || my !== 0)) {
       this.player.angle = Math.atan2(my, mx);
     }
 
-    // Separated Axis Movement & Sliding Resolution
-    if (mx !== 0) {
-      this.player.x += mx * this.player.speed * dt;
-      this.resolveCircleWallCollisions(this.player, 'x');
-    }
-    if (my !== 0) {
-      this.player.y += my * this.player.speed * dt;
-      this.resolveCircleWallCollisions(this.player, 'y');
-    }
+    // 3. プレイヤーの移動と壁衝突解決（スライド処理）
+    this.player.x += this.player.vx * dt;
+    this.resolveCircleWallCollisions(this.player, 'x');
+    this.player.y += this.player.vy * dt;
+    this.resolveCircleWallCollisions(this.player, 'y');
 
-    // Active Attack Timing Synchronization
+    // 4. アクティブ攻撃判定の進行
     if (this.player.activeAttack) {
       const atk = this.player.activeAttack;
       atk.timer += dt;
@@ -1353,7 +1418,7 @@ const Game = {
       }
     }
 
-    // Cooldown and Status Timers
+    // 5. 各種クールダウンの消化
     if (this.player.attackCooldown > 0) this.player.attackCooldown = Math.max(0, this.player.attackCooldown - dt);
     if (this.player.attackSwing > 0) this.player.attackSwing = Math.max(0, this.player.attackSwing - dt);
     if (this.player.invincibleTimer > 0) this.player.invincibleTimer = Math.max(0, this.player.invincibleTimer - dt);
@@ -1362,7 +1427,7 @@ const Game = {
     if (this.player.art2Cooldown > 0) this.player.art2Cooldown = Math.max(0, this.player.art2Cooldown - dt);
     if (this.player.potionCooldown > 0) this.player.potionCooldown = Math.max(0, this.player.potionCooldown - dt);
 
-    // Exit gate collision
+    // 6. 出口ゲート接触
     const distToExit = Math.hypot(this.player.x - this.exitPos.x, this.player.y - this.exitPos.y);
     if (distToExit < 30) {
       this.state = 'STAGE_CLEAR';
@@ -1371,35 +1436,14 @@ const Game = {
       return;
     }
 
-    // Enemy Separation (Soft Collision between entities)
-    for (let i = 0; i < this.enemies.length; i++) {
-      for (let j = i + 1; j < this.enemies.length; j++) {
-        const e1 = this.enemies[i];
-        const e2 = this.enemies[j];
-        const dx = e2.x - e1.x;
-        const dy = e2.y - e1.y;
-        const d = Math.hypot(dx, dy);
-        const minDist = e1.radius + e2.radius;
-        if (d < minDist && d > 0.001) {
-          const overlap = (minDist - d) * 0.5;
-          const ox = (dx / d) * overlap;
-          const oy = (dy / d) * overlap;
-          e1.x -= ox;
-          e1.y -= oy;
-          e2.x += ox;
-          e2.y += oy;
-        }
-      }
-    }
-
-    // Enemies update
+    // 7. 敵のAIと移動更新
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       const dx = this.player.x - e.x;
       const dy = this.player.y - e.y;
       const dist = Math.hypot(dx, dy);
 
-      // Knockback damping (exponential friction)
+      // ノックバック減衰
       e.x += e.kbX * dt;
       e.y += e.kbY * dt;
       const friction = Math.exp(-12 * dt);
@@ -1408,10 +1452,10 @@ const Game = {
       if (Math.abs(e.kbX) < 1) e.kbX = 0;
       if (Math.abs(e.kbY) < 1) e.kbY = 0;
 
-      // AI movement towards player if in sight
+      // 視界内プレイヤー追尾
       if (dist < 420) {
-        const nx = dx / dist;
-        const ny = dy / dist;
+        const nx = dx / (dist || 1);
+        const ny = dy / (dist || 1);
 
         if (e.type === 'creeper') {
           if (dist < 46) {
@@ -1434,7 +1478,9 @@ const Game = {
 
           if (skelMove !== 0) {
             e.x += nx * e.speed * dt * skelMove;
+            this.resolveCircleWallCollisions(e, 'x');
             e.y += ny * e.speed * dt * skelMove;
+            this.resolveCircleWallCollisions(e, 'y');
           }
 
           e.shootCd = (e.shootCd || 0) + dt;
@@ -1449,21 +1495,20 @@ const Game = {
           }
         } else {
           e.x += nx * e.speed * dt;
+          this.resolveCircleWallCollisions(e, 'x');
           e.y += ny * e.speed * dt;
+          this.resolveCircleWallCollisions(e, 'y');
 
           if (dist < e.radius + this.player.radius + 4) {
             this.damagePlayer(e.damage);
-            const pushBack = 6;
+            const pushBack = 8;
             e.x -= nx * pushBack;
             e.y -= ny * pushBack;
           }
         }
       }
 
-      // Smooth collision against dungeon walls
-      this.resolveCircleWallCollisions(e);
-
-      // Death check
+      // 死亡判定
       if (e.hp <= 0) {
         this.killCount++;
         this.gainXp(e.type === 'boss' ? 120 : 18);
@@ -1471,6 +1516,9 @@ const Game = {
         this.enemies.splice(i, 1);
       }
     }
+
+    // 8. エンティティ間の重なり解消（敵同士およびプレイヤーと敵）
+    this.resolveEntitySeparation();
 
     // Projectiles
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -1550,7 +1598,7 @@ const Game = {
     return false;
   },
 
-  // Circle vs Tile AABB exact penetration resolution (Smooth corner sliding)
+  // 高精度な円コライダー vs タイルAABBの貫通解消（角抜け防止と滑らかな壁滑り）
   resolveCircleWallCollisions(entity, axis = 'both') {
     const r = entity.radius;
     const minCol = Math.max(0, Math.floor((entity.x - r - 2) / this.tileSize));
@@ -1566,7 +1614,6 @@ const Game = {
           const tileTop = row * this.tileSize;
           const tileBottom = tileTop + this.tileSize;
 
-          // Find closest point on AABB to circle center
           const nearestX = Math.max(tileLeft, Math.min(entity.x, tileRight));
           const nearestY = Math.max(tileTop, Math.min(entity.y, tileBottom));
 
@@ -1582,8 +1629,10 @@ const Game = {
               const normY = diffY / dist;
               if (axis === 'x') {
                 entity.x += normX * overlap;
+                if (entity.vx !== undefined) entity.vx = 0;
               } else if (axis === 'y') {
                 entity.y += normY * overlap;
+                if (entity.vy !== undefined) entity.vy = 0;
               } else {
                 entity.x += normX * overlap;
                 entity.y += normY * overlap;
@@ -1591,13 +1640,62 @@ const Game = {
             } else {
               const midX = tileLeft + this.tileSize * 0.5;
               const midY = tileTop + this.tileSize * 0.5;
-              if (axis === 'x' || (axis === 'both' && Math.abs(entity.x - midX) > Math.abs(entity.y - midY))) {
-                entity.x += entity.x > midX ? r : -r;
+              if (axis === 'x') {
+                entity.x += (entity.x > midX ? r : -r);
+                if (entity.vx !== undefined) entity.vx = 0;
               } else {
-                entity.y += entity.y > midY ? r : -r;
+                entity.y += (entity.y > midY ? r : -r);
+                if (entity.vy !== undefined) entity.vy = 0;
               }
             }
           }
+        }
+      }
+    }
+  },
+
+  // エンティティ同士の押し出し・重なり解消パイプライン
+  resolveEntitySeparation() {
+    // 1. 敵同士の分離
+    for (let i = 0; i < this.enemies.length; i++) {
+      for (let j = i + 1; j < this.enemies.length; j++) {
+        const e1 = this.enemies[i];
+        const e2 = this.enemies[j];
+        const dx = e2.x - e1.x;
+        const dy = e2.y - e1.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = e1.radius + e2.radius;
+        if (dist < minDist && dist > 0.0001) {
+          const overlap = (minDist - dist) * 0.5;
+          const nx = (dx / dist) * overlap;
+          const ny = (dy / dist) * overlap;
+          e1.x -= nx;
+          e1.y -= ny;
+          e2.x += nx;
+          e2.y += ny;
+        }
+      }
+    }
+
+    // 2. プレイヤーと敵のめり込み分離
+    for (const e of this.enemies) {
+      const dx = e.x - this.player.x;
+      const dy = e.y - this.player.y;
+      const dist = Math.hypot(dx, dy);
+      const minDist = this.player.radius + e.radius;
+      if (dist < minDist && dist > 0.0001) {
+        const overlap = (minDist - dist);
+        const nx = (dx / dist);
+        const ny = (dy / dist);
+        // ボスは動かずプレイヤーを押し出す
+        if (e.type === 'boss') {
+          this.player.x -= nx * overlap;
+          this.player.y -= ny * overlap;
+        } else {
+          this.player.x -= nx * (overlap * 0.35);
+          this.player.y -= ny * overlap * 0.35;
+          e.x += nx * (overlap * 0.65);
+          e.y += ny * overlap * 0.65;
         }
       }
     }
