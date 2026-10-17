@@ -597,6 +597,18 @@
     </div>
   </div>
 
+  <!-- Perk Selection Screen (Rougelite 3-Choice Upgrade) -->
+  <div class="modal-screen" id="perk-modal" style="display:none;">
+    <div class="modal-box">
+      <div style="font-size:38px; margin-bottom:10px;">✨🧬</div>
+      <div class="modal-title" style="color:#f1c40f;">LEVEL UP ABILITY!</div>
+      <div class="modal-desc">
+        レベルアップによる覚醒！習得するパッシブアビリティを選択してください：
+      </div>
+      <div id="perk-choices" style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;"></div>
+    </div>
+  </div>
+
   <!-- Game Over Screen -->
   <div class="modal-screen" id="game-over-screen" style="display:none;">
     <div class="modal-box">
@@ -633,11 +645,12 @@
       <div id="rune-container" style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;"></div>
     </div>
     <div>
-      <h4 style="font-size:12px; color:#a0aec0; margin-bottom:6px;">武器属性エンチャント工房 (15◆)</h4>
-      <div style="display:flex; gap:8px; margin-bottom:10px;">
-        <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #e74c3c, #d35400);" onclick="Game.enchantWeapon('fire')">炎上付与</button>
-        <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #3498db, #2980b9);" onclick="Game.enchantWeapon('ice')">氷結付与</button>
-        <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #f1c40f, #d4ac0d);" onclick="Game.enchantWeapon('upgrade')">武器鍛錬(+5 dmg)</button>
+      <h4 style="font-size:12px; color:#a0aec0; margin-bottom:6px;">武器属性エンチャント工房 & 分解工房</h4>
+      <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+        <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #e74c3c, #d35400);" onclick="Game.enchantWeapon('fire')">炎上付与 (15◆)</button>
+        <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #3498db, #2980b9);" onclick="Game.enchantWeapon('ice')">氷結付与 (15◆)</button>
+        <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #f1c40f, #d4ac0d);" onclick="Game.enchantWeapon('upgrade')">武器鍛錬 (15◆)</button>
+        <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #9b59b6, #8e44ad);" onclick="Game.salvageGear()">装備分解(+10◆)</button>
       </div>
     </div>
     <div>
@@ -1179,6 +1192,7 @@ const Game = {
     this.player.inventory = [WEAPONS_DB[0], ARMORS_DB[0]];
     this.player.runes = [];
     RUNES_DB.forEach(r => r.applied = false);
+    this.player.perks = [];
     this.resetVolatileStates();
     this.recalcStats();
     this.updateHUD();
@@ -1342,14 +1356,14 @@ const Game = {
       });
     }
 
-    // 商人の配置（3階層ごと）
-    if (this.floor % 3 === 1 && this.rooms.length >= 4) {
-      const merchRoom = this.rooms[2];
+    // 時限サバイバル試練ポータルの配置
+    if (this.rooms.length >= 5) {
+      const trialRoom = this.rooms[4];
       this.lootItems.push({
-        x: merchRoom.cx * this.tileSize + this.tileSize/2,
-        y: merchRoom.cy * this.tileSize + this.tileSize/2,
-        type: 'merchant',
-        interacted: false
+        x: trialRoom.cx * this.tileSize,
+        y: trialRoom.cy * this.tileSize,
+        type: 'survivalPortal',
+        active: true
       });
     }
 
@@ -1866,7 +1880,45 @@ const Game = {
       this.player.hp = this.player.maxHp;
       this.emitSound('level', this.player.x, this.player.y);
       this.emitToast(`レベルアップ！ Lv.${this.player.level}`);
+      this.triggerPerkSelection();
     }
+  },
+
+  triggerPerkSelection() {
+    const allPerks = [
+      { id: 'p1', name: '雷撃連鎖', desc: '攻撃時、確率で周囲の敵に連鎖電撃', icon: '⚡' },
+      { id: 'p2', name: 'バーサーカー', desc: 'HPが減るほど攻撃力が大幅上昇', icon: '🔥' },
+      { id: 'p3', name: 'ライフスティール', desc: '攻撃命中時に確率でHPを回復', icon: '🩸' },
+      { id: 'p4', name: 'シールドバースト', desc: '被弾時、周囲に衝撃波を放ち反撃', icon: '🛡️' },
+      { id: 'p5', name: 'クリティカルマスター', desc: 'クリティカル率が大幅に上昇', icon: '✨' }
+    ];
+    const available = allPerks.filter(p => !this.player.perks.some(ep => ep.id === p.id));
+    if (available.length === 0) return;
+    const shuffled = available.sort(() => 0.5 - Math.random());
+    const choices = shuffled.slice(0, 3);
+
+    const modal = document.getElementById('perk-modal');
+    const container = document.getElementById('perk-choices');
+    container.innerHTML = '';
+    choices.forEach(perk => {
+      const btn = document.createElement('button');
+      btn.className = 'primary-btn';
+      btn.style.width = '100%';
+      btn.style.textAlign = 'left';
+      btn.style.padding = '12px 16px';
+      btn.innerHTML = `<div style="font-size:16px;">${perk.icon} ${perk.name}</div><div style="font-size:11px; color:#a0aec0; margin-top:4px;">${perk.desc}</div>`;
+      btn.onclick = () => {
+        this.player.perks.push(perk);
+        modal.style.display = 'none';
+        this.state = 'PLAYING';
+        this.timeScale = 1.0;
+        this.emitToast(`新アビリティ【${perk.name}】習得！`);
+      };
+      container.appendChild(btn);
+    });
+    this.state = 'PERK_SELECT';
+    this.timeScale = 0.0;
+    modal.style.display = 'flex';
   },
 
   dropLoot(x, y, isBoss = false) {
@@ -2705,6 +2757,13 @@ const Game = {
         ctx.fillRect(item.x - 12, item.y - 12, 24, 24);
         ctx.fillStyle = '#e74c3c';
         ctx.fillText('呪', item.x, item.y + 4);
+      } else if (item.type === 'survivalPortal') {
+        ctx.fillStyle = '#3498db';
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, item.active ? 20 : 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.fillText('試練', item.x, item.y + 4);
       } else if (item.type === 'emerald') {
         const ey = item.y + bobY;
         // Shadow underneath
