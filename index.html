@@ -645,7 +645,8 @@ const Game = {
   fixedDt: 1 / 60,
   renderAlpha: 0,
   hitstopTimer: 0,
-  mousePos: { x: 0, y: 0, active: false },
+  mousePos: { x: 0, y: 0, active: false, lastMovedTime: 0 },
+  timeScale: 1.0,
   lootAlertTimer: 0,
   delayedTasks: [], // { timer, action } - ゲームタイムライン完全同期用
 
@@ -735,6 +736,7 @@ const Game = {
       this.mousePos.x = e.clientX;
       this.mousePos.y = e.clientY;
       this.mousePos.active = true;
+      this.mousePos.lastMovedTime = performance.now();
     });
 
     // Keyboard
@@ -1066,11 +1068,11 @@ const Game = {
     if (this.player.attackCooldown > 0) return;
 
     // 照準ヒエラルキーの純化:
-    // PC操作時（mousePos.active）はマウスカーソル方向を絶対最優先
-    // モバイル/パッド時で移動中なら移動方向、停止中や近接敵がある場合はスマートエイム
+    // 照準優先判定: PCマウス入力が直近にあればマウス方向、無ければスマートエイム/移動方向
+    const isMouseRecentlyActive = (performance.now() - this.mousePos.lastMovedTime) < (this.config.mouseActiveTimeout * 1000);
     const target = this.getNearestEnemy(200);
 
-    if (this.mousePos.active) {
+    if (isMouseRecentlyActive) {
       const worldMouseX = this.mousePos.x - this.camX;
       const worldMouseY = this.mousePos.y - this.camY;
       this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
@@ -1086,10 +1088,10 @@ const Game = {
     this.player.attackSwing = this.player.attackSwingDuration;
     this.player.swingDir *= -1;
 
-    // 攻撃時のキレのある前進ステップイン（踏み込み慣性インパルス）
-    const stepPower = 110;
-    this.player.vx += Math.cos(this.player.angle) * stepPower;
-    this.player.vy += Math.sin(this.player.angle) * stepPower;
+    // 攻撃時のキレのある前進ステップイン（踏み込み慣性）
+    const stepPower = 140;
+    this.player.vx = Math.cos(this.player.angle) * stepPower;
+    this.player.vy = Math.sin(this.player.angle) * stepPower;
 
     Sound.play('slash');
 
@@ -1377,16 +1379,15 @@ const Game = {
     if (frameTime > 0.1) frameTime = 0.1; // Clamp spiral of death
     this.lastTime = timestamp;
 
-    // Hitstop logic: freeze updates for impact feel
+    // ヒットストップおよびタイムスケールの一元統合（インベントリ時や停止時の厳密な静止）
+    let effectiveDt = frameTime * this.timeScale;
     if (this.hitstopTimer > 0) {
       this.hitstopTimer = Math.max(0, this.hitstopTimer - frameTime);
-      this.render();
-      requestAnimationFrame((t) => this.loop(t));
-      return;
+      effectiveDt = 0;
     }
 
-    if (this.state === 'PLAYING') {
-      this.accumulator += frameTime;
+    if (this.state === 'PLAYING' && effectiveDt > 0) {
+      this.accumulator += effectiveDt;
       while (this.accumulator >= this.fixedDt) {
         this.savePrevPositions();
         this.physicsUpdate(this.fixedDt);
@@ -1438,14 +1439,16 @@ const Game = {
     this.player.vx += Math.sign(diffVx) * Math.min(Math.abs(diffVx), accelRate * dt);
     this.player.vy += Math.sign(diffVy) * Math.min(Math.abs(diffVy), accelRate * dt);
 
-    // 攻撃動作中の旋回制御 & 照準方向の更新
-    const isMouseRecentlyActive = (performance.now() - this.mousePos.lastMovedTime) < (this.config.mouseActiveTimeout * 1000);
-    if (isMouseRecentlyActive) {
-      const worldMouseX = this.mousePos.x - this.camX;
-      const worldMouseY = this.mousePos.y - this.camY;
-      this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
-    } else if (this.player.attackSwing <= 0 && (mx !== 0 || my !== 0)) {
-      this.player.angle = Math.atan2(my, mx);
+    // 照準方向の更新（攻撃スイング中は振り抜き方向を固定し、エイムブレを遮断）
+    if (this.player.attackSwing <= 0) {
+      const isMouseRecentlyActive = (performance.now() - this.mousePos.lastMovedTime) < (this.config.mouseActiveTimeout * 1000);
+      if (isMouseRecentlyActive) {
+        const worldMouseX = this.mousePos.x - this.camX;
+        const worldMouseY = this.mousePos.y - this.camY;
+        this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
+      } else if (mx !== 0 || my !== 0) {
+        this.player.angle = Math.atan2(my, mx);
+      }
     }
 
     // 3. プレイヤーの移動と壁衝突解決（スライド処理）
@@ -1575,11 +1578,8 @@ const Game = {
         }
       }
 
-      // 1パス目：軸別タイル衝突解決
       e.x += moveX;
-      this.resolveCircleWallCollisions(e, 'x');
       e.y += moveY;
-      this.resolveCircleWallCollisions(e, 'y');
 
       // 死亡判定
       if (e.hp <= 0) {
@@ -1590,8 +1590,10 @@ const Game = {
       }
     }
 
-    // 8. エンティティ間の重なり解消と2パスクランプ（エンティティ押し出しによる壁めり込みの完全遮断）
+    // 8. エンティティ間の重なり解消（分離フェーズ）
     this.resolveEntitySeparation();
+
+    // 9. 壁衝突解決の統合収束（分離後の壁めり込み・ジッターを完全排除）
     this.resolveCircleWallCollisions(this.player, 'both');
     for (const e of this.enemies) {
       this.resolveCircleWallCollisions(e, 'both');
@@ -1675,13 +1677,13 @@ const Game = {
     return false;
   },
 
-  // 高精度な円コライダー vs タイルAABBの貫通解消（法線投影による滑らかな壁滑りと角引っかかり防止）
+  // 高精度な円コライダー vs タイルAABBの貫通解消（凸角コーナースライド補正付き）
   resolveCircleWallCollisions(entity, axis = 'both') {
     const r = entity.radius;
-    const minCol = Math.max(0, Math.floor((entity.x - r - 1) / this.tileSize));
-    const maxCol = Math.min(this.mapWidth - 1, Math.floor((entity.x + r + 1) / this.tileSize));
-    const minRow = Math.max(0, Math.floor((entity.y - r - 1) / this.tileSize));
-    const maxRow = Math.min(this.mapHeight - 1, Math.floor((entity.y + r + 1) / this.tileSize));
+    const minCol = Math.max(0, Math.floor((entity.x - r - 2) / this.tileSize));
+    const maxCol = Math.min(this.mapWidth - 1, Math.floor((entity.x + r + 2) / this.tileSize));
+    const minRow = Math.max(0, Math.floor((entity.y - r - 2) / this.tileSize));
+    const maxRow = Math.min(this.mapHeight - 1, Math.floor((entity.y + r + 2) / this.tileSize));
 
     for (let row = minRow; row <= maxRow; row++) {
       for (let col = minCol; col <= maxCol; col++) {
@@ -1705,25 +1707,31 @@ const Game = {
               const nx = diffX / dist;
               const ny = diffY / dist;
 
+              // コーナースライド補正: 速度ベクトルの法線成分を除去し、接線方向へ逃がす
+              if (entity.vx !== undefined && entity.vy !== undefined) {
+                const dot = entity.vx * nx + entity.vy * ny;
+                if (dot < 0) {
+                  entity.vx -= dot * nx;
+                  entity.vy -= dot * ny;
+                }
+              }
+
               if (axis === 'x') {
                 entity.x += nx * overlap;
-                if (entity.vx !== undefined && Math.abs(nx) > 0.5) entity.vx = 0;
               } else if (axis === 'y') {
                 entity.y += ny * overlap;
-                if (entity.vy !== undefined && Math.abs(ny) > 0.5) entity.vy = 0;
               } else {
                 entity.x += nx * overlap;
                 entity.y += ny * overlap;
               }
             } else {
-              // 重心完全に一致時のフォールバック押し出し
-              if (axis === 'x') {
-                entity.x += (entity.x >= (tileLeft + tileRight) * 0.5 ? 1 : -1) * r;
-                if (entity.vx !== undefined) entity.vx = 0;
-              } else {
-                entity.y += (entity.y >= (tileTop + tileBottom) * 0.5 ? 1 : -1) * r;
-                if (entity.vy !== undefined) entity.vy = 0;
-              }
+              // 重心完全一致時のフォールバック押し出し
+              const centerX = (tileLeft + tileRight) * 0.5;
+              const centerY = (tileTop + tileBottom) * 0.5;
+              const pushDirX = entity.x >= centerX ? 1 : -1;
+              const pushDirY = entity.y >= centerY ? 1 : -1;
+              if (axis === 'x' || axis === 'both') entity.x += pushDirX * r;
+              if (axis === 'y' || axis === 'both') entity.y += pushDirY * r;
             }
           }
         }
@@ -2126,8 +2134,10 @@ const Game = {
     if (this.state === 'INVENTORY') {
       modal.style.display = 'none';
       this.state = 'PLAYING';
+      this.timeScale = 1.0;
     } else if (this.state === 'PLAYING') {
       this.state = 'INVENTORY';
+      this.timeScale = 0.0;
       modal.style.display = 'flex';
       this.renderInventory();
     }
