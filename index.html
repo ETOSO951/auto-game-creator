@@ -619,11 +619,18 @@ const Game = {
   rooms: [],
   exitPos: { x: 0, y: 0 },
 
+  // Camera & Time
+  camX: 0,
+  camY: 0,
+  lastTime: 0,
+  mousePos: { x: 0, y: 0, active: false },
+
   // Player
   player: {
     x: 0, y: 0,
     vx: 0, vy: 0,
-    speed: 3.6,
+    baseSpeed: 216, // px per second
+    speed: 216,
     radius: 16,
     angle: 0,
     hp: 100,
@@ -637,8 +644,11 @@ const Game = {
     swingDir: 1,
     potions: 2,
     potionCooldown: 0,
+    potionCooldownMax: 5.0,
     art1Cooldown: 0,
+    art1CooldownMax: 3.0,
     art2Cooldown: 0,
+    art2CooldownMax: 4.5,
     invincibleTimer: 0,
     weapon: WEAPONS_DB[0],
     armor: ARMORS_DB[0],
@@ -676,6 +686,13 @@ const Game = {
   },
 
   bindInputs() {
+    // Mouse tracking for PC Smart Aim
+    window.addEventListener('mousemove', (e) => {
+      this.mousePos.x = e.clientX;
+      this.mousePos.y = e.clientY;
+      this.mousePos.active = true;
+    });
+
     // Keyboard
     window.addEventListener('keydown', (e) => {
       this.keys[e.key.toLowerCase()] = true;
@@ -786,7 +803,7 @@ const Game = {
   recalcStats() {
     const armor = this.player.armor;
     this.player.maxHp = this.player.baseMaxHp + (armor ? armor.maxHpBonus : 0);
-    this.player.speed = 3.6 + (armor && armor.speedBonus ? armor.speedBonus : 0);
+    this.player.speed = this.player.baseSpeed + (armor && armor.speedBonus ? armor.speedBonus * 60 : 0);
   },
 
   /* --- Procedural Dungeon Generation (Rooms & Corridors) --- */
