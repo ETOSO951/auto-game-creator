@@ -522,6 +522,8 @@
         <button id="inv-toggle-btn" onclick="Game.toggleInventory()">装備/鞄</button>
       </div>
     </div>
+    
+    <div id="biome-banner" style="position:absolute; top:75px; left:20px; font-size:10px; font-weight:800; color:#ffd166; background:rgba(12,16,26,0.85); padding:4px 12px; border-radius:12px; border:1px solid rgba(240,194,101,0.25); backdrop-filter:blur(8px); pointer-events:none; transition: opacity 0.5s;">バイオーム: 通常洞窟</div>
 
     <div class="loot-alert" id="lootAlert">レアアイテム獲得！</div>
 
@@ -826,6 +828,12 @@ const ARMORS_DB = [
   { id: 'a3', name: 'タイタンプレート', type: 'armor', maxHpBonus: 100, def: 8, rarity: 'unique', icon: '🎽', desc: '圧倒的な体力と防御力を誇る' }
 ];
 
+const RUNES_DB = [
+  { id: 'r1', name: '烈風のルーン', icon: '💨', desc: '移動速度と攻撃速度が15%上昇する', cost: 12, type: 'passive', applied: false },
+  { id: 'r2', name: '強撃のルーン', icon: '⚡', desc: '武器ダメージが+12されクリティカル率アップ', cost: 18, type: 'passive', applied: false },
+  { id: 'r3', name: '吸血のルーン', icon: '🩸', desc: '討伐時に最大HPの5%が即座に回復する', cost: 25, type: 'passive', applied: false }
+];
+
 /* --- Main Game Core --- */
 const Game = {
   canvas: null,
@@ -951,7 +959,8 @@ const Game = {
     invincibleTimer: 0,
     weapon: WEAPONS_DB[0],
     armor: ARMORS_DB[0],
-    inventory: [WEAPONS_DB[0], ARMORS_DB[0]]
+    inventory: [WEAPONS_DB[0], ARMORS_DB[0]],
+    runes: []
   },
 
   // Entities
@@ -1133,6 +1142,8 @@ const Game = {
     this.player.weapon = WEAPONS_DB[0];
     this.player.armor = ARMORS_DB[0];
     this.player.inventory = [WEAPONS_DB[0], ARMORS_DB[0]];
+    this.player.runes = [];
+    RUNES_DB.forEach(r => r.applied = false);
     this.resetVolatileStates();
     this.recalcStats();
     this.player.hp = this.player.maxHp;
@@ -1163,11 +1174,14 @@ const Game = {
 
   recalcStats() {
     const armor = this.player.armor;
-    this.player.maxHp = this.player.baseMaxHp + (armor ? armor.maxHpBonus : 0);
-    this.player.speed = this.player.baseSpeed + (armor && armor.speedBonus ? armor.speedBonus * 60 : 0);
+    let bonusSpeed = (armor && armor.speedBonus ? armor.speedBonus * 60 : 0);
+    let bonusHp = (armor ? armor.maxHpBonus : 0);
+    if (this.player.runes.some(r => r.id === 'r1')) bonusSpeed += 32;
+    this.player.maxHp = this.player.baseMaxHp + bonusHp;
+    this.player.speed = this.player.baseSpeed + bonusSpeed;
   },
 
-  /* --- Procedural Dungeon Generation (Rooms & Corridors) --- */
+  /* --- Procedural Dungeon Generation (Rooms, Biomes, Secrets & Merchants) --- */
   generateFloor() {
     this.mapWidth = 32 + this.floor * 2;
     this.mapHeight = 32 + this.floor * 2;
@@ -1180,6 +1194,19 @@ const Game = {
     this.damageNumbers = [];
     this.shockwaves = [];
 
+    // バイオーム自動決定 (1-2F: cave, 3-4F: magma, 5-6F: ice, 7F+: swamp)
+    if (this.floor <= 2) this.currentBiome = { name: '通常洞窟', color: '#161922', hazard: 'none' };
+    else if (this.floor <= 4) this.currentBiome = { name: '溶岩洞窟', color: '#2a1412', hazard: 'lava' };
+    else if (this.floor <= 6) this.currentBiome = { name: '氷結遺構', color: '#12222a', hazard: 'ice' };
+    else this.currentBiome = { name: '毒沼迷宮', color: '#182a18', hazard: 'poison' };
+
+    const banner = document.getElementById('biome-banner');
+    if (banner) {
+      banner.innerText = `バイオーム: ${this.currentBiome.name} (階層 ${this.floor})`;
+      banner.style.opacity = '1';
+      setTimeout(() => { banner.style.opacity = '0'; }, 3500);
+    }
+
     const numRooms = 6 + Math.min(this.floor, 8);
     for (let i = 0; i < numRooms * 3; i++) {
       if (this.rooms.length >= numRooms) break;
@@ -1188,7 +1215,6 @@ const Game = {
       const x = Math.floor(Math.random() * (this.mapWidth - w - 2)) + 1;
       const y = Math.floor(Math.random() * (this.mapHeight - h - 2)) + 1;
 
-      // Check overlap
       let overlap = false;
       for (const r of this.rooms) {
         if (x < r.x + r.w + 1 && x + w + 1 > r.x && y < r.y + r.h + 1 && y + h + 1 > r.y) {
@@ -1206,7 +1232,6 @@ const Game = {
       }
     }
 
-    // Connect Rooms
     for (let i = 0; i < this.rooms.length - 1; i++) {
       const r1 = this.rooms[i];
       const r2 = this.rooms[i + 1];
@@ -1221,22 +1246,44 @@ const Game = {
       }
     }
 
-    // Player start position
     const startRoom = this.rooms[0];
     this.player.x = startRoom.cx * this.tileSize + this.tileSize / 2;
     this.player.y = startRoom.cy * this.tileSize + this.tileSize / 2;
     this.camX = this.width / 2 - this.player.x;
     this.camY = this.height / 2 - this.player.y;
 
-    // Exit portal at last room
     const lastRoom = this.rooms[this.rooms.length - 1];
     this.exitPos = {
       x: lastRoom.cx * this.tileSize + this.tileSize / 2,
       y: lastRoom.cy * this.tileSize + this.tileSize / 2
     };
-    this.map[lastRoom.cy][lastRoom.cx] = 2; // Portal tile
+    this.map[lastRoom.cy][lastRoom.cx] = 2;
 
-    // Spawn Enemies and Chests in other rooms
+    // シークレットルームの配置（隠し壁の破壊可能ブロック）
+    if (this.rooms.length >= 3) {
+      const secRoom = this.rooms[Math.floor(this.rooms.length / 2)];
+      const secWallX = secRoom.cx;
+      const secWallY = secRoom.y;
+      this.map[secWallY][secWallX] = 3; // 破壊可能な隠し壁
+      this.lootItems.push({
+        x: secWallX * this.tileSize + this.tileSize/2,
+        y: (secWallY - 1) * this.tileSize + this.tileSize/2,
+        type: 'chest',
+        opened: false
+      });
+    }
+
+    // 商人の配置（3階層ごと）
+    if (this.floor % 3 === 1 && this.rooms.length >= 4) {
+      const merchRoom = this.rooms[2];
+      this.lootItems.push({
+        x: merchRoom.cx * this.tileSize + this.tileSize/2,
+        y: merchRoom.cy * this.tileSize + this.tileSize/2,
+        type: 'merchant',
+        interacted: false
+      });
+    }
+
     for (let i = 1; i < this.rooms.length; i++) {
       const rm = this.rooms[i];
       const enemyCount = Math.floor(Math.random() * 3) + 2 + Math.floor(this.floor * 0.8);
@@ -1245,7 +1292,6 @@ const Game = {
         const ey = (rm.y + 1 + Math.random() * (rm.h - 2)) * this.tileSize;
         this.spawnEnemy(ex, ey);
       }
-      // Chest
       if (Math.random() < 0.6) {
         this.lootItems.push({
           x: rm.cx * this.tileSize,
@@ -1256,7 +1302,6 @@ const Game = {
       }
     }
 
-    // Boss on every 3rd floor in the final room!
     if (this.floor % 3 === 0) {
       this.spawnBoss(this.exitPos.x - 60, this.exitPos.y - 60);
     }
@@ -1265,50 +1310,65 @@ const Game = {
   },
 
   spawnEnemy(x, y) {
-    const types = ['zombie', 'skeleton', 'creeper'];
-    if (this.floor >= 2) types.push('wraith');
+    const types = ['zombie', 'skeleton', 'creeper', 'shadow', 'protector'];
     const type = types[Math.floor(Math.random() * types.length)];
     const hpScale = 1 + (this.floor - 1) * 0.35;
     const dmgScale = 1 + (this.floor - 1) * 0.25;
+
+    // 精鋭エリート属性の確率付与 (高階層ほど高確率)
+    const isElite = Math.random() < Math.min(0.35, 0.08 * this.floor);
+    const eliteAura = isElite ? ['flame', 'swift', 'tank'][Math.floor(Math.random() * 3)] : null;
 
     let e = {
       x, y,
       prevX: x, prevY: y,
       type,
-      radius: 16,
+      radius: type === 'protector' ? 18 : 16,
       vx: 0, vy: 0,
-      kbX: 0, kbY: 0, // Knockback impulse velocity
+      kbX: 0, kbY: 0,
       shootCd: 0,
       fuse: 0,
+      isElite,
+      eliteAura,
       color: '#2ecc71'
     };
 
     if (type === 'zombie') {
       e.hp = Math.floor(35 * hpScale);
-      e.maxHp = e.hp;
-      e.speed = 96; // px per second
+      e.speed = 96;
       e.damage = Math.floor(10 * dmgScale);
       e.color = '#27ae60';
     } else if (type === 'skeleton') {
       e.hp = Math.floor(25 * hpScale);
-      e.maxHp = e.hp;
-      e.speed = 78; // px per second
+      e.speed = 78;
       e.damage = Math.floor(8 * dmgScale);
       e.color = '#bdc3c7';
     } else if (type === 'creeper') {
       e.hp = Math.floor(20 * hpScale);
-      e.maxHp = e.hp;
-      e.speed = 132; // px per second
+      e.speed = 132;
       e.damage = Math.floor(35 * dmgScale);
       e.color = '#2ecc71';
       e.fuse = 0;
-    } else if (type === 'wraith') {
-      e.hp = Math.floor(50 * hpScale);
-      e.maxHp = e.hp;
-      e.speed = 150; // px per second
-      e.damage = Math.floor(14 * dmgScale);
-      e.color = '#9b59b6';
+    } else if (type === 'shadow') {
+      e.hp = Math.floor(30 * hpScale);
+      e.speed = 160;
+      e.damage = Math.floor(12 * dmgScale);
+      e.color = '#8e44ad';
+      e.warpCd = 0;
+    } else if (type === 'protector') {
+      e.hp = Math.floor(60 * hpScale);
+      e.speed = 64;
+      e.damage = Math.floor(6 * dmgScale);
+      e.color = '#e67e22';
+      e.shieldCd = 0;
     }
+
+    if (isElite) {
+      e.hp = Math.floor(e.hp * 1.6);
+      e.damage = Math.floor(e.damage * 1.3);
+      if (eliteAura === 'swift') e.speed *= 1.35;
+    }
+    e.maxHp = e.hp;
     this.enemies.push(e);
   },
 
