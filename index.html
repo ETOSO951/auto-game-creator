@@ -1213,11 +1213,11 @@ const Game = {
     this.shockwaves = [];
     this.hazards = [];
 
-    // バイオーム自動決定
+    // バイオーム自動決定（古代遺跡・マグマ神殿・氷結遺構・毒沼迷宮）
     if (this.floor <= 2) this.currentBiome = { name: '通常洞窟', color: '#161922', hazard: 'none' };
-    else if (this.floor <= 4) this.currentBiome = { name: '溶岩洞窟', color: '#2a1412', hazard: 'lava' };
-    else if (this.floor <= 6) this.currentBiome = { name: '氷結遺構', color: '#12222a', hazard: 'ice' };
-    else this.currentBiome = { name: '毒沼迷宮', color: '#182a18', hazard: 'poison' };
+    else if (this.floor <= 4) this.currentBiome = { name: 'マグマ神殿', color: '#2a1412', hazard: 'lava' };
+    else if (this.floor <= 6) this.currentBiome = { name: '古代遺跡', color: '#1c182a', hazard: 'spikes' };
+    else this.currentBiome = { name: '氷結遺構', color: '#12222a', hazard: 'ice' };
 
     const banner = document.getElementById('biome-banner');
     if (banner) {
@@ -1325,19 +1325,28 @@ const Game = {
       }
       // 環境ギミック配置
       if (this.currentBiome.hazard === 'lava' && Math.random() < 0.5) {
-        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize + 20, type: 'lava', radius: 24 });
-      } else if (this.currentBiome.hazard === 'poison' && Math.random() < 0.5) {
-        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize, type: 'poison', radius: 28 });
+        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize + 20, type: 'lava', radius: 24, timer: 0 });
+      } else if (this.currentBiome.hazard === 'spikes' && Math.random() < 0.5) {
+        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize, type: 'spikes', radius: 26, timer: 0 });
+      } else if (this.currentBiome.hazard === 'ice' && Math.random() < 0.5) {
+        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize, type: 'ice', radius: 30 });
       }
     }
 
-    // 祭壇の配置
-    if (isAltarFloor && this.rooms.length >= 3) {
+    // 祭壇・ルーンクラフトの配置
+    if (this.rooms.length >= 3) {
       const altarRoom = this.rooms[1];
       this.lootItems.push({
         x: altarRoom.cx * this.tileSize,
         y: altarRoom.cy * this.tileSize,
         type: 'altar',
+        interacted: false
+      });
+      const runeRoom = this.rooms[2];
+      this.lootItems.push({
+        x: runeRoom.cx * this.tileSize,
+        y: runeRoom.cy * this.tileSize,
+        type: 'runeAltar',
         interacted: false
       });
     }
@@ -1366,9 +1375,9 @@ const Game = {
     const hpScale = 1 + (this.floor - 1) * 0.35;
     const dmgScale = 1 + (this.floor - 1) * 0.25;
 
-    // 精鋭エリート属性の確率付与 (高階層ほど高確率)
-    const isElite = Math.random() < Math.min(0.35, 0.08 * this.floor);
-    const eliteAura = isElite ? ['flame', 'swift', 'tank'][Math.floor(Math.random() * 3)] : null;
+    // 精鋭エリート属性の確率付与 (高階層ほど高確率、多彩なアフィックス)
+    const isElite = Math.random() < Math.min(0.4, 0.09 * this.floor);
+    const eliteAura = isElite ? ['flame', 'swift', 'tank', 'grappler', 'priest'][Math.floor(Math.random() * 5)] : null;
 
     let e = {
       x, y,
@@ -1415,9 +1424,10 @@ const Game = {
     }
 
     if (isElite) {
-      e.hp = Math.floor(e.hp * 1.6);
-      e.damage = Math.floor(e.damage * 1.3);
-      if (eliteAura === 'swift') e.speed *= 1.35;
+      e.hp = Math.floor(e.hp * 1.75);
+      e.damage = Math.floor(e.damage * 1.4);
+      if (eliteAura === 'swift') e.speed *= 1.4;
+      if (eliteAura === 'tank') e.radius *= 1.2;
     }
     e.maxHp = e.hp;
     this.enemies.push(e);
