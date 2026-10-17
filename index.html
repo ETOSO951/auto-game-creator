@@ -79,18 +79,21 @@
   }
 
   .stats-card {
-    background: var(--panel-bg);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
-    padding: 10px 14px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: linear-gradient(145deg, rgba(20, 26, 42, 0.85), rgba(12, 16, 26, 0.92));
+    border: 1px solid rgba(229, 184, 92, 0.25);
+    border-radius: 16px;
+    padding: 11px 16px;
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    min-width: 190px;
-    transition: transform 0.3s var(--ease-spring);
+    gap: 7px;
+    min-width: 195px;
+    transition: transform 0.3s var(--ease-spring), border-color 0.3s ease;
+  }
+  .stats-card:hover {
+    border-color: rgba(229, 184, 92, 0.5);
   }
 
   .bar-container {
@@ -2049,8 +2052,11 @@ const Game = {
       }
     }
 
-    // パーティクル
+    // パーティクル (空気抵抗イージング & 重力慣性)
+    const drag = Math.exp(-6 * dt);
     for (const p of this.particles) {
+      p.vx *= drag;
+      p.vy *= drag;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.life -= dt;
@@ -2346,29 +2352,56 @@ const Game = {
       }
     }
 
-    // Loot Items
+    // Loot Items (Floating Bobbing Motion & Dynamic Aura)
+    const timeSec = performance.now() * 0.003;
     for (const item of this.lootItems) {
+      const bobY = Math.sin(timeSec * 2.5 + item.x) * 4;
+
       if (item.type === 'chest') {
         ctx.fillStyle = item.opened ? '#7f8c8d' : '#d35400';
         ctx.fillRect(item.x - 14, item.y - 12, 28, 24);
         ctx.fillStyle = '#f1c40f';
         ctx.fillRect(item.x - 4, item.y - 4, 8, 8);
       } else if (item.type === 'emerald') {
+        const ey = item.y + bobY;
+        // Shadow underneath
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath();
+        ctx.ellipse(item.x, item.y + 10, 8 - bobY * 0.3, 4 - bobY * 0.15, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Gem glow
+        const gemGrad = ctx.createRadialGradient(item.x, ey, 1, item.x, ey, 14);
+        gemGrad.addColorStop(0, 'rgba(46, 204, 113, 0.8)');
+        gemGrad.addColorStop(1, 'rgba(46, 204, 113, 0)');
+        ctx.fillStyle = gemGrad;
+        ctx.beginPath();
+        ctx.arc(item.x, ey, 14, 0, Math.PI * 2);
+        ctx.fill();
+
         ctx.fillStyle = '#2ecc71';
         ctx.beginPath();
-        ctx.moveTo(item.x, item.y - 10);
-        ctx.lineTo(item.x + 7, item.y);
-        ctx.lineTo(item.x, item.y + 10);
-        ctx.lineTo(item.x - 7, item.y);
+        ctx.moveTo(item.x, ey - 10);
+        ctx.lineTo(item.x + 7, ey);
+        ctx.lineTo(item.x, ey + 10);
+        ctx.lineTo(item.x - 7, ey);
         ctx.closePath();
         ctx.fill();
       } else if (item.type === 'equipment') {
-        // Glowing loot pillar
-        ctx.fillStyle = item.item.rarity === 'unique' ? 'rgba(230,126,34,0.3)' : 'rgba(52,152,219,0.3)';
-        ctx.fillRect(item.x - 10, item.y - 30, 20, 30);
-        ctx.font = '18px sans-serif';
+        const iy = item.y + bobY;
+        const isUnique = item.item.rarity === 'unique';
+        const pillarColor = isUnique ? 'rgba(243, 156, 18, 0.45)' : 'rgba(52, 152, 219, 0.45)';
+
+        // Glowing loot pillar light beam
+        const beamGrad = ctx.createLinearGradient(item.x, iy - 45, item.x, iy);
+        beamGrad.addColorStop(0, 'rgba(255,255,255,0)');
+        beamGrad.addColorStop(1, pillarColor);
+        ctx.fillStyle = beamGrad;
+        ctx.fillRect(item.x - 12, iy - 45, 24, 45);
+
+        ctx.font = '20px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(item.item.icon, item.x, item.y - 4);
+        ctx.fillText(item.item.icon, item.x, iy - 6);
       }
     }
 
@@ -2545,9 +2578,28 @@ const Game = {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     for (const p of this.particles) {
+      const pAlpha = Math.max(0, p.life / 0.4);
+      ctx.globalAlpha = pAlpha;
       ctx.fillStyle = p.color;
       ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
+    ctx.restore();
+
+    // --- Dynamic Ambient Lighting Layer (Dark Atmosphere & Point Light) ---
+    ctx.save();
+    const lightRadius = 280 + (this.flashTimer > 0 ? 120 : 0);
+    const ambientGrad = ctx.createRadialGradient(px, py, 30, px, py, lightRadius);
+    ambientGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    ambientGrad.addColorStop(0.5, 'rgba(8, 11, 20, 0.42)');
+    ambientGrad.addColorStop(1, 'rgba(6, 8, 14, 0.88)');
+
+    ctx.fillStyle = ambientGrad;
+    ctx.fillRect(
+      startCol * this.tileSize,
+      startRow * this.tileSize,
+      (endCol - startCol) * this.tileSize,
+      (endRow - startRow) * this.tileSize
+    );
     ctx.restore();
 
     // Damage Numbers with Spring Pop, Scaling & Dynamic Alpha
