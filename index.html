@@ -623,7 +623,7 @@ const Game = {
   camX: 0,
   camY: 0,
   lastTime: 0,
-  mousePos: { x: 0, y: 0, worldX: 0, worldY: 0, active: false },
+  mousePos: { x: 0, y: 0, active: false },
 
   // Player
   player: {
@@ -691,8 +691,6 @@ const Game = {
     window.addEventListener('mousemove', (e) => {
       this.mousePos.x = e.clientX;
       this.mousePos.y = e.clientY;
-      this.mousePos.worldX = e.clientX - this.camX;
-      this.mousePos.worldY = e.clientY - this.camY;
       this.mousePos.active = true;
     });
 
@@ -743,13 +741,15 @@ const Game = {
     joyZone.addEventListener('touchstart', (e) => {
       e.preventDefault();
       Sound.init();
-      const touch = e.changedTouches[0];
-      this.joystick.touchId = touch.identifier;
-      handleTouch(touch);
+      if (this.joystick.touchId === null) {
+        const touch = e.changedTouches[0];
+        this.joystick.touchId = touch.identifier;
+        handleTouch(touch);
+      }
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
-      if (!this.joystick.active) return;
+      if (!this.joystick.active || this.joystick.touchId === null) return;
       for (let i = 0; i < e.changedTouches.length; i++) {
         if (e.changedTouches[i].identifier === this.joystick.touchId) {
           handleTouch(e.changedTouches[i]);
@@ -758,15 +758,18 @@ const Game = {
       }
     }, { passive: false });
 
-    window.addEventListener('touchend', (e) => {
+    const handleTouchEnd = (e) => {
+      if (!this.joystick.active) return;
       for (let i = 0; i < e.changedTouches.length; i++) {
         if (e.changedTouches[i].identifier === this.joystick.touchId) {
           resetJoy();
           break;
         }
       }
-    });
-    window.addEventListener('touchcancel', resetJoy);
+    };
+
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchEnd);
   },
 
   start() {
@@ -868,6 +871,8 @@ const Game = {
     const startRoom = this.rooms[0];
     this.player.x = startRoom.cx * this.tileSize + this.tileSize / 2;
     this.player.y = startRoom.cy * this.tileSize + this.tileSize / 2;
+    this.camX = this.width / 2 - this.player.x;
+    this.camY = this.height / 2 - this.player.y;
 
     // Exit portal at last room
     const lastRoom = this.rooms[this.rooms.length - 1];
@@ -985,7 +990,9 @@ const Game = {
 
     // Smart Aim: PC mouse aim or mobile nearest target lock
     if (this.mousePos.active) {
-      this.player.angle = Math.atan2(this.mousePos.worldY - this.player.y, this.mousePos.worldX - this.player.x);
+      const worldMouseX = this.mousePos.x - this.camX;
+      const worldMouseY = this.mousePos.y - this.camY;
+      this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
     } else {
       const target = this.getNearestEnemy(260);
       if (target) {
@@ -1010,6 +1017,9 @@ const Game = {
       const dy = e.y - this.player.y;
       const dist = Math.hypot(dx, dy);
       if (dist < atkRange + e.radius) {
+        // Line-of-sight check to prevent hitting through walls
+        if (!this.hasLineOfSight(this.player.x, this.player.y, e.x, e.y)) continue;
+
         const angleToEnemy = Math.atan2(dy, dx);
         let diff = Math.abs(atkAngle - angleToEnemy);
         if (diff > Math.PI) diff = Math.PI * 2 - diff;
@@ -1081,17 +1091,17 @@ const Game = {
   },
 
   createExplosion(x, y, radius, damage) {
-    // Shake camera & spawn particles
+    // Spawn explosion particles
     for (let i = 0; i < 28; i++) {
       const ang = Math.random() * Math.PI * 2;
-      const spd = Math.random() * 6 + 2;
+      const spd = Math.random() * 220 + 80; // px per second
       this.particles.push({
         x, y,
         vx: Math.cos(ang) * spd,
         vy: Math.sin(ang) * spd,
         size: Math.random() * 8 + 4,
         color: ['#e74c3c', '#f39c12', '#f1c40f'][Math.floor(Math.random() * 3)],
-        life: 25
+        life: 0.42
       });
     }
 
@@ -1205,13 +1215,12 @@ const Game = {
   },
 
   update(dt) {
-    // Synchronize mouse world position with current camera
-    this.camX = Math.floor(this.width / 2 - this.player.x);
-    this.camY = Math.floor(this.height / 2 - this.player.y);
-    if (this.mousePos.active) {
-      this.mousePos.worldX = this.mousePos.x - this.camX;
-      this.mousePos.worldY = this.mousePos.y - this.camY;
-    }
+    // Smooth camera interpolation (Lerp / exponential decay to remove micro-jitters)
+    const targetCamX = this.width / 2 - this.player.x;
+    const targetCamY = this.height / 2 - this.player.y;
+    const lerpRate = 1 - Math.exp(-12 * dt);
+    this.camX += (targetCamX - this.camX) * lerpRate;
+    this.camY += (targetCamY - this.camY) * lerpRate;
 
     // Movement Vector
     let mx = 0, my = 0;
@@ -1229,7 +1238,9 @@ const Game = {
 
     // Player Aim Decoupling & Smart Assist
     if (this.mousePos.active) {
-      this.player.angle = Math.atan2(this.mousePos.worldY - this.player.y, this.mousePos.worldX - this.player.x);
+      const worldMouseX = this.mousePos.x - this.camX;
+      const worldMouseY = this.mousePos.y - this.camY;
+      this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
     } else {
       const nearest = this.getNearestEnemy(260);
       if (nearest) {
@@ -1239,18 +1250,36 @@ const Game = {
       }
     }
 
-    // Smooth Wall Sliding Movement
+    // Precise Wall Sliding with Corner Assistance
     if (mx !== 0 || my !== 0) {
       const stepDist = this.player.speed * dt;
-      const moveX = mx * stepDist;
-      const moveY = my * stepDist;
+      let moveX = mx * stepDist;
+      let moveY = my * stepDist;
 
-      // Axis-independent movement allows sliding across surfaces effortlessly
+      // X-axis movement
       if (!this.checkWall(this.player.x + moveX, this.player.y, this.player.radius)) {
         this.player.x += moveX;
+      } else {
+        // Corner slide assist on Y axis if hitting a vertical corner
+        const cornerProbe = this.player.radius * 0.75;
+        if (!this.checkWall(this.player.x + moveX, this.player.y - cornerProbe, this.player.radius)) {
+          this.player.y -= stepDist * 0.5;
+        } else if (!this.checkWall(this.player.x + moveX, this.player.y + cornerProbe, this.player.radius)) {
+          this.player.y += stepDist * 0.5;
+        }
       }
+
+      // Y-axis movement
       if (!this.checkWall(this.player.x, this.player.y + moveY, this.player.radius)) {
         this.player.y += moveY;
+      } else {
+        // Corner slide assist on X axis if hitting a horizontal corner
+        const cornerProbe = this.player.radius * 0.75;
+        if (!this.checkWall(this.player.x - cornerProbe, this.player.y + moveY, this.player.radius)) {
+          this.player.x -= stepDist * 0.5;
+        } else if (!this.checkWall(this.player.x + cornerProbe, this.player.y + moveY, this.player.radius)) {
+          this.player.x += stepDist * 0.5;
+        }
       }
     }
 
@@ -1430,20 +1459,20 @@ const Game = {
       }
     }
 
-    // Particles
+    // Particles (Delta-time standardized)
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
-      p.x += p.vx * dt * 60;
-      p.y += p.vy * dt * 60;
-      p.life -= dt * 60;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt;
       if (p.life <= 0) this.particles.splice(i, 1);
     }
 
-    // Damage numbers
+    // Damage numbers (Delta-time standardized)
     for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
       const d = this.damageNumbers[i];
-      d.y -= 48 * dt;
-      d.life -= dt * 60;
+      d.y -= 42 * dt;
+      d.life -= dt;
       if (d.life <= 0) this.damageNumbers.splice(i, 1);
     }
   },
@@ -1463,23 +1492,40 @@ const Game = {
     return false;
   },
 
+  // Fast grid raycast to verify clear line-of-sight between two positions
+  hasLineOfSight(x1, y1, x2, y2) {
+    const dist = Math.hypot(x2 - x1, y2 - y1);
+    const stepSize = this.tileSize * 0.45;
+    const steps = Math.ceil(dist / stepSize);
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const px = x1 + (x2 - x1) * t;
+      const py = y1 + (y2 - y1) * t;
+      const tileX = Math.floor(px / this.tileSize);
+      const tileY = Math.floor(py / this.tileSize);
+      if (tileX < 0 || tileX >= this.mapWidth || tileY < 0 || tileY >= this.mapHeight) return false;
+      if (this.map[tileY][tileX] === 1) return false;
+    }
+    return true;
+  },
+
   /* --- Rendering (Isometric Voxel Aesthetic) --- */
   render() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.width, this.height);
 
-    // Camera follow player
-    const camX = Math.floor(this.width / 2 - this.player.x);
-    const camY = Math.floor(this.height / 2 - this.player.y);
+    // Apply smoothed camera with subpixel round
+    const roundedCamX = Math.round(this.camX);
+    const roundedCamY = Math.round(this.camY);
 
     ctx.save();
-    ctx.translate(camX, camY);
+    ctx.translate(roundedCamX, roundedCamY);
 
     // Draw Map Tiles (Blocks with top face & side depth)
-    const startCol = Math.max(0, Math.floor((-camX) / this.tileSize));
-    const endCol = Math.min(this.mapWidth, Math.ceil((-camX + this.width) / this.tileSize));
-    const startRow = Math.max(0, Math.floor((-camY) / this.tileSize));
-    const endRow = Math.min(this.mapHeight, Math.ceil((-camY + this.height) / this.tileSize));
+    const startCol = Math.max(0, Math.floor((-roundedCamX) / this.tileSize));
+    const endCol = Math.min(this.mapWidth, Math.ceil((-roundedCamX + this.width) / this.tileSize));
+    const startRow = Math.max(0, Math.floor((-roundedCamY) / this.tileSize));
+    const endRow = Math.min(this.mapHeight, Math.ceil((-roundedCamY + this.height) / this.tileSize));
 
     for (let r = startRow; r < endRow; r++) {
       for (let c = startCol; c < endCol; c++) {
@@ -1661,7 +1707,7 @@ const Game = {
       y: y - 10,
       text,
       color,
-      life: 30
+      life: 0.65 // in seconds
     });
   },
 
@@ -1669,11 +1715,11 @@ const Game = {
     for (let i = 0; i < 5; i++) {
       this.particles.push({
         x, y,
-        vx: (Math.random() - 0.5) * 4,
-        vy: (Math.random() - 0.5) * 4,
+        vx: (Math.random() - 0.5) * 160,
+        vy: (Math.random() - 0.5) * 160,
         size: Math.random() * 4 + 2,
         color: color || '#e74c3c',
-        life: 15
+        life: 0.28
       });
     }
   },
@@ -1686,7 +1732,7 @@ const Game = {
         vx: 0, vy: 0,
         size: 5,
         color: '#5dade2',
-        life: 10
+        life: 0.18
       });
     }
   },
