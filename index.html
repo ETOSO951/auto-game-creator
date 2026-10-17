@@ -852,19 +852,20 @@ const Sound = {
 
 /* --- Equipment & Artifact Definitions --- */
 const WEAPONS_DB = [
-  { id: 'w1', name: 'ダイヤの剣', type: 'weapon', dmg: 16, range: 48, speed: 1.0, rarity: 'common', icon: '🗡️', desc: '手になじむ鋭利な剣', element: 'none', upgradeLevel: 0 },
-  { id: 'w2', name: '大槌ハンマー', type: 'weapon', dmg: 32, range: 58, speed: 0.65, rarity: 'rare', icon: '🔨', desc: '重いが広範囲を薙ぎ払う', element: 'none', upgradeLevel: 0 },
-  { id: 'w3', name: '影のダガー', type: 'weapon', dmg: 12, range: 38, speed: 1.6, rarity: 'rare', icon: '🔪', desc: '手数が多く機動力に優れる', element: 'none', upgradeLevel: 0 },
-  { id: 'w4', name: '太陽のクレイモア', type: 'weapon', dmg: 48, range: 66, speed: 0.8, rarity: 'unique', icon: '⚔️', desc: '火炎を纏う伝説の大剣', element: 'fire', upgradeLevel: 0 },
-  { id: 'w5', name: '死神の鎌', type: 'weapon', dmg: 38, range: 62, speed: 1.1, rarity: 'unique', icon: '⛏️', desc: '魂を狩り攻撃時にHP回復', element: 'lifesteal', upgradeLevel: 0 },
-  { id: 'w6', name: 'ネザー・カタナ', type: 'weapon', dmg: 56, range: 52, speed: 1.3, rarity: 'unique', icon: '🔥', desc: '灼熱の業火を纏う伝説の太刀', element: 'fire', upgradeLevel: 0 },
-  { id: 'w7', name: 'フロスト・バスター', type: 'weapon', dmg: 44, range: 60, speed: 0.95, rarity: 'unique', icon: '❄️', desc: '氷結のオーラで敵の動きを縛る', element: 'ice', upgradeLevel: 0 }
+  { id: 'w1', name: 'ダイヤの剣', type: 'weapon', dmg: 16, range: 48, speed: 1.0, rarity: 'common', icon: '🗡️', desc: '手になじむ鋭利な剣', element: 'none', upgradeLevel: 0, setGroup: 'diamond' },
+  { id: 'w2', name: '大槌ハンマー', type: 'weapon', dmg: 32, range: 58, speed: 0.65, rarity: 'rare', icon: '🔨', desc: '重いが広範囲を薙ぎ払う', element: 'none', upgradeLevel: 0, setGroup: 'titan' },
+  { id: 'w3', name: '影のダガー', type: 'weapon', dmg: 12, range: 38, speed: 1.6, rarity: 'rare', icon: '🔪', desc: '手数が多く機動力に優れる', element: 'none', upgradeLevel: 0, setGroup: 'shadow' },
+  { id: 'w4', name: '太陽のクレイモア', type: 'weapon', dmg: 48, range: 66, speed: 0.8, rarity: 'unique', icon: '⚔️', desc: '火炎を纏う伝説の大剣', element: 'fire', upgradeLevel: 0, setGroup: 'solar' },
+  { id: 'w5', name: '死神の鎌', type: 'weapon', dmg: 38, range: 62, speed: 1.1, rarity: 'unique', icon: '⛏️', desc: '魂を狩り攻撃時にHP回復', element: 'lifesteal', upgradeLevel: 0, setGroup: 'shadow' },
+  { id: 'w6', name: 'ネザー・カタナ', type: 'weapon', dmg: 56, range: 52, speed: 1.3, rarity: 'unique', icon: '🔥', desc: '灼熱の業火を纏う伝説の太刀', element: 'fire', upgradeLevel: 0, setGroup: 'solar' },
+  { id: 'w7', name: 'フロスト・バスター', type: 'weapon', dmg: 44, range: 60, speed: 0.95, rarity: 'unique', icon: '❄️', desc: '氷結のオーラで敵の動きを縛る', element: 'ice', upgradeLevel: 0, setGroup: 'titan' }
 ];
 
 const ARMORS_DB = [
-  { id: 'a1', name: '兵士の鎧', type: 'armor', maxHpBonus: 30, def: 2, rarity: 'common', icon: '🛡️', desc: '頑丈な鉄の甲冑' },
-  { id: 'a2', name: '狩人の胴衣', type: 'armor', maxHpBonus: 20, def: 3, speedBonus: 0.4, rarity: 'rare', icon: '🥋', desc: '移動速度が上昇する' },
-  { id: 'a3', name: 'タイタンプレート', type: 'armor', maxHpBonus: 100, def: 8, rarity: 'unique', icon: '🎽', desc: '圧倒的な体力と防御力を誇る' }
+  { id: 'a1', name: '兵士の鎧', type: 'armor', maxHpBonus: 30, def: 2, rarity: 'common', icon: '🛡️', desc: '頑丈な鉄の甲冑', setGroup: 'diamond' },
+  { id: 'a2', name: '狩人の胴衣', type: 'armor', maxHpBonus: 20, def: 3, speedBonus: 0.4, rarity: 'rare', icon: '🥋', desc: '移動速度が上昇する', setGroup: 'shadow' },
+  { id: 'a3', name: 'タイタンプレート', type: 'armor', maxHpBonus: 100, def: 8, rarity: 'unique', icon: '🎽', desc: '圧倒的な体力と防御力を誇る', setGroup: 'titan' },
+  { id: 'a4', name: 'ソーラーメイル', type: 'armor', maxHpBonus: 70, def: 6, rarity: 'unique', icon: '🌞', desc: '太陽の加護を受けた至高の鎧', setGroup: 'solar' }
 ];
 
 const ARTIFACTS_DB = [
@@ -1252,8 +1253,19 @@ const Game = {
 
   recalcStats() {
     const armor = this.player.armor;
+    const weapon = this.player.weapon;
     let bonusSpeed = (armor && armor.speedBonus ? armor.speedBonus * 60 : 0);
     let bonusHp = (armor ? armor.maxHpBonus : 0);
+    
+    // セット装備ボーナス判定
+    let setBonusActive = false;
+    if (armor && weapon && armor.setGroup && weapon.setGroup && armor.setGroup === weapon.setGroup) {
+      setBonusActive = true;
+      bonusHp += 50;
+      bonusSpeed += 24;
+    }
+    this.player.setBonusActive = setBonusActive;
+
     if (this.player.runes.some(r => r.id === 'r1')) bonusSpeed += 32;
     this.player.maxHp = this.player.baseMaxHp + bonusHp;
     this.player.speed = this.player.baseSpeed + bonusSpeed;
@@ -1273,11 +1285,11 @@ const Game = {
     this.shockwaves = [];
     this.hazards = [];
 
-    // 4大属性バイオームの拡張（通常洞窟・灼熱のネザー神殿・深海の凍てつく海底洞窟・不気味な暗黒要塞）
+    // 拡張バイオーム（通常洞窟・灼熱のネザー・古代の神殿跡・虚空の浮遊島）
     if (this.floor <= 2) this.currentBiome = { name: '通常洞窟', color: '#161922', hazard: 'none' };
     else if (this.floor <= 4) this.currentBiome = { name: '灼熱のネザー神殿', color: '#2a1412', hazard: 'lava' };
-    else if (this.floor <= 7) this.currentBiome = { name: '深海の凍てつく海底洞窟', color: '#12222a', hazard: 'ice' };
-    else this.currentBiome = { name: '不気味な暗黒要塞', color: '#1c182a', hazard: 'spikes' };
+    else if (this.floor <= 6) this.currentBiome = { name: '古代の神殿跡', color: '#221c12', hazard: 'collapse' };
+    else this.currentBiome = { name: '虚空の浮遊島', color: '#18122a', hazard: 'void' };
 
     const banner = document.getElementById('biome-banner');
     if (banner) {
@@ -1434,7 +1446,7 @@ const Game = {
   },
 
   spawnEnemy(x, y) {
-    const types = ['zombie', 'skeleton', 'creeper', 'shadow', 'protector'];
+    const types = ['zombie', 'skeleton', 'creeper', 'shadow', 'protector', 'assassin', 'priest'];
     const type = types[Math.floor(Math.random() * types.length)];
     const hpScale = 1 + (this.floor - 1) * 0.35;
     const dmgScale = 1 + (this.floor - 1) * 0.25;
@@ -1484,6 +1496,18 @@ const Game = {
       e.damage = Math.floor(6 * dmgScale);
       e.color = '#e67e22';
       e.shieldCd = 0;
+    } else if (type === 'assassin') {
+      e.hp = Math.floor(22 * hpScale);
+      e.speed = 180;
+      e.damage = Math.floor(18 * dmgScale);
+      e.color = '#2c3e50';
+      e.teleportCd = 0;
+    } else if (type === 'priest') {
+      e.hp = Math.floor(45 * hpScale);
+      e.speed = 70;
+      e.damage = Math.floor(10 * dmgScale);
+      e.color = '#e91e63';
+      e.buffCd = 0;
     }
 
     if (isElite) {
@@ -3247,9 +3271,11 @@ const Game = {
     });
 
     const statsBox = document.getElementById('equip-stats');
+    const setBonusText = this.player.setBonusActive ? '<span style="color:#2ecc71;">[セット効果発動中: HP+50 / 速度UP]</span>' : '<span style="color:#718096;">[セット効果未発動]</span>';
     statsBox.innerHTML = `
       ⚔️ 武器: <b style="color:var(--border-gold);">${this.player.weapon.name}</b> (攻撃力 ${this.player.weapon.dmg})<br>
       🛡️ 防具: <b style="color:var(--border-gold);">${this.player.armor.name}</b> (追加HP +${this.player.armor.maxHpBonus}, 防御 +${this.player.armor.def})<br>
+      ✨ ${setBonusText}<br>
       ⚡ ルーン効果数: ${this.player.runes.length}個覚醒中
     `;
 
