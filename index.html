@@ -658,9 +658,11 @@ const Game = {
     stateChange: null
   },
 
-  // Camera & Time
+  // Camera & Time & Screen Shake
   camX: 0,
   camY: 0,
+  shakeIntensity: 0,
+  shakeDuration: 0,
   lastTime: 0,
   accumulator: 0,
   fixedDt: 1 / 60,
@@ -882,6 +884,8 @@ const Game = {
     this.player.vx = 0;
     this.player.vy = 0;
     this.hitstopTimer = 0;
+    this.shakeIntensity = 0;
+    this.shakeDuration = 0;
     this.accumulator = 0;
   },
 
@@ -1333,6 +1337,10 @@ const Game = {
   },
 
   createExplosion(x, y, radius, damage) {
+    // Camera shake for explosion
+    this.shakeIntensity = Math.max(this.shakeIntensity, 12);
+    this.shakeDuration = Math.max(this.shakeDuration, 0.22);
+
     // Spawn explosion particles
     for (let i = 0; i < 28; i++) {
       const ang = Math.random() * Math.PI * 2;
@@ -1373,6 +1381,8 @@ const Game = {
     const finalDmg = Math.max(2, amount - armorDef);
     this.player.hp -= finalDmg;
     this.player.invincibleTimer = 0.45; // 0.45 sec invincibility
+    this.shakeIntensity = Math.max(this.shakeIntensity, 8);
+    this.shakeDuration = Math.max(this.shakeDuration, 0.15);
     this.emitSound('hit');
     this.createDamageNumber(this.player.x, this.player.y, `-${finalDmg}`, '#e74c3c');
 
@@ -1488,11 +1498,17 @@ const Game = {
     // 物理シミュレーション確定後にHUDを更新（副作用の局所化）
     this.updateHUD();
 
-    // Interpolated camera follow for zero micro-stutter
+    // Interpolated camera follow for zero micro-stutter with Screen Shake offset
     const interpolatedPlayerX = this.player.x * this.renderAlpha + this.player.prevX * (1 - this.renderAlpha);
     const interpolatedPlayerY = this.player.y * this.renderAlpha + this.player.prevY * (1 - this.renderAlpha);
-    const targetCamX = this.width / 2 - interpolatedPlayerX;
-    const targetCamY = this.height / 2 - interpolatedPlayerY;
+    let targetCamX = this.width / 2 - interpolatedPlayerX;
+    let targetCamY = this.height / 2 - interpolatedPlayerY;
+
+    if (this.shakeDuration > 0 && this.shakeIntensity > 0) {
+      targetCamX += (Math.random() - 0.5) * this.shakeIntensity * 2;
+      targetCamY += (Math.random() - 0.5) * this.shakeIntensity * 2;
+    }
+
     const lerpRate = 1 - Math.exp(-18 * frameTime);
     this.camX += (targetCamX - this.camX) * lerpRate;
     this.camY += (targetCamY - this.camY) * lerpRate;
@@ -1796,6 +1812,11 @@ const Game = {
     if (this.player.art1Cooldown > 0) this.player.art1Cooldown = Math.max(0, this.player.art1Cooldown - dt);
     if (this.player.art2Cooldown > 0) this.player.art2Cooldown = Math.max(0, this.player.art2Cooldown - dt);
     if (this.player.potionCooldown > 0) this.player.potionCooldown = Math.max(0, this.player.potionCooldown - dt);
+
+    if (this.shakeDuration > 0) {
+      this.shakeDuration = Math.max(0, this.shakeDuration - dt);
+      if (this.shakeDuration === 0) this.shakeIntensity = 0;
+    }
 
     for (let i = this.delayedTasks.length - 1; i >= 0; i--) {
       const task = this.delayedTasks[i];
