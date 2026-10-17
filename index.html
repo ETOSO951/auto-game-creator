@@ -6,15 +6,17 @@
 <title>BLOCK DUNGEONS: HACK & SLASH</title>
 <style>
   :root {
-    --bg-dark: #0f111a;
-    --panel-bg: rgba(20, 24, 38, 0.92);
+    --bg-dark: #0a0c13;
+    --panel-bg: rgba(16, 20, 32, 0.78);
+    --panel-border: rgba(229, 184, 92, 0.3);
     --border-gold: #e5b85c;
-    --rare-common: #bdc3c7;
+    --rare-common: #95a5a6;
     --rare-rare: #3498db;
-    --rare-unique: #e67e22;
+    --rare-unique: #f39c12;
     --accent: #2ecc71;
     --hp-red: #e74c3c;
     --xp-green: #2ecc71;
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   * {
@@ -66,92 +68,101 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: env(safe-area-inset-top, 12px) env(safe-area-inset-right, 12px) env(safe-area-inset-bottom, 12px) env(safe-area-inset-left, 12px);
+    padding: env(safe-area-inset-top, 14px) env(safe-area-inset-right, 14px) env(safe-area-inset-bottom, 14px) env(safe-area-inset-left, 14px);
   }
 
   .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
   }
 
   .stats-card {
     background: var(--panel-bg);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    padding: 8px 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 10px 14px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    min-width: 180px;
+    gap: 6px;
+    min-width: 190px;
+    transition: transform 0.3s var(--ease-spring);
   }
 
   .bar-container {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-size: 11px;
-    font-weight: bold;
-    text-shadow: 0 1px 2px #000;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
   }
 
   .bar-outer {
     flex: 1;
     height: 10px;
-    background: rgba(0,0,0,0.6);
-    border-radius: 5px;
+    background: rgba(0,0,0,0.65);
+    border-radius: 6px;
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.12);
     position: relative;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
   }
 
   .bar-inner {
     height: 100%;
-    transition: width 0.15s ease-out;
+    transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
     position: relative;
+    border-radius: 6px;
     overflow: hidden;
   }
   .bar-inner::after {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
-    animation: barShimmer 2s infinite linear;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+    animation: barShimmer 2.4s infinite linear;
   }
   @keyframes barShimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
-  .bar-hp { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+  .bar-hp { background: linear-gradient(90deg, #e74c3c, #ff6b6b); }
   .bar-xp { background: linear-gradient(90deg, #27ae60, #2ecc71); }
 
   .floor-badge {
-    background: linear-gradient(135deg, #f39c12, #d35400);
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-weight: 800;
-    font-size: 14px;
-    border: 1px solid #ffcc00;
-    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.4);
-    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.9), rgba(211, 84, 0, 0.9));
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-weight: 900;
+    font-size: 13px;
+    border: 1px solid rgba(255, 204, 0, 0.6);
+    box-shadow: 0 4px 18px rgba(243, 156, 18, 0.35);
+    letter-spacing: 0.8px;
+    backdrop-filter: blur(8px);
+    text-transform: uppercase;
   }
 
   .currency-panel {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
     background: var(--panel-bg);
-    padding: 6px 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.15);
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.12);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 800;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
-  .emerald-val { color: #2ecc71; display: flex; align-items: center; gap: 4px; }
-  .emerald-val::before { content: "◆"; color: #2ecc71; font-size: 14px; }
+  .emerald-val { color: #2ecc71; display: flex; align-items: center; gap: 5px; text-shadow: 0 0 10px rgba(46, 204, 113, 0.5); }
+  .emerald-val::before { content: "◆"; color: #2ecc71; font-size: 13px; }
 
   /* Controls */
   #touch-controls {
@@ -159,7 +170,7 @@
     justify-content: space-between;
     align-items: flex-end;
     width: 100%;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     pointer-events: auto;
   }
 
@@ -174,22 +185,23 @@
     width: 110px;
     height: 110px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(20,20,30,0.65) 70%);
-    border: 2px solid rgba(255,255,255,0.3);
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(10,14,26,0.6) 80%);
+    border: 1.5px solid rgba(255,255,255,0.25);
     position: absolute;
     top: 25px;
     left: 25px;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(8px);
     transition: opacity 0.2s ease;
     pointer-events: none;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
   }
   #joystick-stick {
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    border: 2px solid #fff;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.9), rgba(41, 128, 185, 0.9));
+    border: 2px solid rgba(255,255,255,0.9);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 12px rgba(52, 152, 219, 0.5);
     position: absolute;
     top: 55px;
     left: 55px;
@@ -210,37 +222,41 @@
     height: 62px;
     border-radius: 50%;
     background: var(--panel-bg);
-    border: 2px solid rgba(255,255,255,0.3);
+    border: 1.5px solid rgba(255,255,255,0.2);
     color: #fff;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     font-size: 10px;
-    font-weight: 700;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    font-weight: 800;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    backdrop-filter: blur(12px);
     touch-action: manipulation;
     position: relative;
     overflow: hidden;
     cursor: pointer;
+    transition: transform 0.15s var(--ease-spring), border-color 0.2s ease;
   }
-  .btn-action:active { transform: scale(0.92); }
-  .btn-action .icon { font-size: 20px; line-height: 1; }
+  .btn-action:active { transform: scale(0.88); }
+  .btn-action .icon { font-size: 20px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
   .btn-action.attack-btn {
-    width: 74px;
-    height: 74px;
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    border-color: #ff7675;
+    width: 76px;
+    height: 76px;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.95), rgba(192, 57, 43, 0.95));
+    border-color: rgba(255, 118, 117, 0.8);
     grid-column: 2;
     grid-row: 1 / span 2;
+    box-shadow: 0 8px 28px rgba(231, 76, 60, 0.45);
   }
   .btn-action .cooldown-overlay {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.65);
+    background: rgba(0,0,0,0.7);
     transform-origin: bottom;
     transform: scaleY(0);
     pointer-events: none;
+    transition: transform 0.1s linear;
   }
 
   /* Modals */
@@ -250,8 +266,9 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(8, 10, 16, 0.88);
-    backdrop-filter: blur(12px);
+    background: rgba(6, 8, 14, 0.82);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -267,14 +284,14 @@
     pointer-events: none;
   }
   .modal-box {
-    background: var(--panel-bg);
-    border: 2px solid var(--border-gold);
-    border-radius: 16px;
-    padding: 24px;
-    max-width: 440px;
+    background: rgba(16, 20, 32, 0.92);
+    border: 1.5px solid var(--panel-border);
+    border-radius: 24px;
+    padding: 32px 28px;
+    max-width: 420px;
     width: 90%;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 25px rgba(229,184,92,0.35);
-    animation: modalPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.85), 0 0 40px rgba(229,184,92,0.15);
+    animation: modalPop 0.4s var(--ease-spring) forwards;
     position: relative;
     overflow: hidden;
   }
@@ -285,58 +302,62 @@
     left: -50%;
     width: 200%;
     height: 200%;
-    background: linear-gradient(45deg, transparent, rgba(229,184,92,0.08), transparent);
+    background: linear-gradient(45deg, transparent, rgba(229,184,92,0.06), transparent);
     transform: rotate(45deg);
-    animation: shineSweep 4s infinite linear;
+    animation: shineSweep 5s infinite linear;
     pointer-events: none;
   }
   @keyframes modalPop {
-    0% { transform: scale(0.85); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+    0% { transform: scale(0.82) translateY(20px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
   }
   @keyframes shineSweep {
     0% { transform: translateX(-100%) rotate(45deg); }
     100% { transform: translateX(100%) rotate(45deg); }
   }
   .modal-title {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 900;
     margin-bottom: 12px;
     color: #ffd166;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    letter-spacing: 1px;
+    text-shadow: 0 4px 12px rgba(0,0,0,0.8);
   }
   .modal-desc {
     font-size: 13px;
-    color: #c0c6d8;
-    line-height: 1.6;
-    margin-bottom: 20px;
+    color: #a0aec0;
+    line-height: 1.7;
+    margin-bottom: 24px;
   }
   .primary-btn {
     background: linear-gradient(135deg, #2ecc71, #27ae60);
     border: 1px solid #74f2a7;
     color: #fff;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 800;
-    padding: 12px 28px;
+    padding: 13px 32px;
     border-radius: 30px;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
-    transition: 0.2s;
+    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.35);
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s ease;
   }
-  .primary-btn:active { transform: scale(0.96); }
+  .primary-btn:active { transform: scale(0.94); }
 
   /* Equipment / Inventory UI */
   #inv-toggle-btn {
     pointer-events: auto;
     background: var(--panel-bg);
-    border: 1px solid rgba(255,255,255,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
     color: #ffd166;
-    padding: 6px 12px;
-    border-radius: 8px;
+    padding: 7px 14px;
+    border-radius: 12px;
     font-size: 12px;
-    font-weight: bold;
+    font-weight: 800;
     cursor: pointer;
+    backdrop-filter: blur(12px);
+    transition: transform 0.15s var(--ease-spring);
   }
+  #inv-toggle-btn:active { transform: scale(0.92); }
 
   #inventory-modal {
     display: none;
@@ -345,35 +366,36 @@
     left: 50%;
     transform: translate(-50%, -50%);
     width: 90%;
-    max-width: 480px;
+    max-width: 460px;
     max-height: 85vh;
-    background: var(--panel-bg);
-    border: 2px solid var(--border-gold);
-    border-radius: 14px;
+    background: rgba(16, 20, 32, 0.95);
+    border: 1.5px solid var(--panel-border);
+    border-radius: 20px;
     z-index: 110;
-    padding: 16px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+    backdrop-filter: blur(20px);
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
     overflow-y: auto;
   }
   .inv-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(255,255,255,0.15);
-    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 10px;
   }
   .inv-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-gap: 8px;
+    grid-gap: 10px;
   }
   .item-slot {
     aspect-ratio: 1;
-    background: rgba(0,0,0,0.5);
-    border: 2px solid #444;
-    border-radius: 8px;
+    background: rgba(0,0,0,0.4);
+    border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -381,20 +403,23 @@
     font-size: 10px;
     position: relative;
     cursor: pointer;
-    padding: 4px;
+    padding: 6px;
     text-align: center;
+    transition: transform 0.15s var(--ease-spring), border-color 0.2s ease;
   }
+  .item-slot:active { transform: scale(0.92); }
   .item-slot.common { border-color: var(--rare-common); }
-  .item-slot.rare { border-color: var(--rare-rare); }
-  .item-slot.unique { border-color: var(--rare-unique); box-shadow: inset 0 0 8px rgba(230,126,34,0.3); }
+  .item-slot.rare { border-color: var(--rare-rare); box-shadow: 0 0 10px rgba(52, 152, 219, 0.25); }
+  .item-slot.unique { border-color: var(--rare-unique); box-shadow: 0 0 14px rgba(243, 156, 18, 0.35); }
   .item-slot.equipped::after {
     content: "装備中";
     position: absolute;
-    bottom: 2px;
+    bottom: 4px;
     font-size: 8px;
-    background: #e67e22;
-    padding: 1px 3px;
-    border-radius: 3px;
+    font-weight: 800;
+    background: rgba(230, 126, 34, 0.9);
+    padding: 2px 5px;
+    border-radius: 4px;
   }
 
   .loot-alert {
@@ -402,26 +427,28 @@
     top: 75px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.85);
-    border: 1px solid var(--border-gold);
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: bold;
+    background: rgba(10, 14, 26, 0.9);
+    border: 1.5px solid var(--border-gold);
+    padding: 7px 20px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 800;
     color: #ffde59;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s, transform 0.3s;
+    transition: opacity 0.3s, transform 0.3s var(--ease-spring);
     z-index: 50;
     white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    backdrop-filter: blur(12px);
   }
 
   /* Help info PC */
   .pc-hint {
     font-size: 11px;
-    color: #8892b0;
-    margin-top: 10px;
-    line-height: 1.4;
+    color: #718096;
+    margin-top: 14px;
+    line-height: 1.5;
   }
 </style>
 </head>
@@ -581,18 +608,18 @@ const Sound = {
       const t = this.ctx.currentTime;
 
       if (type === 'hit') {
-        // 重厚な打撃音：低音オシレーター + ノイズのミックス
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(180, t);
-        osc.frequency.exponentialRampToValueAtTime(30, t + 0.15);
-        gain.gain.setValueAtTime(0.35, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(t);
-        osc.stop(t + 0.15);
+        // 重厚で芯のある打撃音：サブベース(60Hz->20Hz) + 低音スウィープ + インパルスノイズ
+        const subOsc = this.ctx.createOscillator();
+        const subGain = this.ctx.createGain();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(140, t);
+        subOsc.frequency.exponentialRampToValueAtTime(25, t + 0.18);
+        subGain.gain.setValueAtTime(0.5, t);
+        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        subOsc.connect(subGain);
+        subGain.connect(this.ctx.destination);
+        subOsc.start(t);
+        subOsc.stop(t + 0.18);
 
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
@@ -600,112 +627,112 @@ const Sound = {
           const nGain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           nFilter.type = 'lowpass';
-          nFilter.frequency.setValueAtTime(800, t);
-          nFilter.frequency.exponentialRampToValueAtTime(100, t + 0.1);
-          nGain.gain.setValueAtTime(0.25, t);
-          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+          nFilter.frequency.setValueAtTime(1200, t);
+          nFilter.frequency.exponentialRampToValueAtTime(150, t + 0.12);
+          nGain.gain.setValueAtTime(0.35, t);
+          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
           noise.connect(nFilter);
           nFilter.connect(nGain);
           nGain.connect(this.ctx.destination);
           noise.start(t);
-          noise.stop(t + 0.1);
+          noise.stop(t + 0.12);
         }
       } else if (type === 'slash') {
-        // 風切り音：ハイパスフィルターノイズ + スウィープ
+        // 鋭い風切り音：急峻なバンドパスフィルターノイズ + ピッチスウィープ
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
           const filter = this.ctx.createBiquadFilter();
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(1200, t);
-          filter.frequency.exponentialRampToValueAtTime(300, t + 0.1);
-          filter.Q.value = 3;
-          gain.gain.setValueAtTime(0.2, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+          filter.frequency.setValueAtTime(1800, t);
+          filter.frequency.exponentialRampToValueAtTime(250, t + 0.12);
+          filter.Q.value = 3.5;
+          gain.gain.setValueAtTime(0.28, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
           noise.connect(filter);
           filter.connect(gain);
           gain.connect(this.ctx.destination);
           noise.start(t);
-          noise.stop(t + 0.1);
+          noise.stop(t + 0.12);
         }
       } else if (type === 'coin') {
-        // 綺麗な澄んだコイン音（2音アルペジオ）
-        const freqs = [1046.5, 1567.98]; // C6, G6
+        // クリスタルなジュエル音（アルペジオ和音 + 澄んだベル）
+        const freqs = [1046.5, 1318.51, 1567.98]; // C6, E6, G6
         freqs.forEach((f, i) => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(f, t + i * 0.06);
-          gain.gain.setValueAtTime(0.18, t + i * 0.06);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.2);
+          osc.frequency.setValueAtTime(f, t + i * 0.05);
+          gain.gain.setValueAtTime(0.2, t + i * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.05 + 0.28);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
-          osc.start(t + i * 0.06);
-          osc.stop(t + i * 0.06 + 0.2);
+          osc.start(t + i * 0.05);
+          osc.stop(t + i * 0.05 + 0.28);
         });
       } else if (type === 'explosion') {
-        // 巨大な爆発音：超低音サブバス + ローパスフィルター爆破ノイズ
+        // 腹に響く地鳴り爆発音：サブバス(120Hz->10Hz) + ディストーション風ノイズ
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
           const filter = this.ctx.createBiquadFilter();
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(1000, t);
-          filter.frequency.exponentialRampToValueAtTime(40, t + 0.4);
-          gain.gain.setValueAtTime(0.5, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+          filter.frequency.setValueAtTime(1200, t);
+          filter.frequency.exponentialRampToValueAtTime(30, t + 0.5);
+          gain.gain.setValueAtTime(0.6, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
           noise.connect(filter);
           filter.connect(gain);
           gain.connect(this.ctx.destination);
           noise.start(t);
-          noise.stop(t + 0.45);
+          noise.stop(t + 0.5);
         }
         const sub = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
         sub.type = 'sine';
-        sub.frequency.setValueAtTime(100, t);
-        sub.frequency.exponentialRampToValueAtTime(20, t + 0.4);
-        subGain.gain.setValueAtTime(0.4, t);
-        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        sub.frequency.setValueAtTime(120, t);
+        sub.frequency.exponentialRampToValueAtTime(10, t + 0.45);
+        subGain.gain.setValueAtTime(0.5, t);
+        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
         sub.connect(subGain);
         subGain.connect(this.ctx.destination);
         sub.start(t);
-        sub.stop(t + 0.4);
+        sub.stop(t + 0.45);
       } else if (type === 'thunder') {
-        // 雷撃音：高品位ノイズ + ピッチダウン
+        // 歪みを感じさせる神聖な雷撃音
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
           const filter = this.ctx.createBiquadFilter();
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(3000, t);
-          filter.frequency.exponentialRampToValueAtTime(200, t + 0.3);
-          filter.Q.value = 1.5;
-          gain.gain.setValueAtTime(0.4, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+          filter.frequency.setValueAtTime(3500, t);
+          filter.frequency.exponentialRampToValueAtTime(180, t + 0.35);
+          filter.Q.value = 2.0;
+          gain.gain.setValueAtTime(0.45, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
           noise.connect(filter);
           filter.connect(gain);
           gain.connect(this.ctx.destination);
           noise.start(t);
-          noise.stop(t + 0.3);
+          noise.stop(t + 0.35);
         }
       } else if (type === 'level') {
-        // レベルアップ：輝かしい4音和音ファンファーレ
-        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        // レベルアップ：倍音豊かで輝かしいファンファーレ
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C5, E5, G5, C6, E6
         notes.forEach((f, i) => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = 'triangle';
-          osc.frequency.setValueAtTime(f, t + i * 0.08);
-          gain.gain.setValueAtTime(0.22, t + i * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.35);
+          osc.frequency.setValueAtTime(f, t + i * 0.07);
+          gain.gain.setValueAtTime(0.25, t + i * 0.07);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.07 + 0.4);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
-          osc.start(t + i * 0.08);
-          osc.stop(t + i * 0.08 + 0.35);
+          osc.start(t + i * 0.07);
+          osc.stop(t + i * 0.07 + 0.4);
         });
       }
     } catch (e) {}
@@ -1416,12 +1443,13 @@ const Game = {
 
         this.createDamageNumber(e.x, e.y, dmg, isCrit ? '#ffcc00' : '#ffffff');
         this.createBlood(e.x, e.y, e.color);
+        this.createHitSparks(e.x, e.y, atk.angle);
       }
     }
 
     if (hitAny) {
       this.emitSound('hit');
-      this.hitstopTimer = 0.04; // ヒットストップ
+      this.hitstopTimer = 0.05; // キレのあるヒットストップ
     }
   },
 
@@ -2448,17 +2476,26 @@ const Game = {
     }
     ctx.restore();
 
-    // Damage Numbers with Scaling & Dynamic Alpha
+    // Damage Numbers with Spring Pop, Scaling & Dynamic Alpha
     for (const d of this.damageNumbers) {
-      const alphaVal = Math.min(1.0, d.life / (d.maxLife * 0.4));
+      const progress = 1 - (d.life / d.maxLife);
+      // スプリングバウンススケール (初期ポッピング)
+      const springScale = progress < 0.2 
+        ? 1.0 + (progress / 0.2) * (d.scale - 1.0)
+        : Math.max(1.0, d.scale - (progress - 0.2) * 0.5);
+
+      const alphaVal = Math.min(1.0, d.life / (d.maxLife * 0.35));
       ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.rot || 0);
+      ctx.scale(springScale, springScale);
       ctx.globalAlpha = alphaVal;
       ctx.fillStyle = d.color;
       ctx.font = '900 16px "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
-      ctx.shadowColor = 'rgba(0,0,0,0.8)';
-      ctx.shadowBlur = 4;
-      ctx.fillText(d.text, d.x, d.y);
+      ctx.shadowColor = 'rgba(0,0,0,0.85)';
+      ctx.shadowBlur = 6;
+      ctx.fillText(d.text, 0, 0);
       ctx.restore();
     }
 
@@ -2475,27 +2512,43 @@ const Game = {
 
   createDamageNumber(x, y, text, color) {
     this.damageNumbers.push({
-      x: x + (Math.random() * 12 - 6),
-      y: y - 12,
-      vx: (Math.random() - 0.5) * 50,
-      vy: -(Math.random() * 60 + 90), // 上方向への跳ね上げ初速
+      x: x + (Math.random() * 16 - 8),
+      y: y - 16,
+      vx: (Math.random() - 0.5) * 60,
+      vy: -(Math.random() * 80 + 120), // 上方向への力強い跳ね上げ
       text,
       color,
-      life: 0.7,
-      maxLife: 0.7,
-      scale: 1.2
+      life: 0.75,
+      maxLife: 0.75,
+      scale: 1.4,
+      rot: (Math.random() - 0.5) * 0.25
     });
   },
 
   createBlood(x, y, color) {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       this.particles.push({
         x, y,
-        vx: (Math.random() - 0.5) * 160,
-        vy: (Math.random() - 0.5) * 160,
+        vx: (Math.random() - 0.5) * 180,
+        vy: (Math.random() - 0.5) * 180,
         size: Math.random() * 4 + 2,
         color: color || '#e74c3c',
-        life: 0.28
+        life: 0.3
+      });
+    }
+  },
+
+  createHitSparks(x, y, angle) {
+    for (let i = 0; i < 7; i++) {
+      const spd = Math.random() * 260 + 120;
+      const spread = angle + (Math.random() - 0.5) * 1.2;
+      this.particles.push({
+        x, y,
+        vx: Math.cos(spread) * spd,
+        vy: Math.sin(spread) * spd,
+        size: Math.random() * 3 + 1.5,
+        color: ['#fff', '#ffd166', '#f39c12'][Math.floor(Math.random() * 3)],
+        life: 0.22
       });
     }
   },
