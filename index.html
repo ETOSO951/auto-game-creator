@@ -1411,6 +1411,9 @@ const Game = {
       this.renderAlpha = 1.0;
     }
 
+    // 物理シミュレーション確定後にHUDを更新（副作用の局所化）
+    this.updateHUD();
+
     // Interpolated camera follow for zero micro-stutter
     const interpolatedPlayerX = this.player.x * this.renderAlpha + this.player.prevX * (1 - this.renderAlpha);
     const interpolatedPlayerY = this.player.y * this.renderAlpha + this.player.prevY * (1 - this.renderAlpha);
@@ -1420,8 +1423,8 @@ const Game = {
     this.camX += (targetCamX - this.camX) * lerpRate;
     this.camY += (targetCamY - this.camY) * lerpRate;
 
+    // 純粋な画面描画フェーズ
     this.render();
-    this.updateHUD();
     requestAnimationFrame((t) => this.loop(t));
   },
 
@@ -1462,9 +1465,10 @@ const Game = {
       if (len > 0) { mx /= len; my /= len; }
     }
 
-    // プレイヤー加減速慣性
-    const targetVx = mx * this.player.speed;
-    const targetVy = my * this.player.speed;
+    // 攻撃スイング中は通常移動入力を適度に減衰させ、踏み込みステップインとの緩急・キレを強調
+    const moveControlScale = this.player.attackSwing > 0 ? 0.35 : 1.0;
+    const targetVx = mx * this.player.speed * moveControlScale;
+    const targetVy = my * this.player.speed * moveControlScale;
     const accelRate = (mx !== 0 || my !== 0) ? this.player.accel : (this.player.accel * 1.5);
 
     const diffVx = targetVx - this.player.vx;
@@ -1486,8 +1490,12 @@ const Game = {
   },
 
   updatePlayer(dt) {
+    // 【軸分離移動パイプライン】X軸移動・解決 → Y軸移動・解決により完璧な壁ずりを実現
     this.player.x += this.player.vx * dt;
+    this.resolveCircleWallCollisions(this.player, 'x');
+
     this.player.y += this.player.vy * dt;
+    this.resolveCircleWallCollisions(this.player, 'y');
 
     if (this.player.attackSwing > 0) this.player.attackSwing = Math.max(0, this.player.attackSwing - dt);
     if (this.player.invincibleTimer > 0) this.player.invincibleTimer = Math.max(0, this.player.invincibleTimer - dt);
@@ -1569,8 +1577,23 @@ const Game = {
             });
           }
         } else {
-          moveX += nx * e.speed * dt;
-          moveY += ny * e.speed * dt;
+          // 【障害物回避ステアリング】進行方向直前の壁を検知して回避力を合成
+          let steerX = nx;
+          let steerY = ny;
+          const feelerDist = e.radius + 14;
+          const probeX = e.x + nx * feelerDist;
+          const probeY = e.y + ny * feelerDist;
+
+          if (this.checkWall(probeX, e.y, e.radius * 0.7)) {
+            steerX = 0;
+            steerY = ny !== 0 ? Math.sign(ny) : 1;
+          } else if (this.checkWall(e.x, probeY, e.radius * 0.7)) {
+            steerY = 0;
+            steerX = nx !== 0 ? Math.sign(nx) : 1;
+          }
+
+          moveX += steerX * e.speed * dt;
+          moveY += steerY * e.speed * dt;
 
           if (dist < e.radius + this.player.radius + 4) {
             this.damagePlayer(e.damage);
@@ -1581,8 +1604,11 @@ const Game = {
         }
       }
 
+      // 敵もX/Y軸分離移動でスタックを排除
       e.x += moveX;
+      this.resolveCircleWallCollisions(e, 'x');
       e.y += moveY;
+      this.resolveCircleWallCollisions(e, 'y');
 
       if (e.hp <= 0 && !e.dead) {
         e.dead = true;
@@ -1637,21 +1663,19 @@ const Game = {
     }
   },
 
-  // 2パス物理解決（壁解決 → エンティティ反発 → 壁再解決）
+  // 群衆物理の分離と壁の整合性パイプライン
   resolvePhysicsPipeline(dt) {
-    // パス1: 壁との一次衝突解決
-    this.resolveCircleWallCollisions(this.player, 'both');
-    for (const e of this.enemies) {
-      if (!e.dead) this.resolveCircleWallCollisions(e, 'both');
-    }
-
-    // パス2: エンティティ同士のめり込み分離
+    // エンティティ同士のめり込み分離
     this.resolveEntitySeparation();
 
-    // パス3: 反発による壁めり込みの最終修正（ジッター完全防止）
-    this.resolveCircleWallCollisions(this.player, 'both');
+    // 分離によって壁にめり込まないよう最終軸補正
+    this.resolveCircleWallCollisions(this.player, 'x');
+    this.resolveCircleWallCollisions(this.player, 'y');
     for (const e of this.enemies) {
-      if (!e.dead) this.resolveCircleWallCollisions(e, 'both');
+      if (!e.dead) {
+        this.resolveCircleWallCollisions(e, 'x');
+        this.resolveCircleWallCollisions(e, 'y');
+      }
     }
   },
 
@@ -1758,9 +1782,15 @@ const Game = {
               }
 
               if (axis === 'x') {
-                entity.x += nx * overlap;
+                entity.x += Math.sign(diffX || 1) * overlap;
+                if (entity.vx !== undefined && Math.sign(entity.vx) === -Math.sign(diffX)) {
+                  entity.vx = 0;
+                }
               } else if (axis === 'y') {
-                entity.y += ny * overlap;
+                entity.y += Math.sign(diffY || 1) * overlap;
+                if (entity.vy !== undefined && Math.sign(entity.vy) === -Math.sign(diffY)) {
+                  entity.vy = 0;
+                }
               } else {
                 entity.x += nx * overlap;
                 entity.y += ny * overlap;
