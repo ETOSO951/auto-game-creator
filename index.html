@@ -623,6 +623,17 @@ const Game = {
   // 'TITLE' | 'PLAYING' | 'INVENTORY' | 'STAGE_CLEAR' | 'GAME_OVER'
   state: 'TITLE',
 
+  // Config & Constants
+  config: {
+    tntFuseTime: 0.7,
+    lootToastDuration: 1.8,
+    mouseActiveTimeout: 2.5,
+    kbBoss: 140,
+    kbNormal: 380,
+    kbExplosionNormal: 500,
+    kbExplosionBoss: 200
+  },
+
   // Camera & Time
   camX: 0,
   camY: 0,
@@ -630,7 +641,9 @@ const Game = {
   accumulator: 0,
   fixedDt: 1 / 60,
   hitstopTimer: 0,
-  mousePos: { x: 0, y: 0, active: false },
+  mousePos: { x: 0, y: 0, lastMovedTime: 0 },
+  lootAlertTimer: 0,
+  delayedTasks: [], // { timer, action } - ゲームタイムライン完全同期用
 
   // HUD Cache for Dirty Checking
   hudCache: {
@@ -716,7 +729,7 @@ const Game = {
     window.addEventListener('mousemove', (e) => {
       this.mousePos.x = e.clientX;
       this.mousePos.y = e.clientY;
-      this.mousePos.active = true;
+      this.mousePos.lastMovedTime = performance.now();
     });
 
     // Keyboard
@@ -1037,18 +1050,22 @@ const Game = {
     if (this.state !== 'PLAYING') return;
     if (this.player.attackCooldown > 0) return;
 
-    // 照準優先度の整理:
-    // 1. PCマウス操作が有効な場合はカーソル方向
-    // 2. モバイルまたは非マウス時: 扇形前方の敵、いなければ近接索敵
-    if (this.mousePos.active) {
+    // スマートエイム階層解決:
+    // 1. 直近にマウス操作があった場合はカーソル方向
+    // 2. 視界内の最寄り敵への自動補正アシスト
+    // 3. 移動入力方向
+    // 4. 現在の向きを保持
+    const isMouseRecentlyActive = (performance.now() - this.mousePos.lastMovedTime) < (this.config.mouseActiveTimeout * 1000);
+    const target = this.getNearestEnemy(220);
+
+    if (isMouseRecentlyActive) {
       const worldMouseX = this.mousePos.x - this.camX;
       const worldMouseY = this.mousePos.y - this.camY;
       this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
-    } else {
-      const target = this.getNearestEnemy(240);
-      if (target) {
-        this.player.angle = Math.atan2(target.y - this.player.y, target.x - this.player.x);
-      }
+    } else if (target) {
+      this.player.angle = Math.atan2(target.y - this.player.y, target.x - this.player.x);
+    } else if (Math.hypot(this.player.vx, this.player.vy) > 10) {
+      this.player.angle = Math.atan2(this.player.vy, this.player.vx);
     }
 
     const w = this.player.weapon;
@@ -1153,7 +1170,7 @@ const Game = {
         hitAny = true;
 
         // ノックバックインパルス
-        const kbForce = (e.type === 'boss' ? 140 : 380);
+        const kbForce = (e.type === 'boss' ? this.config.kbBoss : this.config.kbNormal);
         e.kbX += Math.cos(atk.angle) * kbForce;
         e.kbY += Math.sin(atk.angle) * kbForce;
 
@@ -1191,13 +1208,16 @@ const Game = {
       if (this.player.art2Cooldown > 0) return;
       this.player.art2Cooldown = this.player.art2CooldownMax;
       Sound.play('slash');
-      // Drop TNT
+      // Drop TNT (ゲームタイムライン同期タスクとして登録)
       const tntX = this.player.x + Math.cos(this.player.angle) * 40;
       const tntY = this.player.y + Math.sin(this.player.angle) * 40;
-      setTimeout(() => {
-        Sound.play('explosion');
-        this.createExplosion(tntX, tntY, 90, 75);
-      }, 700);
+      this.delayedTasks.push({
+        timer: this.config.tntFuseTime,
+        action: () => {
+          Sound.play('explosion');
+          this.createExplosion(tntX, tntY, 90, 75);
+        }
+      });
     }
   },
 
@@ -1234,7 +1254,7 @@ const Game = {
       if (dist < radius) {
         e.hp -= damage;
         const pushAng = Math.atan2(e.y - y, e.x - x);
-        const impulse = e.type === 'boss' ? 200 : 500;
+        const impulse = e.type === 'boss' ? this.config.kbExplosionBoss : this.config.kbExplosionNormal;
         e.kbX += Math.cos(pushAng) * impulse;
         e.kbY += Math.sin(pushAng) * impulse;
         this.createDamageNumber(e.x, e.y, damage, '#e67e22');
@@ -1321,10 +1341,7 @@ const Game = {
     el.innerText = text;
     el.style.opacity = '1';
     el.style.transform = 'translate(-50%, -10px)';
-    setTimeout(() => {
-      el.style.opacity = '0';
-      el.style.transform = 'translate(-50%, 0)';
-    }, 1800);
+    this.lootAlertTimer = this.config.lootToastDuration;
   },
 
   /* --- Game Loop & Physics (Fixed Timestep Separation) --- */
@@ -1391,7 +1408,8 @@ const Game = {
     this.player.vy += Math.sign(diffVy) * Math.min(Math.abs(diffVy), accelRate * dt);
 
     // 攻撃動作中の旋回制御 & 照準方向の更新
-    if (this.mousePos.active) {
+    const isMouseRecentlyActive = (performance.now() - this.mousePos.lastMovedTime) < (this.config.mouseActiveTimeout * 1000);
+    if (isMouseRecentlyActive) {
       const worldMouseX = this.mousePos.x - this.camX;
       const worldMouseY = this.mousePos.y - this.camY;
       this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
@@ -1418,7 +1436,7 @@ const Game = {
       }
     }
 
-    // 5. 各種クールダウンの消化
+    // 5. 各種クールダウン & タイムライン同期タスクの消化
     if (this.player.attackCooldown > 0) this.player.attackCooldown = Math.max(0, this.player.attackCooldown - dt);
     if (this.player.attackSwing > 0) this.player.attackSwing = Math.max(0, this.player.attackSwing - dt);
     if (this.player.invincibleTimer > 0) this.player.invincibleTimer = Math.max(0, this.player.invincibleTimer - dt);
@@ -1426,6 +1444,26 @@ const Game = {
     if (this.player.art1Cooldown > 0) this.player.art1Cooldown = Math.max(0, this.player.art1Cooldown - dt);
     if (this.player.art2Cooldown > 0) this.player.art2Cooldown = Math.max(0, this.player.art2Cooldown - dt);
     if (this.player.potionCooldown > 0) this.player.potionCooldown = Math.max(0, this.player.potionCooldown - dt);
+
+    // 内部同期タイマータスク（TNTなど）
+    for (let i = this.delayedTasks.length - 1; i >= 0; i--) {
+      const task = this.delayedTasks[i];
+      task.timer -= dt;
+      if (task.timer <= 0) {
+        task.action();
+        this.delayedTasks.splice(i, 1);
+      }
+    }
+
+    // トーストUIの同期フェード
+    if (this.lootAlertTimer > 0) {
+      this.lootAlertTimer -= dt;
+      if (this.lootAlertTimer <= 0) {
+        const el = document.getElementById('lootAlert');
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%, 0)';
+      }
+    }
 
     // 6. 出口ゲート接触
     const distToExit = Math.hypot(this.player.x - this.exitPos.x, this.player.y - this.exitPos.y);
@@ -1598,13 +1636,13 @@ const Game = {
     return false;
   },
 
-  // 高精度な円コライダー vs タイルAABBの貫通解消（角抜け防止と滑らかな壁滑り）
+  // 高精度な円コライダー vs タイルAABBの貫通解消（法線投影による滑らかな壁滑りと角引っかかり防止）
   resolveCircleWallCollisions(entity, axis = 'both') {
     const r = entity.radius;
-    const minCol = Math.max(0, Math.floor((entity.x - r - 2) / this.tileSize));
-    const maxCol = Math.min(this.mapWidth - 1, Math.floor((entity.x + r + 2) / this.tileSize));
-    const minRow = Math.max(0, Math.floor((entity.y - r - 2) / this.tileSize));
-    const maxRow = Math.min(this.mapHeight - 1, Math.floor((entity.y + r + 2) / this.tileSize));
+    const minCol = Math.max(0, Math.floor((entity.x - r - 1) / this.tileSize));
+    const maxCol = Math.min(this.mapWidth - 1, Math.floor((entity.x + r + 1) / this.tileSize));
+    const minRow = Math.max(0, Math.floor((entity.y - r - 1) / this.tileSize));
+    const maxRow = Math.min(this.mapHeight - 1, Math.floor((entity.y + r + 1) / this.tileSize));
 
     for (let row = minRow; row <= maxRow; row++) {
       for (let col = minCol; col <= maxCol; col++) {
@@ -1625,26 +1663,26 @@ const Game = {
             const dist = Math.sqrt(distSq);
             if (dist > 0.0001) {
               const overlap = r - dist;
-              const normX = diffX / dist;
-              const normY = diffY / dist;
+              const nx = diffX / dist;
+              const ny = diffY / dist;
+
               if (axis === 'x') {
-                entity.x += normX * overlap;
-                if (entity.vx !== undefined) entity.vx = 0;
+                entity.x += nx * overlap;
+                if (entity.vx !== undefined && Math.abs(nx) > 0.5) entity.vx = 0;
               } else if (axis === 'y') {
-                entity.y += normY * overlap;
-                if (entity.vy !== undefined) entity.vy = 0;
+                entity.y += ny * overlap;
+                if (entity.vy !== undefined && Math.abs(ny) > 0.5) entity.vy = 0;
               } else {
-                entity.x += normX * overlap;
-                entity.y += normY * overlap;
+                entity.x += nx * overlap;
+                entity.y += ny * overlap;
               }
             } else {
-              const midX = tileLeft + this.tileSize * 0.5;
-              const midY = tileTop + this.tileSize * 0.5;
+              // 重心完全に一致時のフォールバック押し出し
               if (axis === 'x') {
-                entity.x += (entity.x > midX ? r : -r);
+                entity.x += (entity.x >= (tileLeft + tileRight) * 0.5 ? 1 : -1) * r;
                 if (entity.vx !== undefined) entity.vx = 0;
               } else {
-                entity.y += (entity.y > midY ? r : -r);
+                entity.y += (entity.y >= (tileTop + tileBottom) * 0.5 ? 1 : -1) * r;
                 if (entity.vy !== undefined) entity.vy = 0;
               }
             }
@@ -1654,8 +1692,10 @@ const Game = {
     }
   },
 
-  // エンティティ同士の押し出し・重なり解消パイプライン
+  // 密集時のジッターを抑える減衰付き反発分離パイプライン
   resolveEntitySeparation() {
+    const damping = 0.45; // 振動防止の緩和係数
+
     // 1. 敵同士の分離
     for (let i = 0; i < this.enemies.length; i++) {
       for (let j = i + 1; j < this.enemies.length; j++) {
@@ -1666,7 +1706,7 @@ const Game = {
         const dist = Math.hypot(dx, dy);
         const minDist = e1.radius + e2.radius;
         if (dist < minDist && dist > 0.0001) {
-          const overlap = (minDist - dist) * 0.5;
+          const overlap = (minDist - dist) * 0.5 * damping;
           const nx = (dx / dist) * overlap;
           const ny = (dy / dist) * overlap;
           e1.x -= nx;
@@ -1684,10 +1724,9 @@ const Game = {
       const dist = Math.hypot(dx, dy);
       const minDist = this.player.radius + e.radius;
       if (dist < minDist && dist > 0.0001) {
-        const overlap = (minDist - dist);
-        const nx = (dx / dist);
-        const ny = (dy / dist);
-        // ボスは動かずプレイヤーを押し出す
+        const overlap = (minDist - dist) * damping;
+        const nx = dx / dist;
+        const ny = dy / dist;
         if (e.type === 'boss') {
           this.player.x -= nx * overlap;
           this.player.y -= ny * overlap;
@@ -1701,19 +1740,45 @@ const Game = {
     }
   },
 
-  // Fast grid raycast to verify clear line-of-sight between two positions
+  // DDA (Digital Differential Analyzer) による厳密なグリッドトラバースLine-of-Sight
   hasLineOfSight(x1, y1, x2, y2) {
-    const dist = Math.hypot(x2 - x1, y2 - y1);
-    const stepSize = this.tileSize * 0.45;
-    const steps = Math.ceil(dist / stepSize);
-    for (let i = 1; i < steps; i++) {
-      const t = i / steps;
-      const px = x1 + (x2 - x1) * t;
-      const py = y1 + (y2 - y1) * t;
-      const tileX = Math.floor(px / this.tileSize);
-      const tileY = Math.floor(py / this.tileSize);
-      if (tileX < 0 || tileX >= this.mapWidth || tileY < 0 || tileY >= this.mapHeight) return false;
-      if (this.map[tileY][tileX] === 1) return false;
+    let x0 = x1 / this.tileSize;
+    let y0 = y1 / this.tileSize;
+    const targetX = x2 / this.tileSize;
+    const targetY = y2 / this.tileSize;
+
+    const dx = targetX - x0;
+    const dy = targetY - y0;
+    const stepX = dx >= 0 ? 1 : -1;
+    const stepY = dy >= 0 ? 1 : -1;
+
+    let mapX = Math.floor(x0);
+    let mapY = Math.floor(y0);
+    const targetMapX = Math.floor(targetX);
+    const targetMapY = Math.floor(targetY);
+
+    if (mapX === targetMapX && mapY === targetMapY) return true;
+
+    const tDeltaX = dx === 0 ? Infinity : Math.abs(1 / dx);
+    const tDeltaY = dy === 0 ? Infinity : Math.abs(1 / dy);
+
+    let tMaxX = dx === 0 ? Infinity : (stepX > 0 ? (mapX + 1 - x0) : (x0 - mapX)) * tDeltaX;
+    let tMaxY = dy === 0 ? Infinity : (stepY > 0 ? (mapY + 1 - y0) : (y0 - mapY)) * tDeltaY;
+
+    // 安全限界ループ（マップ外周考慮）
+    const maxIterations = this.mapWidth + this.mapHeight;
+    for (let i = 0; i < maxIterations; i++) {
+      if (tMaxX < tMaxY) {
+        mapX += stepX;
+        tMaxX += tDeltaX;
+      } else {
+        mapY += stepY;
+        tMaxY += tDeltaY;
+      }
+
+      if (mapX < 0 || mapX >= this.mapWidth || mapY < 0 || mapY >= this.mapHeight) return false;
+      if (this.map[mapY][mapX] === 1) return false;
+      if (mapX === targetMapX && mapY === targetMapY) return true;
     }
     return true;
   },
