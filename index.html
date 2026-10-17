@@ -307,16 +307,16 @@
     transition: transform 0.1s cubic-bezier(0, 0, 0.2, 1);
   }
 
-  /* Modals (シングルポップアップ・カスケード統合デザイン) */
+  /* Modals (シネマティック・フェード＆ライトリーク演出) */
   .modal-screen {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at center, rgba(12, 18, 32, 0.92) 0%, rgba(4, 6, 12, 0.96) 100%);
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
+    background: radial-gradient(circle at center, rgba(10, 14, 26, 0.95) 0%, rgba(2, 4, 8, 0.98) 100%);
+    backdrop-filter: blur(36px);
+    -webkit-backdrop-filter: blur(36px);
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -325,23 +325,29 @@
     padding: 20px;
     text-align: center;
     opacity: 1;
-    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.5s ease;
   }
   .modal-screen[style*="display: none"] {
     opacity: 0;
     pointer-events: none;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
   }
   .modal-box {
-    background: linear-gradient(145deg, rgba(20, 26, 42, 0.95), rgba(8, 12, 20, 0.98));
-    border: 2px solid rgba(240, 194, 101, 0.4);
-    border-radius: 28px;
-    padding: 36px 30px;
-    max-width: 440px;
-    width: 90%;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.9), 0 0 50px rgba(229,184,92,0.22), inset 0 1px 0 rgba(255,255,255,0.15);
-    animation: modalPop 0.45s var(--ease-spring) forwards;
+    background: linear-gradient(145deg, rgba(24, 32, 50, 0.96), rgba(8, 12, 20, 0.99));
+    border: 2px solid rgba(240, 194, 101, 0.5);
+    border-radius: 32px;
+    padding: 40px 34px;
+    max-width: 460px;
+    width: 92%;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.95), 0 0 60px rgba(229,184,92,0.3), inset 0 1px 0 rgba(255,255,255,0.25);
+    animation: modalPopCinematic 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.25) forwards;
     position: relative;
     overflow: hidden;
+  }
+  @keyframes modalPopCinematic {
+    0% { transform: scale(0.78) translateY(30px); opacity: 0; filter: blur(8px); }
+    100% { transform: scale(1) translateY(0); opacity: 1; filter: blur(0px); }
   }
   .modal-box::before {
     content: '';
@@ -1327,12 +1333,12 @@ const Game = {
     this.shockwaves = [];
     this.hazards = [];
 
-    // 拡張バイオーム（通常洞窟・灼熱のネザー・古代の氷河遺跡・狂気の研究所・虚空の浮遊島）
-    if (this.floor <= 2) this.currentBiome = { name: '通常洞窟', color: '#161922', hazard: 'none' };
-    else if (this.floor <= 4) this.currentBiome = { name: '灼熱のネザー神殿', color: '#2a1412', hazard: 'lava' };
-    else if (this.floor <= 6) this.currentBiome = { name: '古代の氷河遺跡', color: '#12222a', hazard: 'ice' };
-    else if (this.floor <= 8) this.currentBiome = { name: '狂気の研究所', color: '#221226', hazard: 'poison' };
-    else this.currentBiome = { name: '虚空の浮遊島', color: '#18122a', hazard: 'collapse' };
+    // 拡張バイオーム（通常洞窟・灼熱のネザー・古代の氷河遺跡・狂気の研究所・虚空の浮遊島）とバイオーム別環境パーティクル生成設定
+    if (this.floor <= 2) this.currentBiome = { name: '通常洞窟', color: '#161922', hazard: 'none', ambientColor: 'rgba(255,255,255,0.03)', pType: 'dust' };
+    else if (this.floor <= 4) this.currentBiome = { name: '灼熱のネザー神殿', color: '#2a1412', hazard: 'lava', ambientColor: 'rgba(231, 76, 60, 0.08)', pType: 'ash' };
+    else if (this.floor <= 6) this.currentBiome = { name: '古代の氷河遺跡', color: '#12222a', hazard: 'ice', ambientColor: 'rgba(52, 152, 219, 0.08)', pType: 'snow' };
+    else if (this.floor <= 8) this.currentBiome = { name: '狂気の研究所', color: '#221226', hazard: 'poison', ambientColor: 'rgba(155, 89, 182, 0.08)', pType: 'spore' };
+    else this.currentBiome = { name: '虚空の浮遊島', color: '#18122a', hazard: 'collapse', ambientColor: 'rgba(241, 196, 15, 0.08)', pType: 'rune' };
 
     const banner = document.getElementById('biome-banner');
     if (banner) {
@@ -3076,28 +3082,45 @@ const Game = {
       ctx.restore();
     }
 
+    // バイオーム連動の環境微粒子（ほこり・灰・雪・胞子・ルーンの欠片）を多層パララックス深度で自動生成＆描画
+    if (this.currentBiome && Math.random() < 0.6) {
+      const pType = this.currentBiome.pType || 'dust';
+      const spawnX = px + (Math.random() - 0.5) * this.width;
+      const spawnY = py + (Math.random() - 0.5) * this.height;
+      this.particles.push({
+        x: spawnX,
+        y: spawnY,
+        vx: (Math.random() - 0.5) * 20 + (pType === 'snow' ? 15 : 0),
+        vy: (Math.random() - 0.5) * 20 - (pType === 'ash' ? 25 : 10),
+        size: Math.random() * 3 + 1,
+        color: pType === 'ash' ? '#e74c3c' : (pType === 'snow' ? '#ffffff' : (pType === 'spore' ? '#9b59b6' : '#f1c40f')),
+        life: Math.random() * 2.5 + 1.5,
+        maxLife: 4.0
+      });
+    }
+
     // Particles (Glow Additive Blend)
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     for (const p of this.particles) {
-      const pAlpha = Math.max(0, p.life / 0.4);
+      const pAlpha = Math.max(0, p.life / (p.maxLife || 0.4));
       ctx.globalAlpha = pAlpha;
       ctx.fillStyle = p.color;
       ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
     ctx.restore();
 
-    // --- Dynamic Ambient Lighting Layer with Light Flicker & Deep Vignette ---
+    // --- Dynamic Ambient Lighting Layer with Biome Tint, Light Flicker & Deep Vignette ---
     ctx.save();
     const flicker = Math.sin(timeSec * 16) * 10 + Math.cos(timeSec * 31) * 6;
-    const lightRadius = Math.max(220, 300 + flicker + (this.flashTimer > 0 ? 160 : 0));
+    const lightRadius = Math.max(240, 320 + flicker + (this.flashTimer > 0 ? 180 : 0));
     
-    // Dynamic Flicker Light Source Glow
+    // Dynamic Flicker Light Source Glow with Biome Color Tint
     const lightGrad = ctx.createRadialGradient(px, py, 15, px, py, lightRadius);
     lightGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    lightGrad.addColorStop(0.4, 'rgba(7, 10, 18, 0.32)');
-    lightGrad.addColorStop(0.82, 'rgba(5, 7, 12, 0.84)');
-    lightGrad.addColorStop(1, 'rgba(3, 4, 8, 0.96)');
+    lightGrad.addColorStop(0.38, this.currentBiome ? this.currentBiome.ambientColor : 'rgba(7, 10, 18, 0.32)');
+    lightGrad.addColorStop(0.82, 'rgba(5, 7, 12, 0.86)');
+    lightGrad.addColorStop(1, 'rgba(2, 3, 6, 0.98)');
 
     ctx.fillStyle = lightGrad;
     ctx.fillRect(
