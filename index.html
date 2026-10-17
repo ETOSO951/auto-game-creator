@@ -623,6 +623,9 @@ const Game = {
   camX: 0,
   camY: 0,
   lastTime: 0,
+  accumulator: 0,
+  fixedDt: 1 / 60,
+  hitstopTimer: 0,
   mousePos: { x: 0, y: 0, active: false },
 
   // Player
@@ -643,6 +646,7 @@ const Game = {
     attackSwing: 0,
     attackSwingDuration: 0.2,
     swingDir: 1,
+    activeAttack: null, // { timer, duration, hasHit, angle, range, weapon }
     potions: 2,
     potionCooldown: 0,
     potionCooldownMax: 5.0,
@@ -770,6 +774,12 @@ const Game = {
 
     window.addEventListener('touchend', handleTouchEnd);
     window.addEventListener('touchcancel', handleTouchEnd);
+
+    // Reset input states when focus is lost to prevent stuck movements
+    window.addEventListener('blur', () => {
+      this.keys = {};
+      resetJoy();
+    });
   },
 
   start() {
@@ -922,6 +932,7 @@ const Game = {
       type,
       radius: 16,
       vx: 0, vy: 0,
+      kbX: 0, kbY: 0, // Knockback impulse velocity
       shootCd: 0,
       fuse: 0,
       color: '#2ecc71'
@@ -967,6 +978,7 @@ const Game = {
       speed: 84, // px per second
       damage: 24,
       shootCd: 0,
+      kbX: 0, kbY: 0,
       color: '#e74c3c'
     });
   },
@@ -1007,35 +1019,45 @@ const Game = {
     this.player.swingDir *= -1;
     Sound.play('slash');
 
-    // Swing Hitbox
-    const atkRange = w.range;
-    const atkAngle = this.player.angle;
+    // Register active attack to synchronize hit timing with swing peak
+    this.player.activeAttack = {
+      timer: 0,
+      duration: this.player.attackSwingDuration,
+      hitTriggerTime: this.player.attackSwingDuration * 0.45,
+      hasHit: false,
+      angle: this.player.angle,
+      range: w.range,
+      weapon: w
+    };
+  },
+
+  performAttackCheck(atk) {
+    const w = atk.weapon;
     let hitAny = false;
 
     for (const e of this.enemies) {
       const dx = e.x - this.player.x;
       const dy = e.y - this.player.y;
       const dist = Math.hypot(dx, dy);
-      if (dist < atkRange + e.radius) {
-        // Line-of-sight check to prevent hitting through walls
+      if (dist < atk.range + e.radius) {
         if (!this.hasLineOfSight(this.player.x, this.player.y, e.x, e.y)) continue;
 
         const angleToEnemy = Math.atan2(dy, dx);
-        let diff = Math.abs(atkAngle - angleToEnemy);
+        let diff = Math.abs(atk.angle - angleToEnemy);
         if (diff > Math.PI) diff = Math.PI * 2 - diff;
 
         if (diff < Math.PI * 0.55) { // 100 deg cone
           let dmg = w.dmg + Math.floor(Math.random() * 5);
-          // Crit
           const isCrit = Math.random() < 0.2;
           if (isCrit) dmg = Math.floor(dmg * 1.6);
 
           e.hp -= dmg;
           hitAny = true;
 
-          // Knockback
-          e.x += Math.cos(atkAngle) * 16;
-          e.y += Math.sin(atkAngle) * 16;
+          // Smooth impulse knockback
+          const kbForce = (e.type === 'boss' ? 140 : 380);
+          e.kbX += Math.cos(atk.angle) * kbForce;
+          e.kbY += Math.sin(atk.angle) * kbForce;
 
           // Vampiric Weapon Perk
           if (w.id === 'w5') {
@@ -1047,7 +1069,11 @@ const Game = {
         }
       }
     }
-    if (hitAny) Sound.play('hit');
+
+    if (hitAny) {
+      Sound.play('hit');
+      this.hitstopTimer = 0.04; // Hitstop freeze: crisp impactful contact feel
+    }
   },
 
   useArtifact(index) {
@@ -1111,8 +1137,9 @@ const Game = {
       if (dist < radius) {
         e.hp -= damage;
         const pushAng = Math.atan2(e.y - y, e.x - x);
-        e.x += Math.cos(pushAng) * 25;
-        e.y += Math.sin(pushAng) * 25;
+        const impulse = e.type === 'boss' ? 200 : 500;
+        e.kbX += Math.cos(pushAng) * impulse;
+        e.kbY += Math.sin(pushAng) * impulse;
         this.createDamageNumber(e.x, e.y, damage, '#e67e22');
       }
     }
@@ -1202,26 +1229,40 @@ const Game = {
     }, 1800);
   },
 
-  /* --- Game Loop & Physics --- */
+  /* --- Game Loop & Physics (Fixed Timestep Separation) --- */
   loop(timestamp) {
     if (!this.running) return;
     if (!this.lastTime) this.lastTime = timestamp;
-    const dt = Math.min((timestamp - this.lastTime) / 1000, 0.1); // clamp to prevent tunneling
+    let frameTime = (timestamp - this.lastTime) / 1000;
+    if (frameTime > 0.1) frameTime = 0.1; // Clamp spiral of death
     this.lastTime = timestamp;
 
-    this.update(dt);
+    // Hitstop logic: freeze updates for impact feel
+    if (this.hitstopTimer > 0) {
+      this.hitstopTimer = Math.max(0, this.hitstopTimer - frameTime);
+      this.render();
+      requestAnimationFrame((t) => this.loop(t));
+      return;
+    }
+
+    this.accumulator += frameTime;
+    while (this.accumulator >= this.fixedDt) {
+      this.physicsUpdate(this.fixedDt);
+      this.accumulator -= this.fixedDt;
+    }
+
+    // Smooth Camera Follow
+    const targetCamX = this.width / 2 - this.player.x;
+    const targetCamY = this.height / 2 - this.player.y;
+    const lerpRate = 1 - Math.exp(-14 * frameTime);
+    this.camX += (targetCamX - this.camX) * lerpRate;
+    this.camY += (targetCamY - this.camY) * lerpRate;
+
     this.render();
     requestAnimationFrame((t) => this.loop(t));
   },
 
-  update(dt) {
-    // Smooth camera interpolation (Lerp / exponential decay to remove micro-jitters)
-    const targetCamX = this.width / 2 - this.player.x;
-    const targetCamY = this.height / 2 - this.player.y;
-    const lerpRate = 1 - Math.exp(-12 * dt);
-    this.camX += (targetCamX - this.camX) * lerpRate;
-    this.camY += (targetCamY - this.camY) * lerpRate;
-
+  physicsUpdate(dt) {
     // Movement Vector
     let mx = 0, my = 0;
     if (this.joystick.active) {
@@ -1250,40 +1291,27 @@ const Game = {
       }
     }
 
-    // Precise Wall Sliding with Corner Assistance
+    // Move player with continuous sliding & resolve
     if (mx !== 0 || my !== 0) {
-      const stepDist = this.player.speed * dt;
-      let moveX = mx * stepDist;
-      let moveY = my * stepDist;
+      this.player.x += mx * this.player.speed * dt;
+      this.player.y += my * this.player.speed * dt;
+      this.resolveCircleWallCollisions(this.player);
+    }
 
-      // X-axis movement
-      if (!this.checkWall(this.player.x + moveX, this.player.y, this.player.radius)) {
-        this.player.x += moveX;
-      } else {
-        // Corner slide assist on Y axis if hitting a vertical corner
-        const cornerProbe = this.player.radius * 0.75;
-        if (!this.checkWall(this.player.x + moveX, this.player.y - cornerProbe, this.player.radius)) {
-          this.player.y -= stepDist * 0.5;
-        } else if (!this.checkWall(this.player.x + moveX, this.player.y + cornerProbe, this.player.radius)) {
-          this.player.y += stepDist * 0.5;
-        }
+    // Active Attack Timing Synchronization
+    if (this.player.activeAttack) {
+      const atk = this.player.activeAttack;
+      atk.timer += dt;
+      if (!atk.hasHit && atk.timer >= atk.hitTriggerTime) {
+        atk.hasHit = true;
+        this.performAttackCheck(atk);
       }
-
-      // Y-axis movement
-      if (!this.checkWall(this.player.x, this.player.y + moveY, this.player.radius)) {
-        this.player.y += moveY;
-      } else {
-        // Corner slide assist on X axis if hitting a horizontal corner
-        const cornerProbe = this.player.radius * 0.75;
-        if (!this.checkWall(this.player.x - cornerProbe, this.player.y + moveY, this.player.radius)) {
-          this.player.x -= stepDist * 0.5;
-        } else if (!this.checkWall(this.player.x + cornerProbe, this.player.y + moveY, this.player.radius)) {
-          this.player.x += stepDist * 0.5;
-        }
+      if (atk.timer >= atk.duration) {
+        this.player.activeAttack = null;
       }
     }
 
-    // Cooldown and Status Timers (Time-based delta)
+    // Cooldown and Status Timers
     if (this.player.attackCooldown > 0) this.player.attackCooldown = Math.max(0, this.player.attackCooldown - dt);
     if (this.player.attackSwing > 0) this.player.attackSwing = Math.max(0, this.player.attackSwing - dt);
     if (this.player.invincibleTimer > 0) this.player.invincibleTimer = Math.max(0, this.player.invincibleTimer - dt);
@@ -1322,14 +1350,10 @@ const Game = {
           const overlap = (minDist - d) * 0.5;
           const ox = (dx / d) * overlap;
           const oy = (dy / d) * overlap;
-          if (!this.checkWall(e1.x - ox, e1.y - oy, e1.radius)) {
-            e1.x -= ox;
-            e1.y -= oy;
-          }
-          if (!this.checkWall(e2.x + ox, e2.y + oy, e2.radius)) {
-            e2.x += ox;
-            e2.y += oy;
-          }
+          e1.x -= ox;
+          e1.y -= oy;
+          e2.x += ox;
+          e2.y += oy;
         }
       }
     }
@@ -1341,16 +1365,24 @@ const Game = {
       const dy = this.player.y - e.y;
       const dist = Math.hypot(dx, dy);
 
+      // Knockback damping (exponential friction)
+      e.x += e.kbX * dt;
+      e.y += e.kbY * dt;
+      const friction = Math.exp(-12 * dt);
+      e.kbX *= friction;
+      e.kbY *= friction;
+      if (Math.abs(e.kbX) < 1) e.kbX = 0;
+      if (Math.abs(e.kbY) < 1) e.kbY = 0;
+
       // AI movement towards player if in sight
       if (dist < 420) {
         const nx = dx / dist;
         const ny = dy / dist;
 
         if (e.type === 'creeper') {
-          // Explode countdown
           if (dist < 46) {
             e.fuse += dt;
-            if (e.fuse > 0.8) { // Boom!
+            if (e.fuse > 0.8) {
               Sound.play('explosion');
               this.createExplosion(e.x, e.y, 80, e.damage);
               this.enemies.splice(i, 1);
@@ -1362,16 +1394,13 @@ const Game = {
         }
 
         if (e.type === 'skeleton') {
-          // Keep distance & shoot arrows
           let skelMove = 0;
           if (dist > 200) skelMove = 1;
           else if (dist < 130) skelMove = -1;
 
           if (skelMove !== 0) {
-            const nextSx = e.x + nx * e.speed * dt * skelMove;
-            const nextSy = e.y + ny * e.speed * dt * skelMove;
-            if (!this.checkWall(nextSx, e.y, e.radius)) e.x = nextSx;
-            if (!this.checkWall(e.x, nextSy, e.radius)) e.y = nextSy;
+            e.x += nx * e.speed * dt * skelMove;
+            e.y += ny * e.speed * dt * skelMove;
           }
 
           e.shootCd = (e.shootCd || 0) + dt;
@@ -1379,29 +1408,26 @@ const Game = {
             e.shootCd = 0;
             this.projectiles.push({
               x: e.x, y: e.y,
-              vx: nx * 300, vy: ny * 300, // px per second
+              vx: nx * 300, vy: ny * 300,
               radius: 4, damage: e.damage,
               color: '#fff', fromPlayer: false
             });
           }
         } else {
-          // Melee enemy chase with wall sliding
-          const step = e.speed * dt;
-          const nextEx = e.x + nx * step;
-          const nextEy = e.y + ny * step;
-          if (!this.checkWall(nextEx, e.y, e.radius)) e.x = nextEx;
-          if (!this.checkWall(e.x, nextEy, e.radius)) e.y = nextEy;
+          e.x += nx * e.speed * dt;
+          e.y += ny * e.speed * dt;
 
-          // Melee Hit
           if (dist < e.radius + this.player.radius + 4) {
             this.damagePlayer(e.damage);
-            // Gentle recoil to prevent sticking into player
-            const pushBack = 4;
+            const pushBack = 6;
             e.x -= nx * pushBack;
             e.y -= ny * pushBack;
           }
         }
       }
+
+      // Smooth collision against dungeon walls
+      this.resolveCircleWallCollisions(e);
 
       // Death check
       if (e.hp <= 0) {
@@ -1418,13 +1444,11 @@ const Game = {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
 
-      // Wall hit
       if (this.checkWall(p.x, p.y, p.radius)) {
         this.projectiles.splice(i, 1);
         continue;
       }
 
-      // Hit player
       if (!p.fromPlayer) {
         const pd = Math.hypot(p.x - this.player.x, p.y - this.player.y);
         if (pd < p.radius + this.player.radius) {
@@ -1459,7 +1483,7 @@ const Game = {
       }
     }
 
-    // Particles (Delta-time standardized)
+    // Particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx * dt;
@@ -1468,7 +1492,7 @@ const Game = {
       if (p.life <= 0) this.particles.splice(i, 1);
     }
 
-    // Damage numbers (Delta-time standardized)
+    // Damage numbers
     for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
       const d = this.damageNumbers[i];
       d.y -= 42 * dt;
@@ -1490,6 +1514,52 @@ const Game = {
       }
     }
     return false;
+  },
+
+  // Circle vs Tile AABB exact penetration resolution (Smooth corner sliding)
+  resolveCircleWallCollisions(entity) {
+    const r = entity.radius;
+    const minCol = Math.max(0, Math.floor((entity.x - r - 2) / this.tileSize));
+    const maxCol = Math.min(this.mapWidth - 1, Math.floor((entity.x + r + 2) / this.tileSize));
+    const minRow = Math.max(0, Math.floor((entity.y - r - 2) / this.tileSize));
+    const maxRow = Math.min(this.mapHeight - 1, Math.floor((entity.y + r + 2) / this.tileSize));
+
+    for (let row = minRow; row <= maxRow; row++) {
+      for (let col = minCol; col <= maxCol; col++) {
+        if (this.map[row][col] === 1) {
+          const tileLeft = col * this.tileSize;
+          const tileRight = tileLeft + this.tileSize;
+          const tileTop = row * this.tileSize;
+          const tileBottom = tileTop + this.tileSize;
+
+          // Find closest point on AABB to circle center
+          const nearestX = Math.max(tileLeft, Math.min(entity.x, tileRight));
+          const nearestY = Math.max(tileTop, Math.min(entity.y, tileBottom));
+
+          const diffX = entity.x - nearestX;
+          const diffY = entity.y - nearestY;
+          const distSq = diffX * diffX + diffY * diffY;
+
+          if (distSq < r * r) {
+            const dist = Math.sqrt(distSq);
+            if (dist > 0.0001) {
+              const overlap = r - dist;
+              entity.x += (diffX / dist) * overlap;
+              entity.y += (diffY / dist) * overlap;
+            } else {
+              // Center is exactly inside tile: push out along minimal axis
+              const midX = tileLeft + this.tileSize * 0.5;
+              const midY = tileTop + this.tileSize * 0.5;
+              if (Math.abs(entity.x - midX) > Math.abs(entity.y - midY)) {
+                entity.x += entity.x > midX ? r : -r;
+              } else {
+                entity.y += entity.y > midY ? r : -r;
+              }
+            }
+          }
+        }
+      }
+    }
   },
 
   // Fast grid raycast to verify clear line-of-sight between two positions
