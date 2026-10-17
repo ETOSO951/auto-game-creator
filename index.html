@@ -582,15 +582,18 @@
     </div>
   </div>
 
-  <!-- Floor Clear Screen -->
+  <!-- Floor Clear Screen with Branching Routes -->
   <div class="modal-screen" id="stage-clear-screen" style="display:none;">
     <div class="modal-box">
       <div style="font-size:38px; margin-bottom:10px;">🏆✨</div>
       <div class="modal-title" style="color:#2ecc71;">FLOOR CLEAR!</div>
       <div class="modal-desc" id="floor-clear-desc">
-        フロアの敵を殲滅し、出口ゲートへ到達した！<br>ステータスが回復し、敵はさらに凶悪になる...
+        フロアの敵を殲滅し、出口ゲートへ到達した！<br>次の進路を選択してください：
       </div>
-      <button class="primary-btn" onclick="Game.nextFloor()">次の階層へ進む</button>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+        <button class="primary-btn" onclick="Game.nextFloor('safe')" style="background:linear-gradient(135deg, #3498db, #2980b9);">🛡️ 安全ルート (回復多め・敵普通)</button>
+        <button class="primary-btn" onclick="Game.nextFloor('chaos')" style="background:linear-gradient(135deg, #e74c3c, #c0392b);">🔥 危険・高報酬ルート (エリート敵多め・宝石2倍)</button>
+      </div>
     </div>
   </div>
 
@@ -628,6 +631,14 @@
     <div>
       <h4 style="font-size:12px; color:#a0aec0; margin-bottom:6px;">ルーンクラフト・パッシブ</h4>
       <div id="rune-container" style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;"></div>
+    </div>
+    <div>
+      <h4 style="font-size:12px; color:#a0aec0; margin-bottom:6px;">武器属性エンチャント工房 (15◆)</h4>
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #e74c3c, #d35400);" onclick="Game.enchantWeapon('fire')">炎上付与</button>
+        <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #3498db, #2980b9);" onclick="Game.enchantWeapon('ice')">氷結付与</button>
+        <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #f1c40f, #d4ac0d);" onclick="Game.enchantWeapon('upgrade')">武器鍛錬(+5 dmg)</button>
+      </div>
     </div>
     <div>
       <h4 style="font-size:12px; color:#a0aec0; margin-bottom:6px;">所持品 (タップで装備切替)</h4>
@@ -828,13 +839,13 @@ const Sound = {
 
 /* --- Equipment & Artifact Definitions --- */
 const WEAPONS_DB = [
-  { id: 'w1', name: 'ダイヤの剣', type: 'weapon', dmg: 16, range: 48, speed: 1.0, rarity: 'common', icon: '🗡️', desc: '手になじむ鋭利な剣' },
-  { id: 'w2', name: '大槌ハンマー', type: 'weapon', dmg: 32, range: 58, speed: 0.65, rarity: 'rare', icon: '🔨', desc: '重いが広範囲を薙ぎ払う' },
-  { id: 'w3', name: '影のダガー', type: 'weapon', dmg: 12, range: 38, speed: 1.6, rarity: 'rare', icon: '🔪', desc: '手数が多く機動力に優れる' },
-  { id: 'w4', name: '太陽のクレイモア', type: 'weapon', dmg: 48, range: 66, speed: 0.8, rarity: 'unique', icon: '⚔️', desc: '火炎を纏う伝説の大剣 (高火力)' },
-  { id: 'w5', name: '死神の鎌', type: 'weapon', dmg: 38, range: 62, speed: 1.1, rarity: 'unique', icon: '⛏️', desc: '魂を狩り攻撃時に僅かにHP回復' },
-  { id: 'w6', name: 'ネザー・カタナ', type: 'weapon', dmg: 56, range: 52, speed: 1.3, rarity: 'unique', icon: '🔥', desc: '灼熱の業火を纏う伝説の太刀' },
-  { id: 'w7', name: 'フロスト・バスター', type: 'weapon', dmg: 44, range: 60, speed: 0.95, rarity: 'unique', icon: '❄️', desc: '氷結のオーラで敵の動きを縛る' }
+  { id: 'w1', name: 'ダイヤの剣', type: 'weapon', dmg: 16, range: 48, speed: 1.0, rarity: 'common', icon: '🗡️', desc: '手になじむ鋭利な剣', element: 'none', upgradeLevel: 0 },
+  { id: 'w2', name: '大槌ハンマー', type: 'weapon', dmg: 32, range: 58, speed: 0.65, rarity: 'rare', icon: '🔨', desc: '重いが広範囲を薙ぎ払う', element: 'none', upgradeLevel: 0 },
+  { id: 'w3', name: '影のダガー', type: 'weapon', dmg: 12, range: 38, speed: 1.6, rarity: 'rare', icon: '🔪', desc: '手数が多く機動力に優れる', element: 'none', upgradeLevel: 0 },
+  { id: 'w4', name: '太陽のクレイモア', type: 'weapon', dmg: 48, range: 66, speed: 0.8, rarity: 'unique', icon: '⚔️', desc: '火炎を纏う伝説の大剣', element: 'fire', upgradeLevel: 0 },
+  { id: 'w5', name: '死神の鎌', type: 'weapon', dmg: 38, range: 62, speed: 1.1, rarity: 'unique', icon: '⛏️', desc: '魂を狩り攻撃時にHP回復', element: 'lifesteal', upgradeLevel: 0 },
+  { id: 'w6', name: 'ネザー・カタナ', type: 'weapon', dmg: 56, range: 52, speed: 1.3, rarity: 'unique', icon: '🔥', desc: '灼熱の業火を纏う伝説の太刀', element: 'fire', upgradeLevel: 0 },
+  { id: 'w7', name: 'フロスト・バスター', type: 'weapon', dmg: 44, range: 60, speed: 0.95, rarity: 'unique', icon: '❄️', desc: '氷結のオーラで敵の動きを縛る', element: 'ice', upgradeLevel: 0 }
 ];
 
 const ARMORS_DB = [
@@ -1184,17 +1195,45 @@ const Game = {
     this.start();
   },
 
-  nextFloor() {
+  nextFloor(routeType = 'safe') {
     document.getElementById('stage-clear-screen').style.display = 'none';
     this.floor++;
-    this.player.potions = Math.min(this.player.potions + 1, 3);
-    this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.maxHp * 0.5);
+    if (routeType === 'safe') {
+      this.player.potions = Math.min(3, this.player.potions + 1);
+      this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.maxHp * 0.6);
+      this.emitToast('安全ルート: ポーションが補充されHPが回復した！');
+    } else {
+      this.emeralds += 8;
+      this.emitToast('危険ルート: ボーナスエメラルド+8を獲得！');
+    }
     this.resetVolatileStates();
     this.generateFloor();
     this.state = 'PLAYING';
     this.running = true;
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+  },
+
+  enchantWeapon(type) {
+    if (this.emeralds < 15) {
+      this.emitToast('エメラルドが足りません（必要: 15◆）');
+      return;
+    }
+    this.emeralds -= 15;
+    const w = this.player.weapon;
+    if (type === 'fire') {
+      w.element = 'fire';
+      this.emitToast(`${w.name} に【炎上】属性をエンチャントした！`);
+    } else if (type === 'ice') {
+      w.element = 'ice';
+      this.emitToast(`${w.name} に【氷結】属性をエンチャントした！`);
+    } else if (type === 'upgrade') {
+      w.dmg += 6;
+      w.upgradeLevel = (w.upgradeLevel || 0) + 1;
+      this.emitToast(`${w.name} を鍛錬した！(攻撃力+6)`);
+    }
+    this.recalcStats();
+    this.renderInventory();
   },
 
   recalcStats() {
@@ -1381,14 +1420,13 @@ const Game = {
   },
 
   spawnEnemy(x, y) {
-    const types = ['zombie', 'skeleton', 'creeper', 'shadow', 'protector', 'priest', 'grappler'];
+    const types = ['zombie', 'skeleton', 'creeper', 'shadow', 'protector'];
     const type = types[Math.floor(Math.random() * types.length)];
     const hpScale = 1 + (this.floor - 1) * 0.35;
     const dmgScale = 1 + (this.floor - 1) * 0.25;
 
-    // 精鋭エリート属性とアフィックスの拡張（ライフスティール、ファイアオーラ、分身など）
-    const isElite = Math.random() < Math.min(0.45, 0.1 * this.floor);
-    const eliteAura = isElite ? ['flame', 'swift', 'tank', 'lifesteal', 'fireaura'][Math.floor(Math.random() * 5)] : null;
+    const isElite = Math.random() < Math.min(0.5, 0.12 * this.floor);
+    const eliteAura = isElite ? ['lifesteal', 'thorns', 'swift', 'tank', 'fireaura'][Math.floor(Math.random() * 5)] : null;
 
     let e = {
       x, y,
@@ -1448,24 +1486,25 @@ const Game = {
 
   spawnBoss(x, y) {
     const hpScale = 1 + (this.floor - 1) * 0.5;
-    const bossNames = ['マグマ・ロード', 'フロスト・タイタン', 'シャドウ・ロード', 'ネザー・ガーディアン'];
+    const bossNames = ['マグマ・ロード', 'フロスト・タイタン', 'ネクロ・サモナー', 'ヴォルテックス・ロード'];
     const bossTitle = bossNames[Math.floor((this.floor / 3 - 1)) % bossNames.length] || 'ダンジョン・ロード';
     this.enemies.push({
       x, y,
       prevX: x, prevY: y,
       type: 'boss',
       name: bossTitle,
-      radius: 34,
-      hp: Math.floor(350 * hpScale),
-      maxHp: Math.floor(350 * hpScale),
-      speed: 88,
-      damage: 28,
+      radius: 36,
+      hp: Math.floor(400 * hpScale),
+      maxHp: Math.floor(400 * hpScale),
+      speed: 92,
+      damage: 32,
       shootCd: 0,
-      phase: 1, // マルチフェーズ
+      summonCd: 0,
+      phase: 1,
       kbX: 0, kbY: 0,
-      color: '#e74c3c'
+      color: '#8e44ad'
     });
-    this.emitToast(`エリアボス【${bossTitle}】が出現した！`);
+    this.emitToast(`エリアボス【${bossTitle}】が降臨した！戦術に注意せよ！`);
   },
 
   getNearestEnemy(maxRange = 260) {
@@ -1632,7 +1671,6 @@ const Game = {
     let hitAny = false;
 
     for (const e of this.enemies) {
-      // 厳密な幾何交差判定
       const hit = this.isSectorIntersectingCircle(
         this.player.x, this.player.y,
         atk.range, atk.angle, atk.halfFov,
@@ -1646,18 +1684,28 @@ const Game = {
         const isCrit = Math.random() < 0.2;
         if (isCrit) dmg = Math.floor(dmg * 1.6);
 
+        // 武器属性効果の適用
+        if (w.element === 'fire') {
+          dmg += 8;
+          this.createDamageNumber(e.x, e.y - 14, '+8炎上', '#e74c3c');
+        } else if (w.element === 'ice') {
+          e.speed *= 0.6; // 氷結スロウ
+          this.createDamageNumber(e.x, e.y - 14, '凍結！', '#3498db');
+        } else if (w.element === 'llev' || w.id === 'w5') {
+          this.player.hp = Math.min(this.player.maxHp, this.player.hp + 3);
+        }
+
+        // エリート敵のアフィックス判定 (Thorns 反撃ダメージ)
+        if (e.eliteAura === 'thorns' && Math.random() < 0.4) {
+          this.damagePlayer(5);
+        }
+
         e.hp -= dmg;
         hitAny = true;
 
-        // ノックバックインパルス
         const kbForce = (e.type === 'boss' ? this.config.kbBoss : this.config.kbNormal);
         e.kbX += Math.cos(atk.angle) * kbForce;
         e.kbY += Math.sin(atk.angle) * kbForce;
-
-        // 吸血特性
-        if (w.id === 'w5') {
-          this.player.hp = Math.min(this.player.maxHp, this.player.hp + 2);
-        }
 
         this.createDamageNumber(e.x, e.y, dmg, isCrit ? '#ffcc00' : '#ffffff');
         this.createBlood(e.x, e.y, e.color);
@@ -1667,7 +1715,7 @@ const Game = {
 
     if (hitAny) {
       this.emitSound('hit', this.player.x, this.player.y);
-      this.hitstopTimer = 0.05; // キレのあるヒットストップ
+      this.hitstopTimer = 0.05;
     }
   },
 
@@ -2143,20 +2191,29 @@ const Game = {
         }
       }
 
-      // ボスのフェーズ2弾幕攻撃
-      if (e.type === 'boss' && e.phase === 2 && dist < 320) {
+      // ボスのフェーズ2弾幕攻撃およびミニオン召喚スキル
+      if (e.type === 'boss' && dist < 340) {
         e.shootCd = (e.shootCd || 0) + dt;
-        if (e.shootCd > 1.8) {
+        if (e.shootCd > (e.phase === 2 ? 1.4 : 2.2)) {
           e.shootCd = 0;
-          for (let i = 0; i < 4; i++) {
-            const ang = (Math.PI / 2) * i + performance.now() * 0.001;
+          const bulletCount = e.phase === 2 ? 8 : 5;
+          for (let i = 0; i < bulletCount; i++) {
+            const ang = ((Math.PI * 2) / bulletCount) * i + performance.now() * 0.001;
             this.projectiles.push({
               x: e.x, y: e.y,
               prevX: e.x, prevY: e.y,
-              vx: Math.cos(ang) * 220, vy: Math.sin(ang) * 220,
+              vx: Math.cos(ang) * 240, vy: Math.sin(ang) * 240,
               radius: 5, damage: Math.floor(e.damage * 0.8),
               color: '#e74c3c', fromPlayer: false
             });
+          }
+        }
+        if (e.phase === 2) {
+          e.summonCd = (e.summonCd || 0) + dt;
+          if (e.summonCd > 7.0) {
+            e.summonCd = 0;
+            this.spawnEnemy(e.x + 40, e.y + 40);
+            this.emitToast('ボスが手下を召喚した！');
           }
         }
       }
