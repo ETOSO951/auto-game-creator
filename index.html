@@ -619,6 +619,10 @@ const Game = {
   rooms: [],
   exitPos: { x: 0, y: 0 },
 
+  // Game State Machine
+  // 'TITLE' | 'PLAYING' | 'INVENTORY' | 'STAGE_CLEAR' | 'GAME_OVER'
+  state: 'TITLE',
+
   // Camera & Time
   camX: 0,
   camY: 0,
@@ -627,6 +631,21 @@ const Game = {
   fixedDt: 1 / 60,
   hitstopTimer: 0,
   mousePos: { x: 0, y: 0, active: false },
+
+  // HUD Cache for Dirty Checking
+  hudCache: {
+    hp: -1,
+    maxHp: -1,
+    xp: -1,
+    xpNext: -1,
+    level: -1,
+    floor: -1,
+    emeralds: -1,
+    potions: -1,
+    art1CdRatio: -1,
+    art2CdRatio: -1,
+    healCdRatio: -1
+  },
 
   // Player
   player: {
@@ -644,9 +663,9 @@ const Game = {
     xpNext: 50,
     attackCooldown: 0,
     attackSwing: 0,
-    attackSwingDuration: 0.2,
+    attackSwingDuration: 0.22,
     swingDir: 1,
-    activeAttack: null, // { timer, duration, hasHit, angle, range, weapon }
+    activeAttack: null, // { timer, duration, hitTriggerTime, hasHit, angle, range, weapon }
     potions: 2,
     potionCooldown: 0,
     potionCooldownMax: 5.0,
@@ -724,14 +743,27 @@ const Game = {
       let dy = touch.clientY - centerY;
       const dist = Math.hypot(dx, dy);
 
-      if (dist > maxRadius) {
-        dx = (dx / dist) * maxRadius;
-        dy = (dy / dist) * maxRadius;
+      // Clamp stick visual offset
+      const clampedDist = Math.min(dist, maxRadius);
+      const angle = Math.atan2(dy, dx);
+      const visualX = Math.cos(angle) * clampedDist;
+      const visualY = Math.sin(angle) * clampedDist;
+      joyStick.style.transform = `translate(${visualX}px, ${visualY}px)`;
+
+      // Deadzone & Easing normalization (15% deadzone)
+      const deadzone = 0.15;
+      const rawNormalized = dist / maxRadius;
+      if (rawNormalized <= deadzone) {
+        this.joystick.dirX = 0;
+        this.joystick.dirY = 0;
+        this.joystick.active = false;
+      } else {
+        const scaledMagnitude = (rawNormalized - deadzone) / (1 - deadzone);
+        const finalMag = Math.min(1.0, scaledMagnitude);
+        this.joystick.dirX = Math.cos(angle) * finalMag;
+        this.joystick.dirY = Math.sin(angle) * finalMag;
+        this.joystick.active = true;
       }
-      joyStick.style.transform = `translate(${dx}px, ${dy}px)`;
-      this.joystick.dirX = dx / maxRadius;
-      this.joystick.dirY = dy / maxRadius;
-      this.joystick.active = true;
     };
 
     const resetJoy = () => {
@@ -797,6 +829,7 @@ const Game = {
     this.recalcStats();
     this.player.hp = this.player.maxHp;
     this.generateFloor();
+    this.state = 'PLAYING';
     this.running = true;
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
@@ -813,6 +846,7 @@ const Game = {
     this.player.potions = Math.min(this.player.potions + 1, 3);
     this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.maxHp * 0.5);
     this.generateFloor();
+    this.state = 'PLAYING';
     this.running = true;
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
@@ -998,32 +1032,36 @@ const Game = {
 
   /* --- Actions & Skills --- */
   playerAttack() {
+    if (this.state !== 'PLAYING') return;
     if (this.player.attackCooldown > 0) return;
 
-    // Smart Aim: PC mouse aim or mobile nearest target lock
+    // Unified Aim Logic on Attack:
+    // 1. Mouse aiming if PC mouse was moved
+    // 2. Nearest enemy lock within range
+    // 3. Keep current direction
     if (this.mousePos.active) {
       const worldMouseX = this.mousePos.x - this.camX;
       const worldMouseY = this.mousePos.y - this.camY;
       this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
     } else {
-      const target = this.getNearestEnemy(260);
+      const target = this.getNearestEnemy(280);
       if (target) {
         this.player.angle = Math.atan2(target.y - this.player.y, target.x - this.player.x);
       }
     }
 
     const w = this.player.weapon;
-    const cooldownSec = Math.max(0.15, 0.45 / w.speed);
+    const cooldownSec = Math.max(0.18, 0.48 / w.speed);
     this.player.attackCooldown = cooldownSec;
     this.player.attackSwing = this.player.attackSwingDuration;
     this.player.swingDir *= -1;
     Sound.play('slash');
 
-    // Register active attack to synchronize hit timing with swing peak
+    // Register active attack synchronized strictly with the middle of the swing animation arc
     this.player.activeAttack = {
       timer: 0,
       duration: this.player.attackSwingDuration,
-      hitTriggerTime: this.player.attackSwingDuration * 0.45,
+      hitTriggerTime: this.player.attackSwingDuration * 0.4,
       hasHit: false,
       angle: this.player.angle,
       range: w.range,
@@ -1168,6 +1206,7 @@ const Game = {
   },
 
   die() {
+    this.state = 'GAME_OVER';
     this.running = false;
     document.getElementById('game-over-stats').innerHTML = `
       到達階層: ${this.floor}<br>
@@ -1247,7 +1286,9 @@ const Game = {
 
     this.accumulator += frameTime;
     while (this.accumulator >= this.fixedDt) {
-      this.physicsUpdate(this.fixedDt);
+      if (this.state === 'PLAYING') {
+        this.physicsUpdate(this.fixedDt);
+      }
       this.accumulator -= this.fixedDt;
     }
 
@@ -1259,11 +1300,12 @@ const Game = {
     this.camY += (targetCamY - this.camY) * lerpRate;
 
     this.render();
+    this.updateHUD();
     requestAnimationFrame((t) => this.loop(t));
   },
 
   physicsUpdate(dt) {
-    // Movement Vector
+    // Movement Vector with deadzone processed
     let mx = 0, my = 0;
     if (this.joystick.active) {
       mx = this.joystick.dirX;
@@ -1277,25 +1319,25 @@ const Game = {
       if (len > 0) { mx /= len; my /= len; }
     }
 
-    // Player Aim Decoupling & Smart Assist
+    // Player Aim:
+    // Manual PC mouse takes top priority if moved;
+    // Otherwise face movement direction. (Attack action handles snap-assist)
     if (this.mousePos.active) {
       const worldMouseX = this.mousePos.x - this.camX;
       const worldMouseY = this.mousePos.y - this.camY;
       this.player.angle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
-    } else {
-      const nearest = this.getNearestEnemy(260);
-      if (nearest) {
-        this.player.angle = Math.atan2(nearest.y - this.player.y, nearest.x - this.player.x);
-      } else if (mx !== 0 || my !== 0) {
-        this.player.angle = Math.atan2(my, mx);
-      }
+    } else if (mx !== 0 || my !== 0) {
+      this.player.angle = Math.atan2(my, mx);
     }
 
-    // Move player with continuous sliding & resolve
-    if (mx !== 0 || my !== 0) {
+    // Separated Axis Movement & Sliding Resolution
+    if (mx !== 0) {
       this.player.x += mx * this.player.speed * dt;
+      this.resolveCircleWallCollisions(this.player, 'x');
+    }
+    if (my !== 0) {
       this.player.y += my * this.player.speed * dt;
-      this.resolveCircleWallCollisions(this.player);
+      this.resolveCircleWallCollisions(this.player, 'y');
     }
 
     // Active Attack Timing Synchronization
@@ -1316,22 +1358,14 @@ const Game = {
     if (this.player.attackSwing > 0) this.player.attackSwing = Math.max(0, this.player.attackSwing - dt);
     if (this.player.invincibleTimer > 0) this.player.invincibleTimer = Math.max(0, this.player.invincibleTimer - dt);
 
-    if (this.player.art1Cooldown > 0) {
-      this.player.art1Cooldown = Math.max(0, this.player.art1Cooldown - dt);
-      document.getElementById('cd-art1').style.transform = `scaleY(${this.player.art1Cooldown / this.player.art1CooldownMax})`;
-    }
-    if (this.player.art2Cooldown > 0) {
-      this.player.art2Cooldown = Math.max(0, this.player.art2Cooldown - dt);
-      document.getElementById('cd-art2').style.transform = `scaleY(${this.player.art2Cooldown / this.player.art2CooldownMax})`;
-    }
-    if (this.player.potionCooldown > 0) {
-      this.player.potionCooldown = Math.max(0, this.player.potionCooldown - dt);
-      document.getElementById('cd-heal').style.transform = `scaleY(${this.player.potionCooldown / this.player.potionCooldownMax})`;
-    }
+    if (this.player.art1Cooldown > 0) this.player.art1Cooldown = Math.max(0, this.player.art1Cooldown - dt);
+    if (this.player.art2Cooldown > 0) this.player.art2Cooldown = Math.max(0, this.player.art2Cooldown - dt);
+    if (this.player.potionCooldown > 0) this.player.potionCooldown = Math.max(0, this.player.potionCooldown - dt);
 
     // Exit gate collision
     const distToExit = Math.hypot(this.player.x - this.exitPos.x, this.player.y - this.exitPos.y);
     if (distToExit < 30) {
+      this.state = 'STAGE_CLEAR';
       this.running = false;
       document.getElementById('stage-clear-screen').style.display = 'flex';
       return;
@@ -1517,7 +1551,7 @@ const Game = {
   },
 
   // Circle vs Tile AABB exact penetration resolution (Smooth corner sliding)
-  resolveCircleWallCollisions(entity) {
+  resolveCircleWallCollisions(entity, axis = 'both') {
     const r = entity.radius;
     const minCol = Math.max(0, Math.floor((entity.x - r - 2) / this.tileSize));
     const maxCol = Math.min(this.mapWidth - 1, Math.floor((entity.x + r + 2) / this.tileSize));
@@ -1544,13 +1578,20 @@ const Game = {
             const dist = Math.sqrt(distSq);
             if (dist > 0.0001) {
               const overlap = r - dist;
-              entity.x += (diffX / dist) * overlap;
-              entity.y += (diffY / dist) * overlap;
+              const normX = diffX / dist;
+              const normY = diffY / dist;
+              if (axis === 'x') {
+                entity.x += normX * overlap;
+              } else if (axis === 'y') {
+                entity.y += normY * overlap;
+              } else {
+                entity.x += normX * overlap;
+                entity.y += normY * overlap;
+              }
             } else {
-              // Center is exactly inside tile: push out along minimal axis
               const midX = tileLeft + this.tileSize * 0.5;
               const midY = tileTop + this.tileSize * 0.5;
-              if (Math.abs(entity.x - midX) > Math.abs(entity.y - midY)) {
+              if (axis === 'x' || (axis === 'both' && Math.abs(entity.x - midX) > Math.abs(entity.y - midY))) {
                 entity.x += entity.x > midX ? r : -r;
               } else {
                 entity.y += entity.y > midY ? r : -r;
@@ -1725,15 +1766,18 @@ const Game = {
     ctx.fillRect(-5 + lookX, -16 + lookY, 3, 3);
     ctx.fillRect(2 + lookX, -16 + lookY, 3, 3);
 
-    // Weapon Swing animation
+    // Weapon Swing animation synchronized with attack duration
     ctx.save();
     ctx.rotate(this.player.angle);
     if (this.player.attackSwing > 0) {
-      const swingOffset = (this.player.attackSwing / 12) * Math.PI * 0.8 * this.player.swingDir;
+      const progress = 1 - (this.player.attackSwing / this.player.attackSwingDuration);
+      // Sinusoidal swing curve from -0.7 to +0.7 rad
+      const swingOffset = (Math.sin(progress * Math.PI) - 0.5) * 1.5 * this.player.swingDir;
       ctx.rotate(swingOffset);
 
-      // Slash visual arc
-      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      // Slash visual arc with dynamic intensity
+      const arcAlpha = Math.sin(progress * Math.PI) * 0.75;
+      ctx.strokeStyle = `rgba(255, 255, 255, ${arcAlpha})`;
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(0, 0, this.player.weapon.range, -0.6, 0.6);
@@ -1807,26 +1851,71 @@ const Game = {
     }
   },
 
-  /* --- UI Helpers --- */
+  /* --- UI Helpers (Dirty Checking Driven) --- */
   updateHUD() {
-    const hpPct = Math.max(0, (this.player.hp / this.player.maxHp) * 100);
-    document.getElementById('hp-bar').style.width = `${hpPct}%`;
-    document.getElementById('hp-text').innerText = `${Math.ceil(this.player.hp)}/${this.player.maxHp}`;
+    const c = this.hudCache;
+    const p = this.player;
 
-    const xpPct = Math.min(100, (this.player.xp / this.player.xpNext) * 100);
-    document.getElementById('xp-bar').style.width = `${xpPct}%`;
-    document.getElementById('lv-text').innerText = `Lv.${this.player.level}`;
+    const hpCeil = Math.ceil(p.hp);
+    if (c.hp !== hpCeil || c.maxHp !== p.maxHp) {
+      c.hp = hpCeil;
+      c.maxHp = p.maxHp;
+      const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
+      document.getElementById('hp-bar').style.width = `${hpPct}%`;
+      document.getElementById('hp-text').innerText = `${hpCeil}/${p.maxHp}`;
+    }
 
-    document.getElementById('floor-display').innerText = `階層 ${this.floor}`;
-    document.getElementById('emerald-count').innerText = this.emeralds;
-    document.getElementById('potion-count').innerText = `薬 (${this.player.potions})`;
+    if (c.xp !== p.xp || c.xpNext !== p.xpNext || c.level !== p.level) {
+      c.xp = p.xp;
+      c.xpNext = p.xpNext;
+      c.level = p.level;
+      const xpPct = Math.min(100, (p.xp / p.xpNext) * 100);
+      document.getElementById('xp-bar').style.width = `${xpPct}%`;
+      document.getElementById('lv-text').innerText = `Lv.${p.level}`;
+    }
+
+    if (c.floor !== this.floor) {
+      c.floor = this.floor;
+      document.getElementById('floor-display').innerText = `階層 ${this.floor}`;
+    }
+
+    if (c.emeralds !== this.emeralds) {
+      c.emeralds = this.emeralds;
+      document.getElementById('emerald-count').innerText = this.emeralds;
+    }
+
+    if (c.potions !== p.potions) {
+      c.potions = p.potions;
+      document.getElementById('potion-count').innerText = `薬 (${p.potions})`;
+    }
+
+    // Cooldown overlay transforms
+    const art1Ratio = p.art1Cooldown > 0 ? (p.art1Cooldown / p.art1CooldownMax).toFixed(2) : 0;
+    if (c.art1CdRatio !== art1Ratio) {
+      c.art1CdRatio = art1Ratio;
+      document.getElementById('cd-art1').style.transform = `scaleY(${art1Ratio})`;
+    }
+
+    const art2Ratio = p.art2Cooldown > 0 ? (p.art2Cooldown / p.art2CooldownMax).toFixed(2) : 0;
+    if (c.art2CdRatio !== art2Ratio) {
+      c.art2CdRatio = art2Ratio;
+      document.getElementById('cd-art2').style.transform = `scaleY(${art2Ratio})`;
+    }
+
+    const healRatio = p.potionCooldown > 0 ? (p.potionCooldown / p.potionCooldownMax).toFixed(2) : 0;
+    if (c.healCdRatio !== healRatio) {
+      c.healCdRatio = healRatio;
+      document.getElementById('cd-heal').style.transform = `scaleY(${healRatio})`;
+    }
   },
 
   toggleInventory() {
     const modal = document.getElementById('inventory-modal');
-    if (modal.style.display === 'flex') {
+    if (this.state === 'INVENTORY') {
       modal.style.display = 'none';
-    } else {
+      this.state = 'PLAYING';
+    } else if (this.state === 'PLAYING') {
+      this.state = 'INVENTORY';
       modal.style.display = 'flex';
       this.renderInventory();
     }
