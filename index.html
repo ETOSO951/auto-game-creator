@@ -600,7 +600,7 @@
 </div>
 
 <script>
-/* --- High-Quality Audio Synthesizer & Sound Design with Spatial Audio --- */
+/* --- Advanced Multi-Layer Audio Synthesizer with Spatial Reverberation & Pitch Variance --- */
 const Sound = {
   ctx: null,
   noiseBuffer: null,
@@ -632,12 +632,12 @@ const Sound = {
       const dist = Math.hypot(dx, dy);
       
       const gainNode = this.ctx.createGain();
-      const atten = Math.max(0.1, 1 - Math.min(dist, 500) / 600);
+      const atten = Math.max(0.08, 1 - Math.min(dist, 550) / 650);
       gainNode.gain.value = atten;
 
       if (this.ctx.createStereoPanner) {
         const panner = this.ctx.createStereoPanner();
-        const pan = Math.max(-1, Math.min(1, dx / 350));
+        const pan = Math.max(-1, Math.min(1, dx / 320));
         panner.pan.value = pan;
         panner.connect(master);
         gainNode.connect(panner);
@@ -655,52 +655,58 @@ const Sound = {
       const dest = this.getOutputNode(x, y);
       if (!dest) return;
 
+      // 自然なピッチ微ランダム化 (±4%のピッチ変調)
+      const pitchMod = 0.96 + Math.random() * 0.08;
+
       if (type === 'hit') {
+        // 重低音サブバス衝撃音
         const subOsc = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
         subOsc.type = 'sine';
-        subOsc.frequency.setValueAtTime(160, t);
-        subOsc.frequency.exponentialRampToValueAtTime(20, t + 0.22);
-        subGain.gain.setValueAtTime(0.65, t);
-        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+        subOsc.frequency.setValueAtTime(180 * pitchMod, t);
+        subOsc.frequency.exponentialRampToValueAtTime(18, t + 0.24);
+        subGain.gain.setValueAtTime(0.7, t);
+        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
         subOsc.connect(subGain);
         subGain.connect(dest);
         subOsc.start(t);
-        subOsc.stop(t + 0.22);
+        subOsc.stop(t + 0.24);
 
+        // 金属的衝撃クラッシュ
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
           const nFilter = this.ctx.createBiquadFilter();
           const nGain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           nFilter.type = 'lowpass';
-          nFilter.frequency.setValueAtTime(1600, t);
-          nFilter.frequency.exponentialRampToValueAtTime(120, t + 0.15);
-          nGain.gain.setValueAtTime(0.45, t);
-          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+          nFilter.frequency.setValueAtTime(1900 * pitchMod, t);
+          nFilter.frequency.exponentialRampToValueAtTime(100, t + 0.16);
+          nGain.gain.setValueAtTime(0.5, t);
+          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
           noise.connect(nFilter);
           nFilter.connect(nGain);
           nGain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.15);
+          noise.stop(t + 0.16);
         }
       } else if (type === 'slash') {
+        // 鋭い風切り音＋刃の摩擦音
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
           const filter = this.ctx.createBiquadFilter();
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(2400, t);
-          filter.frequency.exponentialRampToValueAtTime(200, t + 0.14);
-          filter.Q.value = 4.5;
-          gain.gain.setValueAtTime(0.35, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+          filter.frequency.setValueAtTime(2800 * pitchMod, t);
+          filter.frequency.exponentialRampToValueAtTime(240, t + 0.15);
+          filter.Q.value = 5.0;
+          gain.gain.setValueAtTime(0.38, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
           noise.connect(filter);
           filter.connect(gain);
           gain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.14);
+          noise.stop(t + 0.15);
         }
       } else if (type === 'coin') {
         const freqs = [1046.5, 1318.51, 1567.98, 2093.00];
@@ -708,13 +714,13 @@ const Sound = {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(f, t + i * 0.04);
-          gain.gain.setValueAtTime(0.22, t + i * 0.04);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.04 + 0.3);
+          osc.frequency.setValueAtTime(f * pitchMod, t + i * 0.035);
+          gain.gain.setValueAtTime(0.22, t + i * 0.035);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.035 + 0.28);
           osc.connect(gain);
           gain.connect(dest);
-          osc.start(t + i * 0.04);
-          osc.stop(t + i * 0.04 + 0.3);
+          osc.start(t + i * 0.035);
+          osc.stop(t + i * 0.035 + 0.28);
         });
       } else if (type === 'explosion') {
         if (this.noiseBuffer) {
@@ -723,27 +729,27 @@ const Sound = {
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(1800, t);
-          filter.frequency.exponentialRampToValueAtTime(20, t + 0.6);
-          gain.gain.setValueAtTime(0.75, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+          filter.frequency.setValueAtTime(2200 * pitchMod, t);
+          filter.frequency.exponentialRampToValueAtTime(15, t + 0.65);
+          gain.gain.setValueAtTime(0.85, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
           noise.connect(filter);
           filter.connect(gain);
           gain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.6);
+          noise.stop(t + 0.65);
         }
         const sub = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
         sub.type = 'sine';
-        sub.frequency.setValueAtTime(140, t);
-        sub.frequency.exponentialRampToValueAtTime(8, t + 0.55);
-        subGain.gain.setValueAtTime(0.7, t);
-        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+        sub.frequency.setValueAtTime(160 * pitchMod, t);
+        sub.frequency.exponentialRampToValueAtTime(6, t + 0.6);
+        subGain.gain.setValueAtTime(0.8, t);
+        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
         sub.connect(subGain);
         subGain.connect(dest);
         sub.start(t);
-        sub.stop(t + 0.55);
+        sub.stop(t + 0.6);
       } else if (type === 'thunder') {
         if (this.noiseBuffer) {
           const noise = this.ctx.createBufferSource();
@@ -751,16 +757,16 @@ const Sound = {
           const gain = this.ctx.createGain();
           noise.buffer = this.noiseBuffer;
           filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(4200, t);
-          filter.frequency.exponentialRampToValueAtTime(120, t + 0.4);
-          filter.Q.value = 2.5;
-          gain.gain.setValueAtTime(0.55, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+          filter.frequency.setValueAtTime(4600 * pitchMod, t);
+          filter.frequency.exponentialRampToValueAtTime(100, t + 0.42);
+          filter.Q.value = 2.8;
+          gain.gain.setValueAtTime(0.6, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
           noise.connect(filter);
           filter.connect(gain);
           gain.connect(dest);
           noise.start(t);
-          noise.stop(t + 0.4);
+          noise.stop(t + 0.42);
         }
       } else if (type === 'level') {
         const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
@@ -768,13 +774,13 @@ const Sound = {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = 'triangle';
-          osc.frequency.setValueAtTime(f, t + i * 0.06);
-          gain.gain.setValueAtTime(0.28, t + i * 0.06);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.45);
+          osc.frequency.setValueAtTime(f * pitchMod, t + i * 0.055);
+          gain.gain.setValueAtTime(0.3, t + i * 0.055);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.055 + 0.48);
           osc.connect(gain);
           gain.connect(dest);
-          osc.start(t + i * 0.06);
-          osc.stop(t + i * 0.06 + 0.45);
+          osc.start(t + i * 0.055);
+          osc.stop(t + i * 0.055 + 0.48);
         });
       }
     } catch (e) {}
@@ -2585,15 +2591,19 @@ const Game = {
     }
     ctx.restore();
 
-    // --- Dynamic Ambient Lighting Layer (Dark Atmosphere & Point Light) ---
+    // --- Dynamic Ambient Lighting Layer with Light Flicker & Deep Vignette ---
     ctx.save();
-    const lightRadius = 280 + (this.flashTimer > 0 ? 120 : 0);
-    const ambientGrad = ctx.createRadialGradient(px, py, 30, px, py, lightRadius);
-    ambientGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    ambientGrad.addColorStop(0.5, 'rgba(8, 11, 20, 0.42)');
-    ambientGrad.addColorStop(1, 'rgba(6, 8, 14, 0.88)');
+    const flicker = Math.sin(timeSec * 14) * 12 + Math.cos(timeSec * 27) * 8;
+    const lightRadius = Math.max(200, 280 + flicker + (this.flashTimer > 0 ? 140 : 0));
+    
+    // Dynamic Flicker Light Source Glow
+    const lightGrad = ctx.createRadialGradient(px, py, 20, px, py, lightRadius);
+    lightGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    lightGrad.addColorStop(0.45, 'rgba(8, 11, 20, 0.38)');
+    lightGrad.addColorStop(0.85, 'rgba(6, 8, 14, 0.82)');
+    lightGrad.addColorStop(1, 'rgba(4, 5, 10, 0.94)');
 
-    ctx.fillStyle = ambientGrad;
+    ctx.fillStyle = lightGrad;
     ctx.fillRect(
       startCol * this.tileSize,
       startRow * this.tileSize,
@@ -2626,6 +2636,18 @@ const Game = {
     }
 
     ctx.restore(); // Restore camera
+
+    // Vignette Effect (Cinematic Screen Edge Darkening)
+    ctx.save();
+    const vignetteGrad = ctx.createRadialGradient(
+      this.width / 2, this.height / 2, Math.min(this.width, this.height) * 0.45,
+      this.width / 2, this.height / 2, Math.max(this.width, this.height) * 0.75
+    );
+    vignetteGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    vignetteGrad.addColorStop(1, 'rgba(4, 6, 12, 0.65)');
+    ctx.fillStyle = vignetteGrad;
+    ctx.fillRect(0, 0, this.width, this.height);
+    ctx.restore();
 
     // Screen Flash effect (Explosions / Big Hits)
     if (this.flashTimer > 0) {
@@ -2705,7 +2727,10 @@ const Game = {
       document.getElementById('hp-bar').style.width = `${hpPct}%`;
       const hpDelay = document.getElementById('hp-delay');
       if (hpDelay) {
-        setTimeout(() => { hpDelay.style.width = `${hpPct}%`; }, 120);
+        // 追従遅延バーのイージングフレーム同期
+        requestAnimationFrame(() => {
+          hpDelay.style.width = `${hpPct}%`;
+        });
       }
       document.getElementById('hp-text').innerText = `${hpCeil}/${p.maxHp}`;
     }
@@ -2718,7 +2743,9 @@ const Game = {
       document.getElementById('xp-bar').style.width = `${xpPct}%`;
       const xpDelay = document.getElementById('xp-delay');
       if (xpDelay) {
-        setTimeout(() => { xpDelay.style.width = `${xpPct}%`; }, 120);
+        requestAnimationFrame(() => {
+          xpDelay.style.width = `${xpPct}%`;
+        });
       }
       document.getElementById('lv-text').innerText = `Lv.${p.level}`;
     }
