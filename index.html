@@ -314,9 +314,9 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(4, 6, 12, 0.88);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    background: radial-gradient(circle at center, rgba(12, 18, 32, 0.92) 0%, rgba(4, 6, 12, 0.96) 100%);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -325,21 +325,21 @@
     padding: 20px;
     text-align: center;
     opacity: 1;
-    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .modal-screen[style*="display: none"] {
     opacity: 0;
     pointer-events: none;
   }
   .modal-box {
-    background: rgba(16, 20, 32, 0.92);
-    border: 1.5px solid var(--panel-border);
-    border-radius: 24px;
-    padding: 32px 28px;
-    max-width: 420px;
+    background: linear-gradient(145deg, rgba(20, 26, 42, 0.95), rgba(8, 12, 20, 0.98));
+    border: 2px solid rgba(240, 194, 101, 0.4);
+    border-radius: 28px;
+    padding: 36px 30px;
+    max-width: 440px;
     width: 90%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.85), 0 0 40px rgba(229,184,92,0.15);
-    animation: modalPop 0.4s var(--ease-spring) forwards;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.9), 0 0 50px rgba(229,184,92,0.22), inset 0 1px 0 rgba(255,255,255,0.15);
+    animation: modalPop 0.45s var(--ease-spring) forwards;
     position: relative;
     overflow: hidden;
   }
@@ -350,9 +350,9 @@
     left: -50%;
     width: 200%;
     height: 200%;
-    background: linear-gradient(45deg, transparent, rgba(229,184,92,0.06), transparent);
+    background: linear-gradient(45deg, transparent, rgba(240, 194, 101, 0.08), transparent);
     transform: rotate(45deg);
-    animation: shineSweep 5s infinite linear;
+    animation: shineSweep 4.5s infinite linear;
     pointer-events: none;
   }
   @keyframes modalPop {
@@ -639,15 +639,15 @@
     </div>
   </div>
 
-  <!-- Game Over Screen -->
+  <!-- Game Over Screen (達成感の可視化とリトライ導線最適化) -->
   <div class="modal-screen" id="game-over-screen" style="display:none;">
     <div class="modal-box">
-      <div style="font-size:42px; margin-bottom:10px;">💀</div>
-      <div class="modal-title" style="color:#e74c3c;">YOU DIED</div>
-      <div class="modal-desc" id="game-over-stats">
-        到達階層: 1<br>討伐数: 0 | 獲得エメラルド: 0
+      <div style="font-size:48px; margin-bottom:8px; filter: drop-shadow(0 4px 16px rgba(231,76,60,0.5));">💀</div>
+      <div class="modal-title" style="color:#e74c3c; text-shadow: 0 4px 20px rgba(231,76,60,0.4);">YOU DIED</div>
+      <div class="modal-desc" style="background:rgba(0,0,0,0.45); padding:14px; border-radius:16px; border:1px solid rgba(255,255,255,0.08); margin-bottom:20px;" id="game-over-stats">
+        到達階層: 1<br>討伐数: 0 体 | 獲得エメラルド: 0 ◆<br>最終レベル: Lv.1
       </div>
-      <button class="primary-btn" onclick="Game.restart()">再挑戦する</button>
+      <button class="primary-btn" style="background:linear-gradient(135deg, #e74c3c, #c0392b); border-color:#ff7675; box-shadow:0 8px 24px rgba(231,76,60,0.4);" onclick="Game.restart()">💀 もう一度ダンジョンに挑む</button>
     </div>
   </div>
 
@@ -1222,6 +1222,7 @@ const Game = {
 
   start() {
     Sound.init();
+    Sound.play('coin');
     document.getElementById('start-screen').style.display = 'none';
     this.floor = 1;
     this.killCount = 0;
@@ -1934,13 +1935,16 @@ const Game = {
 
   die() {
     this.resetVolatileStates();
+    Sound.play('explosion');
     this.state = 'GAME_OVER';
     this.running = false;
     document.getElementById('game-over-stats').innerHTML = `
-      到達階層: ${this.floor}<br>
-      討伐数: ${this.killCount} 体<br>
-      獲得エメラルド: ${this.emeralds} ◆<br>
-      最終レベル: Lv.${this.player.level}
+      <div style="font-size:12px; line-height:1.8; color:#e2e8f0;">
+        👑 到達階層: <b style="color:#ffd166;">第 ${this.floor} 階層</b><br>
+        ⚔️ 討伐モンスター: <b style="color:#ff6b6b;">${this.killCount} 体</b><br>
+        💎 獲得エメラルド: <b style="color:#2ecc71;">${this.emeralds} ◆</b><br>
+        ✨ 最終到達レベル: <b style="color:#3498db;">Lv.${this.player.level}</b>
+      </div>
     `;
     document.getElementById('game-over-screen').style.display = 'flex';
   },
@@ -3379,6 +3383,7 @@ const Game = {
       `;
 
       slot.onclick = () => {
+        Sound.play('coin');
         if (item.type === 'weapon') this.player.weapon = item;
         if (item.type === 'armor') this.player.armor = item;
         this.recalcStats();
