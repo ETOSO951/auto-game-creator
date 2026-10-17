@@ -314,9 +314,9 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at center, rgba(5, 7, 14, 0.86) 0%, rgba(2, 3, 6, 0.92) 100%);
-    backdrop-filter: blur(36px);
-    -webkit-backdrop-filter: blur(36px);
+    background: radial-gradient(circle at center, rgba(5, 7, 14, 0.88) 0%, rgba(2, 3, 6, 0.94) 100%);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -326,6 +326,18 @@
     text-align: center;
     opacity: 1;
     transition: opacity 0.5s var(--ease-smooth), backdrop-filter 0.5s ease;
+  }
+  .modal-screen::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at 30% 20%, rgba(52, 152, 219, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+    animation: cinematicVignettePulse 8s ease-in-out infinite alternate;
+  }
+  @keyframes cinematicVignettePulse {
+    0% { opacity: 0.4; transform: scale(0.98); }
+    100% { opacity: 0.9; transform: scale(1.03); }
   }
   .modal-screen::before {
     content: '';
@@ -633,14 +645,14 @@
 
   <!-- Start Screen -->
   <div class="modal-screen" id="start-screen">
-    <div class="modal-box">
-      <div style="font-size:42px; margin-bottom:10px;">⛏️⚔️</div>
+    <div class="modal-box" style="transform-origin: center; animation: modalPopCinematic 0.6s var(--ease-spring) forwards;">
+      <div style="font-size:48px; margin-bottom:10px; animation: titleBreath 3.5s ease-in-out infinite alternate; filter: drop-shadow(0 0 20px rgba(240,194,101,0.5));">⛏️⚔️</div>
       <div class="modal-title">BLOCK DUNGEONS</div>
       <div class="modal-desc">
         マイクラライクなブロック世界で繰り広げる本格ハック＆スラッシュ！<br>
         モンスターを討伐し、強力なレジェンダリー武器とアーティファクトを収集して最下層のボスを目指せ！
       </div>
-      <button class="primary-btn" onclick="Game.start()">ダンジョン潜入</button>
+      <button class="primary-btn" onclick="Game.start()" style="transform: scale(1.02); box-shadow: 0 10px 28px rgba(46, 204, 113, 0.45);">ダンジョン潜入</button>
       <div class="pc-hint">
         [PC操作] WASD / 矢印: 移動 | J または Space: 攻撃<br>
         K: 雷撃 | L: TNT | H: ポーション | I: インベントリ
@@ -1979,18 +1991,18 @@ const Game = {
     const statsEl = document.getElementById('game-over-stats');
     statsEl.style.opacity = '0';
     statsEl.innerHTML = `
-      <div style="font-size:12px; line-height:1.8; color:#e2e8f0; transform: translateY(10px); transition: transform 0.5s var(--ease-spring), opacity 0.5s ease;">
-        👑 到達階層: <b style="color:#ffd166;">第 ${this.floor} 階層</b><br>
-        ⚔️ 討伐モンスター: <b style="color:#ff6b6b;">${this.killCount} 体</b><br>
-        💎 獲得エメラルド: <b style="color:#2ecc71;">${this.emeralds} ◆</b><br>
-        ✨ 最終到達レベル: <b style="color:#3498db;">Lv.${this.player.level}</b>
+      <div style="font-size:12px; line-height:1.9; color:#e2e8f0; transform: translateY(16px); transition: transform 0.6s var(--ease-spring), opacity 0.6s ease; display:flex; flex-direction:column; gap:4px;">
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px;"><span>👑 到達階層</span><b style="color:#ffd166;">第 ${this.floor} 階層</b></div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px;"><span>⚔️ 討伐モンスター</span><b style="color:#ff6b6b;">${this.killCount} 体</b></div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px;"><span>💎 獲得エメラルド</span><b style="color:#2ecc71;">${this.emeralds} ◆</b></div>
+        <div style="display:flex; justify-content:space-between;"><span>✨ 最終到達レベル</span><b style="color:#3498db;">Lv.${this.player.level}</b></div>
       </div>
     `;
     document.getElementById('game-over-screen').style.display = 'flex';
     setTimeout(() => {
       statsEl.style.opacity = '1';
       statsEl.firstElementChild.style.transform = 'translateY(0)';
-    }, 100);
+    }, 80);
   },
 
   gainXp(amount) {
@@ -3225,16 +3237,16 @@ const Game = {
 
   createDamageNumber(x, y, text, color) {
     this.damageNumbers.push({
-      x: x + (Math.random() * 18 - 9),
-      y: y - 18,
-      vx: (Math.random() - 0.5) * 75,
-      vy: -(Math.random() * 90 + 140), // より力強い跳ね上げとバウンス
+      x: x + (Math.random() * 20 - 10),
+      y: y - 20,
+      vx: (Math.random() - 0.5) * 85,
+      vy: -(Math.random() * 100 + 155),
       text,
       color,
-      life: 0.8,
-      maxLife: 0.8,
-      scale: 1.55,
-      rot: (Math.random() - 0.5) * 0.32
+      life: 0.85,
+      maxLife: 0.85,
+      scale: 1.75,
+      rot: (Math.random() - 0.5) * 0.38
     });
   },
 
