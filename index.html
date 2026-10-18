@@ -960,8 +960,10 @@ function handleDotsClick(type, idx) {
    d.turn = turn === 1 ? 2 : 1;
    if(state.local && d.turn === 2) {
      setTimeout(() => {
-       const availH = h.map((val, i) => val === 0 ? i : null).filter(i => i !== null);
-       const availV = v.map((val, i) => val === 0 ? i : null).filter(i => i !== null);
+       if(!state.room || !state.room.gameData) return;
+       const curD = state.room.gameData;
+       const availH = (curD.hLines || []).map((val, i) => val === 0 ? i : null).filter(i => i !== null);
+       const availV = (curD.vLines || []).map((val, i) => val === 0 ? i : null).filter(i => i !== null);
        if(availH.length || availV.length) {
          if(availH.length && (Math.random() < 0.5 || !availV.length)) {
            handleDotsClick('h', availH[Math.floor(Math.random() * availH.length)]);
@@ -969,7 +971,7 @@ function handleDotsClick(type, idx) {
            handleDotsClick('v', availV[Math.floor(Math.random() * availV.length)]);
          }
        }
-     }, 250);
+     }, 300);
    }
  }
  if(state.local) { state.room.gameData = d; renderGameContent(); }
@@ -986,28 +988,45 @@ function handleQuoridorMove(targetIdx) {
 
  const r1 = Math.floor(curPos / 5), c1 = curPos % 5;
  const r2 = Math.floor(targetIdx / 5), c2 = targetIdx % 5;
- if(Math.abs(r1 - r2) + Math.abs(c1 - c2) !== 1) return;
+ if(Math.abs(r1 - r2) + Math.abs(c1 - c2) !== 1) {
+   toast("隣接するマスへ移動してください");
+   return;
+ }
 
  if(turn === 1) d.p1 = targetIdx;
  else d.p2 = targetIdx;
+
+ const winCode = checkQuoridorWin(d.p1, d.p2);
+ if(winCode > 0) {
+   d.winner = winCode;
+   if(state.local) {
+     state.room.gameData = d;
+     renderGameContent();
+     submitChoice(winCode === 1 ? "win" : "lose");
+     return;
+   }
+ }
 
  d.turn = turn === 1 ? 2 : 1;
 
  if(state.local && d.turn === 2) {
    setTimeout(() => {
-     const cp2 = d.p2;
+     if(!state.room || !state.room.gameData) return;
+     const cp2 = state.room.gameData.p2;
      const cr = Math.floor(cp2 / 5), cc = cp2 % 5;
      const candidates = [
        {r: cr + 1, c: cc}, {r: cr, c: cc - 1}, {r: cr, c: cc + 1}, {r: cr - 1, c: cc}
      ].filter(p => p.r >= 0 && p.r < 5 && p.c >= 0 && p.c < 5);
      if(candidates.length) {
        const pick = candidates[Math.floor(Math.random() * candidates.length)];
-       d.p2 = pick.r * 5 + pick.c;
+       state.room.gameData.p2 = pick.r * 5 + pick.c;
      }
-     d.turn = 1;
-     state.room.gameData = d;
+     const w2 = checkQuoridorWin(state.room.gameData.p1, state.room.gameData.p2);
+     if(w2 > 0) state.room.gameData.winner = w2;
+     state.room.gameData.turn = 1;
      renderGameContent();
-   }, 300);
+     if(w2 > 0) submitChoice(w2 === 1 ? "win" : "lose");
+   }, 350);
  }
 
  if(state.local) { state.room.gameData = d; renderGameContent(); }
