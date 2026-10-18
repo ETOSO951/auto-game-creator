@@ -279,8 +279,8 @@ async function beginGame(){
  if(g.id==="mancala"){gameData.pits=[4,4,4,4,4,4,4,4];gameData.winner=0;}
  if(g.id==="speed"){gameData.pCard=drawCard();gameData.target=drawCard()}
  if(g.id==="reversi"){gameData.board=Array(64).fill(0);gameData.board[27]=2;gameData.board[28]=1;gameData.board[35]=1;gameData.board[36]=2}
- if(g.id==="quoridor"){gameData.p1=22;gameData.p2=2;gameData.winner=0;}
- if(g.id==="dotsboxes"){gameData.hLines=Array(20).fill(false);gameData.vLines=Array(20).fill(false);gameData.boxes=Array(9).fill(0);gameData.scores=[0,0]}
+ if(g.id==="quoridor"){gameData.p1=22;gameData.p2=2;gameData.walls=[];gameData.p1Walls=3;gameData.p2Walls=3;gameData.turn=1;gameData.winner=0;}
+ if(g.id==="dotsboxes"){gameData.hLines=Array(12).fill(0);gameData.vLines=Array(12).fill(0);gameData.boxes=Array(9).fill(0);gameData.scores=[0,0];gameData.turn=1;}
  if(g.id==="hitandblow"){gameData.secret=[Math.floor(Math.random()*9)+1,Math.floor(Math.random()*9)+1,Math.floor(Math.random()*9)+1]}
  if(g.id==="indianpoker"){gameData.oppCard=1+Math.floor(Math.random()*10);gameData.myCard=1+Math.floor(Math.random()*10)}
  if(g.id==="bluff"){gameData.truth=Math.random()<.5}
@@ -345,9 +345,57 @@ function renderGameContent(){
  case "reversi":
  html=`<p class="sub">盤面をひっくり返す頭脳戦。</p><div id="reversiBoard" class="board"></div><div class="tiny muted" id="reversiInfo"></div>`;break;
  case "quoridor":
- html=`<p class="sub">マス目を選んでゴールを目指せ！</p><div class="quoridor-board">${Array.from({length:25},(_,i)=>`<div class="q-cell ${i===(d.p1||22)?"p1-pos":i===(d.p2||2)?"p2-pos":""}" onclick="submitChoice(${i})">${i===(d.p1||22)?"♟️":i===(d.p2||2)?"♟":""}</div>`).join("")}</div>`;break;
+ {
+  const p1 = d.p1 !== undefined ? d.p1 : 22;
+  const p2 = d.p2 !== undefined ? d.p2 : 2;
+  const turn = d.turn || 1;
+  const dist1 = Math.floor(p1 / 5);
+  const dist2 = 4 - Math.floor(p2 / 5);
+  html = `<p class="sub">駒を進めて最奥を目指せ！[あなた: 1行目到達で勝利 / 相手: 5行目到達で勝利]</p>
+  <div class="row between" style="max-width:320px;margin:0 auto 8px"><span class="tiny ${turn===1?"gold":""}">YOU: 残壁 ${(d.p1Walls!==undefined?d.p1Walls:3)}</span><span class="tiny ${turn===2?"gold":""}">CPU/OPP: 残壁 ${(d.p2Walls!==undefined?d.p2Walls:3)}</span></div>
+  <div class="quoridor-board">${Array.from({length:25},(_,i)=>{
+    const isP1 = i === p1;
+    const isP2 = i === p2;
+    const r = Math.floor(i / 5), c = i % 5;
+    const p1R = Math.floor(p1 / 5), p1C = p1 % 5;
+    const isAdj = Math.abs(r - p1R) + Math.abs(c - p1C) === 1;
+    return `<div class="q-cell ${isP1?"p1-pos":isP2?"p2-pos":""} ${isAdj&&!isP2?"hint":""}" onclick="handleQuoridorMove(${i})">${isP1?"♟️":isP2?"♟":""}</div>`;
+  }).join("")}</div>
+  <div class="choices"><button class="choice gold" onclick="submitChoice('${dist1 <= dist2 ? "win" : "lose"}')">現在の進行度で着手確定 (${4 - dist1}マス進破)</button></div>`;
+  break;
+ }
  case "dotsboxes":
- html=`<p class="sub">線を引いて四角形を作ろう！</p><div class="dots-grid">${Array.from({length:16},(_,i)=>`<div class="dot"></div>${i%4<3?`<div class="line-h ${(d.hLines||[])[i]?"active":""}" onclick="submitChoice('h_${i}')"></div>`:""}`).join("")}</div>`;break;
+ {
+  const h = d.hLines || Array(12).fill(0);
+  const v = d.vLines || Array(12).fill(0);
+  const b = d.boxes || Array(9).fill(0);
+  const sc = d.scores || [0, 0];
+  html = `<p class="sub">線を引いて4辺を囲め！完成させたプレイヤーの陣地になります。</p>
+  <div class="row between" style="max-width:300px;margin:0 auto 6px"><span class="tiny gold">YOU (★): ${sc[0]}箱</span><span class="tiny red">OPP (▲): ${sc[1]}箱</span></div>
+  <div style="background:#131625;padding:12px;border-radius:14px;width:min(100%,320px);margin:10px auto">
+    <div style="display:grid;grid-template-columns:repeat(7, auto);gap:4px;justify-content:center;align-items:center">
+      ${Array.from({length:49}, (_, idx) => {
+        const r = Math.floor(idx / 7), c = idx % 7;
+        if(r % 2 === 0 && c % 2 === 0) return `<div class="dot"></div>`;
+        if(r % 2 === 0 && c % 2 === 1) {
+          const lineIdx = (r/2)*3 + Math.floor(c/2);
+          const active = h[lineIdx] > 0;
+          return `<div class="line-h ${active?"active":""}" onclick="handleDotsClick('h', ${lineIdx})"></div>`;
+        }
+        if(r % 2 === 1 && c % 2 === 0) {
+          const lineIdx = Math.floor(r/2)*4 + (c/2);
+          const active = v[lineIdx] > 0;
+          return `<div class="line-v ${active?"active":""}" onclick="handleDotsClick('v', ${lineIdx})"></div>`;
+        }
+        const boxIdx = Math.floor(r/2)*3 + Math.floor(c/2);
+        const owner = b[boxIdx];
+        return `<div class="box-cell">${owner===1?"★":owner===2?"▲":""}</div>`;
+      }).join("")}
+    </div>
+  </div>
+  <button class="btn primary" style="width:100%;margin-top:8px" onclick="submitChoice('${sc[0] >= sc[1] ? "win" : "lose"}')">対局結果を確定 (${sc[0]} vs ${sc[1]})</button>`;
+  break;
+ }
  case "hitandblow":
  html=`<p class="sub">相手の3桁数字を予測！</p><input id="hbInput" class="field" maxlength="3" placeholder="例: 382"><button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(document.getElementById('hbInput').value)">コール</button>`;break;
  case "indianpoker":
@@ -489,26 +537,31 @@ function renderLocalResult(msg,win,delta){
 async function resolveOnlineGame(){
  const g=gameForDay(),d=state.room.gameData,ps=Object.values(state.room.players||{});let resultText=[];
  const players={...state.room.players};
+
  for(const p of ps){
-   let win=false;const c=p.choice;
-   if(g.id==="connect4"||g.id==="gomoku"||g.id==="tictactoe")win=Math.random()<.5;
-   else if(g.id==="highlow")win=c==="high"?cardValue(d.next)>cardValue(d.card):cardValue(d.next)<cardValue(d.card);
-   else if(g.id==="roulette")win=c===d.result;
-   else if(g.id==="number")win=Math.abs(Number(c)-d.secret)<4;
-   else if(g.id==="blackjack")win=handValue(d.player)<=21;
-   else if(g.id==="majority")win=Number(c)===0;
-   else if(g.id==="wordwolf")win=c!=="pass";
-   else if(g.id==="memory")win=Number(c)>0;
-   else if(g.id==="auction")win=Number(c)>0&&Number(c)<=d.prize;
-   else if(g.id==="bluff")win=(c==="believe")===d.truth;
-   else if(g.id==="quickmath")win=Number(c)===(d.op==="+"?d.a+d.b:d.a*d.b);
-   else if(g.id==="speed")win=c==="play";
-   else if(g.id==="battleship")win=Number(c)===d.shipPos;
-   else win=Math.random()<.5;
-   let delta=win?(p.bet||10):-(p.bet||10);if(g.id==="auction"&&win)delta=Math.max(0,Math.floor(d.prize-Number(c)));
-   players[p.uid]={...p,chips:Math.max(0,p.chips+delta),score:win?1:0,lastDelta:delta,choice:null,betConfirmed:false,bet:0};resultText.push({name:p.name,win,delta});
+   let win = false;
+   const c = p.choice;
+   if(g.id === "highlow") win = (c === "high" && cardValue(d.next) > cardValue(d.card)) || (c === "low" && cardValue(d.next) < cardValue(d.card));
+   else if(g.id === "roulette") win = c === d.result;
+   else if(g.id === "number") win = Math.abs(Number(c) - d.secret) < 4;
+   else if(g.id === "blackjack") win = handValue(d.player) <= 21 && handValue(d.player) >= 17;
+   else if(g.id === "majority") win = Number(c) === 0;
+   else if(g.id === "wordwolf") win = c !== "pass";
+   else if(g.id === "memory") win = Number(c) > 0;
+   else if(g.id === "auction") win = Number(c) > 0 && Number(c) <= (d.prize || 300);
+   else if(g.id === "bluff") win = (c === "believe") === d.truth;
+   else if(g.id === "quickmath") win = Number(c) === (d.op === "+" ? d.a + d.b : d.a * d.b);
+   else if(g.id === "speed") win = c === "play";
+   else if(g.id === "battleship") win = Number(c) === d.shipPos;
+   else if(g.id === "indianpoker") win = c === "call" && (d.oppCard || 5) < (d.myCard || 7);
+   else win = c === "win" || c === 0 || c === "play" || (typeof c === "number" && c % 2 === 0);
+
+   let delta = win ? (p.bet || 10) : -(p.bet || 10);
+   if(g.id === "auction" && win) delta = Math.max(0, Math.floor((d.prize || 300) - Number(c)));
+   players[p.uid] = { ...p, chips: Math.max(0, p.chips + delta), score: win ? 1 : 0, lastDelta: delta, choice: null, betConfirmed: false, bet: 0 };
+   resultText.push({ name: p.name, win, delta });
  }
- await updateRoom({players,roundStatus:"result",gameResult:{items:resultText,at:Date.now()}});
+ await updateRoom({ players, roundStatus: "result", gameResult: { items: resultText, at: Date.now() } });
 }
 async function nextDay(){
  if(!state.isHost&&!state.local)return toast("ホストが次の日へ進むのを待っています");
@@ -546,6 +599,96 @@ function reversiMove(i){
  if(moves.length){const best=moves[Math.floor(Math.random()*moves.length)];putDisc(best,2)}
  renderReversi();if(!legalMoves(s.board,1).length&&!legalMoves(s.board,2).length){$("gameMessage").textContent=`対局終了：黒 ${s.black} / 白 ${s.white}`;$("finishGameBtn").classList.remove("hidden")}
 }
+function handleDotsClick(type, idx) {
+ if(!state.room?.gameData) return;
+ const d = state.room.gameData;
+ const h = d.hLines || Array(12).fill(0);
+ const v = d.vLines || Array(12).fill(0);
+ const b = d.boxes || Array(9).fill(0);
+ const sc = d.scores || [0, 0];
+ const turn = d.turn || 1;
+
+ if(type === 'h' && h[idx]) return;
+ if(type === 'v' && v[idx]) return;
+
+ if(type === 'h') h[idx] = turn;
+ if(type === 'v') v[idx] = turn;
+
+ let madeBox = false;
+ for(let r = 0; r < 3; r++) {
+   for(let c = 0; c < 3; c++) {
+     const bIdx = r * 3 + c;
+     if(!b[bIdx]) {
+       const top = h[r * 3 + c];
+       const bottom = h[(r + 1) * 3 + c];
+       const left = v[r * 4 + c];
+       const right = v[r * 4 + (c + 1)];
+       if(top && bottom && left && right) {
+         b[bIdx] = turn;
+         sc[turn - 1]++;
+         madeBox = true;
+       }
+     }
+   }
+ }
+
+ d.hLines = h; d.vLines = v; d.boxes = b; d.scores = sc;
+ if(!madeBox) {
+   d.turn = turn === 1 ? 2 : 1;
+   if(state.local && d.turn === 2) {
+     setTimeout(() => {
+       const availH = h.map((val, i) => val === 0 ? i : null).filter(i => i !== null);
+       const availV = v.map((val, i) => val === 0 ? i : null).filter(i => i !== null);
+       if(availH.length || availV.length) {
+         if(availH.length && (Math.random() < 0.5 || !availV.length)) {
+           handleDotsClick('h', availH[Math.floor(Math.random() * availH.length)]);
+         } else {
+           handleDotsClick('v', availV[Math.floor(Math.random() * availV.length)]);
+         }
+       }
+     }, 250);
+   }
+ }
+ if(state.local) { state.room.gameData = d; renderGameContent(); }
+}
+
+function handleQuoridorMove(targetIdx) {
+ if(!state.room?.gameData) return;
+ const d = state.room.gameData;
+ const turn = d.turn || 1;
+ const p1 = d.p1 !== undefined ? d.p1 : 22;
+ const p2 = d.p2 !== undefined ? d.p2 : 2;
+ const curPos = turn === 1 ? p1 : p2;
+
+ const r1 = Math.floor(curPos / 5), c1 = curPos % 5;
+ const r2 = Math.floor(targetIdx / 5), c2 = targetIdx % 5;
+ if(Math.abs(r1 - r2) + Math.abs(c1 - c2) !== 1) return;
+
+ if(turn === 1) d.p1 = targetIdx;
+ else d.p2 = targetIdx;
+
+ d.turn = turn === 1 ? 2 : 1;
+
+ if(state.local && d.turn === 2) {
+   setTimeout(() => {
+     const cp2 = d.p2;
+     const cr = Math.floor(cp2 / 5), cc = cp2 % 5;
+     const candidates = [
+       {r: cr + 1, c: cc}, {r: cr, c: cc - 1}, {r: cr, c: cc + 1}, {r: cr - 1, c: cc}
+     ].filter(p => p.r >= 0 && p.r < 5 && p.c >= 0 && p.c < 5);
+     if(candidates.length) {
+       const pick = candidates[Math.floor(Math.random() * candidates.length)];
+       d.p2 = pick.r * 5 + pick.c;
+     }
+     d.turn = 1;
+     state.room.gameData = d;
+     renderGameContent();
+   }, 300);
+ }
+
+ if(state.local) { state.room.gameData = d; renderGameContent(); }
+}
+
 function flipMemory(i){
  if(!state.room?.gameData)return;const d={...state.room.gameData};if(d.matched.includes(i)||d.flipped.includes(i))return;d.flipped=[...d.flipped,i];
  if(d.flipped.length>=2){const [a,b]=d.flipped;if(d.deck[a]===d.deck[b])d.matched=[...d.matched,a,b];setTimeout(()=>{if(state.local){d.flipped=[];state.room.gameData=d;renderGameContent()}},700);if(d.deck[a]!==d.deck[b])setTimeout(()=>{d.flipped=[];if(state.local){state.room.gameData=d;renderGameContent()}},700)}
