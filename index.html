@@ -165,15 +165,293 @@ const games = [
  {id:"mastermind",name:"CODE BREAKER",icon:"🔐",desc:"色のヒントを手がかりに3つのカラーコードを完全解読。"},
  {id:"reflex",name:"REFLEX FLASH",icon:"💥",desc:"合図が出た瞬間に画面を誰よりも速くタップする瞬発勝負。"},
  {id:"timebomb",name:"JUST TIMER",icon:"⏱️",desc:"体内時計だけで「5.00秒」ジャストを叩き出すタイミング勝負。"},
- {id:"mazerace",name:"MAZE ESCAPE",icon:"🧩",desc:"迷路構造から最短脱出歩数(7歩)を看破する観察力勝負。"},
- {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
+```
+
+<<<<
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 =======
 {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
 ];
+====
 =======
 {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
 ];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+```
+
+<<<<
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:null,isHost:false,ready:false,local:false,selectedBet:50,gameIndex:0,gameData:null,betConfirmed:false,finished:false,blackjack:null,reversi:null};
+====
+ {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
+ {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:null,isHost:false,ready:false,local:false,selectedBet:50,gameIndex:0,gameData:null,betConfirmed:false,finished:false,blackjack:null,reversi:null};
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+```
+
+<<<<
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+```
+
+<<<<
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+```
+
+<<<<
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+```
+
+<<<<
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+```
+
+<<<<
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:null,isHost:false,ready:false,local:false,selectedBet:50,gameIndex:0,gameData:null,betConfirmed:false,finished:false,blackjack:null,reversi:null};
+====
+ {id:"mazerace",name:"MAZE ESCAPE",icon:"🧩",desc:"迷路構造から最短脱出歩数(7歩)を看破する観察力勝負。"},
+ {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
+ {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
+ {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:null,isHost:false,ready:false,local:false,selectedBet:50,gameIndex:0,gameData:null,betConfirmed:false,finished:false,blackjack:null,reversi:null};
 ====
 ```
 
@@ -505,12 +783,96 @@ function renderLobby(){
  const ps=currentPlayers();$("playerCount").textContent=`${ps.length} / 8`;
  $("playerList").innerHTML=ps.map((p,i)=>`<div class="player"><div class="avatar">${escapeHtml((p.name||"?").slice(0,1).toUpperCase())}</div><div class="grow"><div class="name">${escapeHtml(p.name)} ${p.host?"<span class='muted tiny'>HOST</span>":""}</div><div class="meta">${p.ready?"✓ 準備OK":"準備中"}</div></div><div class="chip">${p.chips.toLocaleString()} ◈</div></div>`).join("");
  $("startBtn").classList.toggle("hidden",!state.isHost);$("readyBtn").classList.toggle("hidden",state.isHost);
- $("lobbyHint").textContent=state.local?"ローカルモード：ひとりで全5日間をテストできます。Firebase設定後は友達とオンライン対戦できます。":"ルームコードを友達に共有。2〜8人が集まったらホストが開始できます。";
-}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+```
+
+<<<<
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 =======
 {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
 ];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+async function startTournament(){
+====
+async function setReady(){state.ready=!state.ready;await updateMyPlayer({ready:state.ready});renderLobby();toast(state.ready?"準備OK！":"準備を解除しました")}
+async function startTournament(){
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+```
+
+<<<<
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+async function startTournament(){
+====
+ $("lobbyHint").textContent=state.local?"ローカルモード：ひとりで全5日間をテストできます。Firebase設定後は友達とオンライン対戦できます。":"ルームコードを友達に共有。2〜8人が集まったらホストが開始できます。";
+}
+async function setReady(){state.ready=!state.ready;await updateMyPlayer({ready:state.ready});renderLobby();toast(state.ready?"準備OK！":"準備を解除しました")}
+async function startTournament(){
 ====
 =======
 {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
