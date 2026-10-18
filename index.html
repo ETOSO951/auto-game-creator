@@ -168,7 +168,14 @@ const games = [
  {id:"mazerace",name:"MAZE ESCAPE",icon:"🧩",desc:"迷路構造から最短脱出歩数(7歩)を看破する観察力勝負。"},
  {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
- {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+ ```
+
+<<<<
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
 ];
 ====
 ```
