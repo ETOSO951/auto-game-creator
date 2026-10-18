@@ -586,174 +586,189 @@ async function submitChoice(choice){
 }
 function resolveLocalGame(choice){
  const g=gameForDay(),d=state.room.gameData,p=state.room.players[state.uid];let win=false,msg="";
- if(g.id==="hitandblow"){
-   const res = checkHitAndBlow("382", choice);
-   win = res.hits === 3;
-   msg = `推測結果: ${res.hits} HIT, ${res.blows} BLOW。${win?"完全解読成功！":"推理は不十分…"}`;
- }else if(g.id==="indianpoker"){
-   const opp = d.oppCard || 5, mine = d.myCard || 7;
-   win = choice === "raise" && mine >= opp;
-   msg = `あなたのカード[${mine}] vs 相手のカード[${opp}]。${win?"レイズ勝負に勝利！":"敗北…"}`;
- }else if(g.id==="bluff"){
+ switch(g.id){
+ case "hitandblow":
+   {
+     const res = checkHitAndBlow("382", choice);
+     win = res.hits === 3;
+     msg = `推測コード[${choice}] ⇒ ${res.hits} HIT / ${res.blows} BLOW。${win?"完全解読成功！":"推理を続けよ…"}`,
+     d.history = [...(d.history||[]), {guess: choice, hits: res.hits, blows: res.blows}];
+   }
+   break;
+ case "indianpoker":
+   win = choice === "raise" && (d.myCard||7) >= (d.oppCard||5);
+   msg = `あなたのカード[${d.myCard||7}] vs 相手の額のカード[${d.oppCard||5}]。${win?"強気レイズで勝利！":"読みが外れて敗北…"}`;
+   break;
+ case "bluff":
    win = (choice === "believe") === d.truth;
-   msg = win ? "ディーラーのブラフを完全に見抜いた！" : "巧妙なブラフに騙された…";
- }else if(g.id==="auction"){
-   const bid = Number(choice) || 50;
-   win = bid >= 200 && bid <= (d.prize || 300);
-   msg = win ? `絶妙な入札額で ${d.prize} ◈の賞品を獲得！` : "入札額が低すぎるか過剰すぎた…";
- }else if(g.id==="skull"){
+   msg = win ? "相手の心理ブラフを完全に看破した！" : "巧妙なブラフに翻弄された…";
+   break;
+ case "auction":
+   {
+     const bid = Number(choice) || 50;
+     win = bid >= 180 && bid <= (d.prize || 300);
+     msg = win ? `絶妙な入札額[${bid}◈]で賞品[${d.prize}◈]を落札！` : `入札額[${bid}◈]が不適切だった…`;
+   }
+   break;
+ case "skull":
    win = Number(choice) !== 3;
-   msg = win ? "危険なスカルを回避してバラを獲得！" : "ドクロを踏んでペナルティ…";
- }else if(g.id==="split"){
+   msg = win ? "ドクロカードを華麗に回避してバラを獲得！" : "隠されたドクロを踏み抜いた…";
+   break;
+ case "split":
    win = (choice === "A" && d.pileA >= d.pileB) || (choice === "B" && d.pileB >= d.pileA);
-   msg = win ? "より大きい山をチョイスして勝利！" : "相手に大きい山を取られた…";
- }else if(g.id==="wordwolf"){
+   msg = win ? "より大きな山をチョイスして分配戦勝利！" : "相手に大きい山を取られた…";
+   break;
+ case "wordwolf":
    win = choice !== "self";
-   msg = win ? "ウルフの投票心理を見事に看破！" : "ミスリードに引っかかった…";
- }else if(g.id==="majority"){
+   msg = win ? "少数派ウルフの違和感を見事に看破！" : "多数派の誘導に惑わされた…";
+   break;
+ case "majority":
    win = Number(choice) === 0;
-   msg = win ? "多数派の選択肢と完全に一致！" : "少数派に転落…";
- }else if(g.id==="number"){
-   const target = d.secret || 10;
-   win = Math.abs(Number(choice) - target) <= 2;
-   msg = `ターゲット[${target}]に対し誤差 ${Math.abs(Number(choice)-target)}。${win?"ニアピン勝利！":"外れた…"}`;
- }else if(g.id==="roulette"){
+   msg = win ? "集団心理の多数派選択肢と一致！" : "少数派に転落…";
+   break;
+ case "number":
+   {
+     const target = d.secret || 10;
+     const diff = Math.abs(Number(choice) - target);
+     win = diff <= 2;
+     msg = `ターゲット[${target}]に対し選択[${choice}] (誤差:${diff})。${win?"驚異的なニアピン勝利！":"的外れだった…"}`;
+   }
+   break;
+ case "roulette":
    win = choice === d.result;
-   msg = `ルーレット結果[${d.result}]。${win?"バッティング回避に成功！":"被り発生…"}`;
- }else if(g.id==="quickmath"){
-   const ans = d.op === "+" ? d.a + d.b : d.a * d.b;
-   win = Number(choice) === ans;
-   msg = win ? `正解[${ans}]！電光石火の計算勝利！` : `不正解(正解:${ans})…`;
- }else if(g.id==="memory"){
+   msg = `ルーレット結果[${d.result}]。${win?"見事に色被りを回避！":"他者と選択が重複した…"}`;
+   break;
+ case "quickmath":
+   {
+     const ans = d.op === "+" ? d.a + d.b : d.a * d.b;
+     win = Number(choice) === ans;
+     msg = win ? `正解[${ans}]！電光石火の計算力勝利！` : `不正解 (正解:${ans})…`;
+   }
+   break;
+ case "memory":
    win = Number(choice) >= 2;
-   msg = win ? "記憶力勝負でペアを多数獲得！" : "ペアを十分に作れず…";
- }else if(g.id==="mastermind"){
-   win = choice === "412";
-   msg = win ? "暗号コードマスターマインド解読！" : "コードが一致しなかった…";
- }else if(g.id==="reflex"){
+   msg = win ? "記憶力バトルで多数のペアを奪取！" : "ペアを十分に揃えられず…";
+   break;
+ case "mastermind":
+   win = String(choice).length === 3;
+   msg = win ? "カラーコード暗号を完璧に解読！" : "セキュリティ解除失敗…";
+   break;
+ case "reflex":
    win = true;
-   msg = "圧倒的な反射神経で先着タップ！";
- }else if(g.id==="timebomb"){
-   win = Number(choice) < 0.4;
-   msg = `誤差 ${Number(choice).toFixed(2)}秒。${win?"完璧なジャストタイム！":"爆弾が起爆した…"}`;
- }else if(g.id==="mazerace"){
+   msg = "圧倒的な反射速度で先着タップ！";
+   break;
+ case "timebomb":
+   {
+     const err = Number(choice);
+     win = err < 0.45;
+     msg = `誤差 ${err.toFixed(2)}秒。${win?"完璧なジャストタイム炸裂！":"タイム測定に失敗…"}`;
+   }
+   break;
+ case "mazerace":
    win = Number(choice) === 7;
    msg = win ? "迷宮の最短脱出ルートを発見！" : "遠回りのルートを選んだ…";
- }else if(g.id==="puzzleduel"){
+   break;
+ case "puzzleduel":
    win = choice === "T";
-   msg = win ? "パズルピースが完璧にフィット！" : "うまく嵌まらなかった…";
- }else if(g.id==="battleship"){
+   msg = win ? "パズルブロックが完璧にフィット！" : "うまく嵌まらなかった…";
+   break;
+ case "battleship":
    win = Number(choice) === 5;
-   msg = win ? "敵戦艦の潜伏座標を砲撃直撃！" : "海域を外した…";
- }else if(g.id==="battleroulette"){
+   msg = win ? "敵戦艦の潜伏座標を魚雷で直撃！" : "海域を外した…";
+   break;
+ case "battleroulette":
    win = choice === "shield";
-   msg = win ? "シールドで致命的な一撃を防御！" : "トリガーの弾丸が直撃した…";
- }else if(g.id==="connect4"){
-   const col=Number(choice);let placed=false;
-   for(let r=5;r>=0;r--){if(!d.grid[r*7+col]){d.grid[r*7+col]=1;placed=true;break;}}
-   const w=checkConnect4Win(d.grid);
-   if(w===1){win=true;msg="コネクトフォー達成！勝利！";}
-   else{
-     const avail=[];for(let c=0;c<7;c++){if(!d.grid[c])avail.push(c);}
-     if(avail.length){const cc=avail[Math.floor(Math.random()*avail.length)];for(let r=5;r>=0;r--){if(!d.grid[r*7+cc]){d.grid[r*7+cc]=2;ak=true;break;}}}
-     const cw=checkConnect4Win(d.grid);
-     win=cw!==2;msg=cw===2?"CPUに4目並べを許した…":"巧みなブロックで勝利！";
+   msg = win ? "シールド防御で致命的な弾丸を回避！" : "ロシアンカードの弾丸が直撃した…";
+   break;
+ case "connect4":
+   {
+     const col=Number(choice);let placed=false;
+     for(let r=5;r>=0;r--){if(!d.grid[r*7+col]){d.grid[r*7+col]=1;placed=true;break;}}
+     const w=checkConnect4Win(d.grid);
+     if(w===1){win=true;msg="コネクトフォー達成！勝利！";}
+     else{
+       const avail=[];for(let c=0;c<7;c++){if(!d.grid[c])avail.push(c);}
+       if(avail.length){const cc=avail[Math.floor(Math.random()*avail.length)];for(let r=5;r>=0;r--){if(!d.grid[r*7+cc]){d.grid[r*7+cc]=2;break;}}}
+       const cw=checkConnect4Win(d.grid);
+       win=cw!==2;msg=cw===2?"CPUに4目並べを許した…":"巧みなブロックで勝利！";
+     }
    }
- }else if(g.id==="gomoku"){
-   const idx=Number(choice);if(!d.board[idx])d.board[idx]=1;
-   const w=checkGomokuWin(d.board);
-   if(w===1){win=true;msg="五目並べ達成！勝利！";}
-   else{
-     const empty=d.board.map((v,i)=>v===0?i:null).filter(v=>v!==null);
-     if(empty.length)d.board[empty[Math.floor(Math.random()*empty.length)]]=2;
-     const cw=checkGomokuWin(d.board);
-     win=cw!==2;msg=cw===2?"CPUに先を越された…":"見事な五目完成！";
+   break;
+ case "gomoku":
+   {
+     const idx=Number(choice);if(!d.board[idx])d.board[idx]=1;
+     const w=checkGomokuWin(d.board);
+     if(w===1){win=true;msg="五目並べ達成！勝利！";}
+     else{
+       const empty=d.board.map((v,i)=>v===0?i:null).filter(v=>v!==null);
+       if(empty.length)d.board[empty[Math.floor(Math.random()*empty.length)]]=2;
+       const cw=checkGomokuWin(d.board);
+       win=cw!==2;msg=cw===2?"CPUに先を越された…":"見事な五目完成！";
+     }
    }
- }else if(g.id==="tictactoe"){
-   const idx=Number(choice);if(!d.board[idx])d.board[idx]=1;
-   const w=checkTicTacToeWin(d.board);
-   if(w===1){win=true;msg="三目並べ制覇！";}
-   else{
-     const empty=d.board.map((v,i)=>v===0?i:null).filter(v=>v!==null);
-     if(empty.length)d.board[empty[Math.floor(Math.random()*empty.length)]]=2;
-     const cw=checkTicTacToeWin(d.board);
-     win=cw!==2;msg=cw===2?"敗北…":"勝利！";
+   break;
+ case "tictactoe":
+   {
+     const idx=Number(choice);if(!d.board[idx])d.board[idx]=1;
+     const w=checkTicTacToeWin(d.board);
+     if(w===1){win=true;msg="三目並べ制覇！";}
+     else{
+       const empty=d.board.map((v,i)=>v===0?i:null).filter(v=>v!==null);
+       if(empty.length)d.board[empty[Math.floor(Math.random()*empty.length)]]=2;
+       const cw=checkTicTacToeWin(d.board);
+       win=cw!==2;msg=cw===2?"敗北…":"勝利！";
+     }
    }
- }else if(g.id==="nim"){
-   const r=Number(choice);if(d.rows[r]>0)d.rows[r]--;
-   const total=d.rows.reduce((a,b)=>a+b,0);
-   win=total%2===1;msg=win?"相手に最後のスティックを取らせた！":"敗北…";
- }else if(g.id==="mancala"){
-   const idx=Number(choice);let stones=d.pits[idx];d.pits[idx]=0;let cur=idx;
-   while(stones>0){cur=(cur+1)%8;d.pits[cur]++;stones--;}
-   win=d.pits[0]+d.pits[1]>d.pits[6]+d.pits[7];msg=win?"種まき勝負に勝利！":"石が足りなかった…";
- }else if(g.id==="speed"){
+   break;
+ case "nim":
+   {
+     const r=Number(choice);if(d.rows[r]>0)d.rows[r]--;
+     const total=d.rows.reduce((a,b)=>a+b,0);
+     win=total%2===1;msg=win?"相手に最後のスティックを取らせた！":"敗北…";
+   }
+   break;
+ case "mancala":
+   {
+     const idx=Number(choice);let stones=d.pits[idx];d.pits[idx]=0;let cur=idx;
+     while(stones>0){cur=(cur+1)%8;d.pits[cur]++;stones--;}
+     win=d.pits[0]+d.pits[1]>d.pits[6]+d.pits[7];msg=win?"種まき勝負に勝利！":"石が足りなかった…";
+   }
+   break;
+ case "speed":
    win=choice==="play"&&cardValue(d.pCard)>=cardValue(d.target);
    msg=win?"素早いカードプレイで勝利！":"手札が合わなかった…";
- }else if(g.id==="reversi"){
+   break;
+ case "reversi":
    win=(state.reversi?.black||0)>(state.reversi?.white||0);
    msg=`黒 ${state.reversi?.black||2} / 白 ${state.reversi?.white||2}。${win?"盤面を制覇！":"制覇失敗…"}`;
- }else if(g.id==="quoridor"){
+   break;
+ case "quoridor":
    win=checkQuoridorWin(d.p1, d.p2)===1;
    msg=win?"相手より先に最奥に到達！":"相手の防御壁を抜けなかった…";
- }else if(g.id==="dotsboxes"){
-   const sc=d.scores||[0,0];
-   win=sc[0]>=sc[1];
-   msg=win?`ボックス占領戦勝利！(${sc[0]} vs ${sc[1]})`:`惜敗 (${sc[0]} vs ${sc[1]})`;
- }else if(g.id==="hitandblow"){
-   const hits=String(choice).split("").filter((v,i)=>Number(v)===d.secret[i]).length;
-   win=hits===3;msg=win?"3桁コード完全解読！":"惜しい推測…";
- }else if(g.id==="indianpoker"){
-   win=choice==="call"&&d.oppCard<d.myCard;
-   msg=`あなた[${d.myCard}] vs 相手[${d.oppCard}]。${win?"強気コール成功！":"読みが外れた…"}`;
- }else if(g.id==="bluff"){
-   win=(choice==="believe")===d.truth;
-   msg=win?"心理ブラフを完璧に見抜いた！":"裏をかかれて騙された…";
- }else if(g.id==="auction"){
-   win=Number(choice)>0&&Number(choice)<=d.prize;
-   msg=win?`最高額で ${d.prize} ◈の賞品を落札！`:"入札失敗または資金不足";
- }else if(g.id==="skull"){
-   win=choice==="flip1";
-   msg=win?"危険なスカルを避けてバラをめくった！":"ドクロを踏み抜いた…";
- }else if(g.id==="split"){
-   win=choice==="A"&&d.pileA>=d.pileB;
-   msg=`選択した山が相手より大きかった。${win?"分配戦勝利！":"敗北…"}`;
- }else if(g.id==="highlow"){
+   break;
+ case "dotsboxes":
+   {
+     const sc=d.scores||[0,0];
+     win=sc[0]>=sc[1];
+     msg=win?`ボックス占領戦勝利！(${sc[0]} vs ${sc[1]})`:`惜敗 (${sc[0]} vs ${sc[1]})`;
+   }
+   break;
+ case "highlow":
    win=choice==="high"?cardValue(d.next)>cardValue(d.card):cardValue(d.next)<cardValue(d.card);
    msg=`${d.card.rank}${d.card.suit} → ${d.next.rank}${d.next.suit}。${win?"ハイ＆ロー的中！":"はずれ…"}`;
- }else if(g.id==="blackjack"){
-   let total=handValue(d.player);
-   if(choice==="bust")win=false;
-   else{while(handValue(d.dealer)<17)d.dealer.push(d.deck.pop());win=total<=21&&(handValue(d.dealer)>21||total>handValue(d.dealer));}
-   msg=`あなた ${total} / ディーラー ${handValue(d.dealer)}。${win?"ブラックジャック勝利！":"敗北…"}`;
- }else if(g.id==="wordwolf"){
-   win=choice!=="pass";msg=win?"ウルフの違和感を看破！":"ミスリードされた…";
- }else if(g.id==="majority"){
-   win=Number(choice)===0;msg=win?"多数派の心理を完全同調！":"少数派に転落…";
- }else if(g.id==="number"){
-   win=Math.abs(Number(choice)-d.secret)<3;msg=`ターゲット: ${d.secret}。${win?"驚異的なニアピン！":"遠く外れた…"}`;
- }else if(g.id==="roulette"){
-   win=choice===d.result;msg=`結果: ${d.result}。${win?"色予測バッティング回避！":"被り発生…"}`;
- }else if(g.id==="quickmath"){
-   const ans=d.op==="+"?d.a+d.b:d.a*d.b;win=Number(choice)===ans;msg=`正解: ${ans}。${win?"電光石火の計算勝利！":"計算ミス…"}`;
- }else if(g.id==="memory"){
-   win=Number(choice)>=2;msg=win?"ペア記憶力勝負に勝利！":"カードを揃えられず…";
- }else if(g.id==="mastermind"){
-   win=choice==="123";msg=win?"マスターマインド解読！":"セキュリティ解除失敗…";
- }else if(g.id==="reflex"){
-   win=true;msg="超反射速度でタップ成功！";
- }else if(g.id==="timebomb"){
-   win=Number(choice)<0.35;msg=`誤差: ${Number(choice).toFixed(2)}秒。${win?"完璧なジャストタイム！":"爆発寸前でズレた…"}`;
- }else if(g.id==="mazerace"){
-   win=Number(choice)===7;msg=win?"迷宮の最短ルート脱出！":"迷路で立ち往生…";
- }else if(g.id==="puzzleduel"){
-   win=choice==="T";msg=win?"パズルブロック完全合致！":"うまく嵌まらなかった…";
- }else if(g.id==="battleship"){
-   win=Number(choice)===d.shipPos;msg=win?"敵艦の潜伏座標を直撃！":"海原を外した…";
- }else if(g.id==="battleroulette"){
-   win=choice==="pass";msg=win?"回避カードで致命傷を回避！":"不運にも弾丸が命中…";
- }else{
-   win=Math.random()<.5;msg="激戦を制した";
+   break;
+ case "blackjack":
+   {
+     let total=handValue(d.player);
+     if(choice==="bust")win=false;
+     else{while(handValue(d.dealer)<17)d.dealer.push(d.deck.pop());win=total<=21&&(handValue(d.dealer)>21||total>handValue(d.dealer));}
+     msg=`あなた ${total} / ディーラー ${handValue(d.dealer)}。${win?"ブラックジャック勝利！":"敗北…"}`;
+   }
+   break;
+ default:
+   win=Math.random()<.5;
+   msg="激戦を制した";
+   break;
  }
 
  const bet=p.bet||10;let delta=0;if(win)delta=bet;else delta=-bet;
