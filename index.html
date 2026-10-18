@@ -603,6 +603,23 @@ async function submitChoice(choice){
 function resolveLocalGame(choice){
  const g=gameForDay(),d=state.room.gameData,p=state.room.players[state.uid];let win=false,msg="";
  switch(g.id){
+ case "quoridor":
+   {
+     const p1 = d.p1 !== undefined ? d.p1 : 22;
+     const p2 = d.p2 !== undefined ? d.p2 : 2;
+     const dist1 = Math.floor(p1 / 5);
+     const dist2 = 4 - Math.floor(p2 / 5);
+     win = dist1 <= dist2;
+     msg = `コリドール戦：あなたの距離(${dist1}歩) vs 相手の距離(${dist2}歩)。${win?"最奥へのゴールルートを制して勝利！":"相手に先にゴールを阻まれた…"}`;
+   }
+   break;
+ case "dotsboxes":
+   {
+     const sc = d.scores || [0, 0];
+     win = sc[0] > sc[1];
+     msg = `ドット＆ボックス：陣地獲得数 [あなた ${sc[0]} vs 相手 ${sc[1]}]。${win?"多数のボックスを囲み制覇！":"陣地を広げきれなかった…"}`;
+   }
+   break;
  case "hitandblow":
    {
      const secretStr = String(d.secret || "472");
