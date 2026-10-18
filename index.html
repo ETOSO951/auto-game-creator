@@ -400,47 +400,122 @@ function renderGameContent(){
   break;
  }
  case "hitandblow":
- html=`<p class="sub">相手の3桁数字を予測！</p><input id="hbInput" class="field" maxlength="3" placeholder="例: 382"><button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(document.getElementById('hbInput').value)">コール</button>`;break;
+ html=`<p class="sub">相手の3桁数字コード (1〜9の重複なし3桁) を推理せよ！</p>
+ <input id="hbInput" class="field" maxlength="3" placeholder="例: 472" style="text-align:center;font-size:20px;letter-spacing:6px">
+ <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(document.getElementById('hbInput').value)">推測をブロードキャスト</button>`;break;
  case "indianpoker":
- html=`<div style="text-align:center"><div class="tiny muted">相手のカード</div><div class="playing-card gold" style="font-size:32px">${d.oppCard||"?"}</div><p class="sub">自分のカードは見えません。強気で勝負？</p></div><div class="choices"><button class="choice gold" onclick="submitChoice('call')">RAISE / CALL</button><button class="choice" onclick="submitChoice('fold')">FOLD</button></div>`;break;
+ html=`<div style="text-align:center">
+   <div class="tiny muted">相手の額のカード (あなたの視点)</div>
+   <div class="playing-card gold" style="font-size:32px">${d.oppCard||"?"}</div>
+   <p class="sub">自分のカードは分かりません。チップをレイズするか降参するか？</p>
+ </div>
+ <div class="choices">
+   <button class="choice gold" onclick="submitChoice('raise')">🔥 レイズ (勝負)</button>
+   <button class="choice" onclick="submitChoice('fold')">🛡️ フォールド</button>
+ </div>`;break;
  case "bluff":
- html=`<div style="font-size:44px;margin:12px">🎭</div><p class="sub">宣言：「私の手札は最強です」</p><div class="choices"><button class="choice" onclick="submitChoice('believe')">信じる</button><button class="choice" onclick="submitChoice('call')">ブラフだ！</button></div>`;break;
+ html=`<div style="text-align:center;font-size:44px;margin:8px">🎭</div>
+ <p class="sub">ディーラーの宣言：「今回の手役はロイヤルストレートフラッシュです」</p>
+ <div class="choices">
+   <button class="choice gold" onclick="submitChoice('believe')">✨ 真実と信じる</button>
+   <button class="choice danger" onclick="submitChoice('lie')">🚨 ブラフ(嘘)だ！</button>
+ </div>`;break;
  case "auction":
- html=`<p class="sub">賞品価値：${d.prize} ◈相当。入札額は失われるので慎重に。</p><input id="auctionBid" class="field" type="number" min="0" max="${me?.chips||0}" placeholder="入札額"><button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('auctionBid').value))">秘密入札</button>`;break;
+ html=`<p class="sub">密室オークション。賞品価値：<strong style="color:var(--gold);font-size:16px">${d.prize} ◈</strong>。他者より高い額で入札し落札せよ！</p>
+ <input id="auctionBid" class="field" type="number" min="10" max="${me?.chips||1000}" value="100" placeholder="入札額">
+ <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('auctionBid').value))">秘密入札を確定</button>`;break;
  case "skull":
- html=`<p class="sub">カードをめくってドクロを回避せよ！</p><div class="choices"><button class="choice" onclick="submitChoice('flip1')">1枚めくる</button><button class="choice" onclick="submitChoice('flip2')">2枚めくる</button></div>`;break;
+ html=`<p class="sub">4枚のカード(3枚のバラ🌹と1枚のドクロ💀)から安全なバラをめくれ！</p>
+ <div class="choices">
+   <button class="choice gold" onclick="submitChoice(0)">🌹 左のカード</button>
+   <button class="choice gold" onclick="submitChoice(1)">🌹 中央のカード</button>
+   <button class="choice danger" onclick="submitChoice(3)">💀 危険なカード</button>
+ </div>`;break;
  case "split":
- html=`<p class="sub">提示された山：A [${d.pileA}◈] vs B [${d.pileB}◈]</p><div class="choices"><button class="choice gold" onclick="submitChoice('A')">山 A を選ぶ</button><button class="choice gold" onclick="submitChoice('B')">山 B を選ぶ</button></div>`;break;
+ html=`<p class="sub">「親」が山を二つに分割しました：山A [${d.pileA}◈] vs 山B [${d.pileB}◈]。より大きな山を選べ！</p>
+ <div class="choices">
+   <button class="choice gold" onclick="submitChoice('A')">🍰 山 A を取る</button>
+   <button class="choice gold" onclick="submitChoice('B')">🍰 山 B を取る</button>
+ </div>`;break;
  case "highlow":
  html=`<div style="text-align:center">${cardHTML(d.card)}<div class="muted tiny">NEXT CARD?</div><div style="font-size:30px;color:var(--gold)">?</div></div><div class="choices"><button class="choice" onclick="submitChoice('high')">▲ HIGH</button><button class="choice" onclick="submitChoice('low')">▼ LOW</button></div>`;break;
  case "blackjack":
  html=`<div class="muted tiny">YOUR HAND</div><div>${d.player.map(cardHTML).join("")}</div><div class="muted tiny">合計 ${handValue(d.player)}</div><div class="choices"><button class="choice" onclick="submitChoice('hit')">HIT</button><button class="choice" onclick="submitChoice('stand')">STAND</button></div>`;break;
  case "wordwolf":
- html=`<div class="notice">あなたのお題：<strong style="font-size:22px;color:var(--gold)">${me?.host?d.civilian:(Math.random()<.2?d.wolf:d.civilian)}</strong></div><p class="sub">お題について話し合ったあと、ウルフだと思う人を選びます。</p><div class="choices">${currentPlayers().filter(p=>p.uid!==state.uid).map(p=>`<button class="choice" onclick="submitChoice('${p.uid}')">${escapeHtml(p.name)} に投票</button>`).join("")}<button class="choice" onclick="submitChoice('pass')">棄権</button></div>`;break;
+ html=`<div class="notice">あなたに配られたお題：<strong style="font-size:20px;color:var(--gold)">${me?.host?d.civilian:(Math.random()<0.3?d.wolf:d.civilian)}</strong></div>
+ <p class="sub">会話のズレやニュアンスから少数派の「ウルフ」を見抜いて投票せよ！</p>
+ <div class="choices">
+   ${currentPlayers().filter(p=>p.uid!==state.uid).map(p=>`<button class="choice" onclick="submitChoice('${p.uid}')">${escapeHtml(p.name)} に投票</button>`).join("")}
+   <button class="choice" onclick="submitChoice('self')">自分はシビリアン</button>
+ </div>`;break;
  case "majority":
- html=`<h3 style="text-align:center">${d.question}</h3><div class="choices">${d.options.map((o,i)=>`<button class="choice" onclick="submitChoice(${i})">${o}</button>`).join("")}</div>`;break;
+ html=`<h3 style="text-align:center">${d.question}</h3>
+ <p class="sub" style="text-align:center">全員の過半数(多数派)と同じ選択肢を選べば勝利！</p>
+ <div class="choices">${d.options.map((o,i)=>`<button class="choice gold" onclick="submitChoice(${i})">${o}</button>`).join("")}</div>`;break;
  case "number":
- html=`<div style="font-size:18px;margin:12px">秘密のターゲット 1〜20</div><input id="numberChoice" class="field" type="number" min="1" max="20" placeholder="数字を入力"><button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('numberChoice').value))">推理を確定</button>`;break;
+ html=`<div style="font-size:18px;margin:12px;text-align:center">秘密のターゲットナンバー (1 〜 20) に最も近づけろ！</div>
+ <input id="numberChoice" class="field" type="number" min="1" max="20" value="10" placeholder="1〜20の数字">
+ <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('numberChoice').value))">推理をロック</button>`;break;
  case "roulette":
- html=`<div style="font-size:44px;margin:12px">🎡</div><div class="choices"><button class="choice" onclick="submitChoice('赤')">🔴 赤</button><button class="choice" onclick="submitChoice('黒')">⚫ 黒</button><button class="choice" onclick="submitChoice('金')">🟡 金</button></div>`;break;
+ html=`<div style="font-size:44px;margin:12px;text-align:center">🎡</div>
+ <p class="sub" style="text-align:center">他のプレイヤーと重複しない色を狙え！</p>
+ <div class="choices">
+   <button class="choice" onclick="submitChoice('赤')">🔴 赤 (倍率高)</button>
+   <button class="choice" onclick="submitChoice('黒')">⚫ 黒 (標準)</button>
+   <button class="choice gold" onclick="submitChoice('金')">🟡 金 (激レア)</button>
+ </div>`;break;
  case "quickmath":
- html=`<div style="font-size:32px;font-weight:900;margin:20px">${d.a} ${d.op} ${d.b} = ?</div><input id="mathChoice" class="field" type="number" placeholder="答え"><button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('mathChoice').value))">回答する</button>`;break;
+ html=`<div style="text-align:center"><div style="font-size:32px;font-weight:900;margin:14px;color:var(--gold)">${d.a} ${d.op} ${d.b} = ?</div>
+ <input id="mathChoice" class="field" type="number" placeholder="答えを入力" style="text-align:center;font-size:22px">
+ <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('mathChoice').value))">解答送信</button></div>`;break;
  case "memory":
- html=`<p class="sub">カードのペアを揃えよう。</p><div class="choices">${d.deck.map((c,i)=>`<button class="choice" onclick="flipMemory(${i})">${(d.flipped||[]).includes(i)||(d.matched||[]).includes(i)?c:"❔"}</button>`).join("")}</div><button class="btn secondary" style="width:100%;margin-top:10px" onclick="submitChoice((state.room.gameData.matched||[]).length)">ペア数で確定</button>`;break;
+ html=`<p class="sub">4ペア(8枚)のカード位置を記憶してペアを揃えろ！</p>
+ <div class="choices">${(d.deck||[]).map((c,i)=>`<button class="choice" style="font-size:24px;height:54px" onclick="flipMemory(${i})">${(d.flipped||[]).includes(i)||(d.matched||[]).includes(i)?c:"❔"}</button>`).join("")}</div>
+ <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice((state.room.gameData.matched||[]).length)">獲得ペア数で確定</button>`;break;
  case "mastermind":
- html=`<p class="sub">3つのカラーパターンを推測！</p><div class="choices"><button class="choice" onclick="submitChoice('123')">🔴 🟡 🟢</button><button class="choice" onclick="submitChoice('234')">🟡 🟢 🔵</button><button class="choice" onclick="submitChoice('412')">🔵 🔴 🟡</button></div>`;break;
+ html=`<p class="sub">3つのカラーコード (1〜4の組み合わせ) を解読せよ！</p>
+ <div class="choices">
+   <button class="choice" onclick="submitChoice('123')">🔴 🟡 🟢</button>
+   <button class="choice" onclick="submitChoice('234')">🟡 🟢 🔵</button>
+   <button class="choice" onclick="submitChoice('341')">🟢 🔵 🔴</button>
+   <button class="choice gold" onclick="submitChoice('412')">🔵 🔴 🟡</button>
+ </div>`;break;
  case "reflex":
- html=`<div style="text-align:center;padding:20px"><button class="btn primary" style="font-size:20px;padding:20px 40px" onclick="submitChoice(Date.now())">⚡ NOW! TAP!</button></div>`;break;
+ html=`<div style="text-align:center;padding:10px">
+   <div class="notice">「⚡今だ！」の合図が出たら即座にタップせよ！</div>
+   <button class="btn primary" style="font-size:22px;padding:24px 40px;margin-top:14px" onclick="submitChoice(Date.now())">⚡ 瞬速タップ！</button>
+ </div>`;break;
  case "timebomb":
- html=`<div style="text-align:center"><div style="font-size:36px;font-weight:900;color:var(--gold);margin:10px">5.00 秒</div><button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Math.abs(5.0 - (Math.random()*2+4)))">STOP!</button></div>`;break;
+ html=`<div style="text-align:center">
+   <div style="font-size:40px;font-weight:900;color:var(--gold);margin:10px">5.00 秒</div>
+   <p class="sub">ストップウォッチを見ずに「5.00秒」ジャストでストップせよ！</p>
+   <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Math.abs(5.0 - (Math.random()*1.8 + 4.1)))">⏱️ ストップ！</button>
+ </div>`;break;
  case "mazerace":
- html=`<p class="sub">迷路の最短歩数を導き出せ！</p><div class="choices"><button class="choice" onclick="submitChoice(5)">5歩</button><button class="choice" onclick="submitChoice(7)">7歩</button><button class="choice" onclick="submitChoice(9)">9歩</button></div>`;break;
+ html=`<p class="sub">複雑な迷路の最短脱出ルート(歩数)を看破せよ！</p>
+ <div class="choices">
+   <button class="choice" onclick="submitChoice(5)">5歩</button>
+   <button class="choice gold" onclick="submitChoice(7)">7歩 (最適)</button>
+   <button class="choice" onclick="submitChoice(9)">9歩</button>
+ </div>`;break;
  case "puzzleduel":
- html=`<p class="sub">このスペースにハマる形は？</p><div class="choices"><button class="choice" onclick="submitChoice('L')">🧩 L型</button><button class="choice" onclick="submitChoice('T')">🧩 T型</button><button class="choice" onclick="submitChoice('I')">🧩 I型</button></div>`;break;
+ html=`<p class="sub">空きスペースに完璧にハマるブロック形状は？</p>
+ <div class="choices">
+   <button class="choice" onclick="submitChoice('L')">🧩 L型ブロック</button>
+   <button class="choice gold" onclick="submitChoice('T')">🧩 T型ブロック</button>
+   <button class="choice" onclick="submitChoice('I')">🧩 I型ストレート</button>
+ </div>`;break;
  case "battleship":
- html=`<p class="sub">敵艦の座標を爆撃せよ！(1〜9)</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:180px;margin:12px auto">${Array.from({length:9},(_,i)=>`<button class="choice" onclick="submitChoice(${i})">💣 ${i+1}</button>`).join("")}</div>`;break;
+ html=`<p class="sub">敵の戦艦が潜伏している座標 (1〜9) へ魚雷を発射せよ！</p>
+ <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:200px;margin:12px auto">
+   ${Array.from({length:9},(_,i)=>`<button class="choice" onclick="submitChoice(${i+1})">🎯 ${i+1}</button>`).join("")}
+ </div>`;break;
  case "battleroulette":
- html=`<p class="sub">シリンダーを回してトリガーを引け！</p><div class="choices"><button class="choice danger" onclick="submitChoice('shoot')">💥 射撃</button><button class="choice" onclick="submitChoice('pass')">🛡️ 回避カード使用</button></div>`;break;
+ html=`<p class="sub">ロシアンカードバトル。弾丸の込められたシリンダーで運命を試せ！</p>
+ <div class="choices">
+   <button class="choice danger" onclick="submitChoice('shoot')">💥 トリガーを引く</button>
+   <button class="choice gold" onclick="submitChoice('shield')">🛡️ シールド防御</button>
+ </div>`;break;
  default:html=`<button class="btn primary" onclick="submitChoice('ok')">プレイ</button>`;
  }
  $("gameContent").innerHTML=html;if(g.id==="reversi")initReversi();setGameMessage("");
@@ -462,7 +537,69 @@ async function submitChoice(choice){
 }
 function resolveLocalGame(choice){
  const g=gameForDay(),d=state.room.gameData,p=state.room.players[state.uid];let win=false,msg="";
- if(g.id==="connect4"){
+ if(g.id==="hitandblow"){
+   const res = checkHitAndBlow("382", choice);
+   win = res.hits === 3;
+   msg = `推測結果: ${res.hits} HIT, ${res.blows} BLOW。${win?"完全解読成功！":"推理は不十分…"}`;
+ }else if(g.id==="indianpoker"){
+   const opp = d.oppCard || 5, mine = d.myCard || 7;
+   win = choice === "raise" && mine >= opp;
+   msg = `あなたのカード[${mine}] vs 相手のカード[${opp}]。${win?"レイズ勝負に勝利！":"敗北…"}`;
+ }else if(g.id==="bluff"){
+   win = (choice === "believe") === d.truth;
+   msg = win ? "ディーラーのブラフを完全に見抜いた！" : "巧妙なブラフに騙された…";
+ }else if(g.id==="auction"){
+   const bid = Number(choice) || 50;
+   win = bid >= 200 && bid <= (d.prize || 300);
+   msg = win ? `絶妙な入札額で ${d.prize} ◈の賞品を獲得！` : "入札額が低すぎるか過剰すぎた…";
+ }else if(g.id==="skull"){
+   win = Number(choice) !== 3;
+   msg = win ? "危険なスカルを回避してバラを獲得！" : "ドクロを踏んでペナルティ…";
+ }else if(g.id==="split"){
+   win = (choice === "A" && d.pileA >= d.pileB) || (choice === "B" && d.pileB >= d.pileA);
+   msg = win ? "より大きい山をチョイスして勝利！" : "相手に大きい山を取られた…";
+ }else if(g.id==="wordwolf"){
+   win = choice !== "self";
+   msg = win ? "ウルフの投票心理を見事に看破！" : "ミスリードに引っかかった…";
+ }else if(g.id==="majority"){
+   win = Number(choice) === 0;
+   msg = win ? "多数派の選択肢と完全に一致！" : "少数派に転落…";
+ }else if(g.id==="number"){
+   const target = d.secret || 10;
+   win = Math.abs(Number(choice) - target) <= 2;
+   msg = `ターゲット[${target}]に対し誤差 ${Math.abs(Number(choice)-target)}。${win?"ニアピン勝利！":"外れた…"}`;
+ }else if(g.id==="roulette"){
+   win = choice === d.result;
+   msg = `ルーレット結果[${d.result}]。${win?"バッティング回避に成功！":"被り発生…"}`;
+ }else if(g.id==="quickmath"){
+   const ans = d.op === "+" ? d.a + d.b : d.a * d.b;
+   win = Number(choice) === ans;
+   msg = win ? `正解[${ans}]！電光石火の計算勝利！` : `不正解(正解:${ans})…`;
+ }else if(g.id==="memory"){
+   win = Number(choice) >= 2;
+   msg = win ? "記憶力勝負でペアを多数獲得！" : "ペアを十分に作れず…";
+ }else if(g.id==="mastermind"){
+   win = choice === "412";
+   msg = win ? "暗号コードマスターマインド解読！" : "コードが一致しなかった…";
+ }else if(g.id==="reflex"){
+   win = true;
+   msg = "圧倒的な反射神経で先着タップ！";
+ }else if(g.id==="timebomb"){
+   win = Number(choice) < 0.4;
+   msg = `誤差 ${Number(choice).toFixed(2)}秒。${win?"完璧なジャストタイム！":"爆弾が起爆した…"}`;
+ }else if(g.id==="mazerace"){
+   win = Number(choice) === 7;
+   msg = win ? "迷宮の最短脱出ルートを発見！" : "遠回りのルートを選んだ…";
+ }else if(g.id==="puzzleduel"){
+   win = choice === "T";
+   msg = win ? "パズルピースが完璧にフィット！" : "うまく嵌まらなかった…";
+ }else if(g.id==="battleship"){
+   win = Number(choice) === 5;
+   msg = win ? "敵戦艦の潜伏座標を砲撃直撃！" : "海域を外した…";
+ }else if(g.id==="battleroulette"){
+   win = choice === "shield";
+   msg = win ? "シールドで致命的な一撃を防御！" : "トリガーの弾丸が直撃した…";
+ }else if(g.id==="connect4"){
    const col=Number(choice);let placed=false;
    for(let r=5;r>=0;r--){if(!d.grid[r*7+col]){d.grid[r*7+col]=1;placed=true;break;}}
    const w=checkConnect4Win(d.grid);
