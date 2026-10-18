@@ -2615,7 +2615,20 @@ function handleHitAndBlowSubmit() {
     toast("3桁の数字を入力してください");
     return;
   }
-  submitChoice(val);
+  const d = JSON.parse(JSON.stringify(state.room.gameData || {}));
+  const secretStr = String(d.secret || "472");
+  const res = checkHitAndBlow(secretStr, val);
+  if(!d.history) d.history = [];
+  d.history.push({guess: val, hits: res.hits, blows: res.blows});
+  if(state.local) {
+    state.room.gameData = d;
+    renderGameContent();
+  } else {
+    updateRoom({gameData: d});
+  }
+  if(res.hits === 3 || d.history.length >= 6) {
+    toast("推理完了！結果を確定してください");
+  }
 }
 function rotateMastermindColor(idx) {
   if(!state.room?.gameData) return;
@@ -2628,6 +2641,25 @@ function rotateMastermindColor(idx) {
     renderGameContent();
   } else {
     updateRoom({gameData: d});
+  }
+}
+
+function handleMastermindSubmit() {
+  if(!state.room?.gameData) return;
+  const d = JSON.parse(JSON.stringify(state.room.gameData));
+  const guessStr = (d.currentGuess || [1,1,1]).join("");
+  const codeStr = (d.code || [1,2,3]).join("");
+  const mmRes = checkMastermind(codeStr, guessStr);
+  if(!d.history) d.history = [];
+  d.history.push({guess: guessStr, bulls: mmRes.bulls, cows: mmRes.cows});
+  if(state.local) {
+    state.room.gameData = d;
+    renderGameContent();
+  } else {
+    updateRoom({gameData: d});
+  }
+  if(mmRes.bulls === 3 || d.history.length >= 6) {
+    toast("解読完了！結果を確定してください");
   }
 }
 function executeAdvancedGameCheck(gameId, choice, data) {
@@ -2657,19 +2689,19 @@ function executeAdvancedGameCheck(gameId, choice, data) {
     case "nim": {
       const totalSticks = (data.rows || [3,4,5]).reduce((a,b)=>a+b,0);
       win = totalSticks % 2 === 1;
-      msg = `ニム戦：残されたスティックの数から最後の駆け引きを${win ? "制しました。" : "読み誤りました。"}期`;
+      msg = `ニム戦：残されたスティックの数から最後の駆け引きを${win ? "制しました。" : "読み誤りました。"}`;
       break;
     }
     case "mancala": {
       const pits = data.pits || [4,4,4,4,4,4,4,4];
       const myPitsSum = pits.slice(0, 4).reduce((a,b)=>a+b,0);
       win = myPitsSum >= 12;
-      msg = `マンカラ戦：種まきと石の配分計算で${win ? "優位に立ち勝利！" : "惜敗しました。"}期`;
+      msg = `マンカラ戦：種まきと石の配分計算で${win ? "優位に立ち勝利！" : "惜敗しました。"}`;
       break;
     }
     case "speed": {
       win = choice === "play";
-      msg = `カードスピード戦：瞬時の判断で場札にカードを${win ? "つなぎきりました。" : "出せませんでした。"}期`;
+      msg = `カードスピード戦：瞬時の判断で場札にカードを${win ? "つなぎきりました。" : "出せませんでした。"}`;
       break;
     }
     case "reversi": {
@@ -2694,19 +2726,17 @@ function executeAdvancedGameCheck(gameId, choice, data) {
       break;
     }
     case "hitandblow": {
-      const secretStr = String(data.secret || "472");
-      const res = checkHitAndBlow(secretStr, String(choice));
-      win = res.hits === 3;
-      msg = `推測コード[${choice}] ⇒ ${res.hits} HIT / ${res.blows} BLOW。${win?"完全解読成功！":"推理を続けよ…"}`;
-      if(!data.history) data.history = [];
-      data.history.push({guess: choice, hits: res.hits, blows: res.blows});
+      const hist = data.history || [];
+      const last = hist[hist.length - 1] || {hits: 0, blows: 0, guess: "---"};
+      win = last.hits === 3;
+      msg = `推測コード最終結果 ⇒ ${last.hits} HIT / ${last.blows} BLOW。${win?"完全解読成功！":"推理を達成できず…"}`;
       break;
     }
     case "mastermind": {
-      const codeStr = (data.code || [1,2,3]).join("");
-      const mmRes = checkMastermind(codeStr, String(choice));
-      win = mmRes.bulls === 3;
-      msg = `コード解読：推測[${choice}] ⇒ 🎯Bulls: ${mmRes.bulls} / ⚪Cows: ${mmRes.cows}。${win?"暗号を完璧に解読成功！":"ロック解除ならず…"}`;
+      const hist = data.history || [];
+      const last = hist[hist.length - 1] || {bulls: 0, cows: 0};
+      win = last.bulls === 3;
+      msg = `コード解読最終結果 ⇒ 🎯Bulls: ${last.bulls} / ⚪Cows: ${last.cows}。${win?"暗号を完璧に解読成功！":"ロック解除ならず…"}`;
       break;
     }
     case "indianpoker": {
@@ -2852,7 +2882,7 @@ function renderGameContent(){
     const isAdj = Math.abs(r - p1R) + Math.abs(c - p1C) === 1;
     return `<div class="q-cell ${isP1?"p1-pos":isP2?"p2-pos":""} ${isAdj&&!isP2?"hint":""}" onclick="handleQuoridorMove(${i})">${isP1?"♟️":isP2?"♟":""}</div>`;
   }).join("")}</div>
-  <div class="choices"><button class="choice gold" onclick="submitChoice('${dist1 <= dist2 ? "win" : "lose"}')">現在の進行度で着手確定 (${4 - dist1}マス進破)</button></div>`;
+  <div class="choices"><button class="choice gold" onclick="submitChoice('quoridor_finish')">現在の進行度で着手確定 (${4 - dist1}マス進破)</button></div>`;
   break;
  }
  case "dotsboxes":
@@ -2884,18 +2914,23 @@ function renderGameContent(){
       }).join("")}
     </div>
   </div>
-  <button class="btn primary" style="width:100%;margin-top:8px" onclick="submitChoice('${sc[0] >= sc[1] ? "win" : "lose"}')">対局結果を確定 (${sc[0]} vs ${sc[1]})</button>`;
+  <button class="btn primary" style="width:100%;margin-top:8px" onclick="submitChoice('dots_finish')">対局結果を確定 (${sc[0]} vs ${sc[1]})</button>`;
   break;
  }
  case "hitandblow":
  {
   const hbHist = d.history || [];
-  html=`<p class="sub">相手の3桁数字コード (1〜9の重複なし3桁) を論理的に推理せよ！</p>
+  const solved = hbHist.some(h => h.hits === 3);
+  html=`<p class="sub">相手の3桁数字コード (1〜9の重複なし3桁) を論理的に推理せよ！ (最大6回)</p>
   <div style="max-height:120px;overflow-y:auto;background:#0d101a;padding:8px;border-radius:10px;margin-bottom:8px">
     ${hbHist.map(h=>`<div class="row between tiny" style="padding:4px 0;border-bottom:1px solid #1f253d"><span>推測: <b>${h.guess}</b></span><span class="chip">${h.hits} HIT / ${h.blows} BLOW</span></div>`).join("") || '<div class="tiny muted" style="text-align:center">まだ推測履歴がありません</div>'}
   </div>
-  <input id="hbInput" class="field" maxlength="3" placeholder="例: 472" style="text-align:center;font-size:20px;letter-spacing:6px">
-  <button class="btn primary" style="width:100%;margin-top:10px" onclick="handleHitAndBlowSubmit()">推理コードを送信</button>`;
+  ${solved || hbHist.length >= 6 ? 
+    `<div class="notice good">推理ゲームが終了しました。結果を確定してください。</div>
+     <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice('hb_finish')">推理結果を確定する</button>` :
+    `<input id="hbInput" class="field" maxlength="3" placeholder="例: 472" style="text-align:center;font-size:20px;letter-spacing:6px">
+     <button class="btn primary" style="width:100%;margin-top:10px" onclick="handleHitAndBlowSubmit()">推理コードを送信</button>`
+  }`;
   break;
  }
  case "indianpoker":
@@ -2980,13 +3015,19 @@ function renderGameContent(){
  case "mastermind":
  {
   const mmGuess = d.currentGuess || [1, 1, 1];
+  const mmHist = d.history || [];
   const colors = ["#ff657a", "#f2c76b", "#6ce0ad", "#75d9f5"];
-  const colorNames = ["赤", "黄", "緑", "青"];
-  html=`<p class="sub">3つのカラーシークエンス (1〜4) を解読せよ！</p>
-  <div class="row" style="justify-content:center;gap:12px;margin:14px 0">
+  html=`<p class="sub">3つのカラーシークエンス (1〜4) を解読せよ！ (最大6回)</p>
+  <div style="max-height:100px;overflow-y:auto;background:#0d101a;padding:6px;border-radius:10px;margin-bottom:8px">
+    ${mmHist.map(h=>`<div class="row between tiny" style="padding:3px 0"><span>推測: <b>${h.guess}</b></span><span class="chip">🎯Bulls: ${h.bulls} / ⚪Cows: ${h.cows}</span></div>`).join("") || '<div class="tiny muted" style="text-align:center">まだ推測履歴がありません</div>'}
+  </div>
+  <div class="row" style="justify-content:center;gap:12px;margin:10px 0">
     ${mmGuess.map((c,i)=>`<div style="width:48px;height:48px;border-radius:12px;background:${colors[c-1]};display:grid;place-items:center;font-weight:900;cursor:pointer;border:2px solid #fff3" onclick="rotateMastermindColor(${i})">${c}</div>`).join("")}
   </div>
-  <button class="btn primary" style="width:100%" onclick="submitChoice(d.currentGuess.join(''))">このカラーコードでロック</button>`;
+  ${mmHist.some(h => h.bulls === 3) || mmHist.length >= 6 ?
+    `<button class="btn primary" style="width:100%" onclick="submitChoice('mm_finish')">解読結果を確定する</button>` :
+    `<button class="btn primary" style="width:100%" onclick="handleMastermindSubmit()">このカラーコードで推測</button>`
+  }`;
   break;
  }
  case "reflex":
