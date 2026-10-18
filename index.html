@@ -1417,31 +1417,31 @@ async function joinRoom(code){
  }catch(e){console.error(e);toast("参加できませんでした。Firebase設定を確認してください")}
 }
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch, maxRetries = 3){
+async function updateRoom(patch, maxRetries = 5){
  if(state.local){state.room={...state.room,...patch};return}
- if(!state.roomRef)throw new Error("No room");
+ if(!state.roomRef)throw new Error("No room reference");
  let attempt = 0;
  while(attempt < maxRetries) {
    try {
      await db.runTransaction(async (transaction) => {
        const doc = await transaction.get(state.roomRef);
        if(!doc.exists) throw new Error("Room does not exist");
-       transaction.update(state.roomRef, patch);
+       transaction.set(state.roomRef, patch, { merge: true });
      });
      return;
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Transaction failed after retries: ", e);
-       await state.roomRef.set(patch, { merge: true }).catch(err => console.error(err));
+       console.error("Transaction updateRoom failed after max retries: ", e);
+       await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 100 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
 }
 
-async function updateMyPlayer(patch, maxRetries = 3){
+async function updateMyPlayer(patch, maxRetries = 5){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -1457,16 +1457,16 @@ async function updateMyPlayer(patch, maxRetries = 3){
      await db.runTransaction(async (transaction) => {
        const doc = await transaction.get(state.roomRef);
        if(!doc.exists) throw new Error("Room does not exist");
-       transaction.update(state.roomRef, {["players."+state.uid]: updated});
+       transaction.set(state.roomRef, { players: { [state.uid]: updated } }, { merge: true });
      });
      return;
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Player update transaction failed: ", e);
-       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error(err));
+       console.error("Transaction updateMyPlayer failed after max retries: ", e);
+       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Fallback set player failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 100 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
@@ -1707,31 +1707,31 @@ async function joinRoom(code){
 }
 
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch, maxRetries = 3){
+async function updateRoom(patch, maxRetries = 5){
  if(state.local){state.room={...state.room,...patch};return}
- if(!state.roomRef)throw new Error("No room");
+ if(!state.roomRef)throw new Error("No room reference");
  let attempt = 0;
  while(attempt < maxRetries) {
    try {
      await db.runTransaction(async (transaction) => {
        const doc = await transaction.get(state.roomRef);
        if(!doc.exists) throw new Error("Room does not exist");
-       transaction.update(state.roomRef, patch);
+       transaction.set(state.roomRef, patch, { merge: true });
      });
      return;
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Transaction failed after retries: ", e);
-       await state.roomRef.set(patch, { merge: true }).catch(err => console.error(err));
+       console.error("Transaction updateRoom failed after max retries: ", e);
+       await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 100 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
 }
 
-async function updateMyPlayer(patch, maxRetries = 3){
+async function updateMyPlayer(patch, maxRetries = 5){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -1747,16 +1747,16 @@ async function updateMyPlayer(patch, maxRetries = 3){
      await db.runTransaction(async (transaction) => {
        const doc = await transaction.get(state.roomRef);
        if(!doc.exists) throw new Error("Room does not exist");
-       transaction.update(state.roomRef, {["players."+state.uid]: updated});
+       transaction.set(state.roomRef, { players: { [state.uid]: updated } }, { merge: true });
      });
      return;
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Player update transaction failed: ", e);
-       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error(err));
+       console.error("Transaction updateMyPlayer failed after max retries: ", e);
+       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Fallback set player failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 100 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
@@ -2368,31 +2368,31 @@ async function joinRoom(code){
  }catch(e){console.error(e);toast("参加できませんでした。Firebase設定を確認してください")}
 }
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch, maxRetries = 3){
+async function updateRoom(patch, maxRetries = 5){
  if(state.local){state.room={...state.room,...patch};return}
- if(!state.roomRef)throw new Error("No room");
+ if(!state.roomRef)throw new Error("No room reference");
  let attempt = 0;
  while(attempt < maxRetries) {
    try {
      await db.runTransaction(async (transaction) => {
        const doc = await transaction.get(state.roomRef);
        if(!doc.exists) throw new Error("Room does not exist");
-       transaction.update(state.roomRef, patch);
+       transaction.set(state.roomRef, patch, { merge: true });
      });
      return;
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Transaction failed after retries: ", e);
-       await state.roomRef.set(patch, { merge: true }).catch(err => console.error(err));
+       console.error("Transaction updateRoom failed after max retries: ", e);
+       await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 100 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
 }
 
-async function updateMyPlayer(patch, maxRetries = 3){
+async function updateMyPlayer(patch, maxRetries = 5){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -2408,16 +2408,16 @@ async function updateMyPlayer(patch, maxRetries = 3){
      await db.runTransaction(async (transaction) => {
        const doc = await transaction.get(state.roomRef);
        if(!doc.exists) throw new Error("Room does not exist");
-       transaction.update(state.roomRef, {["players."+state.uid]: updated});
+       transaction.set(state.roomRef, { players: { [state.uid]: updated } }, { merge: true });
      });
      return;
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Player update transaction failed: ", e);
-       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error(err));
+       console.error("Transaction updateMyPlayer failed after max retries: ", e);
+       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Fallback set player failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 100 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
