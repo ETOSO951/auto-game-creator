@@ -15,7 +15,7 @@ from playwright.sync_api import sync_playwright
 # ========================================================
 QUALITY_UP_ITERATIONS = 50 # 新規作成時の限界まで回す設定
 MAX_UPDATE_LOOPS = 30 # 既存コード修正時の最大ループ回数（達成度ベース）
-MAX_BUGFIX_LOOPS = 4
+MAX_BUGFIX_LOOPS = 12
 
 # システムプロンプト
 SYSTEM_INSTRUCTION = """あなたは世界的な天才フロントエンドエンジニア兼ゲームクリエイターです。
