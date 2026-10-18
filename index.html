@@ -750,11 +750,6 @@ function resolveLocalGame(choice){
  p.chips=Math.max(0,p.chips+delta);p.choice=choice;p.score=win?1:0;state.room.players[state.uid]=p;state.room.gameResult={message:msg,win,delta,choice};state.room.roundStatus="result";state.room.gameData=d;
  renderLocalResult(msg,win,delta);
 }
-
- const bet=p.bet||10;let delta=0;if(win)delta=bet;else delta=-bet;
- p.chips=Math.max(0,p.chips+delta);p.choice=choice;p.score=win?1:0;state.room.players[state.uid]=p;state.room.gameResult={message:msg,win,delta,choice};state.room.roundStatus="result";state.room.gameData=d;
- renderLocalResult(msg,win,delta);
-}
 function renderLocalResult(msg,win,delta){
  $("gameContent").innerHTML=`<div class="game-card"><div style="font-size:42px">${win?"🎉":"🫣"}</div><h2>${win?"WIN!":"NEXT TIME!"}</h2><p>${escapeHtml(msg)}</p><div style="font-size:25px;font-weight:950;color:${delta>=0?"var(--green)":"var(--red)"};margin-top:12px">${delta>=0?"+":""}${delta.toLocaleString()} ◈</div></div>`;
  setGameMessage("チップを精算しました。");$("finishGameBtn").classList.remove("hidden");$("finishGameBtn").textContent=state.room.day===4?"最終結果を見る":"次の日へ進む";$("myChips").textContent=state.room.players[state.uid].chips.toLocaleString();$("myBet").textContent=state.room.players[state.uid].bet.toLocaleString();$("dayLeaderboard").innerHTML=sortedPlayers().map((p,i)=>`<div class="result-rank"><b>${i+1}. ${escapeHtml(p.name)}</b><span class="chip">${p.chips.toLocaleString()} ◈</span></div>`).join("");
