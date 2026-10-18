@@ -292,7 +292,7 @@ async function beginGame(){
    gameData.currentGuess=[1,1,1];
  }
  if(g.id==="wordwolf"){
-   const pairs=[{c:"りんご",w:"みかん"},{c:"サッカー",w:"バスケ"},{c:"東京",w:"大阪"},{c:"珈琲",w:"紅茶"}];
+   const pairs=[{c:"りんご",w:"みかん"},{c:"サッカー",w:"バスケ"},{c:"東京",w:"大阪"},{c:"珈琲",w:"紅茶"},{c:"寿司",w:"焼肉"}];
    const p=pairs[Math.floor(Math.random()*pairs.length)];
    const ps=currentPlayers();
    const wolfPlayer=ps.length?ps[Math.floor(Math.random()*ps.length)].uid:"";
@@ -307,13 +307,11 @@ async function beginGame(){
  if(g.id==="split"){gameData.pileA=100+Math.floor(Math.random()*200);gameData.pileB=100+Math.floor(Math.random()*200)}
  if(g.id==="highlow"){gameData.card=drawCard();gameData.next=drawCard()}
  if(g.id==="blackjack"){gameData.deck=makeDeck();gameData.player=[gameData.deck.pop(),gameData.deck.pop()];gameData.dealer=[gameData.deck.pop(),gameData.deck.pop()]}
- if(g.id==="wordwolf"){gameData.civilian=["りんご","みかん"][Math.floor(Math.random()*2)];gameData.wolf=gameData.civilian==="りんご"?"みかん":"りんご"}
  if(g.id==="majority"){gameData.question="週末の過ごし方は？";gameData.options=["インドアで集中","アウトドアで活動"]}
  if(g.id==="number"){gameData.secret=1+Math.floor(Math.random()*20)}
  if(g.id==="roulette"){gameData.result=["赤","黒","金"][Math.floor(Math.random()*3)]}
  if(g.id==="quickmath"){gameData.a=3+Math.floor(Math.random()*16);gameData.b=3+Math.floor(Math.random()*16);gameData.op=Math.random()<.5?"+":"×"}
  if(g.id==="memory"){gameData.deck=shuffle(["🍒","🍋","🍇","🍉","🍒","🍋","🍇","🍉"]);gameData.flipped=[];gameData.matched=[]}
- if(g.id==="mastermind"){gameData.code=[1+Math.floor(Math.random()*4),1+Math.floor(Math.random()*4),1+Math.floor(Math.random()*4)]}
  if(g.id==="reflex"){gameData.targetTime=1000+Math.floor(Math.random()*2000)}
  if(g.id==="timebomb"){gameData.targetSec=5.0}
  if(g.id==="mazerace"){gameData.pathLen=5+Math.floor(Math.random()*5)}
