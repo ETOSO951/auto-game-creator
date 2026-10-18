@@ -318,7 +318,7 @@ async function beginGame(){
  if(g.id==="puzzleduel"){gameData.targetShape=Math.floor(Math.random()*3)}
  if(g.id==="battleship"){gameData.shipPos=Math.floor(Math.random()*9)}
  if(g.id==="battleroulette"){gameData.chambers=[0,0,0,1,0,0]}
- if(state.local){state.room.roundStatus="playing";state.room.gameData=gameData;state.room.players[state.uid].choice=null;renderDay();return}
+ if(state.local){state.room.roundStatus="playing";state.room.gameData=gameData;Object.values(state.room.players).forEach(p=>p.choice=null);renderDay();return}
  await updateRoom({roundStatus:"playing",gameData});
 }
 function drawCard(){const ranks=["A","2","3","4","5","6","7","8","9","10","J","Q","K"];const suits=["♠","♥","♦","♣"];return {rank:ranks[Math.floor(Math.random()*13)],suit:suits[Math.floor(Math.random()*4)],value:0}}
@@ -925,10 +925,10 @@ function reversiMove(i){
 function handleDotsClick(type, idx) {
  if(!state.room?.gameData) return;
  const d = state.room.gameData;
- const h = d.hLines || Array(12).fill(0);
- const v = d.vLines || Array(12).fill(0);
- const b = d.boxes || Array(9).fill(0);
- const sc = d.scores || [0, 0];
+ const h = d.hLines ? [...d.hLines] : Array(12).fill(0);
+ const v = d.vLines ? [...d.vLines] : Array(12).fill(0);
+ const b = d.boxes ? [...d.boxes] : Array(9).fill(0);
+ const sc = d.scores ? [...d.scores] : [0, 0];
  const turn = d.turn || 1;
 
  if(type === 'h' && h[idx]) return;
@@ -973,6 +973,7 @@ function handleDotsClick(type, idx) {
    }
  }
  if(state.local) { state.room.gameData = d; renderGameContent(); }
+ else { updateRoom({gameData: d}); }
 }
 
 function handleQuoridorMove(targetIdx) {
@@ -1010,6 +1011,7 @@ function handleQuoridorMove(targetIdx) {
  }
 
  if(state.local) { state.room.gameData = d; renderGameContent(); }
+ else { updateRoom({gameData: d}); }
 }
 
 function flipMemory(i){
