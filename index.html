@@ -609,93 +609,139 @@ function resolveLocalGame(choice){
    }
    break;
  case "indianpoker":
-   win = choice === "raise" && (d.myCard||7) >= (d.oppCard||5);
-   msg = `あなたのカード[${d.myCard||7}] vs 相手の額のカード[${d.oppCard||5}]。${win?"強気レイズで勝利！":"読みが外れて敗北…"}`;
+   {
+     const oppCard = d.oppCard || 6;
+     const myGuessedStrength = choice === "raise" ? 8 : 4;
+     win = myGuessedStrength >= oppCard;
+     msg = `お互いの心理読み合い！相手の手札[${oppCard}]に対し、あなたの選択[${choice}] ⇒ ${win?"見事なレイズで勝利！":"ブラフを見破られ敗北…"}`;
+   }
    break;
  case "bluff":
-   win = (choice === "believe") === d.truth;
-   msg = win ? "相手の心理ブラフを完全に看破した！" : "巧妙なブラフに翻弄された…";
+   {
+     const isTruth = d.truth;
+     win = (choice === "believe" && isTruth) || (choice === "lie" && !isTruth);
+     msg = `相手の宣言は「${isTruth?"真実":"嘘・ブラフ"}」でした。あなたの判断[${choice}] ⇒ ${win?"心理戦を制した！":"相手の巧みな演技に騙された…"}`;
+   }
    break;
  case "auction":
    {
      const bid = Number(choice) || 50;
-     win = bid >= 180 && bid <= (d.prize || 300);
-     msg = win ? `絶妙な入札額[${bid}◈]で賞品[${d.prize}◈]を落札！` : `入札額[${bid}◈]が不適切だった…`;
+     const oppBid = 120 + Math.floor(Math.random() * 150);
+     win = bid > oppBid && bid <= (d.prize || 300);
+     msg = `密室オークション開札：あなたの入札[${bid}◈] vs 相手の入札[${oppBid}◈] (賞品:${d.prize}◈)。${win?"最高額で華麗に落札成功！":"入札額で競り負けた…"}`;
    }
    break;
  case "skull":
-   win = Number(choice) !== 3;
-   msg = win ? "ドクロカードを華麗に回避してバラを獲得！" : "隠されたドクロを踏み抜いた…";
+   {
+     const skullPos = Math.floor(Math.random() * 4);
+     win = Number(choice) !== skullPos;
+     msg = `4枚のカード勝負！ドクロの潜んでいた位置[${skullPos+1}]。あなたの選択[${skullPos+1===Number(choice)? "ドクロを踏んだ" : "安全なバラをめくった"}] ⇒ ${win?"バラの獲得に成功！":"ドクロを引き当て自滅…"}`;
+   }
    break;
  case "split":
-   win = (choice === "A" && d.pileA >= d.pileB) || (choice === "B" && d.pileB >= d.pileA);
-   msg = win ? "より大きな山をチョイスして分配戦勝利！" : "相手に大きい山を取られた…";
+   {
+     const chosenPile = choice === "A" ? d.pileA : d.pileB;
+     const otherPile = choice === "A" ? d.pileB : d.pileA;
+     win = chosenPile >= otherPile;
+     msg = `分割分配戦：あなたが選んだ山[${chosenPile}◈] vs もう一方の山[${otherPile}◈]。${win?"より大きな山を獲得して勝利！":"相手により大きい山を選ばれた…"}`;
+   }
    break;
  case "wordwolf":
-   win = choice !== "self";
-   msg = win ? "少数派ウルフの違和感を見事に看破！" : "多数派の誘導に惑わされた…";
+   {
+     const isWolf = state.uid === d.wolfUid;
+     const votedWolf = choice === d.wolfUid;
+     win = (!isWolf && votedWolf) || (isWolf && choice === "innocent");
+     msg = `ワードウルフ討伐戦：正体は[${isWolf?"ウルフ":"シビリアン"}]。あなたの投票[${choice}] ⇒ ${win?"心理的洞察で勝利！":"会話のズレを見抜けず敗北…"}`;
+   }
    break;
  case "majority":
-   win = Number(choice) === 0;
-   msg = win ? "集団心理の多数派選択肢と一致！" : "少数派に転落…";
+   {
+     const majorityChoice = Math.random() < 0.5 ? 0 : 1;
+     win = Number(choice) === majorityChoice;
+     msg = `多数派ゲーム：多数派の選択は「${d.options[majorityChoice]}」でした。${win?"集団心理の読みが的中！":"少数派に転落…"}`;
+   }
    break;
  case "number":
    {
      const target = d.secret || 10;
-     const diff = Math.abs(Number(choice) - target);
-     win = diff <= 2;
-     msg = `ターゲット[${target}]に対し選択[${choice}] (誤差:${diff})。${win?"驚異的なニアピン勝利！":"的外れだった…"}`;
+     const oppGuess = Math.max(1, Math.min(20, target + (Math.random() < 0.5 ? 1 : -2)));
+     const myDiff = Math.abs(Number(choice) - target);
+     const oppDiff = Math.abs(oppGuess - target);
+     win = myDiff <= oppDiff;
+     msg = `ターゲット[${target}]：あなた[${choice} (誤差${myDiff})] vs 相手[${oppGuess} (誤差${oppDiff})]。${win?"より正確に接近して勝利！":"相手に距離を詰められた…"}`;
    }
    break;
  case "roulette":
-   win = choice === d.result;
-   msg = `ルーレット結果[${d.result}]。${win?"見事に色被りを回避！":"他者と選択が重複した…"}`;
+   {
+     const oppChoice = ["赤", "黒", "金"][Math.floor(Math.random() * 3)];
+     win = choice !== oppChoice;
+     msg = `カラーバッティング：あなた[${choice}] vs 相手[${oppChoice}] (開雲結果:${d.result})。${win?"他者と色被りを回避して勝利！":"選択がバッティングした…"}`;
+   }
    break;
  case "quickmath":
    {
      const ans = d.op === "+" ? d.a + d.b : d.a * d.b;
-     win = Number(choice) === ans;
-     msg = win ? `正解[${ans}]！電光石火の計算力勝利！` : `不正解 (正解:${ans})…`;
+     const myAns = Number(choice);
+     win = myAns === ans;
+     msg = `クイックマッハ：正解[${ans}]に対しあなたの解答[${myAns}]。${win?"電光石火の速算で勝利！":"計算ミスまたはタイムロス…"}`;
    }
    break;
  case "memory":
-   win = Number(choice) >= 2;
-   msg = win ? "記憶力バトルで多数のペアを奪取！" : "ペアを十分に揃えられず…";
+   {
+     const matched = Number(choice) || 0;
+     win = matched >= 2;
+     msg = `神経衰弱デュエル：ペア獲得数 [${matched}/4]。${win?"優れた記憶力でペアを多数奪取！":"ペア数が相手に及ばなかった…"}`;
+   }
    break;
  case "mastermind":
    {
      const codeStr = (d.code || [1,2,3]).join("");
-     const mmRes = checkMastermind(codeStr, String(choice));
+     const guessStr = String(choice);
+     const mmRes = checkMastermind(codeStr, guessStr);
      win = mmRes.bulls === 3;
-     msg = `コード[${choice}] ⇒ 🎯Bulls: ${mmRes.bulls} / ⚪Cows: ${mmRes.bulls+mmRes.cows}。${win?"完全解読成功！":"ロック解除失敗..."}`;
+     msg = `コード解読：推測[${guessStr}] ⇒ 🎯Bulls: ${mmRes.bulls} / ⚪Cows: ${mmRes.cows}。${win?"暗号を完璧に解読成功！":"ロック解除ならず…"}`;
    }
    break;
  case "reflex":
-   win = true;
-   msg = "圧倒的な反射速度で先着タップ！";
+   {
+     const reactionMs = Math.floor(Math.random() * 180) + 160;
+     const oppReactionMs = Math.floor(Math.random() * 220) + 150;
+     win = reactionMs <= oppReactionMs;
+     msg = `反射神経フラッシュ：あなた [${reactionMs}ms] vs 相手 [${oppReactionMs}ms]。${win?"電光石火の先着タップで勝利！":"相手の反応速度に敗北…"}`;
+   }
    break;
  case "timebomb":
    {
-     const err = Number(choice);
-     win = err < 0.45;
-     msg = `誤差 ${err.toFixed(2)}秒。${win?"完璧なジャストタイム炸裂！":"タイム測定に失敗…"}`;
+     const err = Number(choice) || 0.5;
+     win = err < 0.35;
+     msg = `体内時計ジャストタイマー：誤差 [${err.toFixed(2)}秒]。${win?"神業の正確なタイム感で爆弾解除！":"タイミングがズレて起爆…"}`;
    }
    break;
  case "mazerace":
-   win = Number(choice) === 7;
-   msg = win ? "迷宮の最短脱出ルートを発見！" : "遠回りのルートを選んだ…";
+   {
+     win = Number(choice) === 7;
+     msg = `迷路エスケープ：選択した歩数[${choice}歩]。${win?"最短脱出ルートを完璧に見抜いた！":"ルート選定に迷いが生じた…"}`;
+   }
    break;
  case "puzzleduel":
-   win = choice === "T";
-   msg = win ? "パズルブロックが完璧にフィット！" : "うまく嵌まらなかった…";
+   {
+     win = choice === "T";
+     msg = `ブロックフィット：選択ブロック[${choice}型]。${win?"空きスペースに完璧にピースが嵌まった！":"ブロック形状が合わなかった…"}`;
+   }
    break;
  case "battleship":
-   win = Number(choice) === 5;
-   msg = win ? "敵戦艦の潜伏座標を魚雷で直撃！" : "海域を外した…";
+   {
+     const ship = d.shipPos || 5;
+     win = Number(choice) === ship;
+     msg = `海戦バトルロイヤル：敵戦艦の潜伏座標[${ship}]。あなたの砲撃[${choice}] ⇒ ${win?"直撃弾命中により撃沈！":"着弾水域を外した…"}`;
+   }
    break;
  case "battleroulette":
-   win = choice === "shield";
-   msg = win ? "シールド防御で致命的な弾丸を回避！" : "ロシアンカードの弾丸が直撃した…";
+   {
+     const isBullet = Math.random() < 0.33;
+     win = choice === "shield" || !isBullet;
+     msg = `ロシアンカード：トリガー結果[${isBullet ? "弾丸発射" : "セーフ"}] vs あなたの選択[${choice}]。${win?"英断により危機を回避！":"危険なカードが直撃した…"}`;
+   }
    break;
  case "connect4":
    {
