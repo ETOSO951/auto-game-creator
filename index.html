@@ -281,7 +281,25 @@ async function beginGame(){
  if(g.id==="reversi"){gameData.board=Array(64).fill(0);gameData.board[27]=2;gameData.board[28]=1;gameData.board[35]=1;gameData.board[36]=2}
  if(g.id==="quoridor"){gameData.p1=22;gameData.p2=2;gameData.walls=[];gameData.p1Walls=3;gameData.p2Walls=3;gameData.turn=1;gameData.winner=0;}
  if(g.id==="dotsboxes"){gameData.hLines=Array(12).fill(0);gameData.vLines=Array(12).fill(0);gameData.boxes=Array(9).fill(0);gameData.scores=[0,0];gameData.turn=1;}
- if(g.id==="hitandblow"){gameData.secret=[Math.floor(Math.random()*9)+1,Math.floor(Math.random()*9)+1,Math.floor(Math.random()*9)+1]}
+ if(g.id==="hitandblow"){
+   const digits=[1,2,3,4,5,6,7,8,9];
+   shuffle(digits);
+   gameData.secret=digits.slice(0,3);
+   gameData.history=[];
+ }
+ if(g.id==="mastermind"){
+   gameData.code=[Math.floor(Math.random()*4)+1,Math.floor(Math.random()*4)+1,Math.floor(Math.random()*4)+1];
+   gameData.currentGuess=[1,1,1];
+ }
+ if(g.id==="wordwolf"){
+   const pairs=[{c:"りんご",w:"みかん"},{c:"サッカー",w:"バスケ"},{c:"東京",w:"大阪"},{c:"珈琲",w:"紅茶"}];
+   const p=pairs[Math.floor(Math.random()*pairs.length)];
+   const ps=currentPlayers();
+   const wolfPlayer=ps.length?ps[Math.floor(Math.random()*ps.length)].uid:"";
+   gameData.civilianWord=p.c;
+   gameData.wolfWord=p.w;
+   gameData.wolfUid=wolfPlayer;
+ }
  if(g.id==="indianpoker"){gameData.oppCard=1+Math.floor(Math.random()*10);gameData.myCard=1+Math.floor(Math.random()*10)}
  if(g.id==="bluff"){gameData.truth=Math.random()<.5}
  if(g.id==="auction"){gameData.prize=150+Math.floor(Math.random()*350)}
@@ -323,6 +341,16 @@ function checkTicTacToeWin(b){
   const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
   for(const [x,y,z] of lines){if(b[x]&&b[x]===b[y]&&b[x]===b[z])return b[x];}
   return 0;
+}
+function checkHitAndBlow(secret, guess){
+  const sStr = String(secret).padStart(3,"0");
+  const gStr = String(guess).padStart(3,"0");
+  let hits = 0, blows = 0;
+  for(let i=0; i<3; i++){
+    if(gStr[i] === sStr[i]) hits++;
+    else if(sStr.includes(gStr[i])) blows++;
+  }
+  return {hits, blows};
 }
 function checkQuoridorWin(p1, p2){
   return Math.floor(p1/5) === 0 ? 1 : (Math.floor(p2/5) === 4 ? 2 : 0);
@@ -400,9 +428,16 @@ function renderGameContent(){
   break;
  }
  case "hitandblow":
- html=`<p class="sub">相手の3桁数字コード (1〜9の重複なし3桁) を推理せよ！</p>
- <input id="hbInput" class="field" maxlength="3" placeholder="例: 472" style="text-align:center;font-size:20px;letter-spacing:6px">
- <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(document.getElementById('hbInput').value)">推測をブロードキャスト</button>`;break;
+ {
+  const hbHist = d.history || [];
+  html=`<p class="sub">相手の3桁数字コード (1〜9の重複なし3桁) を論理的に推理せよ！</p>
+  <div style="max-height:120px;overflow-y:auto;background:#0d101a;padding:8px;border-radius:10px;margin-bottom:8px">
+    ${hbHist.map(h=>`<div class="row between tiny" style="padding:4px 0;border-bottom:1px solid #1f253d"><span>推測: <b>${h.guess}</b></span><span class="chip">${h.hits} HIT / ${h.blows} BLOW</span></div>`).join("") || '<div class="tiny muted" style="text-align:center">まだ推測履歴がありません</div>'}
+  </div>
+  <input id="hbInput" class="field" maxlength="3" placeholder="例: 472" style="text-align:center;font-size:20px;letter-spacing:6px">
+  <button class="btn primary" style="width:100%;margin-top:10px" onclick="handleHitAndBlowSubmit()">推理コードを送信</button>`;
+  break;
+ }
  case "indianpoker":
  html=`<div style="text-align:center">
    <div class="tiny muted">相手の額のカード (あなたの視点)</div>
@@ -442,12 +477,16 @@ function renderGameContent(){
  case "blackjack":
  html=`<div class="muted tiny">YOUR HAND</div><div>${d.player.map(cardHTML).join("")}</div><div class="muted tiny">合計 ${handValue(d.player)}</div><div class="choices"><button class="choice" onclick="submitChoice('hit')">HIT</button><button class="choice" onclick="submitChoice('stand')">STAND</button></div>`;break;
  case "wordwolf":
- html=`<div class="notice">あなたに配られたお題：<strong style="font-size:20px;color:var(--gold)">${me?.host?d.civilian:(Math.random()<0.3?d.wolf:d.civilian)}</strong></div>
- <p class="sub">会話のズレやニュアンスから少数派の「ウルフ」を見抜いて投票せよ！</p>
- <div class="choices">
-   ${currentPlayers().filter(p=>p.uid!==state.uid).map(p=>`<button class="choice" onclick="submitChoice('${p.uid}')">${escapeHtml(p.name)} に投票</button>`).join("")}
-   <button class="choice" onclick="submitChoice('self')">自分はシビリアン</button>
- </div>`;break;
+ {
+  const myWord = me?.uid === d.wolfUid ? d.wolfWord : d.civilianWord;
+  html=`<div class="notice good">あなたに配られたお題：<strong style="font-size:20px;color:var(--gold)">${escapeHtml(myWord)}</strong></div>
+  <p class="sub">会話のズレやニュアンスから少数派の「ウルフ」を見抜いて投票せよ！</p>
+  <div class="choices">
+    ${currentPlayers().filter(p=>p.uid!==state.uid).map(p=>`<button class="choice" onclick="submitChoice('${p.uid}')">${escapeHtml(p.name)} に投票</button>`).join("")}
+    <button class="choice gold" onclick="submitChoice('innocent')">自分はシビリアンと主張</button>
+  </div>`;
+  break;
+ }
  case "majority":
  html=`<h3 style="text-align:center">${d.question}</h3>
  <p class="sub" style="text-align:center">全員の過半数(多数派)と同じ選択肢を選べば勝利！</p>
@@ -469,17 +508,27 @@ function renderGameContent(){
  <input id="mathChoice" class="field" type="number" placeholder="答えを入力" style="text-align:center;font-size:22px">
  <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('mathChoice').value))">解答送信</button></div>`;break;
  case "memory":
- html=`<p class="sub">4ペア(8枚)のカード位置を記憶してペアを揃えろ！</p>
- <div class="choices">${(d.deck||[]).map((c,i)=>`<button class="choice" style="font-size:24px;height:54px" onclick="flipMemory(${i})">${(d.flipped||[]).includes(i)||(d.matched||[]).includes(i)?c:"❔"}</button>`).join("")}</div>
- <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice((state.room.gameData.matched||[]).length)">獲得ペア数で確定</button>`;break;
+ {
+  const matchedCount = (d.matched || []).length / 2;
+  html=`<p class="sub">4ペア(8枚)のカード位置を記憶してペアを揃えろ！ (現在ペア: ${matchedCount}/4)</p>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:320px;margin:12px auto">
+    ${(d.deck||[]).map((c,i)=>`<button class="choice" style="font-size:24px;height:64px;padding:0" onclick="flipMemory(${i})">${(d.flipped||[]).includes(i)||(d.matched||[]).includes(i)?c:"❔"}</button>`).join("")}
+  </div>
+  <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(matchedCount)">獲得ペア数 (${matchedCount}) で確定</button>`;
+  break;
+ }
  case "mastermind":
- html=`<p class="sub">3つのカラーコード (1〜4の組み合わせ) を解読せよ！</p>
- <div class="choices">
-   <button class="choice" onclick="submitChoice('123')">🔴 🟡 🟢</button>
-   <button class="choice" onclick="submitChoice('234')">🟡 🟢 🔵</button>
-   <button class="choice" onclick="submitChoice('341')">🟢 🔵 🔴</button>
-   <button class="choice gold" onclick="submitChoice('412')">🔵 🔴 🟡</button>
- </div>`;break;
+ {
+  const mmGuess = d.currentGuess || [1, 1, 1];
+  const colors = ["#ff657a", "#f2c76b", "#6ce0ad", "#75d9f5"];
+  const colorNames = ["赤", "黄", "緑", "青"];
+  html=`<p class="sub">3つのカラーシークエンス (1〜4) を解読せよ！</p>
+  <div class="row" style="justify-content:center;gap:12px;margin:14px 0">
+    ${mmGuess.map((c,i)=>`<div style="width:48px;height:48px;border-radius:12px;background:${colors[c-1]};display:grid;place-items:center;font-weight:900;cursor:pointer;border:2px solid #fff3" onclick="rotateMastermindColor(${i})">${c}</div>`).join("")}
+  </div>
+  <button class="btn primary" style="width:100%" onclick="submitChoice(d.currentGuess.join(''))">このカラーコードでロック</button>`;
+  break;
+ }
  case "reflex":
  html=`<div style="text-align:center;padding:10px">
    <div class="notice">「⚡今だ！」の合図が出たら即座にタップせよ！</div>
