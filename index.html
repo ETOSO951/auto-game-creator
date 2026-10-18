@@ -1417,22 +1417,31 @@ async function joinRoom(code){
  }catch(e){console.error(e);toast("参加できませんでした。Firebase設定を確認してください")}
 }
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch){
+async function updateRoom(patch, maxRetries = 3){
  if(state.local){state.room={...state.room,...patch};return}
  if(!state.roomRef)throw new Error("No room");
- try {
-   await db.runTransaction(async (transaction) => {
-     const doc = await transaction.get(state.roomRef);
-     if(!doc.exists) throw new Error("Room does not exist");
-     transaction.update(state.roomRef, patch);
-   });
- } catch(e) {
-   console.error("Transaction failed: ", e);
-   await state.roomRef.update(patch);
+ let attempt = 0;
+ while(attempt < maxRetries) {
+   try {
+     await db.runTransaction(async (transaction) => {
+       const doc = await transaction.get(state.roomRef);
+       if(!doc.exists) throw new Error("Room does not exist");
+       transaction.update(state.roomRef, patch);
+     });
+     return;
+   } catch(e) {
+     attempt++;
+     if(attempt >= maxRetries) {
+       console.error("Transaction failed after retries: ", e);
+       await state.roomRef.set(patch, { merge: true }).catch(err => console.error(err));
+     } else {
+       await new Promise(r => setTimeout(r, 100 * attempt));
+     }
+   }
  }
 }
 
-async function updateMyPlayer(patch){
+async function updateMyPlayer(patch, maxRetries = 3){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -1441,15 +1450,25 @@ async function updateMyPlayer(patch){
    if(state.room.status==="lobby")renderLobby();else renderDay();
    return;
  }
- try {
-   await db.runTransaction(async (transaction) => {
-     const doc = await transaction.get(state.roomRef);
-     if(!doc.exists) throw new Error("Room does not exist");
-     transaction.update(state.roomRef, {["players."+state.uid]: updated});
-   });
- } catch(e) {
-   console.error("Player update transaction failed: ", e);
-   await state.roomRef.update({["players."+state.uid]:updated});
+ if(!state.roomRef) return;
+ let attempt = 0;
+ while(attempt < maxRetries) {
+   try {
+     await db.runTransaction(async (transaction) => {
+       const doc = await transaction.get(state.roomRef);
+       if(!doc.exists) throw new Error("Room does not exist");
+       transaction.update(state.roomRef, {["players."+state.uid]: updated});
+     });
+     return;
+   } catch(e) {
+     attempt++;
+     if(attempt >= maxRetries) {
+       console.error("Player update transaction failed: ", e);
+       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error(err));
+     } else {
+       await new Promise(r => setTimeout(r, 100 * attempt));
+     }
+   }
  }
 }
 function renderLobby(){
@@ -1688,22 +1707,31 @@ async function joinRoom(code){
 }
 
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch){
+async function updateRoom(patch, maxRetries = 3){
  if(state.local){state.room={...state.room,...patch};return}
  if(!state.roomRef)throw new Error("No room");
- try {
-   await db.runTransaction(async (transaction) => {
-     const doc = await transaction.get(state.roomRef);
-     if(!doc.exists) throw new Error("Room does not exist");
-     transaction.update(state.roomRef, patch);
-   });
- } catch(e) {
-   console.error("Transaction failed: ", e);
-   await state.roomRef.update(patch);
+ let attempt = 0;
+ while(attempt < maxRetries) {
+   try {
+     await db.runTransaction(async (transaction) => {
+       const doc = await transaction.get(state.roomRef);
+       if(!doc.exists) throw new Error("Room does not exist");
+       transaction.update(state.roomRef, patch);
+     });
+     return;
+   } catch(e) {
+     attempt++;
+     if(attempt >= maxRetries) {
+       console.error("Transaction failed after retries: ", e);
+       await state.roomRef.set(patch, { merge: true }).catch(err => console.error(err));
+     } else {
+       await new Promise(r => setTimeout(r, 100 * attempt));
+     }
+   }
  }
 }
 
-async function updateMyPlayer(patch){
+async function updateMyPlayer(patch, maxRetries = 3){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -1712,15 +1740,25 @@ async function updateMyPlayer(patch){
    if(state.room.status==="lobby")renderLobby();else renderDay();
    return;
  }
- try {
-   await db.runTransaction(async (transaction) => {
-     const doc = await transaction.get(state.roomRef);
-     if(!doc.exists) throw new Error("Room does not exist");
-     transaction.update(state.roomRef, {["players."+state.uid]: updated});
-   });
- } catch(e) {
-   console.error("Player update transaction failed: ", e);
-   await state.roomRef.update({["players."+state.uid]:updated});
+ if(!state.roomRef) return;
+ let attempt = 0;
+ while(attempt < maxRetries) {
+   try {
+     await db.runTransaction(async (transaction) => {
+       const doc = await transaction.get(state.roomRef);
+       if(!doc.exists) throw new Error("Room does not exist");
+       transaction.update(state.roomRef, {["players."+state.uid]: updated});
+     });
+     return;
+   } catch(e) {
+     attempt++;
+     if(attempt >= maxRetries) {
+       console.error("Player update transaction failed: ", e);
+       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error(err));
+     } else {
+       await new Promise(r => setTimeout(r, 100 * attempt));
+     }
+   }
  }
 }
 
@@ -2330,22 +2368,31 @@ async function joinRoom(code){
  }catch(e){console.error(e);toast("参加できませんでした。Firebase設定を確認してください")}
 }
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch){
+async function updateRoom(patch, maxRetries = 3){
  if(state.local){state.room={...state.room,...patch};return}
  if(!state.roomRef)throw new Error("No room");
- try {
-   await db.runTransaction(async (transaction) => {
-     const doc = await transaction.get(state.roomRef);
-     if(!doc.exists) throw new Error("Room does not exist");
-     transaction.update(state.roomRef, patch);
-   });
- } catch(e) {
-   console.error("Transaction failed: ", e);
-   await state.roomRef.update(patch);
+ let attempt = 0;
+ while(attempt < maxRetries) {
+   try {
+     await db.runTransaction(async (transaction) => {
+       const doc = await transaction.get(state.roomRef);
+       if(!doc.exists) throw new Error("Room does not exist");
+       transaction.update(state.roomRef, patch);
+     });
+     return;
+   } catch(e) {
+     attempt++;
+     if(attempt >= maxRetries) {
+       console.error("Transaction failed after retries: ", e);
+       await state.roomRef.set(patch, { merge: true }).catch(err => console.error(err));
+     } else {
+       await new Promise(r => setTimeout(r, 100 * attempt));
+     }
+   }
  }
 }
 
-async function updateMyPlayer(patch){
+async function updateMyPlayer(patch, maxRetries = 3){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -2354,15 +2401,25 @@ async function updateMyPlayer(patch){
    if(state.room.status==="lobby")renderLobby();else renderDay();
    return;
  }
- try {
-   await db.runTransaction(async (transaction) => {
-     const doc = await transaction.get(state.roomRef);
-     if(!doc.exists) throw new Error("Room does not exist");
-     transaction.update(state.roomRef, {["players."+state.uid]: updated});
-   });
- } catch(e) {
-   console.error("Player update transaction failed: ", e);
-   await state.roomRef.update({["players."+state.uid]:updated});
+ if(!state.roomRef) return;
+ let attempt = 0;
+ while(attempt < maxRetries) {
+   try {
+     await db.runTransaction(async (transaction) => {
+       const doc = await transaction.get(state.roomRef);
+       if(!doc.exists) throw new Error("Room does not exist");
+       transaction.update(state.roomRef, {["players."+state.uid]: updated});
+     });
+     return;
+   } catch(e) {
+     attempt++;
+     if(attempt >= maxRetries) {
+       console.error("Player update transaction failed: ", e);
+       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error(err));
+     } else {
+       await new Promise(r => setTimeout(r, 100 * attempt));
+     }
+   }
  }
 }
 function renderLobby(){
@@ -3182,7 +3239,10 @@ function renderLocalResult(msg,win,delta){
  setGameMessage("チップを精算しました。");$("finishGameBtn").classList.remove("hidden");$("finishGameBtn").textContent=state.room.day===4?"最終結果を見る":"次の日へ進む";$("myChips").textContent=state.room.players[state.uid].chips.toLocaleString();$("myBet").textContent=state.room.players[state.uid].bet.toLocaleString();$("dayLeaderboard").innerHTML=sortedPlayers().map((p,i)=>`<div class="result-rank"><b>${i+1}. ${escapeHtml(p.name)}</b><span class="chip">${p.chips.toLocaleString()} ◈</span></div>`).join("");
 }
 async function resolveOnlineGame(){
- const g=gameForDay(),d=state.room.gameData||{},ps=Object.values(state.room.players||{});let resultText=[];
+ if(!state.isHost) return;
+ const g=gameForDay(),d=state.room.gameData||{},ps=Object.values(state.room.players||{});
+ if(state.room.roundStatus === "result") return; // 重複集計防止
+ let resultText=[];
  const players={...state.room.players};
 
  for(const p of ps){
@@ -3225,7 +3285,7 @@ function renderReversi(){
  s.black=s.board.filter(v=>v===1).length;s.white=s.board.filter(v=>v===2).length;$("reversiInfo").textContent=`あなた（黒） ${s.black}　CPU（白） ${s.white}`;
 }
 function handleConnect4Click(col){
- if(!state.room?.gameData) return;
+ if(!state.room || !state.room.gameData) return;
  const d = JSON.parse(JSON.stringify(state.room.gameData));
  if(d.winner) return;
  const grid = d.grid || Array(42).fill(0);
@@ -3269,7 +3329,7 @@ function handleConnect4Click(col){
 }
 
 function handleGomokuClick(i){
- if(!state.room?.gameData) return;
+ if(!state.room || !state.room.gameData) return;
  const d = JSON.parse(JSON.stringify(state.room.gameData));
  if(d.winner) return;
  const board = d.board || Array(81).fill(0);
@@ -3305,7 +3365,7 @@ function handleGomokuClick(i){
 }
 
 function handleTicTacToeClick(i){
- if(!state.room?.gameData) return;
+ if(!state.room || !state.room.gameData) return;
  const d = JSON.parse(JSON.stringify(state.room.gameData));
  if(d.winner) return;
  const b = d.board || Array(9).fill(0);
@@ -3404,7 +3464,7 @@ function handleDotsClick(type, idx) {
 }
 
 function handleQuoridorMove(targetIdx) {
- if(!state.room?.gameData) return;
+ if(!state.room || !state.room.gameData) return;
  const d = JSON.parse(JSON.stringify(state.room.gameData));
  const turn = d.turn || 1;
  const p1 = d.p1 !== undefined ? d.p1 : 22;
@@ -3463,7 +3523,7 @@ function handleQuoridorMove(targetIdx) {
 }
 
 function handleMancalaClick(pitIndex) {
- if(!state.room?.gameData) return;
+ if(!state.room || !state.room.gameData) return;
  if(pitIndex >= 4) {
    toast("自分のポケット(前半0〜3)を選択してください");
    return;
