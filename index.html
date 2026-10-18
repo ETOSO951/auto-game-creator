@@ -908,6 +908,7 @@ function handleDotsClick(type, idx) {
      setTimeout(() => {
        if(!state.room || !state.room.gameData) return;
        const curD = state.room.gameData;
+       if(curD.turn !== 2) return;
        const availH = (curD.hLines || []).map((val, i) => val === 0 ? i : null).filter(i => i !== null);
        const availV = (curD.vLines || []).map((val, i) => val === 0 ? i : null).filter(i => i !== null);
        if(availH.length || availV.length) {
@@ -917,7 +918,7 @@ function handleDotsClick(type, idx) {
            handleDotsClick('v', availV[Math.floor(Math.random() * availV.length)]);
          }
        }
-     }, 300);
+     }, 350);
    }
  }
  if(state.local) { state.room.gameData = d; renderGameContent(); }
@@ -947,6 +948,7 @@ function handleQuoridorMove(targetIdx) {
    d.winner = winCode;
    state.room.gameData = d;
    renderGameContent();
+   toast(winCode === 1 ? "コリドール制覇！ゴール到達！" : "相手にゴールを許した…");
    submitChoice(winCode === 1 ? "win" : "lose");
    return;
  }
@@ -956,21 +958,27 @@ function handleQuoridorMove(targetIdx) {
  if(state.local && d.turn === 2) {
    setTimeout(() => {
      if(!state.room || !state.room.gameData) return;
-     const cp2 = state.room.gameData.p2;
+     const curD = state.room.gameData;
+     if(curD.turn !== 2) return;
+     const cp2 = curD.p2;
      const cr = Math.floor(cp2 / 5), cc = cp2 % 5;
      const candidates = [
        {r: cr + 1, c: cc}, {r: cr, c: cc - 1}, {r: cr, c: cc + 1}, {r: cr - 1, c: cc}
      ].filter(p => p.r >= 0 && p.r < 5 && p.c >= 0 && p.c < 5);
      if(candidates.length) {
        const pick = candidates[Math.floor(Math.random() * candidates.length)];
-       state.room.gameData.p2 = pick.r * 5 + pick.c;
+       curD.p2 = pick.r * 5 + pick.c;
      }
-     const w2 = checkQuoridorWin(state.room.gameData.p1, state.room.gameData.p2);
-     if(w2 > 0) state.room.gameData.winner = w2;
-     state.room.gameData.turn = 1;
+     const w2 = checkQuoridorWin(curD.p1, curD.p2);
+     if(w2 > 0) curD.winner = w2;
+     curD.turn = 1;
+     state.room.gameData = curD;
      renderGameContent();
-     if(w2 > 0) submitChoice(w2 === 1 ? "win" : "lose");
-   }, 350);
+     if(w2 > 0) {
+       toast(w2 === 1 ? "勝利！" : "敗北…");
+       submitChoice(w2 === 1 ? "win" : "lose");
+     }
+   }, 400);
  }
 
  if(state.local) { state.room.gameData = d; renderGameContent(); }
@@ -979,6 +987,10 @@ function handleQuoridorMove(targetIdx) {
 
 function handleMancalaClick(pitIndex) {
  if(!state.room?.gameData) return;
+ if(pitIndex >= 4) {
+   toast("自分のポケット(前半0〜3)を選択してください");
+   return;
+ }
  const d = JSON.parse(JSON.stringify(state.room.gameData));
  const pits = d.pits || [4,4,4,4,4,4,4,4];
  let stones = pits[pitIndex];
@@ -1008,7 +1020,6 @@ function handleMancalaClick(pitIndex) {
  if(state.local) {
    state.room.gameData = d;
    renderGameContent();
-   // AI reply for Mancala
    setTimeout(() => {
      if(!state.room || !state.room.gameData) return;
      const cpuPits = state.room.gameData.pits;
@@ -1026,7 +1037,7 @@ function handleMancalaClick(pitIndex) {
        state.room.gameData.pits = cpuPits;
        renderGameContent();
      }
-   }, 400);
+   }, 500);
  } else {
    updateRoom({gameData: d});
  }
