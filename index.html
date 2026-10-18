@@ -924,7 +924,7 @@ function reversiMove(i){
 }
 function handleDotsClick(type, idx) {
  if(!state.room?.gameData) return;
- const d = state.room.gameData;
+ const d = JSON.parse(JSON.stringify(state.room.gameData));
  const h = d.hLines ? [...d.hLines] : Array(12).fill(0);
  const v = d.vLines ? [...d.vLines] : Array(12).fill(0);
  const b = d.boxes ? [...d.boxes] : Array(9).fill(0);
@@ -980,7 +980,7 @@ function handleDotsClick(type, idx) {
 
 function handleQuoridorMove(targetIdx) {
  if(!state.room?.gameData) return;
- const d = state.room.gameData;
+ const d = JSON.parse(JSON.stringify(state.room.gameData));
  const turn = d.turn || 1;
  const p1 = d.p1 !== undefined ? d.p1 : 22;
  const p2 = d.p2 !== undefined ? d.p2 : 2;
@@ -999,12 +999,10 @@ function handleQuoridorMove(targetIdx) {
  const winCode = checkQuoridorWin(d.p1, d.p2);
  if(winCode > 0) {
    d.winner = winCode;
-   if(state.local) {
-     state.room.gameData = d;
-     renderGameContent();
-     submitChoice(winCode === 1 ? "win" : "lose");
-     return;
-   }
+   state.room.gameData = d;
+   renderGameContent();
+   submitChoice(winCode === 1 ? "win" : "lose");
+   return;
  }
 
  d.turn = turn === 1 ? 2 : 1;
