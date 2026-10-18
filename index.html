@@ -2,3513 +2,397 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>BLOCK DUNGEONS: HACK & SLASH</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#080912">
+<title>FATE CASINO — 5 DAYS</title>
 <style>
-  :root {
-    --bg-dark: #05070a;
-    --panel-bg: rgba(12, 16, 26, 0.78);
-    --panel-border: rgba(240, 194, 101, 0.28);
-    --border-gold: #f0c265;
-    --rare-common: #a0aab2;
-    --rare-rare: #3498db;
-    --rare-unique: #f39c12;
-    --accent: #2ecc71;
-    --hp-red: #ff4757;
-    --xp-green: #2ed573;
-    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    font-family: 'Segoe UI', Roboto, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
-  }
-
-  html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #000;
-    color: #fff;
-    touch-action: none;
-  }
-
-  #game-container {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    background: var(--bg-dark);
-  }
-
-  canvas#gameCanvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-    z-index: 1;
-  }
-
-  /* HUD Overlay (引き算の美学に基づく洗練されたレイアウト・常時情報ノイズの軽減) */
-  #hud {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10;
-    pointer-events: none;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: env(safe-area-inset-top, 16px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 16px) env(safe-area-inset-left, 16px);
-    transition: opacity 0.4s ease;
-  }
-
-  .top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .stats-card {
-    background: linear-gradient(135deg, rgba(16, 20, 32, 0.65), rgba(6, 9, 16, 0.75));
-    border: 1px solid rgba(240, 194, 101, 0.15);
-    border-radius: 14px;
-    padding: 10px 14px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 170px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.3s ease, opacity 0.3s ease;
-  }
-  .stats-card:not(:hover) {
-    opacity: 0.88;
-  }
-  @keyframes goldGlowPulse {
-    0% { border-color: rgba(229, 184, 92, 0.22); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.15); }
-    100% { border-color: rgba(240, 194, 101, 0.48); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85), 0 0 20px rgba(229, 184, 92, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
-  }
-  .stats-card.hp-damaged {
-    animation: hpDamagePulse 0.4s ease;
-  }
-  @keyframes hpDamagePulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.04); border-color: #ff4757; box-shadow: 0 0 25px rgba(255, 71, 87, 0.6); }
-  }
-  .stats-card:hover {
-    border-color: rgba(229, 184, 92, 0.6);
-    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.85), 0 0 24px rgba(229, 184, 92, 0.2);
-  }
-
-  .bar-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-  }
-
-  .bar-outer {
-    flex: 1;
-    height: 10px;
-    background: rgba(0,0,0,0.65);
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.12);
-    position: relative;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
-  }
-
-  .bar-inner {
-    height: 100%;
-    position: absolute;
-    top: 0; left: 0;
-    transition: width 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-    border-radius: 6px;
-    overflow: hidden;
-  }
-  .bar-delay {
-    height: 100%;
-    position: absolute;
-    top: 0; left: 0;
-    background: rgba(255, 255, 255, 0.45);
-    transition: width 0.75s cubic-bezier(0.25, 1, 0.5, 1);
-    border-radius: 6px;
-  }
-  .bar-inner::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
-    animation: barShimmer 2.4s infinite linear;
-  }
-  @keyframes barShimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-  .bar-hp { background: linear-gradient(90deg, #e74c3c, #ff6b6b); }
-  .bar-xp { background: linear-gradient(90deg, #27ae60, #2ecc71); }
-
-  .floor-badge {
-    background: linear-gradient(135deg, rgba(243, 156, 18, 0.9), rgba(211, 84, 0, 0.9));
-    padding: 7px 16px;
-    border-radius: 20px;
-    font-weight: 900;
-    font-size: 13px;
-    border: 1px solid rgba(255, 204, 0, 0.6);
-    box-shadow: 0 4px 18px rgba(243, 156, 18, 0.35);
-    letter-spacing: 0.8px;
-    backdrop-filter: blur(8px);
-    text-transform: uppercase;
-  }
-
-  .currency-panel {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--panel-bg);
-    padding: 7px 14px;
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.12);
-    font-size: 13px;
-    font-weight: 800;
-    backdrop-filter: blur(16px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  }
-  .emerald-val { color: #2ecc71; display: flex; align-items: center; gap: 5px; text-shadow: 0 0 10px rgba(46, 204, 113, 0.5); }
-  .emerald-val::before { content: "◆"; color: #2ecc71; font-size: 13px; }
-
-  /* Controls (アイドル時完全透明化＆ミニマルフェードによる引き算の美学の極致) */
-  #touch-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    width: 100%;
-    margin-bottom: 8px;
-    pointer-events: auto;
-    opacity: 1;
-    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  #touch-controls.idle {
-    opacity: 0.12;
-    transform: translateY(6px);
-  }
-  #touch-controls:hover, #touch-controls.active {
-    opacity: 1.0;
-    transform: translateY(0);
-  }
-
-  #joystick-zone {
-    width: 160px;
-    height: 160px;
-    position: relative;
-    margin-left: 10px;
-    touch-action: none;
-  }
-  #joystick-base {
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, rgba(10,14,26,0.45) 80%);
-    border: 1.5px solid rgba(255,255,255,0.15);
-    position: absolute;
-    top: 25px;
-    left: 25px;
-    backdrop-filter: blur(6px);
-    transition: opacity 0.25s ease, border-color 0.25s ease;
-    pointer-events: none;
-    box-shadow: inset 0 0 12px rgba(0,0,0,0.4);
-  }
-  #joystick-stick {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, rgba(52, 152, 219, 0.75), rgba(41, 128, 185, 0.75));
-    border: 2px solid rgba(255,255,255,0.75);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.5), 0 0 10px rgba(52, 152, 219, 0.3);
-    position: absolute;
-    top: 55px;
-    left: 55px;
-    pointer-events: none;
-    transform: translate(0, 0);
-    transition: background 0.25s ease;
-  }
-
-  .action-buttons {
-    display: grid;
-    grid-template-columns: repeat(3, 62px);
-    grid-gap: 12px;
-    margin-right: 10px;
-    align-items: center;
-  }
-
-  .btn-action {
-    width: 62px;
-    height: 62px;
-    border-radius: 50%;
-    background: rgba(12, 16, 26, 0.65);
-    border: 1.5px solid rgba(255,255,255,0.12);
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-size: 10px;
-    font-weight: 800;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    touch-action: manipulation;
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.18s var(--ease-spring), border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-  }
-  .btn-action:active { transform: scale(0.86); }
-  .btn-action .icon { font-size: 20px; line-height: 1; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6)); transition: transform 0.2s var(--ease-spring); }
-  .btn-action:active .icon { transform: scale(1.15); }
-  .btn-action.attack-btn {
-    width: 76px;
-    height: 76px;
-    background: linear-gradient(135deg, rgba(255, 71, 87, 0.95), rgba(214, 48, 49, 0.95));
-    border-color: rgba(255, 118, 117, 0.85);
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    box-shadow: 0 10px 32px rgba(255, 71, 87, 0.5), inset 0 1px 0 rgba(255,255,255,0.3);
-  }
-  .btn-action.attack-btn:hover {
-    box-shadow: 0 12px 38px rgba(255, 71, 87, 0.65), inset 0 1px 0 rgba(255,255,255,0.4);
-  }
-  .btn-action .cooldown-overlay {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(6, 8, 14, 0.78);
-    backdrop-filter: blur(4px);
-    transform-origin: bottom;
-    transform: scaleY(0);
-    pointer-events: none;
-    transition: transform 0.1s cubic-bezier(0, 0, 0.2, 1);
-  }
-
-  /* バイオーム遷移・シネマティックトランジション用オーバーレイ */
-  #biome-transition-overlay {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none;
-    z-index: 95;
-    opacity: 0;
-    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  /* Modals (シネマティック・フェード＆ライトリーク演出、極上のブラーと立体深度) */
-  .modal-screen {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at center, rgba(5, 7, 14, 0.88) 0%, rgba(2, 3, 6, 0.94) 100%);
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-    text-align: center;
-    opacity: 1;
-    transition: opacity 0.5s var(--ease-smooth), backdrop-filter 0.5s ease;
-  }
-  .modal-screen::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle at 30% 20%, rgba(52, 152, 219, 0.06) 0%, transparent 70%);
-    pointer-events: none;
-    animation: cinematicVignettePulse 8s ease-in-out infinite alternate;
-  }
-  @keyframes cinematicVignettePulse {
-    0% { opacity: 0.4; transform: scale(0.98); }
-    100% { opacity: 0.9; transform: scale(1.03); }
-  }
-  .modal-screen::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle at 50% 30%, rgba(240, 194, 101, 0.08) 0%, transparent 60%);
-    pointer-events: none;
-    animation: bgLightLeak 6s ease-in-out infinite alternate;
-  }
-  @keyframes bgLightLeak {
-    0% { opacity: 0.5; transform: scale(0.95); }
-    100% { opacity: 1.0; transform: scale(1.05); }
-  }
-  .modal-screen[style*="display: none"] {
-    opacity: 0;
-    pointer-events: none;
-    backdrop-filter: blur(0px);
-    -webkit-backdrop-filter: blur(0px);
-  }
-  .modal-box {
-    background: linear-gradient(145deg, rgba(24, 32, 50, 0.96), rgba(8, 12, 20, 0.99));
-    border: 2px solid rgba(240, 194, 101, 0.5);
-    border-radius: 32px;
-    padding: 40px 34px;
-    max-width: 460px;
-    width: 92%;
-    box-shadow: 0 40px 100px rgba(0,0,0,0.95), 0 0 60px rgba(229,184,92,0.3), inset 0 1px 0 rgba(255,255,255,0.25);
-    animation: modalPopCinematic 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.25) forwards;
-    position: relative;
-    overflow: hidden;
-  }
-  @keyframes modalPopCinematic {
-    0% { transform: scale(0.78) translateY(30px); opacity: 0; filter: blur(8px); }
-    100% { transform: scale(1) translateY(0); opacity: 1; filter: blur(0px); }
-  }
-  .modal-box::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg, transparent, rgba(240, 194, 101, 0.08), transparent);
-    transform: rotate(45deg);
-    animation: shineSweep 4.5s infinite linear;
-    pointer-events: none;
-  }
-  @keyframes modalPop {
-    0% { transform: scale(0.82) translateY(20px); opacity: 0; }
-    100% { transform: scale(1) translateY(0); opacity: 1; }
-  }
-  @keyframes shineSweep {
-    0% { transform: translateX(-100%) rotate(45deg); }
-    100% { transform: translateX(100%) rotate(45deg); }
-  }
-  .modal-title {
-    font-size: 30px;
-    font-weight: 900;
-    margin-bottom: 12px;
-    background: linear-gradient(135deg, #fff 30%, #ffd166 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: 1.5px;
-    filter: drop-shadow(0 4px 16px rgba(240,194,101,0.3));
-    animation: titleBreath 3.5s ease-in-out infinite alternate;
-  }
-  @keyframes titleBreath {
-    0% { transform: scale(1); filter: drop-shadow(0 4px 16px rgba(240,194,101,0.25)); }
-    100% { transform: scale(1.02); filter: drop-shadow(0 6px 24px rgba(240,194,101,0.45)); }
-  }
-  .modal-desc {
-    font-size: 13px;
-    color: #a0aec0;
-    line-height: 1.7;
-    margin-bottom: 24px;
-  }
-  .primary-btn {
-    background: linear-gradient(135deg, #2ecc71, #27ae60);
-    border: 1px solid #74f2a7;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 800;
-    padding: 13px 32px;
-    border-radius: 30px;
-    cursor: pointer;
-    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.35);
-    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s ease;
-  }
-  .primary-btn:active { transform: scale(0.94); }
-
-  /* Equipment / Inventory UI */
-  #inv-toggle-btn {
-    pointer-events: auto;
-    background: var(--panel-bg);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: #ffd166;
-    padding: 7px 14px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 800;
-    cursor: pointer;
-    backdrop-filter: blur(12px);
-    transition: transform 0.15s var(--ease-spring);
-  }
-  #inv-toggle-btn:active { transform: scale(0.92); }
-
-  /* Inventory Modal with Master-Detail Single-View Minimalism */
-  #inventory-modal {
-    display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.92);
-    width: 92%;
-    max-width: 480px;
-    max-height: 85vh;
-    background: linear-gradient(145deg, rgba(14, 20, 32, 0.98), rgba(6, 9, 16, 0.99));
-    border: 1.5px solid rgba(240, 194, 101, 0.45);
-    border-radius: 28px;
-    z-index: 110;
-    padding: 26px;
-    box-shadow: 0 40px 100px rgba(0,0,0,0.96), 0 0 60px rgba(229,184,92,0.18), inset 0 1px 0 rgba(255,255,255,0.2);
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    flex-direction: column;
-    gap: 16px;
-    overflow-y: auto;
-    opacity: 0;
-    transition: transform 0.35s var(--ease-spring), opacity 0.35s var(--ease-smooth);
-  }
-  #inventory-modal.open {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-  }
-  .inv-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    padding-bottom: 12px;
-  }
-  .inv-master-detail {
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-gap: 14px;
-  }
-  @media(min-width: 400px) {
-    .inv-master-detail {
-      grid-template-columns: 1fr 1.2fr;
-    }
-  }
-  .inv-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-gap: 8px;
-    max-height: 210px;
-    overflow-y: auto;
-    padding-right: 4px;
-  }
-  .item-slot {
-    aspect-ratio: 1;
-    background: rgba(0,0,0,0.45);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    position: relative;
-    cursor: pointer;
-    padding: 6px;
-    text-align: center;
-    transition: transform 0.18s var(--ease-spring), border-color 0.25s ease, box-shadow 0.25s ease;
-  }
-  .item-slot:active { transform: scale(0.92); }
-  .item-slot.common { border-color: rgba(160, 170, 178, 0.4); }
-  .item-slot.rare { border-color: rgba(52, 152, 219, 0.6); box-shadow: 0 0 12px rgba(52, 152, 219, 0.22); }
-  .item-slot.unique { border-color: rgba(243, 156, 18, 0.75); box-shadow: 0 0 20px rgba(243, 156, 18, 0.45); animation: uniqueGlowPulse 2.5s infinite alternate; }
-  @keyframes uniqueGlowPulse {
-    0% { box-shadow: 0 0 12px rgba(243, 156, 18, 0.3); border-color: rgba(243, 156, 18, 0.6); }
-    100% { box-shadow: 0 0 24px rgba(243, 156, 18, 0.65), inset 0 0 8px rgba(243, 156, 18, 0.2); border-color: rgba(255, 215, 0, 0.9); }
-  }
-  .item-slot.equipped::after {
-    content: "装備中";
-    position: absolute;
-    bottom: 4px;
-    font-size: 7px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #e67e22, #d35400);
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 4px;
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 6px rgba(230,126,34,0.5);
-  }
-
-  .loot-alert {
-    position: absolute;
-    top: 75px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(10, 14, 26, 0.9);
-    border: 1.5px solid var(--border-gold);
-    padding: 7px 20px;
-    border-radius: 30px;
-    font-size: 12px;
-    font-weight: 800;
-    color: #ffde59;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s, transform 0.3s var(--ease-spring);
-    z-index: 50;
-    white-space: nowrap;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-    backdrop-filter: blur(12px);
-  }
-
-  /* Help info PC */
-  .pc-hint {
-    font-size: 11px;
-    color: #718096;
-    margin-top: 14px;
-    line-height: 1.5;
-  }
+:root{--bg:#080912;--panel:#121522;--panel2:#191d2d;--gold:#f2c76b;--gold2:#a8792b;--text:#f7f3e8;--muted:#a5a9bc;--line:#34384b;--red:#ff657a;--green:#6ce0ad;--blue:#75d9f5}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(ellipse at 50% -20%,#29213a 0%,#101322 38%,var(--bg) 72%);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);-webkit-tap-highlight-color:transparent}button,input{font:inherit}button{border:0;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.4;cursor:not-allowed}.app{width:min(100%,760px);margin:auto;padding:14px 14px 28px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.brand{font-weight:950;letter-spacing:.13em;font-size:clamp(18px,5vw,25px)}.brand span{color:var(--gold)}.eyebrow{font-size:10px;letter-spacing:.2em;color:var(--gold);font-weight:800}.pill{border:1px solid #55506a;border-radius:999px;padding:7px 10px;color:var(--muted);font-size:11px}.screen{display:none;animation:appear .25s ease}.screen.active{display:block}@keyframes appear{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}.hero{padding:26px 18px;border:1px solid #5a4a34;border-radius:24px;background:linear-gradient(145deg,#242034dd,#121522f2 65%);box-shadow:0 18px 50px #0005;position:relative;overflow:hidden}.hero:after{content:"✦";position:absolute;right:15px;top:5px;font-size:100px;color:#f2c76b12}.hero h1{font-size:clamp(28px,8vw,46px);line-height:1;margin:10px 0 12px;letter-spacing:-.04em}.hero h1 em{font-style:normal;color:var(--gold)}.sub{color:var(--muted);font-size:13px;line-height:1.7}.actions{display:grid;gap:10px;margin-top:20px}.btn{border-radius:13px;padding:14px 16px;font-weight:850;letter-spacing:.02em;transition:transform .12s,filter .12s}.btn:active{transform:scale(.985)}.primary{background:linear-gradient(135deg,#ffe8a4,#d6a344);color:#211606;box-shadow:0 6px 22px #d8a34325}.secondary{background:#202437;color:var(--text);border:1px solid #3c4158}.danger{background:#3a1d2a;color:#ffb7c1;border:1px solid #713246}.small{padding:9px 12px;font-size:12px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.panel{background:linear-gradient(145deg,#171a29,#10131f);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:13px}.panel h2,.panel h3{margin:0 0 10px}.panel h2{font-size:17px}.panel h3{font-size:14px}.label{display:block;font-size:11px;color:var(--muted);margin:12px 0 6px}.field{width:100%;padding:13px 12px;border:1px solid #3a3e52;border-radius:12px;background:#0b0e18;color:var(--text);outline:none}.field:focus{border-color:var(--gold)}.row{display:flex;align-items:center;gap:10px}.between{justify-content:space-between}.grow{flex:1;min-width:0}.muted{color:var(--muted)}.tiny{font-size:11px}.notice{padding:11px 12px;border-radius:12px;background:#242235;color:#d7d3e8;font-size:12px;line-height:1.6;margin-top:12px}.notice.warn{background:#38272a;color:#ffd0b4}.notice.good{background:#172f2b;color:#a6f0ce}.player-list{display:grid;gap:8px;margin-top:12px}.player{display:flex;align-items:center;gap:10px;background:#1a1e2d;border-radius:12px;padding:10px}.avatar{width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#e9c46a,#8f6225);color:#201708;display:grid;place-items:center;font-weight:950}.player .name{font-weight:750;font-size:13px}.player .meta{font-size:10px;color:var(--muted)}.chip{color:var(--gold);font-weight:850;white-space:nowrap}.progress{height:5px;border-radius:8px;background:#303346;overflow:hidden;margin:12px 0}.progress>i{display:block;height:100%;background:linear-gradient(90deg,#a8792b,#ffe8a4);width:20%;transition:width .3s}.dayline{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:14px 0}.day{padding:9px 2px;border-radius:10px;background:#191d2c;border:1px solid #30354a;text-align:center;font-size:10px;color:var(--muted)}.day b{display:block;font-size:13px;margin-bottom:4px}.day.current{border-color:var(--gold);background:#332b1d;color:#ffe4a1}.day.done{color:var(--green);border-color:#32624f}.game-card{padding:18px;border-radius:20px;border:1px solid #5a4a34;background:radial-gradient(ellipse at top,#32273a,#171a28 65%);text-align:center;margin:14px 0}.game-icon{font-size:42px}.game-card h2{margin:5px 0 4px;font-size:24px}.game-card p{margin:0;color:var(--muted);font-size:12px;line-height:1.6}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:#1b1e2d;border:1px solid #303448;border-radius:13px;padding:11px;text-align:center}.stat .v{font-size:20px;font-weight:900;color:var(--gold)}.stat .k{font-size:10px;color:var(--muted)}.playing-card{display:inline-grid;place-items:center;min-width:88px;height:126px;border-radius:13px;background:linear-gradient(145deg,#fffdf5,#e3e1dc);color:#181923;font-size:35px;font-weight:900;box-shadow:0 8px 22px #0005;margin:6px}.playing-card.red{color:#c72c4b}.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:14px}.choice{border-radius:13px;padding:13px 8px;background:#24283a;border:1px solid #444a62;color:var(--text);font-weight:800}.choice.gold{border-color:#b98a3b;background:#352b1d;color:#ffe4a1}.choice.selected{outline:2px solid var(--gold)}.game-message{min-height:24px;text-align:center;color:var(--gold);font-weight:800;margin:12px 0}.board{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;width:min(100%,360px);margin:12px auto;background:#101c1c;padding:5px;border-radius:10px}.cell{aspect-ratio:1;background:#28745e;border-radius:4px;display:grid;place-items:center;padding:0}.disc{width:76%;height:76%;border-radius:50%;background:#171923;box-shadow:inset 0 -3px 3px #0007}.disc.white{background:#f6f0df}.cell.hint:after{content:"";width:24%;height:24%;border-radius:50%;background:#ffffff55}.hidden{display:none!important}.result-rank{display:flex;align-items:center;justify-content:space-between;padding:12px;background:#1a1e2c;border-radius:12px;margin-top:8px}.result-rank:first-child{border:1px solid #b98a3b}.footer{text-align:center;color:#686d81;font-size:10px;line-height:1.6;margin-top:18px}.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#f2c76b;color:#1c160b;padding:12px 16px;border-radius:12px;font-size:12px;font-weight:850;z-index:9;transition:.2s;max-width:90%;text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}.modal-back{position:fixed;inset:0;background:#000a;z-index:10;display:grid;place-items:center;padding:18px}.modal{width:min(100%,420px);background:#171a29;border:1px solid #655335;border-radius:20px;padding:20px;box-shadow:0 20px 80px #0009}.modal h2{margin-top:0}.modal-actions{display:flex;gap:8px;margin-top:14px}.modal-actions>*{flex:1}
+@media(min-width:600px){.actions{grid-template-columns:1fr 1fr}.hero{padding:34px}.main-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.main-grid .panel{margin-top:0}}
 </style>
 </head>
 <body>
+<div class="app">
+  <header class="top">
+    <div><div class="eyebrow">THE FIVE-DAY TOURNAMENT</div><div class="brand">FATE <span>CASINO</span></div></div>
+    <div class="pill" id="connectionBadge">● LOCAL MODE</div>
+  </header>
 
-<div id="game-container">
-  <canvas id="gameCanvas"></canvas>
-  <div id="biome-transition-overlay"></div>
-
-  <!-- HUD -->
-  <div id="hud">
-    <div class="top-bar">
-      <div class="stats-card">
-        <div class="bar-container">
-          <span style="color:#ff6b6b; width:22px;">HP</span>
-          <div class="bar-outer">
-            <div id="hp-delay" class="bar-delay" style="width: 100%;"></div>
-            <div id="hp-bar" class="bar-inner bar-hp" style="width: 100%;"></div>
-          </div>
-          <span id="hp-text">100/100</span>
-        </div>
-        <div class="bar-container">
-          <span style="color:#2ecc71; width:22px;">XP</span>
-          <div class="bar-outer">
-            <div id="xp-delay" class="bar-delay" style="width: 0%;"></div>
-            <div id="xp-bar" class="bar-inner bar-xp" style="width: 0%;"></div>
-          </div>
-          <span id="lv-text">Lv.1</span>
-        </div>
-      </div>
-
-      <div style="display:flex; gap:8px; align-items:center;">
-        <div class="floor-badge" id="floor-display" style="font-size:11px; padding:5px 12px;">階層 1</div>
-        <div class="currency-panel" style="padding:5px 10px;">
-          <div class="emerald-val" id="emerald-count">0</div>
-        </div>
-        <button id="inv-toggle-btn" onclick="Game.toggleInventory()">装備/鞄</button>
+  <section class="screen active" id="homeScreen">
+    <div class="hero">
+      <div class="eyebrow">PLAY YOUR ODDS</div>
+      <h1>FATE IS<br><em>IN YOUR HANDS.</em></h1>
+      <div class="sub">5日間。毎日違うゲーム。限られたチップ。<br>最後に笑うのは、運か、頭脳か、それとも心理戦か。</div>
+      <div class="actions">
+        <button class="btn primary" id="createBtn">ルームを作成する　↗</button>
+        <button class="btn secondary" id="joinBtn">ルームに参加する</button>
       </div>
     </div>
-    
-    <div id="biome-banner" style="position:absolute; top:75px; left:50%; transform:translateX(-50%) translateY(-10px); font-size:12px; font-weight:900; color:#ffd166; background:linear-gradient(135deg, rgba(20,26,42,0.95), rgba(8,12,20,0.95)); padding:8px 22px; border-radius:20px; border:1.5px solid rgba(240,194,101,0.6); backdrop-filter:blur(16px); pointer-events:none; opacity:0; transition: opacity 0.5s var(--ease-smooth), transform 0.5s var(--ease-spring); box-shadow: 0 14px 40px rgba(0,0,0,0.75), 0 0 25px rgba(240,194,101,0.25);">◆ バイオーム: 通常洞窟 ◆</div>
-
-    <div class="loot-alert" id="lootAlert">レアアイテム獲得！</div>
-
-    <!-- Mobile Virtual Controls (完全オート隠蔽＆ミニマルダイナミックフェード) -->
-    <div id="touch-controls" class="idle" ontouchstart="Game.wakeControls()" onmousemove="Game.wakeControls()">
-      <div id="joystick-zone">
-        <div id="joystick-base"></div>
-        <div id="joystick-stick"></div>
+    <div class="panel">
+      <h2>TOURNAMENT RULES</h2>
+      <div class="stats">
+        <div class="stat"><div class="v">2–8</div><div class="k">PLAYERS</div></div>
+        <div class="stat"><div class="v">05</div><div class="k">DAYS</div></div>
+        <div class="stat"><div class="v">1,000</div><div class="k">START CHIPS</div></div>
       </div>
-
-      <div class="action-buttons">
-        <!-- Artifact 1 -->
-        <button class="btn-action" id="btn-art1" ontouchstart="Game.queueAction('art1')" onclick="Game.queueAction('art1')">
-          <span class="icon" id="icon-art1">⚡</span>
-          <span id="name-art1">雷撃</span>
-          <div class="cooldown-overlay" id="cd-art1"></div>
-        </button>
-
-        <!-- Main Attack -->
-        <button class="btn-action attack-btn" id="btn-attack" ontouchstart="Game.queueAction('attack')" onclick="Game.queueAction('attack')">
-          <span class="icon">⚔️</span>
-          <span>攻撃</span>
-        </button>
-
-        <!-- Artifact 2 (TNT / Blast) -->
-        <button class="btn-action" id="btn-art2" ontouchstart="Game.queueAction('art2')" onclick="Game.queueAction('art2')">
-          <span class="icon" id="icon-art2">💣</span>
-          <span id="name-art2">TNT</span>
-          <div class="cooldown-overlay" id="cd-art2"></div>
-        </button>
-
-        <!-- Potion -->
-        <button class="btn-action" id="btn-heal" style="grid-column: 3;" ontouchstart="Game.queueAction('heal')" onclick="Game.queueAction('heal')">
-          <span class="icon">🧪</span>
-          <span id="potion-count">薬 (2)</span>
-          <div class="cooldown-overlay" id="cd-heal"></div>
-        </button>
-      </div>
+      <div class="notice">対戦ごとにゲームを5種類抽選。重複なしでDAY 01〜05を進み、最終チップ数で順位が決まる。</div>
+      <div class="notice warn">チップはゲーム内専用の仮想ポイントです。現金・換金機能はありません。</div>
     </div>
-  </div>
+    <div class="footer">FATE CASINO · FRIENDS ONLY · NO REAL-MONEY GAMBLING</div>
+  </section>
 
-  <!-- Start Screen -->
-  <div class="modal-screen" id="start-screen">
-    <div class="modal-box" style="transform-origin: center; animation: modalPopCinematic 0.6s var(--ease-spring) forwards;">
-      <div style="font-size:48px; margin-bottom:10px; animation: titleBreath 3.5s ease-in-out infinite alternate; filter: drop-shadow(0 0 20px rgba(240,194,101,0.5));">⛏️⚔️</div>
-      <div class="modal-title">BLOCK DUNGEONS</div>
-      <div class="modal-desc">
-        マイクラライクなブロック世界で繰り広げる本格ハック＆スラッシュ！<br>
-        モンスターを討伐し、強力なレジェンダリー武器とアーティファクトを収集して最下層のボスを目指せ！
-      </div>
-      <button class="primary-btn" onclick="Game.start()" style="transform: scale(1.02); box-shadow: 0 10px 28px rgba(46, 204, 113, 0.45);">ダンジョン潜入</button>
-      <div class="pc-hint">
-        [PC操作] WASD / 矢印: 移動 | J または Space: 攻撃<br>
-        K: 雷撃 | L: TNT | H: ポーション | I: インベントリ
-      </div>
+  <section class="screen" id="lobbyScreen">
+    <div class="row between"><div><div class="eyebrow">WAITING ROOM</div><h1 style="margin:4px 0 0;font-size:28px">LOBBY</h1></div><button class="btn secondary small" id="leaveLobbyBtn">退出</button></div>
+    <div class="panel">
+      <div class="row between"><div><div class="label" style="margin-top:0">ROOM CODE</div><div id="roomCode" style="font-size:30px;font-weight:950;letter-spacing:.18em;color:var(--gold)">------</div></div><button class="btn secondary small" id="copyCodeBtn">コードをコピー</button></div>
+      <div class="label">あなたの名前</div><div class="row"><input id="nameInput" class="field" maxlength="14" placeholder="プレイヤー名"><button id="saveNameBtn" class="btn secondary small">変更</button></div>
+      <div class="row between" style="margin-top:17px"><h2 style="margin:0">PLAYERS</h2><span id="playerCount" class="muted tiny">1 / 8</span></div>
+      <div id="playerList" class="player-list"></div>
+      <div class="notice" id="lobbyHint">ホストが開始すると、5日間のトーナメントが始まります。</div>
+      <div class="actions"><button class="btn primary" id="startBtn">トーナメント開始</button><button class="btn secondary" id="readyBtn">準備OK ✓</button></div>
     </div>
-  </div>
+  </section>
 
-  <!-- Floor Clear Screen with Branching Routes -->
-  <div class="modal-screen" id="stage-clear-screen" style="display:none;">
-    <div class="modal-box">
-      <div style="font-size:38px; margin-bottom:10px;">🏆✨</div>
-      <div class="modal-title" style="color:#2ecc71;">FLOOR CLEAR!</div>
-      <div class="modal-desc" id="floor-clear-desc">
-        フロアの敵を殲滅し、出口ゲートへ到達した！<br>次の進路を選択してください：
-      </div>
-      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
-        <button class="primary-btn" onclick="Game.nextFloor('safe')" style="background:linear-gradient(135deg, #3498db, #2980b9);">🛡️ 安全ルート (回復多め・敵普通)</button>
-        <button class="primary-btn" onclick="Game.nextFloor('chaos')" style="background:linear-gradient(135deg, #e74c3c, #c0392b);">🔥 危険・高報酬ルート (エリート敵多め・宝石2倍)</button>
-      </div>
+  <section class="screen" id="dayScreen">
+    <div class="row between"><div><div class="eyebrow" id="dayEyebrow">DAY 01 / 05</div><h1 id="dayTitle" style="margin:4px 0;font-size:30px">開幕戦</h1></div><div class="pill" id="phaseBadge">BETTING</div></div>
+    <div class="dayline" id="dayLine"></div>
+    <div class="game-card"><div class="game-icon" id="gameIcon">🂡</div><h2 id="gameName">HIGH & LOW</h2><p id="gameDesc">次のカードの数字を予想しよう。</p></div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="myChips">1,000</div><div class="k">YOUR CHIPS</div></div>
+      <div class="stat"><div class="v" id="myBet">50</div><div class="k">YOUR BET</div></div>
+      <div class="stat"><div class="v" id="myRank">#1</div><div class="k">RANK</div></div>
     </div>
-  </div>
+    <div class="panel" id="betPanel">
+      <h2>PLACE YOUR BET</h2><div class="row between"><span class="muted tiny">賭けるチップ</span><strong id="betLabel" style="color:var(--gold)">50</strong></div>
+      <input id="betSlider" type="range" min="10" max="500" step="10" value="50" style="width:100%;accent-color:var(--gold);margin:12px 0">
+      <div class="row between tiny muted"><span>10</span><span id="maxBetLabel">MAX 1,000</span></div>
+      <button class="btn primary" id="confirmBetBtn" style="width:100%;margin-top:12px">ベットを確定</button>
+      <div class="notice">全員のベットが確定するとゲームが始まります。テストモードでは自分ひとりでも進行できます。</div>
+    </div>
+    <div class="panel hidden" id="gamePanel">
+      <div class="row between"><h2 id="gamePanelTitle">GAME ON</h2><span class="pill" id="gameStatus">YOUR TURN</span></div>
+      <div id="gameContent"></div>
+      <div class="game-message" id="gameMessage"></div>
+      <button class="btn primary hidden" id="finishGameBtn" style="width:100%">結果を確定して次へ</button>
+    </div>
+    <div class="panel">
+      <div class="row between"><h2 style="margin:0">LIVE LEADERBOARD</h2><span class="tiny muted">CHIPS</span></div>
+      <div id="dayLeaderboard"></div>
+    </div>
+  </section>
 
-  <!-- Perk Selection Screen (Rougelite 3-Choice Upgrade) -->
-  <div class="modal-screen" id="perk-modal" style="display:none;">
-    <div class="modal-box">
-      <div style="font-size:38px; margin-bottom:10px;">✨🧬</div>
-      <div class="modal-title" style="color:#f1c40f;">LEVEL UP ABILITY!</div>
-      <div class="modal-desc">
-        レベルアップによる覚醒！習得するパッシブアビリティを選択してください：
-      </div>
-      <div id="perk-choices" style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;"></div>
-    </div>
-  </div>
-
-  <!-- Game Over Screen (達成感の可視化とリトライ導線最適化) -->
-  <div class="modal-screen" id="game-over-screen" style="display:none;">
-    <div class="modal-box">
-      <div style="font-size:48px; margin-bottom:8px; filter: drop-shadow(0 4px 16px rgba(231,76,60,0.5));">💀</div>
-      <div class="modal-title" style="color:#e74c3c; text-shadow: 0 4px 20px rgba(231,76,60,0.4);">YOU DIED</div>
-      <div class="modal-desc" style="background:rgba(0,0,0,0.45); padding:14px; border-radius:16px; border:1px solid rgba(255,255,255,0.08); margin-bottom:20px;" id="game-over-stats">
-        到達階層: 1<br>討伐数: 0 体 | 獲得エメラルド: 0 ◆<br>最終レベル: Lv.1
-      </div>
-      <button class="primary-btn" style="background:linear-gradient(135deg, #e74c3c, #c0392b); border-color:#ff7675; box-shadow:0 8px 24px rgba(231,76,60,0.4);" onclick="Game.restart()">💀 もう一度ダンジョンに挑む</button>
-    </div>
-  </div>
-
-  <!-- Inventory Modal with Master-Detail Unified Single-View -->
-  <div id="inventory-modal">
-    <div class="inv-header">
-      <h3 style="color:var(--border-gold); font-size:16px; font-weight:900;">装備工房 & 経営ルーン</h3>
-      <button onclick="Game.toggleInventory()" style="background:none; border:none; color:#fff; font-size:18px; cursor:pointer; padding:4px 8px;">✕</button>
-    </div>
-    
-    <div class="inv-master-detail">
-      <!-- Left Column: Stats & Forge -->
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <div>
-          <h4 style="font-size:11px; color:#a0aec0; margin-bottom:4px; font-weight:700;">現在の装備ステータス</h4>
-          <div id="equip-stats" style="font-size:11px; background:rgba(0,0,0,0.5); padding:10px; border-radius:12px; line-height:1.6; border:1px solid rgba(255,255,255,0.06);"></div>
-        </div>
-        <div>
-          <h4 style="font-size:11px; color:#a0aec0; margin-bottom:4px; font-weight:700;">エンチャント & 鍛錬</h4>
-          <div style="display:flex; gap:6px; flex-direction:column;">
-            <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #e74c3c, #d35400); width:100%;" onclick="Game.enchantWeapon('fire')">炎上付与 (15◆)</button>
-            <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #3498db, #2980b9); width:100%;" onclick="Game.enchantWeapon('ice')">氷結付与 (15◆)</button>
-            <button class="primary-btn" style="font-size:10px; padding:6px 10px; background:linear-gradient(135deg, #f1c40f, #d4ac0d); width:100%;" onclick="Game.enchantWeapon('upgrade')">武器鍛錬 (+6 dmg / 15◆)</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Column: Inventory & Runes -->
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <div>
-          <h4 style="font-size:11px; color:#a0aec0; margin-bottom:4px; font-weight:700;">所持品 (タップで切替)</h4>
-          <div class="inv-grid" id="inventory-grid"></div>
-        </div>
-        <div>
-          <h4 style="font-size:11px; color:#a0aec0; margin-bottom:4px; font-weight:700;">ルーン覚醒</h4>
-          <div id="rune-container" style="display:flex; flex-direction:column; gap:6px; max-height:140px; overflow-y:auto;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <section class="screen" id="finalScreen">
+    <div class="hero" style="text-align:center"><div class="eyebrow">TOURNAMENT COMPLETE</div><div style="font-size:64px;margin:14px">🏆</div><h1 style="font-size:34px">THE LAST<br><em>PLAYER STANDING.</em></h1><div class="sub">5日間の勝負が終了。最終チップランキングはこちら。</div></div>
+    <div class="panel"><h2>FINAL RANKING</h2><div id="finalRanking"></div><button class="btn primary" id="newTournamentBtn" style="width:100%;margin-top:16px">新しいトーナメント</button></div>
+  </section>
 </div>
+<div class="toast" id="toast"></div>
+<div id="modalRoot"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-/* --- Advanced Multi-Layer Audio Synthesizer with Spatial Reverberation & Pitch Variance --- */
-const Sound = {
-  ctx: null,
-  noiseBuffer: null,
-  init() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AudioCtx();
-      this.createNoiseBuffer();
-    }
-  },
-  createNoiseBuffer() {
-    if (!this.ctx) return;
-    const bufferSize = this.ctx.sampleRate * 1.0;
-    this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = this.noiseBuffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-  },
-  getOutputNode(x, y) {
-    if (!this.ctx) return null;
-    let master = this.ctx.destination;
-    
-    if (x !== undefined && y !== undefined && typeof Game !== 'undefined') {
-      const px = Game.player.x;
-      const py = Game.player.y;
-      const dx = x - px;
-      const dy = y - py;
-      const dist = Math.hypot(dx, dy);
-      
-      const gainNode = this.ctx.createGain();
-      const atten = Math.max(0.08, 1 - Math.min(dist, 550) / 650);
-      gainNode.gain.value = atten;
-
-      if (this.ctx.createStereoPanner) {
-        const panner = this.ctx.createStereoPanner();
-        const pan = Math.max(-1, Math.min(1, dx / 320));
-        panner.pan.value = pan;
-        panner.connect(master);
-        gainNode.connect(panner);
-      } else {
-        gainNode.connect(master);
-      }
-      return gainNode;
-    }
-    return master;
-  },
-  play(type, x, y) {
-    if (!this.ctx) return;
-    try {
-      const t = this.ctx.currentTime;
-      const dest = this.getOutputNode(x, y);
-      if (!dest) return;
-
-      // ±5%の自然なピッチ変調で耳への圧迫感を低減
-      const pitchMod = 0.95 + Math.random() * 0.1;
-
-      if (type === 'hit') {
-        // 1. 重厚なサブベース (タイトなアタック)
-        const subOsc = this.ctx.createOscillator();
-        const subGain = this.ctx.createGain();
-        subOsc.type = 'sine';
-        subOsc.frequency.setValueAtTime(280 * pitchMod, t);
-        subOsc.frequency.exponentialRampToValueAtTime(18, t + 0.32);
-        subGain.gain.setValueAtTime(0.85, t);
-        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
-        subOsc.connect(subGain);
-        subGain.connect(dest);
-        subOsc.start(t);
-        subOsc.stop(t + 0.32);
-
-        // 2. 鋭い金属打撃アタッククラッシュ（ダイナミックフィルタースイープ）
-        if (this.noiseBuffer) {
-          const noise = this.ctx.createBufferSource();
-          const nFilter = this.ctx.createBiquadFilter();
-          const nGain = this.ctx.createGain();
-          noise.buffer = this.noiseBuffer;
-          nFilter.type = 'bandpass';
-          nFilter.frequency.setValueAtTime(3200 * pitchMod, t);
-          nFilter.frequency.exponentialRampToValueAtTime(80, t + 0.2);
-          nFilter.Q.value = 3.0;
-          nGain.gain.setValueAtTime(0.7, t);
-          nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-          noise.connect(nFilter);
-          nFilter.connect(nGain);
-          nGain.connect(dest);
-          noise.start(t);
-          noise.stop(t + 0.2);
-        }
-      } else if (type === 'slash') {
-        // 鋭い刃物の風切り音（2段階ハイパス/バンドパスフィルター）
-        if (this.noiseBuffer) {
-          const noise = this.ctx.createBufferSource();
-          const filter = this.ctx.createBiquadFilter();
-          const gain = this.ctx.createGain();
-          noise.buffer = this.noiseBuffer;
-          filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(3600 * pitchMod, t);
-          filter.frequency.exponentialRampToValueAtTime(300, t + 0.14);
-          filter.Q.value = 6.0;
-          gain.gain.setValueAtTime(0.42, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
-          noise.connect(filter);
-          filter.connect(gain);
-          gain.connect(dest);
-          noise.start(t);
-          noise.stop(t + 0.14);
-        }
-      } else if (type === 'coin') {
-        // クリスタル感あふれるアルペジオ＆倍音
-        const freqs = [1046.5, 1318.51, 1567.98, 2093.00, 2637.02];
-        freqs.forEach((f, i) => {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(f * pitchMod, t + i * 0.03);
-          gain.gain.setValueAtTime(0.24, t + i * 0.03);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.03 + 0.32);
-          osc.connect(gain);
-          gain.connect(dest);
-          osc.start(t + i * 0.03);
-          osc.stop(t + i * 0.03 + 0.32);
-        });
-      } else if (type === 'explosion') {
-        if (this.noiseBuffer) {
-          const noise = this.ctx.createBufferSource();
-          const filter = this.ctx.createBiquadFilter();
-          const gain = this.ctx.createGain();
-          noise.buffer = this.noiseBuffer;
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(2800 * pitchMod, t);
-          filter.frequency.exponentialRampToValueAtTime(20, t + 0.72);
-          gain.gain.setValueAtTime(0.9, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.72);
-          noise.connect(filter);
-          filter.connect(gain);
-          gain.connect(dest);
-          noise.start(t);
-          noise.stop(t + 0.72);
-        }
-        const sub = this.ctx.createOscillator();
-        const subGain = this.ctx.createGain();
-        sub.type = 'triangle';
-        sub.frequency.setValueAtTime(180 * pitchMod, t);
-        sub.frequency.exponentialRampToValueAtTime(10, t + 0.68);
-        subGain.gain.setValueAtTime(0.85, t);
-        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.68);
-        sub.connect(subGain);
-        subGain.connect(dest);
-        sub.start(t);
-        sub.stop(t + 0.68);
-      } else if (type === 'thunder') {
-        if (this.noiseBuffer) {
-          const noise = this.ctx.createBufferSource();
-          const filter = this.ctx.createBiquadFilter();
-          const gain = this.ctx.createGain();
-          noise.buffer = this.noiseBuffer;
-          filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(5200 * pitchMod, t);
-          filter.frequency.exponentialRampToValueAtTime(80, t + 0.45);
-          filter.Q.value = 3.5;
-          gain.gain.setValueAtTime(0.65, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
-          noise.connect(filter);
-          filter.connect(gain);
-          gain.connect(dest);
-          noise.start(t);
-          noise.stop(t + 0.45);
-        }
-      } else if (type === 'level') {
-        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
-        notes.forEach((f, i) => {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(f * pitchMod, t + i * 0.05);
-          gain.gain.setValueAtTime(0.32, t + i * 0.05);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.05 + 0.52);
-          osc.connect(gain);
-          gain.connect(dest);
-          osc.start(t + i * 0.05);
-          osc.stop(t + i * 0.05 + 0.52);
-        });
-      }
-    } catch (e) {}
-  }
+/*
+  FATE CASINO — single-file prototype
+  1) Firebase ConsoleでWebアプリを作成し、下の firebaseConfig を置き換える
+  2) Authentication > Sign-in method > Anonymous を有効にする
+  3) Firestore Databaseを作成する
+  4) 静的ホスティング(HTTPS)へ配置する
+  NOTE: 本プロトタイプはクライアント主導の試作です。本番運用でチップの改ざんを防ぐには
+        Cloud Functionsによるサーバー側のゲーム進行・精算とFirestore Security Rulesが必須です。
+*/
+const firebaseConfig = {
+  apiKey: "AIzaSyBfCIcope9_paZiVXHAiqyIOUonOYztW28",
+  authDomain: "onlinegame-341cf.firebaseapp.com",
+  databaseURL: "https://onlinegame-341cf-default-rtdb.firebaseio.com",
+  projectId: "onlinegame-341cf",
+  storageBucket: "onlinegame-341cf.firebasestorage.app",
+  messagingSenderId: "995082102439",
+  appId: "1:995082102439:web:49e57d48312e25f7879d82",
+  measurementId: "G-LBFXFHP9MF"
 };
 
-/* --- Equipment & Artifact Definitions --- */
-const WEAPONS_DB = [
-  { id: 'w1', name: 'ダイヤの剣', type: 'weapon', dmg: 16, range: 48, speed: 1.0, rarity: 'common', icon: '🗡️', desc: '手になじむ鋭利な剣', element: 'none', upgradeLevel: 0, setGroup: 'diamond' },
-  { id: 'w2', name: '大槌ハンマー', type: 'weapon', dmg: 32, range: 58, speed: 0.65, rarity: 'rare', icon: '🔨', desc: '重いが広範囲を薙ぎ払う', element: 'none', upgradeLevel: 0, setGroup: 'titan' },
-  { id: 'w3', name: '影のダガー', type: 'weapon', dmg: 12, range: 38, speed: 1.6, rarity: 'rare', icon: '🔪', desc: '手数が多く機動力に優れる', element: 'none', upgradeLevel: 0, setGroup: 'shadow' },
-  { id: 'w4', name: '太陽のクレイモア', type: 'weapon', dmg: 48, range: 66, speed: 0.8, rarity: 'unique', icon: '⚔️', desc: '火炎を纏う伝説の大剣', element: 'fire', upgradeLevel: 0, setGroup: 'solar' },
-  { id: 'w5', name: '死神の鎌', type: 'weapon', dmg: 38, range: 62, speed: 1.1, rarity: 'unique', icon: '⛏️', desc: '魂を狩り攻撃時にHP回復', element: 'lifesteal', upgradeLevel: 0, setGroup: 'shadow' },
-  { id: 'w6', name: 'ネザー・カタナ', type: 'weapon', dmg: 56, range: 52, speed: 1.3, rarity: 'unique', icon: '🔥', desc: '灼熱の業火を纏う伝説の太刀', element: 'fire', upgradeLevel: 0, setGroup: 'solar' },
-  { id: 'w7', name: 'フロスト・バスター', type: 'weapon', dmg: 44, range: 60, speed: 0.95, rarity: 'unique', icon: '❄️', desc: '氷結のオーラで敵の動きを縛る', element: 'ice', upgradeLevel: 0, setGroup: 'titan' }
+const $ = id => document.getElementById(id);
+const games = [
+ {id:"highlow",name:"HIGH & LOW",icon:"🂡",desc:"次のカードは高い？低い？読みを当ててチップを増やそう。"},
+ {id:"blackjack",name:"BLACKJACK 21",icon:"🃏",desc:"21を超えずにディーラーより強い手を作ろう。"},
+ {id:"reversi",name:"REVERSI DUEL",icon:"⚫",desc:"盤面をひっくり返す頭脳戦。テスト版ではCPUと対戦。"},
+ {id:"dice",name:"DICE DUEL",icon:"🎲",desc:"サイコロの合計が7より大きいか、小さいかを予想。"},
+ {id:"wordwolf",name:"WORD WOLF",icon:"🐺",desc:"少数派のお題を見抜く会話型ゲーム。テスト版では投票シミュレーション。"},
+ {id:"memory",name:"MEMORY MATCH",icon:"🧠",desc:"カードのペアを見つけてポイントを獲得。"},
+ {id:"majority",name:"MAJORITY",icon:"👥",desc:"みんなが選びそうな答えを予想して多数派を読む。"},
+ {id:"number",name:"NUMBER GUESS",icon:"🔢",desc:"秘密の数字を推理。近いほど高得点。"},
+ {id:"roulette",name:"COLOR ROULETTE",icon:"🔴",desc:"赤・黒・金から結果を予想する。"},
+ {id:"auction",name:"BLIND AUCTION",icon:"🔨",desc:"秘密の入札額で賞品を競り落とす。"},
+ {id:"bluff",name:"BLUFF MASTER",icon:"🎭",desc:"相手の宣言を信じるか、見破るか。"},
+ {id:"quickmath",name:"QUICK MATH",icon:"⚡",desc:"制限時間内に計算問題を解くスピード勝負。"}
 ];
-
-const ARMORS_DB = [
-  { id: 'a1', name: '兵士の鎧', type: 'armor', maxHpBonus: 30, def: 2, rarity: 'common', icon: '🛡️', desc: '頑丈な鉄の甲冑', setGroup: 'diamond' },
-  { id: 'a2', name: '狩人の胴衣', type: 'armor', maxHpBonus: 20, def: 3, speedBonus: 0.4, rarity: 'rare', icon: '🥋', desc: '移動速度が上昇する', setGroup: 'shadow' },
-  { id: 'a3', name: 'タイタンプレート', type: 'armor', maxHpBonus: 100, def: 8, rarity: 'unique', icon: '🎽', desc: '圧倒的な体力と防御力を誇る', setGroup: 'titan' },
-  { id: 'a4', name: 'ソーラーメイル', type: 'armor', maxHpBonus: 70, def: 6, rarity: 'unique', icon: '🌞', desc: '太陽の加護を受けた至高の鎧', setGroup: 'solar' }
-];
-
-const ARTIFACTS_DB = [
-  { id: 'art1', name: '雷撃', icon: '⚡', cdMax: 3.0, desc: '周囲の敵に電撃を放つ' },
-  { id: 'art2', name: 'TNT', icon: '💣', cdMax: 4.5, desc: '強力な爆破を引き起こす' },
-  { id: 'art3', name: 'フロスト', icon: '❄️', cdMax: 5.0, desc: '周囲の敵の動きを凍結・減速させる' },
-  { id: 'art4', name: 'フェニックス', icon: '🔥', cdMax: 8.0, desc: '一時的に移動・攻撃速度が劇的向上' }
-];
-
-const RUNES_DB = [
-  { id: 'r1', name: '烈風のルーン', icon: '💨', desc: '移動速度と攻撃速度が15%上昇する', cost: 12, type: 'passive', applied: false },
-  { id: 'r2', name: '強撃のルーン', icon: '⚡', desc: '武器ダメージが+12されクリティカル率アップ', cost: 18, type: 'passive', applied: false },
-  { id: 'r3', name: '吸血のルーン', icon: '🩸', desc: '討伐時に最大HPの5%が即座に回復する', cost: 25, type: 'passive', applied: false }
-];
-
-/* --- Main Game Core --- */
-const Game = {
-  canvas: null,
-  ctx: null,
-  width: 0,
-  height: 0,
-  dpr: 1,
-
-  running: false,
-  floor: 1,
-  killCount: 0,
-  emeralds: 0,
-
-  // Map & Dungeon
-  mapWidth: 32,
-  mapHeight: 32,
-  tileSize: 48,
-  map: [], // 0: floor, 1: wall, 2: exit portal
-  rooms: [],
-  exitPos: { x: 0, y: 0 },
-
-  // Game State Machine
-  // 'TITLE' | 'PLAYING' | 'INVENTORY' | 'STAGE_CLEAR' | 'GAME_OVER'
-  state: 'TITLE',
-
-  // Config & Constants
-  config: {
-    tntFuseTime: 0.7,
-    lootToastDuration: 1.8,
-    mouseActiveTimeout: 2.5,
-    inputBufferWindow: 0.15,
-    kbBoss: 140,
-    kbNormal: 380,
-    kbExplosionNormal: 500,
-    kbExplosionBoss: 200,
-    solverIterations: 3 // 衝突反復解決サイクル数
-  },
-
-  // 統一入力ステート
-  inputState: {
-    moveX: 0,
-    moveY: 0,
-    aimAngle: 0,
-    hasAim: false,
-    attackQueued: false,
-    art1Queued: false,
-    art2Queued: false,
-    healQueued: false
-  },
-
-  // 副作用を物理更新から隔離する単方向イベントキュー
-  eventQueue: {
-    sounds: [],
-    toasts: [],
-    stateChange: null
-  },
-
-  // Camera & Time & Screen Shake
-  camX: 0,
-  camY: 0,
-  shakeIntensity: 0,
-  shakeDuration: 0,
-  flashTimer: 0,
-  flashColor: 'rgba(255, 255, 255, ',
-  vignetteFlashTimer: 0,
-  vignetteFlashColor: 'rgba(255, 71, 87, 0.6)',
-  lastTime: 0,
-  accumulator: 0,
-  fixedDt: 1 / 60,
-  renderAlpha: 0,
-  hitstopTimer: 0,
-  mousePos: { x: 0, y: 0, active: false, lastMovedTime: 0 },
-  timeScale: 1.0,
-  lootAlertTimer: 0,
-  delayedTasks: [], // { timer, action } - ゲームタイムライン完全同期用
-  shockwaves: [], // 爆発や衝撃波のエフェクト用
-
-  // HUD Cache for Dirty Checking
-  hudCache: {
-    hp: -1,
-    maxHp: -1,
-    xp: -1,
-    xpNext: -1,
-    level: -1,
-    floor: -1,
-    emeralds: -1,
-    potions: -1,
-    art1CdRatio: -1,
-    art2CdRatio: -1,
-    healCdRatio: -1
-  },
-
-  // Player
-  player: {
-    x: 0, y: 0,
-    prevX: 0, prevY: 0,
-    vx: 0, vy: 0,
-    baseSpeed: 216, // px per second
-    speed: 216,
-    accel: 1800,    // 加速度 (px/s^2)
-    friction: 14,   // 減速摩擦係数
-    radius: 16,
-    angle: 0,
-    hp: 100,
-    maxHp: 100,
-    baseMaxHp: 100,
-    level: 1,
-    xp: 0,
-    xpNext: 50,
-    attackCooldown: 0,
-    attackBuffer: 0,
-    attackSwing: 0,
-    attackSwingDuration: 0.22,
-    swingDir: 1,
-    activeAttack: null, // { timer, duration, hitTriggerTime, hasHit, angle, range, weapon }
-    potions: 2,
-    potionCooldown: 0,
-    potionCooldownMax: 5.0,
-    art1: ARTIFACTS_DB[0],
-    art2: ARTIFACTS_DB[1],
-    art1Cooldown: 0,
-    art1CooldownMax: 3.0,
-    art2Cooldown: 0,
-    art2CooldownMax: 4.5,
-    invincibleTimer: 0,
-    weapon: WEAPONS_DB[0],
-    armor: ARMORS_DB[0],
-    inventory: [WEAPONS_DB[0], ARMORS_DB[0]],
-    runes: []
-  },
-
-  // Entities
-  enemies: [],
-  particles: [],
-  lootItems: [],
-  projectiles: [],
-  damageNumbers: [],
-
-  // Inputs
-  joystick: { active: false, startX: 0, startY: 0, curX: 0, curY: 0, dirX: 0, dirY: 0, touchId: null },
-  keys: {},
-
-  init() {
-    this.canvas = document.getElementById('gameCanvas');
-    this.ctx = this.canvas.getContext('2d');
-    this.resize();
-    window.addEventListener('resize', () => this.resize());
-
-    this.bindInputs();
-    this.updateHUD();
-  },
-
-  resize() {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
-    this.canvas.width = this.width * this.dpr;
-    this.canvas.height = this.height * this.dpr;
-    this.ctx.scale(this.dpr, this.dpr);
-  },
-
-  wakeControls() {
-    const ctrl = document.getElementById('touch-controls');
-    if (ctrl) {
-      ctrl.classList.add('active');
-      clearTimeout(this._ctrlIdleTimer);
-      this._ctrlIdleTimer = setTimeout(() => {
-        ctrl.classList.remove('active');
-      }, 2200);
-    }
-  },
-
-  bindInputs() {
-    // Mouse tracking for PC Smart Aim
-    window.addEventListener('mousemove', (e) => {
-      this.mousePos.x = e.clientX;
-      this.mousePos.y = e.clientY;
-      this.mousePos.active = true;
-      this.mousePos.lastMovedTime = performance.now();
-    });
-
-    // Keyboard
-    window.addEventListener('keydown', (e) => {
-      this.keys[e.key.toLowerCase()] = true;
-      if (e.key === ' ' || e.key.toLowerCase() === 'j') this.inputState.attackQueued = true;
-      if (e.key.toLowerCase() === 'k') this.inputState.art1Queued = true;
-      if (e.key.toLowerCase() === 'l') this.inputState.art2Queued = true;
-      if (e.key.toLowerCase() === 'h') this.inputState.healQueued = true;
-      if (e.key.toLowerCase() === 'i') this.toggleInventory();
-    });
-    window.addEventListener('keyup', (e) => {
-      this.keys[e.key.toLowerCase()] = false;
-    });
-
-    // Dynamic Floating Touch Joystick
-    const joyZone = document.getElementById('joystick-zone');
-    const joyBase = document.getElementById('joystick-base');
-    const joyStick = document.getElementById('joystick-stick');
-    const maxRadius = 42;
-    let baseCenterX = 0, baseCenterY = 0;
-
-    const handleTouch = (touch) => {
-      let dx = touch.clientX - baseCenterX;
-      let dy = touch.clientY - baseCenterY;
-      const dist = Math.hypot(dx, dy);
-
-      const clampedDist = Math.min(dist, maxRadius);
-      const angle = Math.atan2(dy, dx);
-      const visualX = Math.cos(angle) * clampedDist;
-      const visualY = Math.sin(angle) * clampedDist;
-      joyStick.style.transform = `translate(${visualX}px, ${visualY}px)`;
-
-      const deadzone = 0.12;
-      const rawNormalized = dist / maxRadius;
-      if (rawNormalized <= deadzone) {
-        this.joystick.dirX = 0;
-        this.joystick.dirY = 0;
-        this.joystick.active = false;
-      } else {
-        const scaledMagnitude = (rawNormalized - deadzone) / (1 - deadzone);
-        const finalMag = Math.min(1.0, scaledMagnitude);
-        this.joystick.dirX = Math.cos(angle) * finalMag;
-        this.joystick.dirY = Math.sin(angle) * finalMag;
-        this.joystick.active = true;
-      }
-      this.mousePos.active = false;
-    };
-
-    const resetJoy = () => {
-      this.joystick.active = false;
-      this.joystick.dirX = 0;
-      this.joystick.dirY = 0;
-      this.joystick.touchId = null;
-      joyBase.style.left = '25px';
-      joyBase.style.top = '25px';
-      joyStick.style.transform = `translate(0, 0)`;
-    };
-
-    joyZone.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      Sound.init();
-      if (this.joystick.touchId === null) {
-        const touch = e.changedTouches[0];
-        this.joystick.touchId = touch.identifier;
-        const rect = joyZone.getBoundingClientRect();
-        
-        baseCenterX = touch.clientX;
-        baseCenterY = touch.clientY;
-        const localX = touch.clientX - rect.left - 55;
-        const localY = touch.clientY - rect.top - 55;
-        joyBase.style.left = `${localX}px`;
-        joyBase.style.top = `${localY}px`;
-        
-        handleTouch(touch);
-      }
-    }, { passive: false });
-
-    window.addEventListener('touchmove', (e) => {
-      if (this.joystick.touchId === null) return;
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier === this.joystick.touchId) {
-          handleTouch(e.changedTouches[i]);
-          break;
-        }
-      }
-    }, { passive: false });
-
-    const handleTouchEnd = (e) => {
-      if (this.joystick.touchId === null) return;
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier === this.joystick.touchId) {
-          resetJoy();
-          break;
-        }
-      }
-    };
-
-    window.addEventListener('touchend', handleTouchEnd);
-    window.addEventListener('touchcancel', handleTouchEnd);
-
-    window.addEventListener('blur', () => {
-      this.keys = {};
-      resetJoy();
-    });
-  },
-
-  resetVolatileStates() {
-    // 状態遷移時に残留した入力・遅延タスク・キューを完全に初期化
-    this.delayedTasks.length = 0;
-    this.eventQueue.sounds.length = 0;
-    this.eventQueue.toasts.length = 0;
-    this.eventQueue.stateChange = null;
-    this.inputState.attackQueued = false;
-    this.inputState.art1Queued = false;
-    this.inputState.art2Queued = false;
-    this.inputState.healQueued = false;
-    this.player.attackBuffer = 0;
-    this.player.attackSwing = 0;
-    this.player.activeAttack = null;
-    this.player.vx = 0;
-    this.player.vy = 0;
-    this.hitstopTimer = 0;
-    this.shakeIntensity = 0;
-    this.shakeDuration = 0;
-    this.flashTimer = 0;
-    this.shockwaves.length = 0;
-    this.accumulator = 0;
-  },
-
-  start() {
-    Sound.init();
-    Sound.play('coin');
-    document.getElementById('start-screen').style.display = 'none';
-    this.floor = 1;
-    this.killCount = 0;
-    this.emeralds = 0;
-    this.player.level = 1;
-    this.player.xp = 0;
-    this.player.potions = 2;
-    this.player.weapon = WEAPONS_DB[0];
-    this.player.armor = ARMORS_DB[0];
-    this.player.inventory = [WEAPONS_DB[0], ARMORS_DB[0]];
-    this.player.runes = [];
-    RUNES_DB.forEach(r => r.applied = false);
-    this.player.perks = [];
-    this.resetVolatileStates();
-    this.recalcStats();
-    this.updateHUD();
-    this.player.hp = this.player.maxHp;
-    this.generateFloor();
-    this.state = 'PLAYING';
-    this.running = true;
-    this.lastTime = performance.now();
-    requestAnimationFrame((t) => this.loop(t));
-  },
-
-  restart() {
-    document.getElementById('game-over-screen').style.display = 'none';
-    this.start();
-  },
-
-  nextFloor(routeType = 'safe') {
-    document.getElementById('stage-clear-screen').style.display = 'none';
-    this.floor++;
-    if (routeType === 'safe') {
-      this.player.potions = Math.min(3, this.player.potions + 1);
-      this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.maxHp * 0.6);
-      this.emitToast('安全ルート: ポーションが補充されHPが回復した！');
-    } else {
-      this.emeralds += 8;
-      this.emitToast('危険ルート: ボーナスエメラルド+8を獲得！');
-    }
-    this.resetVolatileStates();
-    this.generateFloor();
-    this.state = 'PLAYING';
-    this.running = true;
-    this.lastTime = performance.now();
-    requestAnimationFrame((t) => this.loop(t));
-  },
-
-  enchantWeapon(type) {
-    if (this.emeralds < 15) {
-      this.emitToast('エメラルドが足りません（必要: 15◆）');
-      return;
-    }
-    this.emeralds -= 15;
-    const w = this.player.weapon;
-    if (type === 'fire') {
-      w.element = 'fire';
-      this.emitToast(`${w.name} に【炎上】属性をエンチャントした！`);
-    } else if (type === 'ice') {
-      w.element = 'ice';
-      this.emitToast(`${w.name} に【氷結】属性をエンチャントした！`);
-    } else if (type === 'upgrade') {
-      w.dmg += 6;
-      w.upgradeLevel = (w.upgradeLevel || 0) + 1;
-      this.emitToast(`${w.name} を鍛錬した！(攻撃力+6)`);
-    }
-    Sound.play('level');
-    this.recalcStats();
-    this.renderInventory();
-  },
-
-  recalcStats() {
-    const armor = this.player.armor;
-    const weapon = this.player.weapon;
-    let bonusSpeed = (armor && armor.speedBonus ? armor.speedBonus * 60 : 0);
-    let bonusHp = (armor ? armor.maxHpBonus : 0);
-    
-    // セット装備ボーナス判定
-    let setBonusActive = false;
-    if (armor && weapon && armor.setGroup && weapon.setGroup && armor.setGroup === weapon.setGroup) {
-      setBonusActive = true;
-      bonusHp += 50;
-      bonusSpeed += 24;
-    }
-    this.player.setBonusActive = setBonusActive;
-
-    if (this.player.runes.some(r => r.id === 'r1')) bonusSpeed += 32;
-    this.player.maxHp = this.player.baseMaxHp + bonusHp;
-    this.player.speed = this.player.baseSpeed + bonusSpeed;
-  },
-
-  /* --- Procedural Dungeon Generation (Rooms, Biomes, Secrets & Merchants) --- */
-  generateFloor() {
-    this.mapWidth = 32 + this.floor * 2;
-    this.mapHeight = 32 + this.floor * 2;
-    this.map = Array.from({ length: this.mapHeight }, () => Array(this.mapWidth).fill(1));
-    this.rooms = [];
-    this.enemies = [];
-    this.lootItems = [];
-    this.particles = [];
-    this.projectiles = [];
-    this.damageNumbers = [];
-    this.shockwaves = [];
-    this.hazards = [];
-
-    // 拡張バイオーム（通常洞窟・灼熱のネザー・古代の氷河遺跡・狂気の研究所・虚空の浮遊島）とバイオーム別環境パーティクル生成設定
-    if (this.floor <= 2) this.currentBiome = { name: '通常洞窟', color: '#161922', hazard: 'none', ambientColor: 'rgba(255,255,255,0.03)', pType: 'dust' };
-    else if (this.floor <= 4) this.currentBiome = { name: '灼熱のネザー神殿', color: '#2a1412', hazard: 'lava', ambientColor: 'rgba(231, 76, 60, 0.08)', pType: 'ash' };
-    else if (this.floor <= 6) this.currentBiome = { name: '古代の氷河遺跡', color: '#12222a', hazard: 'ice', ambientColor: 'rgba(52, 152, 219, 0.08)', pType: 'snow' };
-    else if (this.floor <= 8) this.currentBiome = { name: '狂気の研究所', color: '#221226', hazard: 'poison', ambientColor: 'rgba(155, 89, 182, 0.08)', pType: 'spore' };
-    else this.currentBiome = { name: '虚空の浮遊島', color: '#18122a', hazard: 'collapse', ambientColor: 'rgba(241, 196, 15, 0.08)', pType: 'rune' };
-
-    const banner = document.getElementById('biome-banner');
-    if (banner) {
-      banner.innerText = `◆ 階層 ${this.floor} : ${this.currentBiome.name} ◆`;
-      banner.style.opacity = '1';
-      banner.style.transform = 'translate(-50%, 6px)';
-      setTimeout(() => {
-        banner.style.opacity = '0';
-        banner.style.transform = 'translate(-50%, -10px)';
-      }, 3200);
-    }
-
-    // バイオーム切替時のシームレスな移行エフェクト（オーロラや炎の色彩フェード）
-    const overlay = document.getElementById('biome-transition-overlay');
-    if (overlay) {
-      const biomeColor = this.currentBiome.color || '#161922';
-      overlay.style.background = `radial-gradient(circle at center, ${biomeColor} 0%, rgba(5,7,14,0.95) 100%)`;
-      overlay.style.opacity = '0.85';
-      setTimeout(() => {
-        overlay.style.opacity = '0';
-      }, 600);
-    }
-
-    // 突発フロアイベント（モンスターハウス / 祭壇生成）
-    const isMonsterHouse = Math.random() < 0.3;
-    const isAltarFloor = Math.random() < 0.25;
-
-    const numRooms = 6 + Math.min(this.floor, 8);
-    for (let i = 0; i < numRooms * 3; i++) {
-      if (this.rooms.length >= numRooms) break;
-      const w = Math.floor(Math.random() * 5) + 6;
-      const h = Math.floor(Math.random() * 5) + 6;
-      const x = Math.floor(Math.random() * (this.mapWidth - w - 2)) + 1;
-      const y = Math.floor(Math.random() * (this.mapHeight - h - 2)) + 1;
-
-      let overlap = false;
-      for (const r of this.rooms) {
-        if (x < r.x + r.w + 1 && x + w + 1 > r.x && y < r.y + r.h + 1 && y + h + 1 > r.y) {
-          overlap = true;
-          break;
-        }
-      }
-      if (!overlap) {
-        this.rooms.push({ x, y, w, h, cx: Math.floor(x + w / 2), cy: Math.floor(y + h / 2) });
-        for (let ry = y; ry < y + h; ry++) {
-          for (let rx = x; rx < x + w; rx++) {
-            this.map[ry][rx] = 0;
-          }
-        }
-      }
-    }
-
-    for (let i = 0; i < this.rooms.length - 1; i++) {
-      const r1 = this.rooms[i];
-      const r2 = this.rooms[i + 1];
-      let cx = r1.cx, cy = r1.cy;
-      while (cx !== r2.cx) {
-        this.map[cy][cx] = 0;
-        cx += cx < r2.cx ? 1 : -1;
-      }
-      while (cy !== r2.cy) {
-        this.map[cy][cx] = 0;
-        cy += cy < r2.cy ? 1 : -1;
-      }
-    }
-
-    const startRoom = this.rooms[0];
-    this.player.x = startRoom.cx * this.tileSize + this.tileSize / 2;
-    this.player.y = startRoom.cy * this.tileSize + this.tileSize / 2;
-    this.camX = this.width / 2 - this.player.x;
-    this.camY = this.height / 2 - this.player.y;
-
-    const lastRoom = this.rooms[this.rooms.length - 1];
-    this.exitPos = {
-      x: lastRoom.cx * this.tileSize + this.tileSize / 2,
-      y: lastRoom.cy * this.tileSize + this.tileSize / 2
-    };
-    this.map[lastRoom.cy][lastRoom.cx] = 2;
-
-    // シークレットルームの配置（隠し壁の破壊可能ブロック）
-    if (this.rooms.length >= 3) {
-      const secRoom = this.rooms[Math.floor(this.rooms.length / 2)];
-      const secWallX = secRoom.cx;
-      const secWallY = secRoom.y;
-      this.map[secWallY][secWallX] = 3; // 破壊可能な隠し壁
-      this.lootItems.push({
-        x: secWallX * this.tileSize + this.tileSize/2,
-        y: (secWallY - 1) * this.tileSize + this.tileSize/2,
-        type: 'chest',
-        opened: false
-      });
-    }
-
-    // 時限サバイバル試練ポータルの配置
-    if (this.rooms.length >= 5) {
-      const trialRoom = this.rooms[4];
-      this.lootItems.push({
-        x: trialRoom.cx * this.tileSize,
-        y: trialRoom.cy * this.tileSize,
-        type: 'survivalPortal',
-        active: true
-      });
-    }
-
-    for (let i = 1; i < this.rooms.length; i++) {
-      const rm = this.rooms[i];
-      const enemyCount = (isMonsterHouse && i === 2) ? 12 : (Math.floor(Math.random() * 3) + 2 + Math.floor(this.floor * 0.8));
-      for (let j = 0; j < enemyCount; j++) {
-        const ex = (rm.x + 1 + Math.random() * (rm.w - 2)) * this.tileSize;
-        const ey = (rm.y + 1 + Math.random() * (rm.h - 2)) * this.tileSize;
-        this.spawnEnemy(ex, ey);
-      }
-      if (Math.random() < 0.6 || (isMonsterHouse && i === 2)) {
-        this.lootItems.push({
-          x: rm.cx * this.tileSize,
-          y: rm.cy * this.tileSize,
-          type: 'chest',
-          opened: false
-        });
-      }
-      // 環境ギミック配置
-      if (this.currentBiome.hazard === 'lava' && Math.random() < 0.5) {
-        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize + 20, type: 'lava', radius: 24, timer: 0 });
-      } else if (this.currentBiome.hazard === 'spikes' && Math.random() < 0.5) {
-        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize, type: 'spikes', radius: 26, timer: 0 });
-      } else if (this.currentBiome.hazard === 'poison' && Math.random() < 0.6) {
-        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize, type: 'poison', radius: 28 });
-      } else if (this.currentBiome.hazard === 'ice' && Math.random() < 0.5) {
-        this.hazards.push({ x: rm.cx * this.tileSize, y: rm.cy * this.tileSize, type: 'ice', radius: 30 });
-      }
-    }
-
-    // 祭壇・呪われた祭壇・ルーンクラフトの配置（リスク・リワード要素強化）
-    if (this.rooms.length >= 3) {
-      const altarRoom = this.rooms[1];
-      this.lootItems.push({
-        x: altarRoom.cx * this.tileSize,
-        y: altarRoom.cy * this.tileSize,
-        type: 'altar',
-        interacted: false
-      });
-      const cursedAltarRoom = this.rooms[Math.min(this.rooms.length - 2, 3)];
-      this.lootItems.push({
-        x: cursedAltarRoom.cx * this.tileSize,
-        y: cursedAltarRoom.cy * this.tileSize,
-        type: 'cursedAltar',
-        interacted: false
-      });
-    }
-
-    // 行商人の配置（3階層ごと）
-    if (this.floor % 3 === 1 && this.rooms.length >= 4) {
-      const merchRoom = this.rooms[2];
-      this.lootItems.push({
-        x: merchRoom.cx * this.tileSize,
-        y: merchRoom.cy * this.tileSize,
-        type: 'merchant',
-        interacted: false
-      });
-    }
-
-    // 3階層ごとのエリアボス討伐システム（専用弾幕・固有レジェンダリー報酬）
-    if (this.floor % 3 === 0) {
-      this.spawnBoss(this.exitPos.x - 60, this.exitPos.y - 60);
-      this.emitToast('警報: フロア最深部にエリアボスが降臨した！');
-    }
-
-    this.updateHUD();
-  },
-
-  spawnEnemy(x, y) {
-    const types = ['zombie', 'skeleton', 'creeper', 'shadow', 'protector', 'assassin', 'priest', 'necromancer'];
-    const type = types[Math.floor(Math.random() * types.length)];
-    const hpScale = 1 + (this.floor - 1) * 0.35;
-    const dmgScale = 1 + (this.floor - 1) * 0.25;
-
-    const isElite = Math.random() < Math.min(0.5, 0.12 * this.floor);
-    const eliteAura = isElite ? ['lifesteal', 'thorns', 'swift', 'tank', 'fireaura'][Math.floor(Math.random() * 5)] : null;
-
-    let e = {
-      x, y,
-      prevX: x, prevY: y,
-      type,
-      radius: type === 'protector' ? 18 : 16,
-      vx: 0, vy: 0,
-      kbX: 0, kbY: 0,
-      shootCd: 0,
-      fuse: 0,
-      isElite,
-      eliteAura,
-      color: '#2ecc71'
-    };
-
-    if (type === 'zombie') {
-      e.hp = Math.floor(35 * hpScale);
-      e.speed = 96;
-      e.damage = Math.floor(10 * dmgScale);
-      e.color = '#27ae60';
-    } else if (type === 'skeleton') {
-      e.hp = Math.floor(25 * hpScale);
-      e.speed = 78;
-      e.damage = Math.floor(8 * dmgScale);
-      e.color = '#bdc3c7';
-    } else if (type === 'creeper') {
-      e.hp = Math.floor(20 * hpScale);
-      e.speed = 132;
-      e.damage = Math.floor(35 * dmgScale);
-      e.color = '#2ecc71';
-      e.fuse = 0;
-    } else if (type === 'shadow') {
-      e.hp = Math.floor(30 * hpScale);
-      e.speed = 160;
-      e.damage = Math.floor(12 * dmgScale);
-      e.color = '#8e44ad';
-      e.warpCd = 0;
-    } else if (type === 'protector') {
-      e.hp = Math.floor(60 * hpScale);
-      e.speed = 64;
-      e.damage = Math.floor(6 * dmgScale);
-      e.color = '#e67e22';
-      e.shieldCd = 0;
-    } else if (type === 'assassin') {
-      e.hp = Math.floor(22 * hpScale);
-      e.speed = 180;
-      e.damage = Math.floor(18 * dmgScale);
-      e.color = '#2c3e50';
-      e.teleportCd = 0;
-    } else if (type === 'priest') {
-      e.hp = Math.floor(45 * hpScale);
-      e.speed = 70;
-      e.damage = Math.floor(10 * dmgScale);
-      e.color = '#e91e63';
-      e.buffCd = 0;
-    } else if (type === 'necromancer') {
-      e.hp = Math.floor(50 * hpScale);
-      e.speed = 55;
-      e.damage = Math.floor(14 * dmgScale);
-      e.color = '#9b59b6';
-      e.summonCd = 0;
-    }
-
-    if (isElite) {
-      e.hp = Math.floor(e.hp * 1.75);
-      e.damage = Math.floor(e.damage * 1.4);
-      if (eliteAura === 'swift') e.speed *= 1.4;
-      if (eliteAura === 'tank') e.radius *= 1.2;
-      if (eliteAura === 'priest') e.color = '#e91e63';
-      if (eliteAura === 'grappler') e.color = '#00bcd4';
-    }
-    e.maxHp = e.hp;
-    this.enemies.push(e);
-  },
-
-  spawnBoss(x, y) {
-    const hpScale = 1 + (this.floor - 1) * 0.5;
-    const bossNames = ['マグマ・ロード', 'フロスト・タイタン', 'ネクロ・サモナー', 'ヴォルテックス・ロード'];
-    const bossTitle = bossNames[Math.floor((this.floor / 3 - 1)) % bossNames.length] || 'ダンジョン・ロード';
-    this.enemies.push({
-      x, y,
-      prevX: x, prevY: y,
-      type: 'boss',
-      name: bossTitle,
-      radius: 36,
-      hp: Math.floor(400 * hpScale),
-      maxHp: Math.floor(400 * hpScale),
-      speed: 92,
-      damage: 32,
-      shootCd: 0,
-      summonCd: 0,
-      phase: 1,
-      kbX: 0, kbY: 0,
-      color: '#8e44ad'
-    });
-    this.emitToast(`エリアボス【${bossTitle}】が降臨した！戦術に注意せよ！`);
-  },
-
-  getNearestEnemy(maxRange = 260) {
-    let nearest = null;
-    let minDist = maxRange;
-    for (const e of this.enemies) {
-      const d = Math.hypot(e.x - this.player.x, e.y - this.player.y);
-      if (d < minDist) {
-        minDist = d;
-        nearest = e;
-      }
-    }
-    return nearest;
-  },
-
-  /* --- Actions & Skills (Queue Handlers) --- */
-  queueAction(actionName) {
-    if (this.state !== 'PLAYING') return;
-    if (actionName === 'attack') this.inputState.attackQueued = true;
-    if (actionName === 'art1') this.inputState.art1Queued = true;
-    if (actionName === 'art2') this.inputState.art2Queued = true;
-    if (actionName === 'heal') this.inputState.healQueued = true;
-  },
-
-  emitSound(type, x, y) {
-    this.eventQueue.sounds.push({ type, x, y });
-  },
-
-  emitToast(msg) {
-    this.eventQueue.toasts.push(msg);
-  },
-
-  flushEventQueue() {
-    // 物理シミュレーション確定後に溜まった副作用を一度に処理
-    for (const item of this.eventQueue.sounds) {
-      if (typeof item === 'string') {
-        Sound.play(item);
-      } else {
-        Sound.play(item.type, item.x, item.y);
-      }
-    }
-    this.eventQueue.sounds.length = 0;
-
-    for (const toast of this.eventQueue.toasts) {
-      this.showLootAlert(toast);
-    }
-    this.eventQueue.toasts.length = 0;
-
-    if (this.eventQueue.stateChange) {
-      const next = this.eventQueue.stateChange;
-      this.eventQueue.stateChange = null;
-      if (next === 'STAGE_CLEAR') {
-        this.state = 'STAGE_CLEAR';
-        this.running = false;
-        document.getElementById('stage-clear-screen').style.display = 'flex';
-      } else if (next === 'GAME_OVER') {
-        this.die();
-      }
-    }
-  },
-
-  playerAttack() {
-    if (this.state !== 'PLAYING') return;
-    if (this.player.attackCooldown > 0) {
-      if (this.player.attackCooldown <= this.config.inputBufferWindow) {
-        this.player.attackBuffer = this.config.inputBufferWindow;
-      }
-      return;
-    }
-    this.executePlayerAttack();
-  },
-
-  executePlayerAttack() {
-    this.player.attackBuffer = 0;
-
-    // 統一入力ステートからの確定エイム角を使用
-    if (this.inputState.hasAim) {
-      this.player.angle = this.inputState.aimAngle;
-    }
-
-    const w = this.player.weapon;
-    const totalDuration = Math.max(0.18, 0.24 / Math.sqrt(w.speed));
-    this.player.attackSwingDuration = totalDuration;
-    this.player.attackCooldown = Math.max(0.2, 0.48 / w.speed);
-    this.player.attackSwing = totalDuration;
-    this.player.swingDir *= -1;
-
-    // 攻撃時のキレのある前進ステップイン（踏み込み慣性）
-    const stepPower = 160;
-    this.player.vx = Math.cos(this.player.angle) * stepPower;
-    this.player.vy = Math.sin(this.player.angle) * stepPower;
-
-    this.emitSound('slash', this.player.x, this.player.y);
-
-    // 攻撃ライフサイクル（予備動作 -> アクティブ薙ぎ払い -> フォロースルー）の三相定義
-    this.player.activeAttack = {
-      timer: 0,
-      duration: totalDuration,
-      windupTime: totalDuration * 0.2,
-      activeEndTime: totalDuration * 0.7,
-      hasHit: false,
-      angle: this.player.angle,
-      range: w.range,
-      halfFov: Math.PI * 0.45,
-      weapon: w
-    };
-  },
-
-  // 線分と円の最近接距離による交差判定
-  distSqToSegment(px, py, x1, y1, x2, y2) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const l2 = dx * dx + dy * dy;
-    if (l2 === 0) return Math.hypot(px - x1, py - y1) ** 2;
-    let t = ((px - x1) * dx + (py - y1) * dy) / l2;
-    t = Math.max(0, Math.min(1, t));
-    const nx = x1 + t * dx;
-    const ny = y1 + t * dy;
-    return (px - nx) ** 2 + (py - ny) ** 2;
-  },
-
-  // 厳密な「扇形 (Sector)」と「円 (Circle)」の幾何交差判定
-  isSectorIntersectingCircle(sx, sy, radius, direction, halfFov, cx, cy, cr) {
-    const dx = cx - sx;
-    const dy = cy - sy;
-    const distSq = dx * dx + dy * dy;
-
-    // 1. 範囲外の早期リジェクト
-    const maxReach = radius + cr;
-    if (distSq > maxReach * maxReach) return false;
-
-    // 2. 円が扇形の原点を含んでいる場合
-    if (distSq <= cr * cr) return true;
-
-    // 3. 円の中心が扇形内に収まっているか
-    const dist = Math.sqrt(distSq);
-    const angleToTarget = Math.atan2(dy, dx);
-    let diff = Math.abs(direction - angleToTarget);
-    if (diff > Math.PI) diff = Math.PI * 2 - diff;
-
-    if (diff <= halfFov && dist <= radius + cr) {
-      return true;
-    }
-
-    // 4. 扇形の2本の境界線分（扇の両端の刃）と円の衝突
-    const leftArmX = sx + Math.cos(direction - halfFov) * radius;
-    const leftArmY = sy + Math.sin(direction - halfFov) * radius;
-    if (this.distSqToSegment(cx, cy, sx, sy, leftArmX, leftArmY) <= cr * cr) return true;
-
-    const rightArmX = sx + Math.cos(direction + halfFov) * radius;
-    const rightArmY = sy + Math.sin(direction + halfFov) * radius;
-    if (this.distSqToSegment(cx, cy, sx, sy, rightArmX, rightArmY) <= cr * cr) return true;
-
-    // 5. 扇形の円弧端点と円の接触
-    const arcLeftDistSq = (cx - leftArmX) ** 2 + (cy - leftArmY) ** 2;
-    const arcRightDistSq = (cx - rightArmX) ** 2 + (cy - rightArmY) ** 2;
-    if (arcLeftDistSq <= cr * cr || arcRightDistSq <= cr * cr) return true;
-
-    return false;
-  },
-
-  performAttackCheck(atk) {
-    const w = atk.weapon;
-    let hitAny = false;
-
-    for (const e of this.enemies) {
-      const hit = this.isSectorIntersectingCircle(
-        this.player.x, this.player.y,
-        atk.range, atk.angle, atk.halfFov,
-        e.x, e.y, e.radius
-      );
-
-      if (hit) {
-        if (!this.hasLineOfSight(this.player.x, this.player.y, e.x, e.y)) continue;
-
-        let dmg = w.dmg + Math.floor(Math.random() * 5);
-        const isCrit = Math.random() < 0.2;
-        if (isCrit) dmg = Math.floor(dmg * 1.6);
-
-        // 武器属性効果の適用
-        if (w.element === 'fire') {
-          dmg += 8;
-          this.createDamageNumber(e.x, e.y - 14, '+8炎上', '#e74c3c');
-        } else if (w.element === 'ice') {
-          e.speed *= 0.6; // 氷結スロウ
-          this.createDamageNumber(e.x, e.y - 14, '凍結！', '#3498db');
-        } else if (w.element === 'llev' || w.id === 'w5') {
-          this.player.hp = Math.min(this.player.maxHp, this.player.hp + 3);
-        }
-
-        // エリート敵のアフィックス判定 (Thorns 反撃ダメージ)
-        if (e.eliteAura === 'thorns' && Math.random() < 0.4) {
-          this.damagePlayer(5);
-        }
-
-        e.hp -= dmg;
-        hitAny = true;
-
-        const kbForce = (e.type === 'boss' ? this.config.kbBoss : this.config.kbNormal);
-        e.kbX += Math.cos(atk.angle) * kbForce;
-        e.kbY += Math.sin(atk.angle) * kbForce;
-
-        this.createDamageNumber(e.x, e.y, dmg, isCrit ? '#ffcc00' : '#ffffff');
-        this.createBlood(e.x, e.y, e.color);
-        this.createHitSparks(e.x, e.y, atk.angle);
-      }
-    }
-
-    if (hitAny) {
-      this.emitSound('hit', this.player.x, this.player.y);
-      this.hitstopTimer = 0.05;
-    }
-  },
-
-  useArtifact(index) {
-    if (index === 0) { // Lightning artifact
-      if (this.player.art1Cooldown > 0) return;
-      this.player.art1Cooldown = this.player.art1CooldownMax;
-      this.emitSound('thunder', this.player.x, this.player.y);
-
-      // Strike nearest 3 enemies
-      const sorted = [...this.enemies].sort((a,b) => Math.hypot(a.x - this.player.x, a.y - this.player.y) - Math.hypot(b.x - this.player.x, b.y - this.player.y));
-      const targets = sorted.slice(0, 3);
-      for (const t of targets) {
-        t.hp -= 45;
-        this.createDamageNumber(t.x, t.y, 45, '#3498db');
-        this.createLightningEffect(this.player.x, this.player.y, t.x, t.y);
-      }
-    } else if (index === 1) { // TNT Artifact
-      if (this.player.art2Cooldown > 0) return;
-      this.player.art2Cooldown = this.player.art2CooldownMax;
-      this.emitSound('slash', this.player.x, this.player.y);
-      // Drop TNT (ゲームタイムライン同期タスクとして登録)
-      const tntX = this.player.x + Math.cos(this.player.angle) * 40;
-      const tntY = this.player.y + Math.sin(this.player.angle) * 40;
-      this.delayedTasks.push({
-        timer: this.config.tntFuseTime,
-        action: () => {
-          this.emitSound('explosion');
-          this.createExplosion(tntX, tntY, 90, 75);
-        }
-      });
-    }
-  },
-
-  usePotion() {
-    if (this.player.potions <= 0 || this.player.potionCooldown > 0) return;
-    if (this.player.hp >= this.player.maxHp) return;
-    this.player.potions--;
-    this.player.potionCooldown = this.player.potionCooldownMax;
-    const heal = Math.floor(this.player.maxHp * 0.45);
-    this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
-    this.emitSound('coin', this.player.x, this.player.y);
-    this.createDamageNumber(this.player.x, this.player.y, `+${heal}`, '#2ecc71');
-  },
-
-  createExplosion(x, y, radius, damage) {
-    // Camera shake for explosion
-    this.shakeIntensity = Math.max(this.shakeIntensity, 16);
-    this.shakeDuration = Math.max(this.shakeDuration, 0.28);
-    this.flashTimer = 0.1; // 一瞬の画面白光フラッシュ
-    this.flashColor = 'rgba(255, 235, 180, ';
-    this.vignetteFlashTimer = 0.3;
-    this.vignetteFlashColor = 'rgba(243, 156, 18, 0.65)';
-
-    // 拡大する衝撃波リングを追加
-    this.shockwaves.push({
-      x, y,
-      maxRadius: radius * 1.25,
-      currentRadius: 8,
-      life: 0.3,
-      maxLife: 0.3,
-      color: '#f39c12'
-    });
-
-    // Spawn explosion particles
-    for (let i = 0; i < 28; i++) {
-      const ang = Math.random() * Math.PI * 2;
-      const spd = Math.random() * 220 + 80; // px per second
-      this.particles.push({
-        x, y,
-        vx: Math.cos(ang) * spd,
-        vy: Math.sin(ang) * spd,
-        size: Math.random() * 8 + 4,
-        color: ['#e74c3c', '#f39c12', '#f1c40f'][Math.floor(Math.random() * 3)],
-        life: 0.42
-      });
-    }
-
-    // Damage enemies
-    for (const e of this.enemies) {
-      const dist = Math.hypot(e.x - x, e.y - y);
-      if (dist < radius) {
-        e.hp -= damage;
-        const pushAng = Math.atan2(e.y - y, e.x - x);
-        const impulse = e.type === 'boss' ? this.config.kbExplosionBoss : this.config.kbExplosionNormal;
-        e.kbX += Math.cos(pushAng) * impulse;
-        e.kbY += Math.sin(pushAng) * impulse;
-        this.createDamageNumber(e.x, e.y, damage, '#e67e22');
-      }
-    }
-
-    // Damage player if close
-    const pDist = Math.hypot(this.player.x - x, this.player.y - y);
-    if (pDist < radius * 0.75) {
-      this.damagePlayer(15);
-    }
-  },
-
-  damagePlayer(amount) {
-    if (this.player.invincibleTimer > 0) return;
-    const armorDef = this.player.armor ? this.player.armor.def : 0;
-    const finalDmg = Math.max(2, amount - armorDef);
-    this.player.hp -= finalDmg;
-    this.player.invincibleTimer = 0.45; // 0.45 sec invincibility
-    this.shakeIntensity = Math.max(this.shakeIntensity, 10);
-    this.shakeDuration = Math.max(this.shakeDuration, 0.18);
-    this.vignetteFlashTimer = 0.25;
-    this.vignetteFlashColor = 'rgba(255, 30, 50, 0.7)';
-    
-    // HUDのダメージ脈動エフェクト
-    const card = document.querySelector('.stats-card');
-    if (card) {
-      card.classList.remove('hp-damaged');
-      void card.offsetWidth; // reflow
-      card.classList.add('hp-damaged');
-    }
-
-    this.emitSound('hit', this.player.x, this.player.y);
-    this.createDamageNumber(this.player.x, this.player.y, `-${finalDmg}`, '#ff4757');
-
-    if (this.player.hp <= 0) {
-      this.player.hp = 0;
-      this.eventQueue.stateChange = 'GAME_OVER';
-    }
-  },
-
-  die() {
-    this.resetVolatileStates();
-    Sound.play('explosion');
-    this.state = 'GAME_OVER';
-    this.running = false;
-    
-    const statsEl = document.getElementById('game-over-stats');
-    statsEl.style.opacity = '0';
-    statsEl.innerHTML = `
-      <div style="font-size:12px; line-height:1.9; color:#e2e8f0; transform: translateY(20px); transition: transform 0.7s var(--ease-spring), opacity 0.7s ease; display:flex; flex-direction:column; gap:6px;">
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px; opacity:0; transform:translateX(-16px); transition: all 0.5s var(--ease-spring) 0.1s;" class="stat-row"><span>👑 到達階層</span><b style="color:#ffd166;">第 ${this.floor} 階層</b></div>
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px; opacity:0; transform:translateX(-16px); transition: all 0.5s var(--ease-spring) 0.25s;" class="stat-row"><span>⚔️ 討伐モンスター</span><b style="color:#ff6b6b;">${this.killCount} 体</b></div>
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:4px; opacity:0; transform:translateX(-16px); transition: all 0.5s var(--ease-spring) 0.4s;" class="stat-row"><span>💎 獲得エメラルド</span><b style="color:#2ecc71;">${this.emeralds} ◆</b></div>
-        <div style="display:flex; justify-content:space-between; opacity:0; transform:translateX(-16px); transition: all 0.5s var(--ease-spring) 0.55s;" class="stat-row"><span>✨ 最終到達レベル</span><b style="color:#3498db;">Lv.${this.player.level}</b></div>
-      </div>
-    `;
-    document.getElementById('game-over-screen').style.display = 'flex';
-    setTimeout(() => {
-      statsEl.style.opacity = '1';
-      statsEl.firstElementChild.style.transform = 'translateY(0)';
-      document.querySelectorAll('.stat-row').forEach(row => {
-        row.style.opacity = '1';
-        row.style.transform = 'translateX(0)';
-      });
-    }, 120);
-  },
-
-  gainXp(amount) {
-    this.player.xp += amount;
-    if (this.player.xp >= this.player.xpNext) {
-      this.player.xp -= this.player.xpNext;
-      this.player.level++;
-      this.player.xpNext = Math.floor(this.player.xpNext * 1.35);
-      this.player.baseMaxHp += 12;
-      this.recalcStats();
-      this.player.hp = this.player.maxHp;
-      this.emitSound('level', this.player.x, this.player.y);
-      this.emitToast(`レベルアップ！ Lv.${this.player.level}`);
-      this.triggerPerkSelection();
-    }
-  },
-
-  triggerPerkSelection() {
-    const allPerks = [
-      { id: 'p1', name: '雷撃連鎖', desc: '攻撃時、確率で周囲の敵に連鎖電撃', icon: '⚡' },
-      { id: 'p2', name: 'バーサーカー', desc: 'HPが減るほど攻撃力が大幅上昇', icon: '🔥' },
-      { id: 'p3', name: 'ライフスティール', desc: '攻撃命中時に確率でHPを回復', icon: '🩸' },
-      { id: 'p4', name: 'シールドバースト', desc: '被弾時、周囲に衝撃波を放ち反撃', icon: '🛡️' },
-      { id: 'p5', name: 'クリティカルマスター', desc: 'クリティカル率が大幅に上昇', icon: '✨' }
-    ];
-    const available = allPerks.filter(p => !this.player.perks.some(ep => ep.id === p.id));
-    if (available.length === 0) return;
-    const shuffled = available.sort(() => 0.5 - Math.random());
-    const choices = shuffled.slice(0, 3);
-
-    const modal = document.getElementById('perk-modal');
-    const container = document.getElementById('perk-choices');
-    container.innerHTML = '';
-    choices.forEach(perk => {
-      const btn = document.createElement('button');
-      btn.className = 'primary-btn';
-      btn.style.width = '100%';
-      btn.style.textAlign = 'left';
-      btn.style.padding = '12px 16px';
-      btn.innerHTML = `<div style="font-size:16px;">${perk.icon} ${perk.name}</div><div style="font-size:11px; color:#a0aec0; margin-top:4px;">${perk.desc}</div>`;
-      btn.onclick = () => {
-        this.player.perks.push(perk);
-        modal.style.display = 'none';
-        this.state = 'PLAYING';
-        this.timeScale = 1.0;
-        this.emitToast(`新アビリティ【${perk.name}】習得！`);
-      };
-      container.appendChild(btn);
-    });
-    this.state = 'PERK_SELECT';
-    this.timeScale = 0.0;
-    modal.style.display = 'flex';
-  },
-
-  dropLoot(x, y, isBoss = false) {
-    // Emerald drop
-    const gemCount = isBoss ? 8 : (Math.random() < 0.7 ? 1 : 0);
-    for (let i = 0; i < gemCount; i++) {
-      this.lootItems.push({
-        x: x + (Math.random() * 24 - 12),
-        y: y + (Math.random() * 24 - 12),
-        type: 'emerald',
-        val: Math.floor(Math.random() * 3) + 1
-      });
-    }
-
-    // Equipment Drop Chance with High-Rarity Impact Frame & Luminous Flash
-    const equipChance = isBoss ? 1.0 : 0.16;
-    if (Math.random() < equipChance) {
-      const pool = Math.random() < 0.6 ? WEAPONS_DB : ARMORS_DB;
-      const item = pool[Math.floor(Math.random() * pool.length)];
-      this.lootItems.push({
-        x, y,
-        type: 'equipment',
-        item: item
-      });
-
-      if (item.rarity === 'unique') {
-        this.shakeIntensity = Math.max(this.shakeIntensity, 12);
-        this.shakeDuration = Math.max(this.shakeDuration, 0.22);
-        this.flashTimer = 0.08;
-        this.flashColor = 'rgba(243, 156, 18, ';
-        this.emitToast(`★ 伝説のレジェンダリーアイテム【${item.name}】がドロップした！`);
-      }
-    }
-  },
-
-  showLootAlert(text) {
-    const el = document.getElementById('lootAlert');
-    el.innerText = text;
-    el.style.opacity = '1';
-    el.style.transform = 'translate(-50%, -10px)';
-    this.lootAlertTimer = this.config.lootToastDuration;
-  },
-
-  savePrevPositions() {
-    this.player.prevX = this.player.x;
-    this.player.prevY = this.player.y;
-    for (const e of this.enemies) {
-      e.prevX = e.x;
-      e.prevY = e.y;
-    }
-    for (const p of this.projectiles) {
-      p.prevX = p.x;
-      p.prevY = p.y;
-    }
-  },
-
-  /* --- Game Loop & Physics (Interpolated Fixed Timestep) --- */
-  loop(timestamp) {
-    if (!this.running) return;
-    if (!this.lastTime) this.lastTime = timestamp;
-    let frameTime = (timestamp - this.lastTime) / 1000;
-    if (frameTime > 0.1) frameTime = 0.1; // Clamp spiral of death
-    this.lastTime = timestamp;
-
-    // ヒットストップおよびタイムスケールの一元統合（インベントリ時や停止時の厳密な静止）
-    let effectiveDt = frameTime * this.timeScale;
-    if (this.hitstopTimer > 0) {
-      this.hitstopTimer = Math.max(0, this.hitstopTimer - frameTime);
-      effectiveDt = 0;
-    }
-
-    if (this.state === 'PLAYING' && effectiveDt > 0) {
-      this.accumulator += effectiveDt;
-      while (this.accumulator >= this.fixedDt) {
-        this.savePrevPositions();
-        this.physicsUpdate(this.fixedDt);
-        this.accumulator -= this.fixedDt;
-      }
-      this.renderAlpha = this.accumulator / this.fixedDt;
-    } else {
-      this.renderAlpha = 1.0;
-    }
-
-    // イベントキューの副作用を一括消化
-    this.flushEventQueue();
-
-    // 物理シミュレーション確定後にHUDを更新（副作用の局所化）
-    this.updateHUD();
-
-    // Interpolated camera follow for zero micro-stutter with Screen Shake offset
-    const interpolatedPlayerX = this.player.x * this.renderAlpha + this.player.prevX * (1 - this.renderAlpha);
-    const interpolatedPlayerY = this.player.y * this.renderAlpha + this.player.prevY * (1 - this.renderAlpha);
-    let targetCamX = this.width / 2 - interpolatedPlayerX;
-    let targetCamY = this.height / 2 - interpolatedPlayerY;
-
-    if (this.shakeDuration > 0 && this.shakeIntensity > 0) {
-      targetCamX += (Math.random() - 0.5) * this.shakeIntensity * 2;
-      targetCamY += (Math.random() - 0.5) * this.shakeIntensity * 2;
-    }
-
-    const lerpRate = 1 - Math.exp(-18 * frameTime);
-    this.camX += (targetCamX - this.camX) * lerpRate;
-    this.camY += (targetCamY - this.camY) * lerpRate;
-
-    // 純粋な画面描画フェーズ
-    this.render();
-    requestAnimationFrame((t) => this.loop(t));
-  },
-
-  /* --- 物理更新パイプライン（責任分離アーキテクチャ） --- */
-  physicsUpdate(dt) {
-    this.pollUnifiedInputs();
-    this.processPlayerInput(dt);
-    this.updatePlayer(dt);
-    this.updateEnemies(dt);
-    this.updateProjectiles(dt);
-    this.updateLootAndInteractables(dt);
-    this.resolvePhysicsPipeline(dt);
-    this.updateTimersAndEffects(dt);
-    this.cleanupDestroyedEntities();
-  },
-
-  /* 入力アダプター層: PC/Mobileの入力を統一正規化ステートへ変換 */
-  pollUnifiedInputs() {
-    let mx = 0, my = 0;
-    if (this.joystick.active) {
-      mx = this.joystick.dirX;
-      my = this.joystick.dirY;
-    } else {
-      if (this.keys['w'] || this.keys['arrowup']) my -= 1;
-      if (this.keys['s'] || this.keys['arrowdown']) my += 1;
-      if (this.keys['a'] || this.keys['arrowleft']) mx -= 1;
-      if (this.keys['d'] || this.keys['arrowright']) mx += 1;
-      const len = Math.hypot(mx, my);
-      if (len > 0) { mx /= len; my /= len; }
-    }
-    this.inputState.moveX = mx;
-    this.inputState.moveY = my;
-
-    // 照準優先度の統一判定
-    const isMouseRecentlyActive = (performance.now() - this.mousePos.lastMovedTime) < (this.config.mouseActiveTimeout * 1000);
-    const target = this.getNearestEnemy(200);
-
-    if (isMouseRecentlyActive) {
-      const worldMouseX = this.mousePos.x - this.camX;
-      const worldMouseY = this.mousePos.y - this.camY;
-      this.inputState.aimAngle = Math.atan2(worldMouseY - this.player.y, worldMouseX - this.player.x);
-      this.inputState.hasAim = true;
-    } else if (target && (!this.joystick.active || Math.hypot(target.x - this.player.x, target.y - this.player.y) < 140)) {
-      this.inputState.aimAngle = Math.atan2(target.y - this.player.y, target.x - this.player.x);
-      this.inputState.hasAim = true;
-    } else if (Math.hypot(mx, my) > 0.01) {
-      this.inputState.aimAngle = Math.atan2(my, mx);
-      this.inputState.hasAim = true;
-    } else {
-      this.inputState.hasAim = false;
-    }
-  },
-
-  processPlayerInput(dt) {
-    // アクション要求の消化
-    if (this.inputState.attackQueued) {
-      this.inputState.attackQueued = false;
-      this.playerAttack();
-    }
-    if (this.inputState.art1Queued) {
-      this.inputState.art1Queued = false;
-      this.useArtifact(0);
-    }
-    if (this.inputState.art2Queued) {
-      this.inputState.art2Queued = false;
-      this.useArtifact(1);
-    }
-    if (this.inputState.healQueued) {
-      this.inputState.healQueued = false;
-      this.usePotion();
-    }
-
-    // 先行入力バッファの減衰と最速トリガー
-    if (this.player.attackCooldown > 0) {
-      this.player.attackCooldown = Math.max(0, this.player.attackCooldown - dt);
-    }
-    if (this.player.attackBuffer > 0) {
-      this.player.attackBuffer = Math.max(0, this.player.attackBuffer - dt);
-      if (this.player.attackCooldown <= 0) {
-        this.executePlayerAttack();
-      }
-    }
-
-    const mx = this.inputState.moveX;
-    const my = this.inputState.moveY;
-
-    // 攻撃フェーズ管理: スイング中は通常移動入力を減衰させステップインとの緩急を強調
-    const moveControlScale = this.player.attackSwing > 0 ? 0.35 : 1.0;
-    const targetVx = mx * this.player.speed * moveControlScale;
-    const targetVy = my * this.player.speed * moveControlScale;
-    const accelRate = (mx !== 0 || my !== 0) ? this.player.accel : (this.player.accel * 1.5);
-
-    const diffVx = targetVx - this.player.vx;
-    const diffVy = targetVy - this.player.vy;
-    this.player.vx += Math.sign(diffVx) * Math.min(Math.abs(diffVx), accelRate * dt);
-    this.player.vy += Math.sign(diffVy) * Math.min(Math.abs(diffVy), accelRate * dt);
-
-    // 攻撃スイング中は振り抜き方向をロックしエイムブレを遮断
-    if (this.player.attackSwing <= 0 && this.inputState.hasAim) {
-      this.player.angle = this.inputState.aimAngle;
-    }
-  },
-
-  updatePlayer(dt) {
-    // 【軸分離移動パイプライン】X軸移動・解決 → Y軸移動・解決により完璧な壁ずりを実現
-    this.player.x += this.player.vx * dt;
-    this.resolveCircleWallCollisions(this.player, 'x');
-
-    this.player.y += this.player.vy * dt;
-    this.resolveCircleWallCollisions(this.player, 'y');
-
-    if (this.player.attackSwing > 0) this.player.attackSwing = Math.max(0, this.player.attackSwing - dt);
-    if (this.player.invincibleTimer > 0) this.player.invincibleTimer = Math.max(0, this.player.invincibleTimer - dt);
-
-    // アクティブ攻撃判定の進行（フェーズ完全同期）
-    if (this.player.activeAttack) {
-      const atk = this.player.activeAttack;
-      atk.timer += dt;
-      if (!atk.hasHit && atk.timer >= atk.windupTime && atk.timer <= atk.activeEndTime) {
-        atk.hasHit = true;
-        this.performAttackCheck(atk);
-      }
-      if (atk.timer >= atk.duration) {
-        this.player.activeAttack = null;
-      }
-    }
-
-    // 出口ゲート接触
-    const distToExit = Math.hypot(this.player.x - this.exitPos.x, this.player.y - this.exitPos.y);
-    if (distToExit < 30) {
-      this.eventQueue.stateChange = 'STAGE_CLEAR';
-    }
-  },
-
-  updateEnemies(dt) {
-    for (const e of this.enemies) {
-      const dx = this.player.x - e.x;
-      const dy = this.player.y - e.y;
-      const dist = Math.hypot(dx, dy);
-
-      // ボスのマルチフェーズ移行判定 (HP 50%以下で狂暴化フェーズ2)
-      if (e.type === 'boss' && e.phase === 1 && e.hp <= e.maxHp * 0.5) {
-        e.phase = 2;
-        e.speed *= 1.35;
-        e.damage = Math.floor(e.damage * 1.3);
-        this.emitToast('ボスが狂暴化した！弾幕強化！');
-        this.shakeIntensity = 18;
-        this.shakeDuration = 0.4;
-      }
-
-      let moveX = e.kbX * dt;
-      let moveY = e.kbY * dt;
-
-      const friction = Math.exp(-12 * dt);
-      e.kbX *= friction;
-      e.kbY *= friction;
-      if (Math.abs(e.kbX) < 1) e.kbX = 0;
-      if (Math.abs(e.kbY) < 1) e.kbY = 0;
-
-      if (dist < 420) {
-        const nx = dx / (dist || 1);
-        const ny = dy / (dist || 1);
-
-        if (e.type === 'creeper') {
-          if (dist < 46) {
-            e.fuse += dt;
-            if (e.fuse > 0.8) {
-              this.emitSound('explosion', e.x, e.y);
-              this.createExplosion(e.x, e.y, 80, e.damage);
-              e.dead = true;
-              continue;
-            }
-          } else {
-            e.fuse = Math.max(0, e.fuse - dt * 1.5);
-          }
-        }
-
-        if (e.type === 'skeleton') {
-          let skelMove = 0;
-          if (dist > 200) skelMove = 1;
-          else if (dist < 130) skelMove = -1;
-
-          if (skelMove !== 0) {
-            moveX += nx * e.speed * dt * skelMove;
-            moveY += ny * e.speed * dt * skelMove;
-          }
-
-          e.shootCd = (e.shootCd || 0) + dt;
-          if (e.shootCd > 1.35) {
-            e.shootCd = 0;
-            this.projectiles.push({
-              x: e.x, y: e.y,
-              prevX: e.x, prevY: e.y,
-              vx: nx * 300, vy: ny * 300,
-              radius: 4, damage: e.damage,
-              color: '#fff', fromPlayer: false
-            });
-          }
-        } else if (e.type === 'assassin' && dist < 220) {
-          e.teleportCd = (e.teleportCd || 0) + dt;
-          if (e.teleportCd > 4.0) {
-            e.teleportCd = 0;
-            e.x = this.player.x + (Math.random() - 0.5) * 80;
-            e.y = this.player.y + (Math.random() - 0.5) * 80;
-            this.emitSound('thunder', e.x, e.y);
-          } else {
-            moveX += nx * e.speed * 1.5 * dt;
-            moveY += ny * e.speed * 1.5 * dt;
-          }
-        } else if (e.type === 'necromancer') {
-          e.summonCd = (e.summonCd || 0) + dt;
-          if (e.summonCd > 5.5) {
-            e.summonCd = 0;
-            this.spawnEnemy(e.x + 30, e.y + 30);
-            this.emitToast('死霊術師が亡者を召喚した！');
-          }
-          moveX += nx * e.speed * dt * 0.6;
-          moveY += ny * e.speed * dt * 0.6;
-        } else {
-          // 【障害物回避ステアリング】進行方向直前の壁を検知して回避力を合成
-          let steerX = nx;
-          let steerY = ny;
-          const feelerDist = e.radius + 14;
-          const probeX = e.x + nx * feelerDist;
-          const probeY = e.y + ny * feelerDist;
-
-          if (this.checkWall(probeX, e.y, e.radius * 0.7)) {
-            steerX = 0;
-            steerY = ny !== 0 ? Math.sign(ny) : 1;
-          } else if (this.checkWall(e.x, probeY, e.radius * 0.7)) {
-            steerY = 0;
-            steerX = nx !== 0 ? Math.sign(nx) : 1;
-          }
-
-          moveX += steerX * e.speed * dt;
-          moveY += steerY * e.speed * dt;
-
-          if (dist < e.radius + this.player.radius + 4) {
-            this.damagePlayer(e.damage);
-            const pushBack = 8;
-            moveX -= nx * pushBack;
-            moveY -= ny * pushBack;
-          }
-        }
-      }
-
-      // ボスのフェーズ2弾幕攻撃およびミニオン召喚スキル
-      if (e.type === 'boss' && dist < 340) {
-        e.shootCd = (e.shootCd || 0) + dt;
-        if (e.shootCd > (e.phase === 2 ? 1.4 : 2.2)) {
-          e.shootCd = 0;
-          const bulletCount = e.phase === 2 ? 8 : 5;
-          for (let i = 0; i < bulletCount; i++) {
-            const ang = ((Math.PI * 2) / bulletCount) * i + performance.now() * 0.001;
-            this.projectiles.push({
-              x: e.x, y: e.y,
-              prevX: e.x, prevY: e.y,
-              vx: Math.cos(ang) * 240, vy: Math.sin(ang) * 240,
-              radius: 5, damage: Math.floor(e.damage * 0.8),
-              color: '#e74c3c', fromPlayer: false
-            });
-          }
-        }
-        if (e.phase === 2) {
-          e.summonCd = (e.summonCd || 0) + dt;
-          if (e.summonCd > 7.0) {
-            e.summonCd = 0;
-            this.spawnEnemy(e.x + 40, e.y + 40);
-            this.emitToast('ボスが手下を召喚した！');
-          }
-        }
-      }
-
-      // 敵もX/Y軸分離移動でスタックを排除
-      e.x += moveX;
-      this.resolveCircleWallCollisions(e, 'x');
-      e.y += moveY;
-      this.resolveCircleWallCollisions(e, 'y');
-
-      if (e.hp <= 0 && !e.dead) {
-        e.dead = true;
-        this.killCount++;
-        this.gainXp(e.type === 'boss' ? 120 : 18);
-        this.dropLoot(e.x, e.y, e.type === 'boss');
-      }
-    }
-  },
-
-  updateProjectiles(dt) {
-    for (const p of this.projectiles) {
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-
-      if (this.checkWall(p.x, p.y, p.radius)) {
-        p.dead = true;
-        continue;
-      }
-
-      if (!p.fromPlayer) {
-        const pd = Math.hypot(p.x - this.player.x, p.y - this.player.y);
-        if (pd < p.radius + this.player.radius) {
-          this.damagePlayer(p.damage);
-          p.dead = true;
-        }
-      }
-    }
-  },
-
-  updateLootAndInteractables(dt) {
-    // 環境ハザード接触判定 (溶岩・氷結・スパイク)
-    if (this.hazards) {
-      for (const h of this.hazards) {
-        if (Math.hypot(this.player.x - h.x, this.player.y - h.y) < h.radius) {
-          if (h.type === 'lava') this.damagePlayer(4);
-          else if (h.type === 'ice') {
-            this.player.vx *= 0.92;
-            this.player.vy *= 0.92;
-          }
-        }
-      }
-    }
-
-    for (const item of this.lootItems) {
-      const dist = Math.hypot(item.x - this.player.x, item.y - this.player.y);
-
-      if (item.type === 'chest' && !item.opened && dist < 42) {
-        item.opened = true;
-        this.emitSound('coin', item.x, item.y);
-        this.dropLoot(item.x, item.y, true);
-        this.emitToast('宝箱を開けた！');
-      } else if (item.type === 'emerald' && dist < 36) {
-        this.emitSound('coin', item.x, item.y);
-        this.emeralds += item.val;
-        item.dead = true;
-      } else if (item.type === 'equipment' && dist < 36) {
-        this.emitSound('coin', item.x, item.y);
-        this.player.inventory.push(item.item);
-        this.emitToast(`${item.item.name} を手に入れた！`);
-        item.dead = true;
-        if (this.state === 'INVENTORY') this.renderInventory();
-      } else if (item.type === 'merchant' && !item.interacted && dist < 40) {
-        item.interacted = true;
-        if (this.emeralds >= 10) {
-          this.emeralds -= 10;
-          this.player.potions = Math.min(3, this.player.potions + 1);
-          this.emitToast('商人からポーションを補充した！(-10◆)');
-        } else {
-          this.emitToast('エメラルドが足りない…');
-        }
-      } else if (item.type === 'altar' && !item.interacted && dist < 40) {
-        item.interacted = true;
-        if (this.player.hp > 30) {
-          this.player.hp -= 30;
-          this.gainXp(120);
-          this.emitToast('祭壇にHPを捧げ、大いなるXPを得た！');
-        }
-      } else if (item.type === 'cursedAltar' && !item.interacted && dist < 40) {
-        item.interacted = true;
-        if (Math.random() < 0.55) {
-          this.emeralds += 15;
-          this.gainXp(200);
-          this.emitToast('呪われた祭壇の試練に勝利し、莫大な報酬を手に入れた！');
-        } else {
-          this.damagePlayer(40);
-          this.emitToast('呪いが発動し、大ダメージを受けた…！');
-        }
-      }
-    }
-  },
-
-  // サブステップ反復ソルバーによる剛性化物理パイプライン
-  resolvePhysicsPipeline(dt) {
-    const iterations = this.config.solverIterations;
-    for (let iter = 0; iter < iterations; iter++) {
-      // 1. エンティティ間の反発分離
-      this.resolveEntitySeparation();
-
-      // 2. タイルAABBとの衝突解決（X軸・Y軸それぞれ微小修正）
-      this.resolveCircleWallCollisions(this.player, 'x');
-      this.resolveCircleWallCollisions(this.player, 'y');
-      for (const e of this.enemies) {
-        if (!e.dead) {
-          this.resolveCircleWallCollisions(e, 'x');
-          this.resolveCircleWallCollisions(e, 'y');
-        }
-      }
-    }
-  },
-
-  updateTimersAndEffects(dt) {
-    if (this.player.art1Cooldown > 0) this.player.art1Cooldown = Math.max(0, this.player.art1Cooldown - dt);
-    if (this.player.art2Cooldown > 0) this.player.art2Cooldown = Math.max(0, this.player.art2Cooldown - dt);
-    if (this.player.potionCooldown > 0) this.player.potionCooldown = Math.max(0, this.player.potionCooldown - dt);
-
-    if (this.shakeDuration > 0) {
-      this.shakeDuration = Math.max(0, this.shakeDuration - dt);
-      if (this.shakeDuration === 0) this.shakeIntensity = 0;
-    }
-
-    for (let i = this.delayedTasks.length - 1; i >= 0; i--) {
-      const task = this.delayedTasks[i];
-      task.timer -= dt;
-      if (task.timer <= 0) {
-        task.action();
-        this.delayedTasks.splice(i, 1);
-      }
-    }
-
-    if (this.lootAlertTimer > 0) {
-      this.lootAlertTimer -= dt;
-      if (this.lootAlertTimer <= 0) {
-        const el = document.getElementById('lootAlert');
-        el.style.opacity = '0';
-        el.style.transform = 'translate(-50%, 0)';
-      }
-    }
-
-    // パーティクル (空気抵抗イージング & 重力慣性)
-    const drag = Math.exp(-6 * dt);
-    for (const p of this.particles) {
-      p.vx *= drag;
-      p.vy *= drag;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.life -= dt;
-      if (p.life <= 0) p.dead = true;
-    }
-
-    if (this.flashTimer > 0) {
-      this.flashTimer = Math.max(0, this.flashTimer - dt);
-    }
-    if (this.vignetteFlashTimer > 0) {
-      this.vignetteFlashTimer = Math.max(0, this.vignetteFlashTimer - dt);
-    }
-
-    // 衝撃波リングの更新
-    for (const s of this.shockwaves) {
-      s.life -= dt;
-      s.currentRadius += ((s.maxRadius - s.currentRadius) / (s.life + 0.05)) * dt;
-      if (s.life <= 0) s.dead = true;
-    }
-
-    // ダメージ数値（パラボラ軌道＆バウンス）
-    for (const d of this.damageNumbers) {
-      d.x += d.vx * dt;
-      d.y += d.vy * dt;
-      d.vy += 220 * dt; // 重力加速度
-      d.life -= dt;
-      if (d.life <= 0) d.dead = true;
-    }
-  },
-
-  // フレーム末尾での一括クリーンアップ（遅延削除アーキテクチャ）
-  cleanupDestroyedEntities() {
-    this.enemies = this.enemies.filter(e => !e.dead);
-    this.projectiles = this.projectiles.filter(p => !p.dead);
-    this.lootItems = this.lootItems.filter(item => !item.dead);
-    this.particles = this.particles.filter(p => !p.dead);
-    this.damageNumbers = this.damageNumbers.filter(d => !d.dead);
-    this.shockwaves = this.shockwaves.filter(s => !s.dead);
-  },
-
-  checkWall(x, y, radius) {
-    const left = Math.floor((x - radius) / this.tileSize);
-    const right = Math.floor((x + radius) / this.tileSize);
-    const top = Math.floor((y - radius) / this.tileSize);
-    const bottom = Math.floor((y + radius) / this.tileSize);
-
-    for (let r = top; r <= bottom; r++) {
-      for (let c = left; c <= right; c++) {
-        if (r < 0 || c < 0 || r >= this.mapHeight || c >= this.mapWidth) return true;
-        if (this.map[r][c] === 1) return true;
-      }
-    }
-    return false;
-  },
-
-  // 高精度な円コライダー vs タイルAABBの貫通解消（ベクトル射影コーナースライド付き）
-  resolveCircleWallCollisions(entity, axis = 'both') {
-    const r = entity.radius;
-    const minCol = Math.max(0, Math.floor((entity.x - r - 2) / this.tileSize));
-    const maxCol = Math.min(this.mapWidth - 1, Math.floor((entity.x + r + 2) / this.tileSize));
-    const minRow = Math.max(0, Math.floor((entity.y - r - 2) / this.tileSize));
-    const maxRow = Math.min(this.mapHeight - 1, Math.floor((entity.y + r + 2) / this.tileSize));
-
-    for (let row = minRow; row <= maxRow; row++) {
-      for (let col = minCol; col <= maxCol; col++) {
-        if (this.map[row][col] === 1) {
-          const tileLeft = col * this.tileSize;
-          const tileRight = tileLeft + this.tileSize;
-          const tileTop = row * this.tileSize;
-          const tileBottom = tileTop + this.tileSize;
-
-          const nearestX = Math.max(tileLeft, Math.min(entity.x, tileRight));
-          const nearestY = Math.max(tileTop, Math.min(entity.y, tileBottom));
-
-          const diffX = entity.x - nearestX;
-          const diffY = entity.y - nearestY;
-          const distSq = diffX * diffX + diffY * diffY;
-
-          if (distSq < r * r) {
-            const dist = Math.sqrt(distSq);
-            if (dist > 0.0001) {
-              const overlap = r - dist;
-              const nx = diffX / dist;
-              const ny = diffY / dist;
-
-              // 壁面および凸角に対する速度ベクトルの滑らかな接線射影 (Wall Sliding)
-              if (entity.vx !== undefined && entity.vy !== undefined) {
-                const dot = entity.vx * nx + entity.vy * ny;
-                if (dot < 0) {
-                  entity.vx -= dot * nx;
-                  entity.vy -= dot * ny;
-                  // コーナー接触時の回り込み推力アシスト（引っ掛かりの完全解消）
-                  const isCorner = (nearestX === tileLeft || nearestX === tileRight) &&
-                                   (nearestY === tileTop || nearestY === tileBottom);
-                  if (isCorner) {
-                    const tangentX = -ny;
-                    const tangentY = nx;
-                    const tanDot = entity.vx * tangentX + entity.vy * tangentY;
-                    const slideSpeed = Math.hypot(entity.vx, entity.vy);
-                    if (slideSpeed > 10) {
-                      const dir = tanDot >= 0 ? 1 : -1;
-                      entity.vx = tangentX * dir * slideSpeed;
-                      entity.vy = tangentY * dir * slideSpeed;
-                    }
-                  }
-                }
-              }
-
-              if (axis === 'x') {
-                entity.x += nx * overlap;
-              } else if (axis === 'y') {
-                entity.y += ny * overlap;
-              } else {
-                entity.x += nx * overlap;
-                entity.y += ny * overlap;
-              }
-            } else {
-              // 重心完全一致時の安全なフォールバック
-              const centerX = (tileLeft + tileRight) * 0.5;
-              const centerY = (tileTop + tileBottom) * 0.5;
-              const pushX = entity.x >= centerX ? 1 : -1;
-              const pushY = entity.y >= centerY ? 1 : -1;
-              if (axis === 'x' || axis === 'both') entity.x += pushX * r;
-              if (axis === 'y' || axis === 'both') entity.y += pushY * r;
-            }
-          }
-        }
-      }
-    }
-  },
-
-  // 反復ソルバー向けに最適化した質量感のある分離処理
-  resolveEntitySeparation() {
-    const damping = 0.38; // サブステップ反復に最適化した緩和係数
-
-    // 1. 敵同士の分離
-    for (let i = 0; i < this.enemies.length; i++) {
-      const e1 = this.enemies[i];
-      if (e1.dead) continue;
-      for (let j = i + 1; j < this.enemies.length; j++) {
-        const e2 = this.enemies[j];
-        if (e2.dead) continue;
-        const dx = e2.x - e1.x;
-        const dy = e2.y - e1.y;
-        const dist = Math.hypot(dx, dy);
-        const minDist = e1.radius + e2.radius;
-        if (dist < minDist && dist > 0.0001) {
-          const overlap = (minDist - dist) * 0.5 * damping;
-          const nx = (dx / dist) * overlap;
-          const ny = (dy / dist) * overlap;
-          e1.x -= nx;
-          e1.y -= ny;
-          e2.x += nx;
-          e2.y += ny;
-        }
-      }
-    }
-
-    // 2. プレイヤーと敵のめり込み分離
-    for (const e of this.enemies) {
-      if (e.dead) continue;
-      const dx = e.x - this.player.x;
-      const dy = e.y - this.player.y;
-      const dist = Math.hypot(dx, dy);
-      const minDist = this.player.radius + e.radius;
-      if (dist < minDist && dist > 0.0001) {
-        const overlap = (minDist - dist) * damping;
-        const nx = dx / dist;
-        const ny = dy / dist;
-        if (e.type === 'boss') {
-          this.player.x -= nx * overlap;
-          this.player.y -= ny * overlap;
-        } else {
-          this.player.x -= nx * (overlap * 0.35);
-          this.player.y -= ny * overlap * 0.35;
-          e.x += nx * (overlap * 0.65);
-          e.y += ny * overlap * 0.65;
-        }
-      }
-    }
-  },
-
-  // DDA (Digital Differential Analyzer) による厳密なグリッドトラバースLine-of-Sight
-  hasLineOfSight(x1, y1, x2, y2) {
-    let x0 = x1 / this.tileSize;
-    let y0 = y1 / this.tileSize;
-    const targetX = x2 / this.tileSize;
-    const targetY = y2 / this.tileSize;
-
-    const dx = targetX - x0;
-    const dy = targetY - y0;
-    const stepX = dx >= 0 ? 1 : -1;
-    const stepY = dy >= 0 ? 1 : -1;
-
-    let mapX = Math.floor(x0);
-    let mapY = Math.floor(y0);
-    const targetMapX = Math.floor(targetX);
-    const targetMapY = Math.floor(targetY);
-
-    if (mapX === targetMapX && mapY === targetMapY) return true;
-
-    const tDeltaX = dx === 0 ? Infinity : Math.abs(1 / dx);
-    const tDeltaY = dy === 0 ? Infinity : Math.abs(1 / dy);
-
-    let tMaxX = dx === 0 ? Infinity : (stepX > 0 ? (mapX + 1 - x0) : (x0 - mapX)) * tDeltaX;
-    let tMaxY = dy === 0 ? Infinity : (stepY > 0 ? (mapY + 1 - y0) : (y0 - mapY)) * tDeltaY;
-
-    // 安全限界ループ（マップ外周考慮）
-    const maxIterations = this.mapWidth + this.mapHeight;
-    for (let i = 0; i < maxIterations; i++) {
-      if (tMaxX < tMaxY) {
-        mapX += stepX;
-        tMaxX += tDeltaX;
-      } else {
-        mapY += stepY;
-        tMaxY += tDeltaY;
-      }
-
-      if (mapX < 0 || mapX >= this.mapWidth || mapY < 0 || mapY >= this.mapHeight) return false;
-      if (this.map[mapY][mapX] === 1) return false;
-      if (mapX === targetMapX && mapY === targetMapY) return true;
-    }
-    return true;
-  },
-
-  /* --- Rendering (Isometric Voxel Aesthetic) --- */
-  render() {
-    const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.width, this.height);
-
-    // Apply smoothed camera with subpixel round
-    const roundedCamX = Math.round(this.camX);
-    const roundedCamY = Math.round(this.camY);
-
-    ctx.save();
-    ctx.translate(roundedCamX, roundedCamY);
-
-    // Draw Map Tiles (Blocks with top face & side depth)
-    const startCol = Math.max(0, Math.floor((-roundedCamX) / this.tileSize));
-    const endCol = Math.min(this.mapWidth, Math.ceil((-roundedCamX + this.width) / this.tileSize));
-    const startRow = Math.max(0, Math.floor((-roundedCamY) / this.tileSize));
-    const endRow = Math.min(this.mapHeight, Math.ceil((-roundedCamY + this.height) / this.tileSize));
-
-    for (let r = startRow; r < endRow; r++) {
-      for (let c = startCol; c < endCol; c++) {
-        const x = c * this.tileSize;
-        const y = r * this.tileSize;
-        const type = this.map[r][c];
-
-        if (type === 1) { // Wall block (3D Depth & Lighted Texture)
-          ctx.fillStyle = '#141824';
-          ctx.fillRect(x, y, this.tileSize, this.tileSize);
-          // Top face with subtle gradient
-          const topGrad = ctx.createLinearGradient(x, y, x, y + this.tileSize - 7);
-          topGrad.addColorStop(0, '#384259');
-          topGrad.addColorStop(1, '#242a38');
-          ctx.fillStyle = topGrad;
-          ctx.fillRect(x, y, this.tileSize, this.tileSize - 7);
-          // Bevel highlight
-          ctx.fillStyle = 'rgba(255,255,255,0.15)';
-          ctx.fillRect(x, y, this.tileSize, 2);
-          ctx.fillRect(x, y, 2, this.tileSize - 7);
-          ctx.fillStyle = 'rgba(0,0,0,0.4)';
-          ctx.fillRect(x, y + this.tileSize - 7, this.tileSize, 7);
-          ctx.strokeStyle = '#0c0f17';
-          ctx.strokeRect(x, y, this.tileSize, this.tileSize);
-        } else { // Ground with subtle Ambient Occlusion
-          ctx.fillStyle = (r + c) % 2 === 0 ? '#161922' : '#12141c';
-          ctx.fillRect(x, y, this.tileSize, this.tileSize);
-          
-          // Shadow from adjacent walls (Simulated AO)
-          if (r > 0 && this.map[r - 1][c] === 1) {
-            const aoGrad = ctx.createLinearGradient(x, y, x, y + 16);
-            aoGrad.addColorStop(0, 'rgba(0,0,0,0.55)');
-            aoGrad.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = aoGrad;
-            ctx.fillRect(x, y, this.tileSize, 16);
-          }
-          ctx.strokeStyle = 'rgba(255,255,255,0.025)';
-          ctx.strokeRect(x, y, this.tileSize, this.tileSize);
-        }
-
-        if (type === 2) { // Portal to next floor
-          ctx.fillStyle = '#8e44ad';
-          ctx.beginPath();
-          ctx.arc(x + this.tileSize / 2, y + this.tileSize / 2, 22, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#9b59b6';
-          ctx.beginPath();
-          ctx.arc(x + this.tileSize / 2, y + this.tileSize / 2, 14, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 12px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('EXIT', x + this.tileSize / 2, y + this.tileSize / 2 + 4);
-        }
-      }
-    }
-
-    // 環境ハザード描画
-    if (this.hazards) {
-      for (const h of this.hazards) {
-        ctx.fillStyle = h.type === 'lava' ? 'rgba(231, 76, 60, 0.45)' : 'rgba(46, 204, 113, 0.4);';
-        ctx.beginPath();
-        ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    // Loot Items (Floating Bobbing Motion & Dynamic Aura)
-    const timeSec = performance.now() * 0.003;
-    for (const item of this.lootItems) {
-      const bobY = Math.sin(timeSec * 2.5 + item.x) * 4;
-
-      if (item.type === 'chest') {
-        ctx.fillStyle = item.opened ? '#7f8c8d' : '#d35400';
-        ctx.fillRect(item.x - 14, item.y - 12, 28, 24);
-        ctx.fillStyle = '#f1c40f';
-        ctx.fillRect(item.x - 4, item.y - 4, 8, 8);
-      } else if (item.type === 'merchant') {
-        ctx.fillStyle = '#f39c12';
-        ctx.beginPath();
-        ctx.arc(item.x, item.y, 16, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.font = '12px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('商', item.x, item.y + 4);
-      } else if (item.type === 'altar') {
-        ctx.fillStyle = '#9b59b6';
-        ctx.fillRect(item.x - 12, item.y - 12, 24, 24);
-        ctx.fillStyle = '#fff';
-        ctx.fillText('祭', item.x, item.y + 4);
-      } else if (item.type === 'cursedAltar') {
-        ctx.fillStyle = '#8e44ad';
-        ctx.fillRect(item.x - 12, item.y - 12, 24, 24);
-        ctx.fillStyle = '#e74c3c';
-        ctx.fillText('呪', item.x, item.y + 4);
-      } else if (item.type === 'survivalPortal') {
-        ctx.fillStyle = '#3498db';
-        ctx.beginPath();
-        ctx.arc(item.x, item.y, item.active ? 20 : 10, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.fillText('試練', item.x, item.y + 4);
-      } else if (item.type === 'emerald') {
-        const ey = item.y + bobY;
-        // Shadow underneath
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.beginPath();
-        ctx.ellipse(item.x, item.y + 10, 8 - bobY * 0.3, 4 - bobY * 0.15, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Gem glow
-        const gemGrad = ctx.createRadialGradient(item.x, ey, 1, item.x, ey, 14);
-        gemGrad.addColorStop(0, 'rgba(46, 204, 113, 0.8)');
-        gemGrad.addColorStop(1, 'rgba(46, 204, 113, 0)');
-        ctx.fillStyle = gemGrad;
-        ctx.beginPath();
-        ctx.arc(item.x, ey, 14, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#2ecc71';
-        ctx.beginPath();
-        ctx.moveTo(item.x, ey - 10);
-        ctx.lineTo(item.x + 7, ey);
-        ctx.lineTo(item.x, ey + 10);
-        ctx.lineTo(item.x - 7, ey);
-        ctx.closePath();
-        ctx.fill();
-      } else if (item.type === 'equipment') {
-        const iy = item.y + bobY;
-        const isUnique = item.item.rarity === 'unique';
-        const pillarColor = isUnique ? 'rgba(243, 156, 18, 0.45)' : 'rgba(52, 152, 219, 0.45)';
-
-        // Glowing loot pillar light beam
-        const beamGrad = ctx.createLinearGradient(item.x, iy - 45, item.x, iy);
-        beamGrad.addColorStop(0, 'rgba(255,255,255,0)');
-        beamGrad.addColorStop(1, pillarColor);
-        ctx.fillStyle = beamGrad;
-        ctx.fillRect(item.x - 12, iy - 45, 24, 45);
-
-        ctx.font = '20px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(item.item.icon, item.x, iy - 6);
-      }
-    }
-
-    const alpha = this.renderAlpha;
-
-    // Enemies
-    for (const e of this.enemies) {
-      const ex = e.x * alpha + (e.prevX ?? e.x) * (1 - alpha);
-      const ey = e.y * alpha + (e.prevY ?? e.y) * (1 - alpha);
-
-      // Soft Radial Shadow
-      const shadowGrad = ctx.createRadialGradient(ex, ey + e.radius - 2, 0, ex, ey + e.radius - 2, e.radius * 1.1);
-      shadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0.55)');
-      shadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = shadowGrad;
-      ctx.beginPath();
-      ctx.ellipse(ex, ey + e.radius - 2, e.radius * 1.1, e.radius * 0.55, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Body (Minecraft block head style - 円形コライダー直径と正確に一致)
-      ctx.fillStyle = (e.type === 'creeper' && Math.floor(e.fuse * 12) % 2 === 1) ? '#fff' : e.color;
-      const size = e.radius * 2;
-      ctx.fillRect(ex - size / 2, ey - size / 2, size, size);
-
-      // Face/Eyes
-      ctx.fillStyle = '#000';
-      if (e.type === 'boss') {
-        ctx.fillStyle = '#ff0000';
-        ctx.fillRect(ex - 10, ey - 6, 6, 6);
-        ctx.fillRect(ex + 4, ey - 6, 6, 6);
-      } else {
-        ctx.fillRect(ex - 6, ey - 4, 3, 3);
-        ctx.fillRect(ex + 3, ey - 4, 3, 3);
-      }
-
-      // HP bar
-      if (e.hp < e.maxHp) {
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(ex - 18, ey - e.radius - 12, 36, 5);
-        ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(ex - 18, ey - e.radius - 12, (36 * (e.hp / e.maxHp)), 5);
-      }
-    }
-
-    // Player Rendering
-    const px = this.player.x * alpha + this.player.prevX * (1 - alpha);
-    const py = this.player.y * alpha + this.player.prevY * (1 - alpha);
-
-    // Soft Radial Shadow
-    const pShadowGrad = ctx.createRadialGradient(px, py + 14, 0, px, py + 14, 18);
-    pShadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
-    pShadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = pShadowGrad;
-    ctx.beginPath();
-    ctx.ellipse(px, py + 14, 18, 9, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Player Voxel Body
-    ctx.save();
-    ctx.translate(px, py);
-
-    if (this.player.invincibleTimer > 0 && Math.floor(this.player.invincibleTimer * 20) % 2 === 0) {
-      ctx.globalAlpha = 0.4;
-    }
-
-    // Body
-    ctx.fillStyle = '#3498db'; // Shirt
-    ctx.fillRect(-11, -11, 22, 22);
-    ctx.fillStyle = '#2980b9'; // Head/Helmet
-    ctx.fillRect(-9, -20, 18, 14);
-
-    // Eyes
-    ctx.fillStyle = '#fff';
-    const lookX = Math.cos(this.player.angle) * 3;
-    const lookY = Math.sin(this.player.angle) * 2;
-    ctx.fillRect(-5 + lookX, -16 + lookY, 3, 3);
-    ctx.fillRect(2 + lookX, -16 + lookY, 3, 3);
-
-    // Weapon Swing animation with luminous Fluid Blade Trail
-    ctx.save();
-    ctx.rotate(this.player.angle);
-    if (this.player.attackSwing > 0) {
-      const progress = 1 - (this.player.attackSwing / this.player.attackSwingDuration);
-      const swingAngleSpan = 1.85;
-      const swingOffset = ((progress - 0.5) * swingAngleSpan) * this.player.swingDir;
-      ctx.rotate(swingOffset);
-
-      const arcAlpha = Math.sin(progress * Math.PI);
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      
-      const range = this.player.weapon.range;
-      const isUnique = this.player.weapon.rarity === 'unique';
-      const glowRgb = isUnique ? '243, 156, 18' : '52, 152, 219';
-
-      for (let layer = 0; layer < 3; layer++) {
-        const layerRange = range + (3 - layer) * 4;
-        const trailGrad = ctx.createRadialGradient(0, 0, range * 0.3, 0, 0, layerRange);
-        const layerAlpha = arcAlpha * (0.3 + layer * 0.25);
-
-        trailGrad.addColorStop(0, `rgba(${glowRgb}, 0)`);
-        trailGrad.addColorStop(0.65, `rgba(${glowRgb}, ${layerAlpha * 0.5})`);
-        trailGrad.addColorStop(0.95, `rgba(255, 255, 255, ${layerAlpha * 0.95})`);
-
-        ctx.fillStyle = trailGrad;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        const aStart = -0.85 * this.player.swingDir;
-        const aEnd = 0.15 * this.player.swingDir;
-        ctx.arc(0, 0, layerRange, Math.min(aStart, aEnd), Math.max(aStart, aEnd));
-        ctx.closePath();
-        ctx.fill();
-      }
-
-      ctx.strokeStyle = `rgba(255, 255, 255, ${arcAlpha * 0.95})`;
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(0, 0, range + 2, -0.85 * this.player.swingDir, 0.15 * this.player.swingDir, this.player.swingDir < 0);
-      ctx.stroke();
-
-      ctx.restore();
-    }
-    ctx.font = '18px sans-serif';
-    ctx.fillText(this.player.weapon.icon, 22, 4);
-    ctx.restore();
-
-    ctx.restore();
-
-    // Projectiles
-    for (const p of this.projectiles) {
-      const prx = p.x * alpha + (p.prevX ?? p.x) * (1 - alpha);
-      const pry = p.y * alpha + (p.prevY ?? p.y) * (1 - alpha);
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(prx, pry, p.radius, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Shockwave Rings & Flare Rays (Additive Luminous Dynamic Burst)
-    for (const s of this.shockwaves) {
-      const progress = s.life / s.maxLife;
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      
-      const rayCount = 8;
-      ctx.strokeStyle = `rgba(255, 220, 130, ${progress * 0.6})`;
-      ctx.lineWidth = 2;
-      for (let i = 0; i < rayCount; i++) {
-        const rayAngle = (Math.PI * 2 / rayCount) * i + (1 - progress);
-        const rayLen = s.currentRadius * 1.35;
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y);
-        ctx.lineTo(s.x + Math.cos(rayAngle) * rayLen, s.y + Math.sin(rayAngle) * rayLen);
-        ctx.stroke();
-      }
-
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = 5 * progress;
-      ctx.globalAlpha = progress;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.currentRadius, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2 * progress;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.currentRadius * 0.85, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.restore();
-    }
-
-    // バイオーム連動の環境微粒子（ほこり・灰・雪・胞子・ルーンの欠片）を多層パララックス深度で自動生成＆描画
-    if (this.currentBiome && Math.random() < 0.6) {
-      const pType = this.currentBiome.pType || 'dust';
-      const spawnX = px + (Math.random() - 0.5) * this.width;
-      const spawnY = py + (Math.random() - 0.5) * this.height;
-      this.particles.push({
-        x: spawnX,
-        y: spawnY,
-        vx: (Math.random() - 0.5) * 20 + (pType === 'snow' ? 15 : 0),
-        vy: (Math.random() - 0.5) * 20 - (pType === 'ash' ? 25 : 10),
-        size: Math.random() * 3 + 1,
-        color: pType === 'ash' ? '#e74c3c' : (pType === 'snow' ? '#ffffff' : (pType === 'spore' ? '#9b59b6' : '#f1c40f')),
-        life: Math.random() * 2.5 + 1.5,
-        maxLife: 4.0
-      });
-    }
-
-    // Particles (Glow Additive Blend)
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    for (const p of this.particles) {
-      const pAlpha = Math.max(0, p.life / (p.maxLife || 0.4));
-      ctx.globalAlpha = pAlpha;
-      ctx.fillStyle = p.color;
-      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-    }
-    ctx.restore();
-
-    // --- Dynamic Ambient Lighting Layer with Biome Tint, Light Flicker & Deep Vignette ---
-    ctx.save();
-    const flicker = Math.sin(timeSec * 16) * 10 + Math.cos(timeSec * 31) * 6;
-    const lightRadius = Math.max(240, 320 + flicker + (this.flashTimer > 0 ? 180 : 0));
-    
-    // Dynamic Flicker Light Source Glow with Biome Color Tint
-    const lightGrad = ctx.createRadialGradient(px, py, 15, px, py, lightRadius);
-    lightGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    lightGrad.addColorStop(0.38, this.currentBiome ? this.currentBiome.ambientColor : 'rgba(7, 10, 18, 0.32)');
-    lightGrad.addColorStop(0.82, 'rgba(5, 7, 12, 0.86)');
-    lightGrad.addColorStop(1, 'rgba(2, 3, 6, 0.98)');
-
-    ctx.fillStyle = lightGrad;
-    ctx.fillRect(
-      startCol * this.tileSize,
-      startRow * this.tileSize,
-      (endCol - startCol) * this.tileSize,
-      (endRow - startRow) * this.tileSize
-    );
-    ctx.restore();
-
-    // Damage Numbers with Spring Pop, Scaling & Dynamic Alpha
-    for (const d of this.damageNumbers) {
-      const progress = 1 - (d.life / d.maxLife);
-      // さらに洗練されたスプリングバウンス＆イージングスケール
-      const springScale = progress < 0.18 
-        ? 1.0 + Math.sin((progress / 0.18) * Math.PI * 0.5) * (d.scale - 1.0) * 1.2
-        : Math.max(1.0, d.scale - (progress - 0.18) * 0.6);
-
-      const alphaVal = Math.min(1.0, d.life / (d.maxLife * 0.3));
-      ctx.save();
-      ctx.translate(d.x, d.y);
-      ctx.rotate(d.rot || 0);
-      ctx.scale(springScale, springScale);
-      ctx.globalAlpha = alphaVal;
-      ctx.fillStyle = d.color;
-      ctx.font = '900 17px "Segoe UI", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.shadowColor = 'rgba(0,0,0,0.95)';
-      ctx.shadowBlur = 8;
-      ctx.fillText(d.text, 0, 0);
-      ctx.restore();
-    }
-
-    ctx.restore(); // Restore camera
-
-    // Vignette Effect (Cinematic Screen Edge Darkening & Dynamic Red/Orange Hit Flash)
-    ctx.save();
-    const vignetteGrad = ctx.createRadialGradient(
-      this.width / 2, this.height / 2, Math.min(this.width, this.height) * 0.4,
-      this.width / 2, this.height / 2, Math.max(this.width, this.height) * 0.75
-    );
-    vignetteGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    
-    if (this.vignetteFlashTimer > 0) {
-      const flashAlpha = (this.vignetteFlashTimer / 0.3);
-      vignetteGrad.addColorStop(1, this.vignetteFlashColor.replace(/[\d\.]+\)$/, `${0.75 * flashAlpha})`));
-    } else {
-      vignetteGrad.addColorStop(1, 'rgba(4, 6, 12, 0.7)');
-    }
-    
-    ctx.fillStyle = vignetteGrad;
-    ctx.fillRect(0, 0, this.width, this.height);
-    ctx.restore();
-
-    // Screen Flash effect (Explosions / Big Hits)
-    if (this.flashTimer > 0) {
-      ctx.save();
-      const fColor = this.flashColor || 'rgba(255, 255, 255, ';
-      ctx.fillStyle = `${fColor}${Math.min(0.4, this.flashTimer * 4)})`;
-      ctx.fillRect(0, 0, this.width, this.height);
-      ctx.restore();
-    }
-  },
-
-  createDamageNumber(x, y, text, color) {
-    this.damageNumbers.push({
-      x: x + (Math.random() * 20 - 10),
-      y: y - 20,
-      vx: (Math.random() - 0.5) * 85,
-      vy: -(Math.random() * 100 + 155),
-      text,
-      color,
-      life: 0.85,
-      maxLife: 0.85,
-      scale: 1.75,
-      rot: (Math.random() - 0.5) * 0.38
-    });
-  },
-
-  createBlood(x, y, color) {
-    for (let i = 0; i < 6; i++) {
-      this.particles.push({
-        x, y,
-        vx: (Math.random() - 0.5) * 180,
-        vy: (Math.random() - 0.5) * 180,
-        size: Math.random() * 4 + 2,
-        color: color || '#e74c3c',
-        life: 0.3
-      });
-    }
-  },
-
-  createHitSparks(x, y, angle) {
-    for (let i = 0; i < 7; i++) {
-      const spd = Math.random() * 260 + 120;
-      const spread = angle + (Math.random() - 0.5) * 1.2;
-      this.particles.push({
-        x, y,
-        vx: Math.cos(spread) * spd,
-        vy: Math.sin(spread) * spd,
-        size: Math.random() * 3 + 1.5,
-        color: ['#fff', '#ffd166', '#f39c12'][Math.floor(Math.random() * 3)],
-        life: 0.22
-      });
-    }
-  },
-
-  createLightningEffect(x1, y1, x2, y2) {
-    for (let i = 0; i < 12; i++) {
-      this.particles.push({
-        x: x1 + (x2 - x1) * (i / 12) + (Math.random() * 14 - 7),
-        y: y1 + (y2 - y1) * (i / 12) + (Math.random() * 14 - 7),
-        vx: 0, vy: 0,
-        size: 5,
-        color: '#5dade2',
-        life: 0.18
-      });
-    }
-  },
-
-  /* --- UI Helpers (Dirty Checking Driven) --- */
-  updateHUD() {
-    const c = this.hudCache;
-    const p = this.player;
-
-    const hpCeil = Math.ceil(p.hp);
-    if (c.hp !== hpCeil || c.maxHp !== p.maxHp) {
-      c.hp = hpCeil;
-      c.maxHp = p.maxHp;
-      const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
-      document.getElementById('hp-bar').style.width = `${hpPct}%`;
-      const hpDelay = document.getElementById('hp-delay');
-      if (hpDelay) {
-        // 追従遅延バーのイージングフレーム同期
-        requestAnimationFrame(() => {
-          hpDelay.style.width = `${hpPct}%`;
-        });
-      }
-      document.getElementById('hp-text').innerText = `${hpCeil}/${p.maxHp}`;
-    }
-
-    if (c.xp !== p.xp || c.xpNext !== p.xpNext || c.level !== p.level) {
-      c.xp = p.xp;
-      c.xpNext = p.xpNext;
-      c.level = p.level;
-      const xpPct = Math.min(100, (p.xp / p.xpNext) * 100);
-      document.getElementById('xp-bar').style.width = `${xpPct}%`;
-      const xpDelay = document.getElementById('xp-delay');
-      if (xpDelay) {
-        requestAnimationFrame(() => {
-          xpDelay.style.width = `${xpPct}%`;
-        });
-      }
-      document.getElementById('lv-text').innerText = `Lv.${p.level}`;
-    }
-
-    if (c.floor !== this.floor) {
-      c.floor = this.floor;
-      document.getElementById('floor-display').innerText = `階層 ${this.floor}`;
-    }
-
-    if (c.emeralds !== this.emeralds) {
-      c.emeralds = this.emeralds;
-      document.getElementById('emerald-count').innerText = this.emeralds;
-    }
-
-    if (c.potions !== p.potions) {
-      c.potions = p.potions;
-      document.getElementById('potion-count').innerText = `薬 (${p.potions})`;
-    }
-
-    // Cooldown overlay transforms
-    const art1Ratio = p.art1Cooldown > 0 ? (p.art1Cooldown / p.art1CooldownMax).toFixed(2) : 0;
-    if (c.art1CdRatio !== art1Ratio) {
-      c.art1CdRatio = art1Ratio;
-      document.getElementById('cd-art1').style.transform = `scaleY(${art1Ratio})`;
-    }
-
-    const art2Ratio = p.art2Cooldown > 0 ? (p.art2Cooldown / p.art2CooldownMax).toFixed(2) : 0;
-    if (c.art2CdRatio !== art2Ratio) {
-      c.art2CdRatio = art2Ratio;
-      document.getElementById('cd-art2').style.transform = `scaleY(${art2Ratio})`;
-    }
-
-    const healRatio = p.potionCooldown > 0 ? (p.potionCooldown / p.potionCooldownMax).toFixed(2) : 0;
-    if (c.healCdRatio !== healRatio) {
-      c.healCdRatio = healRatio;
-      document.getElementById('cd-heal').style.transform = `scaleY(${healRatio})`;
-    }
-  },
-
-  setEquipArt(slotIndex, artId) {
-    const found = ARTIFACTS_DB.find(a => a.id === artId);
-    if (found) {
-      if (slotIndex === 0) {
-        this.player.art1 = found;
-        this.player.art1CooldownMax = found.cdMax;
-      } else {
-        this.player.art2 = found;
-        this.player.art2CooldownMax = found.cdMax;
-      }
-      this.updateHUD();
-      this.emitToast(`${found.name} を装備した！`);
-    }
-  },
-
-  switchTab(tabName) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    
-    if (tabName === 'gear') {
-      document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
-      document.getElementById('tab-gear').classList.add('active');
-    } else if (tabName === 'craft') {
-      document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-      document.getElementById('tab-craft').classList.add('active');
-    } else if (tabName === 'artifact') {
-      document.querySelector('.tab-btn:nth-child(3)').classList.add('active');
-      document.getElementById('tab-artifact').classList.add('active');
-    }
-  },
-
-  toggleInventory() {
-    const modal = document.getElementById('inventory-modal');
-    if (this.state === 'INVENTORY') {
-      modal.classList.remove('open');
-      setTimeout(() => {
-        modal.style.display = 'none';
-      }, 300);
-      this.state = 'PLAYING';
-      this.timeScale = 1.0;
-    } else if (this.state === 'PLAYING') {
-      Sound.play('coin');
-      this.state = 'INVENTORY';
-      this.timeScale = 0.0;
-      modal.style.display = 'flex';
-      void modal.offsetWidth;
-      modal.classList.add('open');
-      this.renderInventory();
-    }
-  },
-
-  renderInventory() {
-    const grid = document.getElementById('inventory-grid');
-    grid.innerHTML = '';
-
-    const runeBox = document.getElementById('rune-container');
-    runeBox.innerHTML = '';
-    RUNES_DB.forEach(r => {
-      const active = this.player.runes.some(run => run.id === r.id);
-      const rBtn = document.createElement('button');
-      rBtn.className = 'primary-btn';
-      rBtn.style.fontSize = '10px';
-      rBtn.style.padding = '5px 10px';
-      rBtn.style.background = active ? 'linear-gradient(135deg, #f39c12, #d35400)' : 'rgba(255,255,255,0.1)';
-      rBtn.innerHTML = `${r.icon} ${r.name} (${active ? '習得中' : r.cost + '◆'})`;
-      rBtn.onclick = () => {
-        if (!active && this.emeralds >= r.cost) {
-          this.emeralds -= r.cost;
-          this.player.runes.push(r);
-          r.applied = true;
-          this.recalcStats();
-          this.updateHUD();
-          this.renderInventory();
-          this.emitToast(`${r.name} を習得した！`);
-        }
-      };
-      runeBox.appendChild(rBtn);
-    });
-
-    const statsBox = document.getElementById('equip-stats');
-    const setBonusText = this.player.setBonusActive ? '<span style="color:#2ecc71;">[セット効果発動中: HP+50 / 速度UP]</span>' : '<span style="color:#718096;">[セット効果未発動]</span>';
-    statsBox.innerHTML = `
-      ⚔️ 武器: <b style="color:var(--border-gold);">${this.player.weapon.name}</b> (攻撃力 ${this.player.weapon.dmg})<br>
-      🛡️ 防具: <b style="color:var(--border-gold);">${this.player.armor.name}</b> (追加HP +${this.player.armor.maxHpBonus}, 防御 +${this.player.armor.def})<br>
-      ✨ ${setBonusText}<br>
-      ⚡ ルーン効果数: ${this.player.runes.length}個覚醒中
-    `;
-
-    this.player.inventory.forEach((item, idx) => {
-      const slot = document.createElement('div');
-      slot.className = `item-slot ${item.rarity}`;
-      const isEquipped = (item === this.player.weapon || item === this.player.armor);
-      if (isEquipped) slot.classList.add('equipped');
-
-      slot.innerHTML = `
-        <div style="font-size:22px;">${item.icon}</div>
-        <div style="font-weight:bold; margin-top:2px; font-size:9px;">${item.name}</div>
-      `;
-
-      slot.onclick = () => {
-        Sound.play('coin');
-        if (item.type === 'weapon') this.player.weapon = item;
-        if (item.type === 'armor') this.player.armor = item;
-        this.recalcStats();
-        this.updateHUD();
-        this.renderInventory();
-      };
-      grid.appendChild(slot);
-    });
-  }
-};
-
-window.onload = () => Game.init();
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:null,isHost:false,ready:false,local:false,selectedBet:50,gameIndex:0,gameData:null,betConfirmed:false,finished:false,blackjack:null,reversi:null};
+let db=null,auth=null;
+function toast(msg){const el=$("toast");el.textContent=msg;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2300)}
+function showScreen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active",s.id===id));window.scrollTo({top:0,behavior:"smooth"})}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function randCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function isFirebaseConfigured(){return firebaseConfig.apiKey!=="YOUR_API_KEY"&&firebaseConfig.projectId!=="YOUR_PROJECT_ID"}
+async function initFirebase(){
+ if(!isFirebaseConfigured()){state.local=true;$("connectionBadge").textContent="● LOCAL MODE";return false}
+ try{if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);auth=firebase.auth();db=firebase.firestore();const cred=await auth.signInAnonymously();state.uid=cred.user.uid;$("connectionBadge").textContent="● FIREBASE ONLINE";return true}
+ catch(e){console.error(e);state.local=true;$("connectionBadge").textContent="● LOCAL FALLBACK";toast("Firebaseに接続できません。ローカルモードで起動します。");return false}
+}
+function ensureUid(){if(!state.uid)state.uid="local_"+Math.random().toString(36).slice(2,12)}
+function defaultPlayer(uid,name,host=false){return {uid,name,host,chips:1000,ready:host,bet:0,betConfirmed:false,choice:null,score:0,connected:true}}
+function currentPlayers(){return state.room?Object.values(state.room.players||{}):[]}
+function myPlayer(){return currentPlayers().find(p=>p.uid===state.uid)}
+function sortedPlayers(){return currentPlayers().slice().sort((a,b)=>b.chips-a.chips)}
+function roomDoc(){return {code:state.roomId,hostUid:state.uid,status:"lobby",day:0,gameOrder:[],players:{[state.uid]:defaultPlayer(state.uid,state.name,true)},createdAt:Date.now(),gameResult:null}}
+async function createRoom(){
+ ensureUid();state.name=state.name||"Player";
+ if(state.local){state.roomId=randCode();state.room=roomDoc();state.isHost=true;state.roomRef=null;renderLobby();showScreen("lobbyScreen");return}
+ try{
+  const code=randCode();const ref=db.collection("rooms").doc(code);const data=roomDoc();data.code=code;
+  await ref.set(data);state.roomId=code;state.roomRef=ref;state.room=data;state.isHost=true;subscribeRoom();renderLobby();showScreen("lobbyScreen");
+ }catch(e){console.error(e);toast("ルーム作成に失敗しました。Firestore設定を確認してください。")}
+}
+async function joinRoom(code){
+ ensureUid();code=(code||"").trim().toUpperCase();if(!code)return toast("ルームコードを入力してください");
+ if(state.local){toast("Firebase設定前はローカルモードです。自分用ルームを作成してください。");return}
+ try{const ref=db.collection("rooms").doc(code);const snap=await ref.get();if(!snap.exists)return toast("ルームが見つかりません");
+ const data=snap.data();if(data.status!=="lobby")return toast("このルームはすでに開始しています");
+ if(Object.keys(data.players||{}).length>=8)return toast("このルームは満員です");
+ const player=defaultPlayer(state.uid,state.name,false);await ref.update({["players."+state.uid]:player});
+ state.roomId=code;state.roomRef=ref;state.room=data;state.isHost=false;subscribeRoom();renderLobby();showScreen("lobbyScreen");
+ }catch(e){console.error(e);toast("参加できませんでした。Firebase設定を確認してください")}
+}
+function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
+async function updateRoom(patch){if(state.local){state.room={...state.room,...patch};return}if(!state.roomRef)throw new Error("No room");await state.roomRef.update(patch)}
+async function updateMyPlayer(patch){
+ if(!state.room)return;const p=myPlayer();if(!p)return;const updated={...p,...patch};
+ if(state.local){state.room.players[state.uid]=updated;renderPlayers();return}
+ await state.roomRef.update({["players."+state.uid]:updated});
+}
+function renderLobby(){
+ $("roomCode").textContent=state.roomId||"------";$("nameInput").value=state.name;
+ const ps=currentPlayers();$("playerCount").textContent=`${ps.length} / 8`;
+ $("playerList").innerHTML=ps.map((p,i)=>`<div class="player"><div class="avatar">${escapeHtml((p.name||"?").slice(0,1).toUpperCase())}</div><div class="grow"><div class="name">${escapeHtml(p.name)} ${p.host?"<span class='muted tiny'>HOST</span>":""}</div><div class="meta">${p.ready?"✓ 準備OK":"準備中"}</div></div><div class="chip">${p.chips.toLocaleString()} ◈</div></div>`).join("");
+ $("startBtn").classList.toggle("hidden",!state.isHost);$("readyBtn").classList.toggle("hidden",state.isHost);
+ $("lobbyHint").textContent=state.local?"ローカルモード：ひとりで全5日間をテストできます。Firebase設定後は友達とオンライン対戦できます。":"ルームコードを友達に共有。2〜8人が集まったらホストが開始できます。";
+}
+async function setReady(){state.ready=!state.ready;await updateMyPlayer({ready:state.ready});renderLobby();toast(state.ready?"準備OK！":"準備を解除しました")}
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+async function startTournament(){
+ if(!state.isHost)return;
+ const ps=currentPlayers();if(ps.length<1)return;
+ const order=chooseGameOrder();
+ const players={};ps.forEach(p=>players[p.uid]={...p,bet:0,betConfirmed:false,choice:null,score:0});
+ const patch={status:"playing",day:0,gameOrder:order,players,gameResult:null,roundStatus:"betting",gameData:null};
+ if(state.local){state.room={...state.room,...patch};renderDay();showScreen("dayScreen");return}
+ try{await updateRoom(patch)}catch(e){console.error(e);toast("開始に失敗しました")}
+}
+function gameForDay(){const id=state.room.gameOrder[state.room.day];return games.find(g=>g.id===id)||games[0]}
+function renderDayLine(){const day=state.room.day;$("dayLine").innerHTML=Array.from({length:5},(_,i)=>`<div class="day ${i===day?"current":i<day?"done":""}"><b>${i<day?"✓":String(i+1).padStart(2,"0")}</b>${i===4?"FINAL":"DAY"}</div>`).join("");$("dayEyebrow").textContent=`DAY ${String(day+1).padStart(2,"0")} / 05`;$("dayTitle").textContent=dayTitles[day]||"FINAL DAY"}
+function renderDay(){
+ if(!state.room)return;const day=state.room.day||0,g=gameForDay(),me=myPlayer();renderDayLine();
+ $("gameIcon").textContent=g.icon;$("gameName").textContent=g.name;$("gameDesc").textContent=g.desc;
+ $("myChips").textContent=(me?.chips||0).toLocaleString();$("myBet").textContent=(me?.bet||0).toLocaleString();
+ const rank=sortedPlayers().findIndex(p=>p.uid===state.uid)+1;$("myRank").textContent="#"+(rank||"-");
+ $("phaseBadge").textContent=state.room.roundStatus==="playing"?"GAME ON":"BETTING";
+ $("betPanel").classList.toggle("hidden",state.room.roundStatus!=="betting"||!!me?.betConfirmed);
+ $("gamePanel").classList.toggle("hidden",!(state.room.roundStatus==="playing"||state.room.roundStatus==="result"));
+ const max=Math.max(10,me?.chips||10);$("betSlider").max=max;$("betSlider").value=Math.min(state.selectedBet,max);state.selectedBet=Number($("betSlider").value);$("betLabel").textContent=state.selectedBet;$("maxBetLabel").textContent="MAX "+max.toLocaleString();
+ $("confirmBetBtn").disabled=!!me?.betConfirmed;
+ $("dayLeaderboard").innerHTML=sortedPlayers().map((p,i)=>`<div class="result-rank"><div><b>${i+1}. ${escapeHtml(p.name)}</b><div class="tiny muted">${p.uid===state.uid?"YOU":p.betConfirmed?"ベット確定":"ベット待ち"}</div></div><div class="chip">${p.chips.toLocaleString()} ◈</div></div>`).join("");
+ if(state.room.roundStatus==="playing")renderGameContent();
+ if(state.room.roundStatus==="result"){
+   const gr=state.room.gameResult||{};
+   const items=gr.items||[];
+   $("gamePanelTitle").textContent="ROUND RESULT";
+   $("gameContent").innerHTML=items.length?`<div class="notice good">ラウンド結果を集計しました。</div>`:`<div class="game-card"><div style="font-size:42px">${gr.win?"🎉":"🫣"}</div><h2>${gr.win?"WIN!":"ROUND COMPLETE"}</h2><p>${escapeHtml(gr.message||"チップを精算しました")}</p></div>`;
+   if(items.length) $("gameContent").innerHTML+=items.map(x=>`<div class="result-rank"><b>${escapeHtml(x.name)}</b><span class="chip" style="color:${x.delta>=0?"var(--green)":"var(--red)"}">${x.delta>=0?"+":""}${Number(x.delta).toLocaleString()} ◈</span></div>`).join("");
+   $("finishGameBtn").classList.toggle("hidden",!state.isHost&&!state.local);
+   $("finishGameBtn").textContent=state.room.day===4?"最終結果を見る":"次の日へ進む";
+ }
+}
+async function confirmBet(){
+ const me=myPlayer();if(!me)return;const amount=Math.max(10,Math.min(Number($("betSlider").value)||10,me.chips));
+ await updateMyPlayer({bet:amount,betConfirmed:true});toast("ベットを確定しました！");
+ if(state.local){await beginGame();return}
+ const latest=state.room;const ps=Object.values(latest.players||{});if(ps.length&&ps.every(p=>p.betConfirmed)){if(state.isHost)await beginGame()}
+}
+async function beginGame(){
+ const g=gameForDay();let gameData={id:g.id,startedAt:Date.now(),seed:Math.random()};
+ if(g.id==="highlow"){gameData.card=drawCard();gameData.next=drawCard()}
+ if(g.id==="blackjack"){gameData.deck=makeDeck();gameData.player=[gameData.deck.pop(),gameData.deck.pop()];gameData.dealer=[gameData.deck.pop(),gameData.deck.pop()]}
+ if(g.id==="dice"){gameData.dice=[1+Math.floor(Math.random()*6),1+Math.floor(Math.random()*6)]}
+ if(g.id==="roulette"){gameData.result=["赤","黒","金"][Math.floor(Math.random()*3)]}
+ if(g.id==="number"){gameData.secret=1+Math.floor(Math.random()*20)}
+ if(g.id==="majority"){gameData.question="休みの日にするなら？";gameData.options=["家でのんびり","外に出かける"]}
+ if(g.id==="wordwolf"){gameData.civilian=["りんご","みかん"][Math.floor(Math.random()*2)];gameData.wolf=gameData.civilian==="りんご"?"みかん":"りんご"}
+ if(g.id==="memory"){gameData.deck=shuffle(["🍒","🍋","🍇","🍉","🍒","🍋","🍇","🍉"]);gameData.flipped=[];gameData.matched=[]}
+ if(g.id==="auction"){gameData.prize=100+Math.floor(Math.random()*400);gameData.winnerBid=null}
+ if(g.id==="bluff"){gameData.truth=Math.random()<.5}
+ if(g.id==="quickmath"){gameData.a=2+Math.floor(Math.random()*18);gameData.b=2+Math.floor(Math.random()*18);gameData.op=Math.random()<.5?"+":"×"}
+ if(state.local){state.room.roundStatus="playing";state.room.gameData=gameData;state.room.players[state.uid].choice=null;renderDay();return}
+ await updateRoom({roundStatus:"playing",gameData});
+}
+function drawCard(){const ranks=["A","2","3","4","5","6","7","8","9","10","J","Q","K"];const suits=["♠","♥","♦","♣"];return {rank:ranks[Math.floor(Math.random()*13)],suit:suits[Math.floor(Math.random()*4)],value:0}}
+function cardValue(c){return ({A:1,J:11,Q:12,K:13})[c.rank]||Number(c.rank)}
+function cardHTML(c){return `<span class="playing-card ${c.suit==="♥"||c.suit==="♦"?"red":""}">${c.rank}<br>${c.suit}</span>`}
+function setGameMessage(s){$("gameMessage").textContent=s}
+function renderGameContent(){
+ const g=gameForDay(),d=state.room.gameData||{},me=myPlayer();let html="";
+ $("gamePanelTitle").textContent=g.name;$("gameStatus").textContent=me?.choice!==null&&me?.choice!==undefined?"ANSWER LOCKED":"MAKE YOUR MOVE";
+ $("finishGameBtn").classList.toggle("hidden",!state.isHost||!Object.values(state.room.players).every(p=>p.choice!==null&&p.choice!==undefined));
+ if(me?.choice!==null&&me?.choice!==undefined){$("gameContent").innerHTML=`<div class="notice good">選択をロックしました。ほかのプレイヤーを待っています…</div>`;return}
+ switch(g.id){
+ case "highlow":
+ html=`<div style="text-align:center">${cardHTML(d.card)}<div class="muted tiny">NEXT CARD?</div><div style="font-size:30px;color:var(--gold)">?</div></div><div class="choices"><button class="choice" onclick="submitChoice('high')">▲ HIGH</button><button class="choice" onclick="submitChoice('low')">▼ LOW</button></div>`;break;
+ case "blackjack":
+ html=`<div class="muted tiny">YOUR HAND</div><div>${d.player.map(cardHTML).join("")}</div><div class="muted tiny">合計 ${handValue(d.player)}</div><div class="choices"><button class="choice" onclick="submitChoice('hit')">HIT</button><button class="choice" onclick="submitChoice('stand')">STAND</button></div>`;break;
+ case "dice":
+ html=`<div style="font-size:42px;margin:12px">🎲 🎲</div><div class="choices"><button class="choice" onclick="submitChoice('high')">合計 7 より大きい</button><button class="choice" onclick="submitChoice('low')">合計 7 より小さい</button></div>`;break;
+ case "roulette":
+ html=`<div style="font-size:44px;margin:12px">🎡</div><div class="choices"><button class="choice" onclick="submitChoice('赤')">🔴 赤</button><button class="choice" onclick="submitChoice('黒')">⚫ 黒</button><button class="choice" onclick="submitChoice('金')">🟡 金</button></div>`;break;
+ case "number":
+ html=`<div style="font-size:18px;margin:12px">秘密の数字は 1〜20</div><input id="numberChoice" class="field" type="number" min="1" max="20" placeholder="数字を入力"><button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('numberChoice').value))">推理を確定</button>`;break;
+ case "majority":
+ html=`<h3 style="text-align:center">${d.question}</h3><div class="choices">${d.options.map((o,i)=>`<button class="choice" onclick="submitChoice(${i})">${o}</button>`).join("")}</div>`;break;
+ case "wordwolf":
+ html=`<div class="notice">あなたのお題：<strong style="font-size:22px;color:var(--gold)">${me?.host?d.civilian:(Math.random()<.2?d.wolf:d.civilian)}</strong><br>※試作版では各端末での秘密配布を完全には保証しません。本番版ではサーバーから個別配信します。</div><p class="sub">お題について話し合ったあと、ウルフだと思う人を選びます。</p><div class="choices">${currentPlayers().filter(p=>p.uid!==state.uid).map(p=>`<button class="choice" onclick="submitChoice('${p.uid}')">${escapeHtml(p.name)} に投票</button>`).join("")}<button class="choice" onclick="submitChoice('pass')">棄権</button></div>`;break;
+ case "reversi":
+ html=`<p class="sub">試作版：CPUと対戦。黒を置いて白を挟もう。</p><div id="reversiBoard" class="board"></div><div class="tiny muted" id="reversiInfo"></div>`;break;
+ case "memory":
+ html=`<p class="sub">同じ絵柄を2枚めくってペアを作ろう。</p><div class="choices">${d.deck.map((c,i)=>`<button class="choice" onclick="flipMemory(${i})">${(d.flipped||[]).includes(i)||(d.matched||[]).includes(i)?c:"❔"}</button>`).join("")}</div><button class="btn secondary" style="width:100%;margin-top:10px" onclick="submitChoice((state.room.gameData.matched||[]).length)">ペア数で確定</button>`;break;
+ case "auction":
+ html=`<p class="sub">賞品価値：${d.prize} チップ相当。入札額は失われるので慎重に。</p><input id="auctionBid" class="field" type="number" min="0" max="${me?.chips||0}" placeholder="入札額"><button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('auctionBid').value))">秘密入札</button>`;break;
+ case "bluff":
+ html=`<div style="font-size:44px;margin:12px">🎭</div><p class="sub">宣言：「このラウンドは本当のことを言っている」</p><div class="choices"><button class="choice" onclick="submitChoice('believe')">信じる</button><button class="choice" onclick="submitChoice('call')">ブラフだ！</button></div>`;break;
+ case "quickmath":
+ const answer=d.op==="+"?d.a+d.b:d.a*d.b;
+ html=`<div style="font-size:32px;font-weight:900;margin:20px">${d.a} ${d.op} ${d.b} = ?</div><input id="mathChoice" class="field" type="number" placeholder="答え"><button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('mathChoice').value))">回答する</button>`;break;
+ default:html=`<button class="btn primary" onclick="submitChoice('ok')">プレイ</button>`;
+ }
+ $("gameContent").innerHTML=html;if(g.id==="reversi")initReversi();setGameMessage("");
+}
+function handValue(hand){let total=0,aces=0;hand.forEach(c=>{let v=cardValue(c);if(c.rank==="A"){v=11;aces++}else if(["J","Q","K"].includes(c.rank))v=10;total+=v});while(total>21&&aces){total-=10;aces--}return total}
+function makeDeck(){const ranks=["A","2","3","4","5","6","7","8","9","10","J","Q","K"],suits=["♠","♥","♦","♣"];return shuffle(suits.flatMap(s=>ranks.map(r=>({rank:r,suit:s}))))}
+async function submitChoice(choice){
+ const me=myPlayer();if(!me)return;
+ let data=state.room.gameData||{};
+ if(gameForDay().id==="blackjack"&&choice==="hit"){
+   data.player.push(data.deck.pop());
+   if(state.local){state.room.gameData=data;renderGameContent();if(handValue(data.player)>21)submitChoice("bust");return}
+   await updateRoom({gameData:data});if(handValue(data.player)>21)submitChoice("bust");return;
+ }
+ await updateMyPlayer({choice});
+ if(state.local){resolveLocalGame(choice);return}
+ const ps=Object.values(state.room.players||{});if(state.isHost&&ps.every(p=>p.choice!==null&&p.choice!==undefined))await resolveOnlineGame();
+ else toast("選択を送信しました");
+}
+function resolveLocalGame(choice){
+ const g=gameForDay(),d=state.room.gameData,p=state.room.players[state.uid];let win=false,msg="";
+ if(g.id==="highlow"){win=choice==="high"?cardValue(d.next)>cardValue(d.card):cardValue(d.next)<cardValue(d.card);msg=`${d.card.rank}${d.card.suit} → ${d.next.rank}${d.next.suit}。${win?"的中！":"はずれ…"}`}
+ if(g.id==="blackjack"){let total=handValue(d.player);if(choice==="bust")win=false;else{while(handValue(d.dealer)<17)d.dealer.push(d.deck.pop());win=total<=21&&(handValue(d.dealer)>21||total>handValue(d.dealer));msg=`あなた ${total} / ディーラー ${handValue(d.dealer)}。${win?"勝利！":"敗北…"}`}}
+ if(g.id==="dice"){const sum=d.dice[0]+d.dice[1];win=choice==="high"?sum>7:sum<7;msg=`出目 ${d.dice[0]} + ${d.dice[1]} = ${sum}。${win?"的中！":"はずれ…"}`}
+ if(g.id==="roulette"){win=choice===d.result;msg=`結果は「${d.result}」。${win?"的中！":"はずれ…"}`}
+ if(g.id==="number"){win=Number(choice)===d.secret;msg=`正解は ${d.secret}。${win?"完全正解！":"今回は不正解。"}`}
+ if(g.id==="majority"){win=Number(choice)===Math.floor(Math.random()*2);msg=win?"多数派を読んだ！":"読み違えた…"}
+ if(g.id==="wordwolf"){win=choice==="pass"?false:Math.random()<.5;msg=win?"推理成功！":"ウルフを見抜けなかった…"}
+ if(g.id==="reversi"){win=(state.reversi?.black||0)>(state.reversi?.white||0);msg=`黒 ${state.reversi?.black||2} / 白 ${state.reversi?.white||2}。${win?"勝利！":"CPUの勝ち…"}`}
+ if(g.id==="memory"){win=Number(choice)>0;msg=`ペア数：${choice}。${win?"ペア獲得！":"ペアなし…"}`}
+ if(g.id==="auction"){win=Number(choice)>0&&Number(choice)<=d.prize;msg=win?"お買い得！賞品を獲得。":"入札は不成立。"}
+ if(g.id==="bluff"){win=(choice==="believe")===d.truth;msg=win?"読みが当たった！":"読み違えた…"}
+ if(g.id==="quickmath"){const ans=d.op==="+"?d.a+d.b:d.a*d.b;win=Number(choice)===ans;msg=`正解は ${ans}。${win?"正解！":"不正解…"}`}
+ const bet=p.bet||10;let delta=0;if(win)delta=bet;else delta=-bet;if(g.id==="auction"&&win)delta=Math.max(0,Math.floor(d.prize-Number(choice)));
+ p.chips=Math.max(0,p.chips+delta);p.choice=choice;p.score=win?1:0;state.room.players[state.uid]=p;state.room.gameResult={message:msg,win,delta,choice};state.room.roundStatus="result";state.room.gameData=d;
+ renderLocalResult(msg,win,delta);
+}
+function renderLocalResult(msg,win,delta){
+ $("gameContent").innerHTML=`<div class="game-card"><div style="font-size:42px">${win?"🎉":"🫣"}</div><h2>${win?"WIN!":"NEXT TIME!"}</h2><p>${escapeHtml(msg)}</p><div style="font-size:25px;font-weight:950;color:${delta>=0?"var(--green)":"var(--red)"};margin-top:12px">${delta>=0?"+":""}${delta.toLocaleString()} ◈</div></div>`;
+ setGameMessage("チップを精算しました。");$("finishGameBtn").classList.remove("hidden");$("finishGameBtn").textContent=state.room.day===4?"最終結果を見る":"次の日へ進む";$("myChips").textContent=state.room.players[state.uid].chips.toLocaleString();$("myBet").textContent=state.room.players[state.uid].bet.toLocaleString();$("dayLeaderboard").innerHTML=sortedPlayers().map((p,i)=>`<div class="result-rank"><b>${i+1}. ${escapeHtml(p.name)}</b><span class="chip">${p.chips.toLocaleString()} ◈</span></div>`).join("");
+}
+async function resolveOnlineGame(){
+ // Shared round result is calculated by the host. This prototype uses simple deterministic checks.
+ const g=gameForDay(),d=state.room.gameData,ps=Object.values(state.room.players||{});let resultText=[];
+ const players={...state.room.players};
+ for(const p of ps){
+   let win=false;const c=p.choice;
+   if(g.id==="highlow")win=c==="high"?cardValue(d.next)>cardValue(d.card):cardValue(d.next)<cardValue(d.card);
+   else if(g.id==="dice"){const sum=d.dice[0]+d.dice[1];win=c==="high"?sum>7:sum<7}
+   else if(g.id==="roulette")win=c===d.result;
+   else if(g.id==="number")win=Number(c)===d.secret;
+   else if(g.id==="blackjack")win=handValue(d.player)<=21;
+   else if(g.id==="majority")win=Number(c)===0;
+   else if(g.id==="wordwolf")win=c!=="pass";
+   else if(g.id==="memory")win=Number(c)>0;
+   else if(g.id==="auction")win=Number(c)>0&&Number(c)<=d.prize;
+   else if(g.id==="bluff")win=(c==="believe")===d.truth;
+   else if(g.id==="quickmath")win=Number(c)===(d.op==="+"?d.a+d.b:d.a*d.b);
+   else win=Math.random()<.5;
+   let delta=win?(p.bet||10):-(p.bet||10);if(g.id==="auction"&&win)delta=Math.max(0,Math.floor(d.prize-Number(c)));
+   players[p.uid]={...p,chips:Math.max(0,p.chips+delta),score:win?1:0,lastDelta:delta,choice:null,betConfirmed:false,bet:0};resultText.push({name:p.name,win,delta});
+ }
+ await updateRoom({players,roundStatus:"result",gameResult:{items:resultText,at:Date.now()}});
+}
+async function nextDay(){
+ if(!state.isHost&&!state.local)return toast("ホストが次の日へ進むのを待っています");
+ if(state.room.day>=4){await updateRoom({status:"finished"});if(state.local){state.room.status="finished";renderFinal();showScreen("finalScreen")}return}
+ const players={};currentPlayers().forEach(p=>players[p.uid]={...p,bet:0,betConfirmed:false,choice:null,score:0});
+ const patch={day:state.room.day+1,players,roundStatus:"betting",gameData:null,gameResult:null};
+ if(state.local){state.room={...state.room,...patch};renderDay();return}
+ await updateRoom(patch);
+}
+function renderFinal(){
+ const list=sortedPlayers();$("finalRanking").innerHTML=list.map((p,i)=>`<div class="result-rank"><div class="row"><div style="font-size:24px">${["🥇","🥈","🥉"][i]||"🏅"}</div><div><b>${escapeHtml(p.name)}</b><div class="tiny muted">${i===0?"CHAMPION":`RANK ${i+1}`}</div></div></div><div class="chip">${p.chips.toLocaleString()} ◈</div></div>`).join("");
+}
+function initReversi(){
+ const board=Array(64).fill(0);board[27]=2;board[28]=1;board[35]=1;board[36]=2;state.reversi={board,black:2,white:2,turn:1};
+ renderReversi();
+}
+function legalMoves(board,player){
+ const dirs=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]],moves=[];
+ for(let i=0;i<64;i++){if(board[i])continue;let r=i>>3,c=i%8,ok=false;
+ for(const [dr,dc] of dirs){let rr=r+dr,cc=c+dc,seen=false;while(rr>=0&&rr<8&&cc>=0&&cc<8&&board[rr*8+cc]===3-player){seen=true;rr+=dr;cc+=dc}if(seen&&rr>=0&&rr<8&&cc>=0&&cc<8&&board[rr*8+cc]===player)ok=true}
+ if(ok)moves.push(i)}return moves;
+}
+function putDisc(i,player){const b=state.reversi.board,r=i>>3,c=i%8,dirs=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];if(b[i])return false;let flips=[];
+ for(const [dr,dc] of dirs){let rr=r+dr,cc=c+dc,line=[];while(rr>=0&&rr<8&&cc>=0&&cc<8&&b[rr*8+cc]===3-player){line.push(rr*8+cc);rr+=dr;cc+=dc}if(line.length&&rr>=0&&rr<8&&cc>=0&&cc<8&&b[rr*8+cc]===player)flips.push(...line)}
+ if(!flips.length)return false;b[i]=player;flips.forEach(x=>b[x]=player);return true;
+}
+function renderReversi(){
+ const s=state.reversi;if(!s)return;const moves=legalMoves(s.board,1);
+ $("reversiBoard").innerHTML=s.board.map((v,i)=>`<button class="cell ${moves.includes(i)?"hint":""}" onclick="reversiMove(${i})">${v?`<span class="disc ${v===2?"white":""}"></span>`:""}</button>`).join("");
+ s.black=s.board.filter(v=>v===1).length;s.white=s.board.filter(v=>v===2).length;$("reversiInfo").textContent=`あなた（黒） ${s.black}　CPU（白） ${s.white}`;
+}
+function reversiMove(i){
+ const s=state.reversi;if(!s||!putDisc(i,1))return;
+ const moves=legalMoves(s.board,2);
+ if(moves.length){const best=moves[Math.floor(Math.random()*moves.length)];putDisc(best,2)}
+ renderReversi();if(!legalMoves(s.board,1).length&&!legalMoves(s.board,2).length){$("gameMessage").textContent=`対局終了：黒 ${s.black} / 白 ${s.white}`;$("finishGameBtn").classList.remove("hidden")}
+}
+function flipMemory(i){
+ if(!state.room?.gameData)return;const d={...state.room.gameData};if(d.matched.includes(i)||d.flipped.includes(i))return;d.flipped=[...d.flipped,i];
+ if(d.flipped.length>=2){const [a,b]=d.flipped;if(d.deck[a]===d.deck[b])d.matched=[...d.matched,a,b];setTimeout(()=>{if(state.local){d.flipped=[];state.room.gameData=d;renderGameContent()}},700);if(d.deck[a]!==d.deck[b])setTimeout(()=>{d.flipped=[];if(state.local){state.room.gameData=d;renderGameContent()}},700)}
+ if(state.local){state.room.gameData=d;renderGameContent()}
+}
+function showModal(title,body,confirmLabel,callback){
+ $("modalRoot").innerHTML=`<div class="modal-back" id="modalBack"><div class="modal"><h2>${title}</h2>${body}<div class="modal-actions"><button class="btn secondary" id="modalCancel">キャンセル</button><button class="btn primary" id="modalConfirm">${confirmLabel}</button></div></div></div>`;
+ $("modalCancel").onclick=()=>$("modalRoot").innerHTML="";$("modalConfirm").onclick=()=>{const v=$("modalInput")?.value; const extra=$("joinName")?.value; $("modalRoot").innerHTML="";callback(v,extra)};
+}
+$("createBtn").onclick=async()=>{await initFirebase();ensureUid();showModal("ルームを作成","<label class='label'>プレイヤー名</label><input id='modalInput' class='field' maxlength='14' value='Player' placeholder='名前'>","作成",async name=>{state.name=(name||"Player").trim().slice(0,14)||"Player";await createRoom()})};
+$("joinBtn").onclick=async()=>{await initFirebase();ensureUid();showModal("ルームに参加","<label class='label'>プレイヤー名</label><input id='joinName' class='field' maxlength='14' value='Player' placeholder='名前'><label class='label'>ルームコード</label><input id='modalInput' class='field' maxlength='6' placeholder='例：A1B2C3' style='text-transform:uppercase'>","参加",async (code,joinName)=>{state.name=(joinName||"Player").trim()||"Player";await joinRoom(code)})};
+$("copyCodeBtn").onclick=async()=>{try{await navigator.clipboard.writeText(state.roomId);toast("ルームコードをコピーしました")}catch(e){toast("ルームコード："+state.roomId)}};
+$("saveNameBtn").onclick=async()=>{const n=$("nameInput").value.trim().slice(0,14);if(!n)return toast("名前を入力してください");state.name=n;await updateMyPlayer({name:n});renderLobby();toast("名前を変更しました")};
+$("readyBtn").onclick=setReady;
+$("startBtn").onclick=startTournament;
+$("leaveLobbyBtn").onclick=()=>{if(state.unsub)state.unsub();state.unsub=null;state.room=null;state.roomId=null;state.roomRef=null;showScreen("homeScreen")};
+$("betSlider").oninput=()=>{$("betLabel").textContent=Number($("betSlider").value).toLocaleString();state.selectedBet=Number($("betSlider").value)};
+$("confirmBetBtn").onclick=confirmBet;
+$("finishGameBtn").onclick=async()=>{if(state.room.roundStatus==="result"||state.local&&state.room.roundStatus==="result")await nextDay();else if(state.room.day===4)await nextDay()};
+$("newTournamentBtn").onclick=()=>{if(state.unsub)state.unsub();state.room=null;state.roomId=null;state.roomRef=null;state.isHost=false;showScreen("homeScreen")};
+initFirebase().catch(()=>{});
 </script>
 </body>
 </html>
