@@ -395,137 +395,181 @@ function rotateMastermindColor(idx) {
 function executeAdvancedGameCheck(gameId, choice, data) {
   let win = false;
   let msg = "";
+  const ps = currentPlayers();
+  const meUid = state.uid;
   switch(gameId) {
-    case "connect4":
-      win = checkConnect4Win(data.grid || Array(42).fill(0)) === 1 || Math.random() > 0.3;
-      msg = `コネクトフォー戦：重力を利用した4目並べの攻防を制しました。`;
+    case "connect4": {
+      const grid = data.grid || Array(42).fill(0);
+      const winner = checkConnect4Win(grid);
+      win = winner === 1 || (winner === 0 && Math.random() > 0.4);
+      msg = `コネクトフォー戦：重力を利用した4目並べの攻防${win ? "を制して勝利！" : "に敗北…"}`;
       break;
-    case "gomoku":
-      win = checkGomokuWin(data.board || Array(81).fill(0)) === 1 || Math.random() > 0.3;
-      msg = `五目並べ戦：縦横斜めの布石を読み切り勝利！`;
+    }
+    case "gomoku": {
+      const board = data.board || Array(81).fill(0);
+      const winner = checkGomokuWin(board);
+      win = winner === 1 || (winner === 0 && Math.random() > 0.4);
+      msg = `五目並べ戦：縦横斜めの布石を読み切り${win ? "勝利！" : "惜敗…"}`;
       break;
-    case "tictactoe":
-      win = checkTicTacToeWin(data.board || Array(9).fill(0)) === 1 || Math.random() > 0.3;
-      msg = `三目並べ戦：中央の要所を制して勝利！`;
+    }
+    case "tictactoe": {
+      const b = data.board || Array(9).fill(0);
+      const winner = checkTicTacToeWin(b);
+      win = winner === 1 || (winner === 0 && Math.random() > 0.4);
+      msg = `三目並べ戦：中央の要所を制して${win ? "勝利！" : "敗北…"}`;
       break;
-    case "nim":
-      win = (data.rows || [3,4,5]).reduce((a,b)=>a+b,0) % 2 === 1;
-      msg = `ニム戦：残されたスティックの数から最後の駆け引きを制しました。`;
+    }
+    case "nim": {
+      const totalSticks = (data.rows || [3,4,5]).reduce((a,b)=>a+b,0);
+      win = totalSticks % 2 === 1;
+      msg = `ニム戦：残されたスティックの数から最後の駆け引きを${win ? "制しました。" : "読み誤りました。"}期`;
       break;
-    case "mancala":
-      win = (data.pits || [4,4,4,4,4,4,4,4]).slice(0,4).reduce((a,b)=>a+b,0) >= 14;
-      msg = `マンカラ戦：種まきと石の配分計算で優位に立ちました。`;
+    }
+    case "mancala": {
+      const pits = data.pits || [4,4,4,4,4,4,4,4];
+      const myPitsSum = pits.slice(0, 4).reduce((a,b)=>a+b,0);
+      win = myPitsSum >= 14;
+      msg = `マンカラ戦：種まきと石の配分計算で${win ? "優位に立ち勝利！" : "惜敗しました。"}期`;
       break;
-    case "speed":
+    }
+    case "speed": {
       win = choice === "play";
-      msg = `カードスピード戦：瞬時の判断で場札にカードをつなぎきりました。`;
+      msg = `カードスピード戦：瞬時の判断で場札にカードを${win ? "つなぎきりました。" : "出せませんでした。"}期`;
       break;
-    case "reversi":
-      win = (state.reversi?.black || 2) >= (state.reversi?.white || 2);
-      msg = `オセロデュエル：盤面を挟み込み優勢を築きました。`;
+    }
+    case "reversi": {
+      const rev = state.reversi || {black: 2, white: 2};
+      win = rev.black >= rev.white;
+      msg = `オセロデュエル：黒 ${rev.black} vs 白 ${rev.white} で${win ? "盤面を制覇！" : "敗北…"}`;
       break;
-    case "quoridor":
+    }
+    case "quoridor": {
       const p1 = data.p1 !== undefined ? data.p1 : 22;
       const p2 = data.p2 !== undefined ? data.p2 : 2;
       const dist1 = Math.floor(p1 / 5);
       const dist2 = 4 - Math.floor(p2 / 5);
       win = dist1 <= dist2;
-      msg = `コリドール戦：あなたの距離(${dist1}歩) vs 相手の距離(${dist2}歩)。${win?"最奥へのゴールルートを制して勝利！":"相手に先にゴールを阻まれた…"}`;
+      msg = `コリドール戦：あなた(${dist1}歩) vs 相手(${dist2}歩)。${win?"最奥へのゴールルートを制して勝利！":"相手に先にゴールを阻まれた…"}`;
       break;
-    case "dotsboxes":
+    }
+    case "dotsboxes": {
       const sc = data.scores || [0, 0];
       win = sc[0] >= sc[1];
       msg = `ドット＆ボックス：陣地獲得数 [あなた ${sc[0]} vs 相手 ${sc[1]}]。${win?"多数のボックスを囲み制覇！":"陣地を広げきれなかった…"}`;
       break;
-    case "hitandblow":
+    }
+    case "hitandblow": {
       const secretStr = String(data.secret || "472");
       const res = checkHitAndBlow(secretStr, String(choice));
       win = res.hits === 3;
       msg = `推測コード[${choice}] ⇒ ${res.hits} HIT / ${res.blows} BLOW。${win?"完全解読成功！":"推理を続けよ…"}`;
-      data.history = [...(data.history||[]), {guess: choice, hits: res.hits, blows: res.blows}];
+      if(!data.history) data.history = [];
+      data.history.push({guess: choice, hits: res.hits, blows: res.blows});
       break;
-    case "mastermind":
+    }
+    case "mastermind": {
       const codeStr = (data.code || [1,2,3]).join("");
       const mmRes = checkMastermind(codeStr, String(choice));
       win = mmRes.bulls === 3;
       msg = `コード解読：推測[${choice}] ⇒ 🎯Bulls: ${mmRes.bulls} / ⚪Cows: ${mmRes.cows}。${win?"暗号を完璧に解読成功！":"ロック解除ならず…"}`;
       break;
-    case "indianpoker":
+    }
+    case "indianpoker": {
       const oppCard = data.oppCard || 6;
       const myCard = data.myCard || 5;
       win = choice === "raise" ? (myCard >= oppCard) : (myCard < oppCard);
       msg = `インディアンポーカー：あなた[${myCard}] vs 相手[${oppCard}]。${win?"心理読み合いに勝利！":"読みが外れた…"}`;
       break;
-    case "bluff":
+    }
+    case "bluff": {
       win = (choice === "believe") === !!data.truth;
-      msg = `ブラフマスター：宣言は多様な心理戦。あなたの判断[${choice}] ⇒ ${win?"見事に看破！":"ブラフに屈した…"}`;
+      msg = `ブラフマスター：あなたの判断[${choice}] ⇒ ${win?"見事に看破！":"ブラフに屈した…"}`;
       break;
-    case "auction":
+    }
+    case "auction": {
       const bid = Number(choice) || 50;
       win = bid >= (data.prize || 300) * 0.4;
       msg = `ブラインドオークション：入札[${bid}◈]。${win?"適正価値を見極めて落札成功！":"入札額が競り負けた…"}`;
       break;
-    case "skull":
+    }
+    case "skull": {
       win = Number(choice) !== 3;
-      msg = `スカル＆ローズ：安全なバラをめくりきり勝利！`;
+      msg = `スカル＆ローズ：${win ? "安全なバラをめくりきり勝利！" : "💀ドクロを引き当ててしまった…！"}`;
       break;
-    case "split":
+    }
+    case "split": {
       const chosen = choice === "A" ? data.pileA : data.pileB;
       const other = choice === "A" ? data.pileB : data.pileA;
       win = chosen >= other;
       msg = `分配戦：選んだ山[${chosen}◈] vs もう一方[${other}◈]。${win?"より大きな山を獲得！":"相手により大きい山を選ばれた…"}`;
       break;
-    case "wordwolf":
-      const isWolf = state.uid === data.wolfUid;
+    }
+    case "wordwolf": {
+      const isWolf = meUid === data.wolfUid;
       win = (!isWolf && choice === data.wolfUid) || (isWolf && choice === "innocent");
-      msg = `ワードウルフ：心理的洞察で勝利！`;
+      msg = `ワードウルフ：お題のズレから少数派のウルフを${win ? "見事に見抜いて勝利！" : "特定できず敗北…"}期`;
       break;
-    case "majority":
-      win = Number(choice) === 0;
-      msg = `マジョリティ読解：集団心理の読みが的中！`;
+    }
+    case "majority": {
+      const opt = Number(choice) || 0;
+      win = opt === 0;
+      msg = `マジョリティ読解：集団心理の多数派予測が${win ? "的中しました！" : "外れました…"}期`;
       break;
-    case "number":
+    }
+    case "number": {
       const target = data.secret || 10;
       win = Math.abs(Number(choice) - target) <= 3;
-      msg = `ターゲット[${target}]：正確に接近して勝利！`;
+      msg = `ターゲット[${target}]：あなたの予測[${choice}]。${win?"非常に近い数値で勝利！":"離れすぎていた…"}`;
       break;
-    case "roulette":
+    }
+    case "roulette": {
       win = choice !== "黒";
-      msg = `カラーバッティング：被りを回避して生存！`;
+      msg = `カラーバッティング：選択[${choice}]。${win?"被りを回避して生存！":"選択が被り脱落…"}`;
       break;
-    case "quickmath":
+    }
+    case "quickmath": {
       const ans = data.op === "+" ? data.a + data.b : data.a * data.b;
       win = Number(choice) === ans;
-      msg = `クイックマッハ：電光石火の速算で勝利！`;
+      msg = `クイックマッハ：解答[${choice}] (正解:${ans})。${win?"電光石火の速算で正解！":"計算ミスまたは時間切れ…"}`;
       break;
-    case "memory":
-      win = (data.matched || []).length >= 4;
-      msg = `神経衰弱デュエル：記憶力でペア多数奪取！`;
+    }
+    case "memory": {
+      const matched = data.matched || [];
+      win = matched.length >= 4;
+      msg = `神経衰弱デュエル：ペア獲得数 ${matched.length/2}/4。${win?"記憶力で勝利！":"ペアを揃えきれなかった…"}`;
       break;
-    case "reflex":
+    }
+    case "reflex": {
       win = true;
-      msg = `リフレッシュフラッシュ：最速タップ達成！`;
+      msg = `リフレッシュフラッシュ：最速タップを達成しました！`;
       break;
-    case "timebomb":
-      win = Math.abs(5.0 - Number(choice || 5.1)) < 0.25;
-      msg = `ジャストタイマー：体内時計で爆弾解除成功！`;
+    }
+    case "timebomb": {
+      const diff = Math.abs(5.0 - Number(choice || 5.1));
+      win = diff < 0.25;
+      msg = `ジャストタイマー：記録 ${Number(choice||5.0).toFixed(2)}秒 (誤差 ${diff.toFixed(2)}秒)。${win?"ジャスト解除成功！":"爆発！誤差が大きすぎた…"}`;
       break;
-    case "mazerace":
+    }
+    case "mazerace": {
       win = Number(choice) === 7;
-      msg = `迷路エスケープ：最短脱出ルートを看破！`;
+      msg = `迷路エスケープ：最短脱出ルート(7歩)を${win ? "完璧に見抜いた！" : "看破できず…"}`;
       break;
-    case "puzzleduel":
+    }
+    case "puzzleduel": {
       win = choice === "T";
-      msg = `ブロックフィット：完璧に嵌まった！`;
+      msg = `ブロックフィット：選択[${choice}]。${win?"空きスペースに完璧に嵌まった！":"形状が一致しなかった…"}`;
       break;
-    case "battleship":
+    }
+    case "battleship": {
       win = Number(choice) === (data.shipPos || 5);
-      msg = `海戦バトルロイヤル：直撃弾命中により撃沈！`;
+      msg = `海戦バトルロイヤル：座標[${choice}]へ魚雷発射。${win?"直撃弾命中により撃沈！":"外れました…"}`;
       break;
-    case "battleroulette":
-      win = choice === "shield" || Math.random() > 0.3;
-      msg = `ロシアンカード：危機を回避して生存！`;
+    }
+    case "battleroulette": {
+      win = choice === "shield" || Math.random() > 0.35;
+      msg = `ロシアンカード：${win ? "危機を回避して生存！" : "💥弾丸が直撃した…"}`;
       break;
+    }
     default:
       win = Math.random() < 0.5;
       msg = "激戦を制しました。";
