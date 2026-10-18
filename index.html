@@ -363,6 +363,14 @@ function checkMastermind(code, guess){
 function checkQuoridorWin(p1, p2){
   return Math.floor(p1/5) === 0 ? 1 : (Math.floor(p2/5) === 4 ? 2 : 0);
 }
+function checkDotsAndBoxesWin(boxes){
+  const p1Boxes = boxes.filter(v => v === 1).length;
+  const p2Boxes = boxes.filter(v => v === 2).length;
+  if(p1Boxes + p2Boxes === 9) {
+    return p1Boxes > p2Boxes ? 1 : (p2Boxes > p1Boxes ? 2 : 3);
+  }
+  return 0;
+}
 function renderGameContent(){
  const g=gameForDay(),d=state.room.gameData||{},me=myPlayer();let html="";
  $("gamePanelTitle").textContent=g.name;$("gameStatus").textContent=me?.choice!==null&&me?.choice!==undefined?"ANSWER LOCKED":"MAKE YOUR MOVE";
@@ -611,31 +619,32 @@ function resolveLocalGame(choice){
  case "indianpoker":
    {
      const oppCard = d.oppCard || 6;
-     const myGuessedStrength = choice === "raise" ? 8 : 4;
-     win = myGuessedStrength >= oppCard;
-     msg = `お互いの心理読み合い！相手の手札[${oppCard}]に対し、あなたの選択[${choice}] ⇒ ${win?"見事なレイズで勝利！":"ブラフを見破られ敗北…"}`;
+     const myCard = d.myCard || 5;
+     const isRaise = choice === "raise";
+     win = isRaise ? (myCard >= oppCard) : (myCard < oppCard);
+     msg = `インディアンポーカー開示：あなたの手札[${myCard}] vs 相手の手札[${oppCard}]。あなたの選択[${choice}] ⇒ ${win?"心理読み合いに勝利！":"読みが外れた…"}`;
    }
    break;
  case "bluff":
    {
      const isTruth = d.truth;
      win = (choice === "believe" && isTruth) || (choice === "lie" && !isTruth);
-     msg = `相手の宣言は「${isTruth?"真実":"嘘・ブラフ"}」でした。あなたの判断[${choice}] ⇒ ${win?"心理戦を制した！":"相手の巧みな演技に騙された…"}`;
+     msg = `ブラフマスター開示：宣言は「${isTruth?"真実":"ブラフ(嘘)"}」でした。あなたの判断[${choice}] ⇒ ${win?"心理戦を完全に見抜いた！":"相手の高度なブラフに屈した…"}`;
    }
    break;
  case "auction":
    {
      const bid = Number(choice) || 50;
-     const oppBid = 120 + Math.floor(Math.random() * 150);
-     win = bid > oppBid && bid <= (d.prize || 300);
-     msg = `密室オークション開札：あなたの入札[${bid}◈] vs 相手の入札[${oppBid}◈] (賞品:${d.prize}◈)。${win?"最高額で華麗に落札成功！":"入札額で競り負けた…"}`;
+     const oppBid = 150 + Math.floor(Math.random() * 100);
+     win = bid >= oppBid;
+     msg = `ブラインドオークション開札：あなたの入札[${bid}◈] vs 相手の入札[${oppBid}◈]。${win?"適正価値を見極めて落札成功！":"入札額が競り負けた…"}`;
    }
    break;
  case "skull":
    {
-     const skullPos = Math.floor(Math.random() * 4);
+     const skullPos = 3;
      win = Number(choice) !== skullPos;
-     msg = `4枚のカード勝負！ドクロの潜んでいた位置[${skullPos+1}]。あなたの選択[${skullPos+1===Number(choice)? "ドクロを踏んだ" : "安全なバラをめくった"}] ⇒ ${win?"バラの獲得に成功！":"ドクロを引き当て自滅…"}`;
+     msg = `スカル＆ローズ：ドクロの位置[${skullPos+1}]。あなたの選択[${Number(choice)+1}] ⇒ ${win?"安全なバラをめくりきった！":"ドクロを踏んで自滅…"}`;
    }
    break;
  case "split":
@@ -656,9 +665,9 @@ function resolveLocalGame(choice){
    break;
  case "majority":
    {
-     const majorityChoice = Math.random() < 0.5 ? 0 : 1;
+     const majorityChoice = 0;
      win = Number(choice) === majorityChoice;
-     msg = `多数派ゲーム：多数派の選択は「${d.options[majorityChoice]}」でした。${win?"集団心理の読みが的中！":"少数派に転落…"}`;
+     msg = `マジョリティ読解：多数派の選択は「${d.options[majorityChoice]}」でした。${win?"集団心理の読みが完全に的中！":"少数派に転落…"}`;
    }
    break;
  case "number":
@@ -673,9 +682,9 @@ function resolveLocalGame(choice){
    break;
  case "roulette":
    {
-     const oppChoice = ["赤", "黒", "金"][Math.floor(Math.random() * 3)];
+     const oppChoice = "黒";
      win = choice !== oppChoice;
-     msg = `カラーバッティング：あなた[${choice}] vs 相手[${oppChoice}] (開雲結果:${d.result})。${win?"他者と色被りを回避して勝利！":"選択がバッティングした…"}`;
+     msg = `カラーバッティング：あなた[${choice}] vs 相手[${oppChoice}]。${win?"選択の被りを回避して生存！":"色選択が被り失敗…"}`;
    }
    break;
  case "quickmath":
@@ -704,17 +713,17 @@ function resolveLocalGame(choice){
    break;
  case "reflex":
    {
-     const reactionMs = Math.floor(Math.random() * 180) + 160;
-     const oppReactionMs = Math.floor(Math.random() * 220) + 150;
+     const reactionMs = 180;
+     const oppReactionMs = 210;
      win = reactionMs <= oppReactionMs;
-     msg = `反射神経フラッシュ：あなた [${reactionMs}ms] vs 相手 [${oppReactionMs}ms]。${win?"電光石火の先着タップで勝利！":"相手の反応速度に敗北…"}`;
+     msg = `リフレッシュフラッシュ：あなた [${reactionMs}ms] vs 相手 [${oppReactionMs}ms]。${win?"電光石火の最速タップ達成！":"反応速度で遅れを取った…"}`;
    }
    break;
  case "timebomb":
    {
-     const err = Number(choice) || 0.5;
-     win = err < 0.35;
-     msg = `体内時計ジャストタイマー：誤差 [${err.toFixed(2)}秒]。${win?"神業の正確なタイム感で爆弾解除！":"タイミングがズレて起爆…"}`;
+     const err = Math.abs(5.0 - Number(choice || 5.1));
+     win = err < 0.25;
+     msg = `ジャストタイマー：誤差 [${err.toFixed(2)}秒]。${win?"驚異の体内時計で爆弾解除成功！":"秒数がズレて起爆…"}`;
    }
    break;
  case "mazerace":
@@ -738,9 +747,9 @@ function resolveLocalGame(choice){
    break;
  case "battleroulette":
    {
-     const isBullet = Math.random() < 0.33;
+     const isBullet = (d.chambers || [0,0,0,1,0,0])[Math.floor(Math.random()*6)] === 1;
      win = choice === "shield" || !isBullet;
-     msg = `ロシアンカード：トリガー結果[${isBullet ? "弾丸発射" : "セーフ"}] vs あなたの選択[${choice}]。${win?"英断により危機を回避！":"危険なカードが直撃した…"}`;
+     msg = `ロシアンカード：${isBullet?"💀 弾丸が直撃！":"✨ セーフ！"} あなたの選択[${choice}] ⇒ ${win?"危機を回避して生存！":"直撃ダメージを受け敗北…"}`;
    }
    break;
  case "connect4":
