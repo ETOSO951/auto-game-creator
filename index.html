@@ -139,36 +139,36 @@ const firebaseConfig = {
 
 const $ = id => document.getElementById(id);
 const games = [
- {id:"connect4",name:"CONNECT FOUR",icon:"🔴",desc:"7列の重力を利用して4つのコマを一直線に並べる勝負。"},
- {id:"gomoku",name:"GOMOKU 5-IN-A-ROW",icon:"⚪",desc:"9×9盤面で5つのコマを縦横斜めに並べた者が勝ち。"},
+ {id:"connect4",name:"CONNECT FOUR",icon:"🔴",desc:"重力を利用して4つのコマを一直線に並べる本格4目並べ。"},
+ {id:"gomoku",name:"GOMOKU 5-IN-A-ROW",icon:"⚪",desc:"9×9盤面で5つのコマを縦横斜めに並べた者が勝者となる戦略対局。"},
  {id:"tictactoe",name:"TRIPLE TACTICS",icon:"❌",desc:"リーチの攻防と先読みが決め手の3×3三目並べ。"},
- {id:"nim",name:"NIM TACTICS",icon:"🥢",desc:"山から交互にスティックを取り最後の1個を回避せよ。"},
- {id:"mancala",name:"MANCALA DUEL",icon:"🫘",desc:"種まきと計算の思考型ボードゲーム。"},
- {id:"speed",name:"CARD SPEED",icon:"⚡",desc:"場札に繋がるカードを素早く重ねるスピード対戦。"},
- {id:"reversi",name:"REVERSI DUEL",icon:"⚫",desc:"相手のコマを挟んでひっくり返す盤上の覇権争い。"},
- {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動しゴールを目指す戦略盤上戦。"},
- {id:"dotsboxes",name:"DOTS & BOXES",icon:"🔲",desc:"線を引いて四角形の陣地を奪い合う古典頭脳ゲーム。"},
- {id:"hitandblow",name:"HIT & BLOW",icon:"🔢",desc:"相手が隠した数字コードを論理的に推理。"},
- {id:"indianpoker",name:"INDIAN POKER",icon:"🂠",desc:"自分の額のカードが見えない極限の心理ポーカー。"},
- {id:"bluff",name:"BLUFF MASTER",icon:"🎭",desc:"相手の宣言が真実か見極める心理戦。"},
- {id:"auction",name:"BLIND AUCTION",icon:"🔨",desc:"相手の懐事情と提示額を読む密室オークション。"},
- {id:"skull",name:"SKULL & ROSES",icon:"💀",desc:"ドクロを避けつつカードをめくる度胸勝負。"},
- {id:"split",name:"DIVIDE & TAKE",icon:"🍰",desc:"一方が山を二つに分け、もう一方が選ぶ分配戦。"},
- {id:"highlow",name:"HIGH & LOW DUEL",icon:"🂡",desc:"次に来るカードの数字を予測するバトル。"},
- {id:"blackjack",name:"BLACKJACK 21",icon:"🃏",desc:"21を超えずにディーラーより強い手札を作る。"},
- {id:"wordwolf",name:"WORD WOLF",icon:"🐺",desc:"会話のズレから少数派のウルフを追い詰める。"},
- {id:"majority",name:"MAJORITY READ",icon:"👥",desc:"多数派がどちらを選ぶか集団心理を読む。"},
- {id:"number",name:"NUMBER GUESS",icon:"🎯",desc:"秘密のターゲットナンバーに最も近く迫る。"},
- {id:"roulette",name:"COLOR BATTING",icon:"🎡",desc:"他のプレイヤーと選択が重ならない色を狙う。"},
- {id:"quickmath",name:"QUICK MATH DUEL",icon:"🧮",desc:"計算の正確性とスピードを競うバトル。"},
- {id:"memory",name:"MEMORY MATCH",icon:"🧠",desc:"記憶力をフル活用してカードのペアを奪取。"},
- {id:"mastermind",name:"CODE BREAKER",icon:"🔐",desc:"ヒントを元にカラーコードを解読。"},
- {id:"reflex",name:"REFLEX FLASH",icon:"💥",desc:"合図が出た瞬間に画面を速攻タップする勝負。"},
- {id:"timebomb",name:"JUST TIMER",icon:"⏱️",desc:"体内時計だけで指定秒数ジャストを叩き出す。"},
- {id:"mazerace",name:"MAZE ESCAPE",icon:"🧩",desc:"迷路の最短脱出ルートを見抜く観察力勝負。"},
- {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースにピッタリはまる形を見つける。"},
- {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標を予想して砲撃。"},
- {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードを引き当てないよう引き際を見極める。"}
+ {id:"nim",name:"NIM TACTICS",icon:"🥢",desc:"山から交互にスティックを取り、最後の1本を回避せよ。"},
+ {id:"mancala",name:"MANCALA DUEL",icon:"🫘",desc:"種まきと石の配分計算が勝敗を分ける思考型ボードゲーム。"},
+ {id:"speed",name:"CARD SPEED",icon:"⚡",desc:"場札の数字に繋がる手札を瞬時に判断して出し切る対戦。"},
+ {id:"reversi",name:"REVERSI DUEL",icon:"⚫",desc:"相手のコマを挟んでひっくり返し盤面を制覇するオセロ勝負。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"},
+ {id:"dotsboxes",name:"DOTS & BOXES",icon:"🔲",desc:"線を引いて四角形の陣地を囲み、獲得数を競う古典頭脳戦。"},
+ {id:"hitandblow",name:"HIT & BLOW",icon:"🔢",desc:"相手が隠した3桁の秘密数字コードを論理的に推理・解読。"},
+ {id:"indianpoker",name:"INDIAN POKER",icon:"🂠",desc:"自分の額のカードが見えない極限の心理戦とレイズ勝負。"},
+ {id:"bluff",name:"BLUFF MASTER",icon:"🎭",desc:"相手の宣言が真実かブラフ(嘘)かを見極める高度な心理戦。"},
+ {id:"auction",name:"BLIND AUCTION",icon:"🔨",desc:"相手の懐事情と提示価値を読む密室のブラインドオークション。"},
+ {id:"skull",name:"SKULL & ROSES",icon:"💀",desc:"ドクロを避けつつ安全なバラの花をめくる度胸勝負。"},
+ {id:"split",name:"DIVIDE & TAKE",icon:"🍰",desc:"一方が山を二つに分け、もう一方が選ぶ分配心理戦。"},
+ {id:"highlow",name:"HIGH & LOW DUEL",icon:"🂡",desc:"次に来るトランプカードがハイかローかを当てるバトル。"},
+ {id:"blackjack",name:"BLACKJACK 21",icon:"🃏",desc:"21を超えずにディーラーより強い手札を作るディーラー勝負。"},
+ {id:"wordwolf",name:"WORD WOLF",icon:"🐺",desc:"お題のズレから少数派のウルフを見抜いて投票・討伐する。"},
+ {id:"majority",name:"MAJORITY READ",icon:"👥",desc:"多数派の選択をどれだけ正確に読めるか試される集団心理戦。"},
+ {id:"number",name:"NUMBER GUESS",icon:"🎯",desc:"1〜20の秘密のターゲットナンバーに最も近づく数字を選択。"},
+ {id:"roulette",name:"COLOR BATTING",icon:"🎡",desc:"他のプレイヤーと選択色が重ならないよう出し抜くバッティング戦。"},
+ {id:"quickmath",name:"QUICK MATH DUEL",icon:"🧮",desc:"ランダムな算術式の答えを電光石火のスピードで弾き出す。"},
+ {id:"memory",name:"MEMORY MATCH",icon:"🧠",desc:"記憶力をフル稼働させて8枚のカードからペアを連続奪取。"},
+ {id:"mastermind",name:"CODE BREAKER",icon:"🔐",desc:"色のヒントを手がかりに3つのカラーコードを完全解読。"},
+ {id:"reflex",name:"REFLEX FLASH",icon:"💥",desc:"合図が出た瞬間に画面を誰よりも速くタップする瞬発勝負。"},
+ {id:"timebomb",name:"JUST TIMER",icon:"⏱️",desc:"体内時計だけで「5.00秒」ジャストを叩き出すタイミング勝負。"},
+ {id:"mazerace",name:"MAZE ESCAPE",icon:"🧩",desc:"迷路構造から最短脱出歩数(7歩)を看破する観察力勝負。"},
+ {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
+ {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
+ {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
 ];
 ====
 ```
@@ -284,7 +284,7 @@ async function beginGame(){
  if(g.id==="hitandblow"){
    const digits=[1,2,3,4,5,6,7,8,9];
    shuffle(digits);
-   gameData.secret=digits.slice(0,3);
+   gameData.secret=digits.slice(0,3).join("");
    gameData.history=[];
  }
  if(g.id==="mastermind"){
@@ -849,20 +849,35 @@ async function resolveOnlineGame(){
  for(const p of ps){
    let win = false;
    const c = p.choice;
-   if(g.id === "highlow") win = (c === "high" && cardValue(d.next) > cardValue(d.card)) || (c === "low" && cardValue(d.next) < cardValue(d.card));
-   else if(g.id === "roulette") win = c === d.result;
-   else if(g.id === "number") win = Math.abs(Number(c) - d.secret) < 4;
-   else if(g.id === "blackjack") win = handValue(d.player) <= 21 && handValue(d.player) >= 17;
-   else if(g.id === "majority") win = Number(c) === 0;
-   else if(g.id === "wordwolf") win = c !== "pass";
-   else if(g.id === "memory") win = Number(c) > 0;
-   else if(g.id === "auction") win = Number(c) > 0 && Number(c) <= (d.prize || 300);
-   else if(g.id === "bluff") win = (c === "believe") === d.truth;
-   else if(g.id === "quickmath") win = Number(c) === (d.op === "+" ? d.a + d.b : d.a * d.b);
-   else if(g.id === "speed") win = c === "play";
-   else if(g.id === "battleship") win = Number(c) === d.shipPos;
-   else if(g.id === "indianpoker") win = c === "call" && (d.oppCard || 5) < (d.myCard || 7);
-   else win = c === "win" || c === 0 || c === "play" || (typeof c === "number" && c % 2 === 0);
+   if(g.id === "hitandblow") {
+     const res = checkHitAndBlow(d.secret, String(c));
+     win = res.hits === 3;
+   } else if(g.id === "mastermind") {
+     const res = checkMastermind((d.code||[1,2,3]).join(""), String(c));
+     win = res.bulls === 3;
+   } else if(g.id === "highlow") {
+     win = (c === "high" && cardValue(d.next) > cardValue(d.card)) || (c === "low" && cardValue(d.next) < cardValue(d.card));
+   } else if(g.id === "roulette") {
+     win = c === d.result;
+   } else if(g.id === "number") {
+     win = Math.abs(Number(c) - d.secret) <= 2;
+   } else if(g.id === "blackjack") {
+     win = handValue(d.player) <= 21;
+   } else if(g.id === "memory") {
+     win = Number(c) >= 2;
+   } else if(g.id === "auction") {
+     win = Number(c) > 0 && Number(c) <= (d.prize || 300);
+   } else if(g.id === "bluff") {
+     win = (c === "believe") === d.truth;
+   } else if(g.id === "quickmath") {
+     win = Number(c) === (d.op === "+" ? d.a + d.b : d.a * d.b);
+   } else if(g.id === "speed") {
+     win = c === "play";
+   } else if(g.id === "battleship") {
+     win = Number(c) === d.shipPos;
+   } else {
+     win = c === "win" || c === 0 || c === "play" || (typeof c === "number" && c % 2 === 0);
+   }
 
    let delta = win ? (p.bet || 10) : -(p.bet || 10);
    if(g.id === "auction" && win) delta = Math.max(0, Math.floor((d.prize || 300) - Number(c)));
