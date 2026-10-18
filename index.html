@@ -21,11 +21,11 @@
 .line-h.active,.line-v.active{background:var(--gold)}
 .box-cell{width:36px;height:36px;background:#1a1e2e;border-radius:6px;display:grid;place-items:center;font-weight:900;font-size:12px;color:var(--gold)}
 .quoridor-board{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:min(100%,320px);margin:12px auto;background:#141724;padding:10px;border-radius:14px}
-.q-cell{aspect-ratio:1;background:#202638;border-radius:8px;border:1px solid #363d54;display:grid;place-items:center;font-size:20px;cursor:pointer}
+.q-cell{aspect-ratio:1;background:#202638;border-radius:8px;border:1px solid #363d54;display:grid;place-items:center;font-size:20px;cursor:pointer;touch-action:manipulation}
 .q-cell.p1-pos{background:#38311e;border-color:var(--gold)}
 .q-cell.p2-pos{background:#3d1e28;border-color:var(--red)}
 .mancala-board{display:flex;gap:8px;justify-content:center;background:#181c2b;padding:12px;border-radius:16px;width:min(100%,360px);margin:12px auto;border:1px solid #32384e}
-.mancala-pit{flex:1;background:#0d101a;border-radius:12px;padding:10px 4px;text-align:center;border:1px solid #282f45;cursor:pointer}
+.mancala-pit{flex:1;background:#0d101a;border-radius:12px;padding:12px 4px;text-align:center;border:1px solid #282f45;cursor:pointer;touch-action:manipulation}
 .mancala-pit b{display:block;font-size:18px;color:var(--gold);margin-top:4px}
 .nim-rows{display:flex;flex-direction:column;gap:10px;align-items:center;margin:16px 0}
 .nim-row{display:flex;gap:8px}
@@ -592,7 +592,7 @@ function renderGameContent(){
  case "nim":
  html=`<p class="sub">山からスティックを取れ！最後の1本を取らせた方が勝ち。</p><div class="nim-rows">${(d.rows||[3,4,5]).map((count,r)=>`<div class="nim-row"><span class="tiny muted" style="width:30px">山${r+1}</span>${Array.from({length:count},(_,c)=>`<div class="nim-stick" onclick="submitChoice(${r})"></div>`).join("")}</div>`).join("")}</div>`;break;
  case "mancala":
- html=`<p class="sub">ポケットを選んで種を撒こう。</p><div class="mancala-board">${(d.pits||[4,4,4,4,4,4,4,4]).map((v,i)=>`<div class="mancala-pit" onclick="submitChoice(${i})"><span class="tiny muted">P${i+1}</span><b>${v}</b></div>`).join("")}</div>`;break;
+ html=`<p class="sub">ポケットを選んで種を撒こう。自分のポケットは前半(P1〜P4)、後半はCPU/相手。</p><div class="mancala-board">${(d.pits||[4,4,4,4,4,4,4,4]).map((v,i)=>`<div class="mancala-pit" onclick="handleMancalaClick(${i})"><span class="tiny muted">${i<4?"YOU":"OPP"}</span><b>${v}</b></div>`).join("")}</div><button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice('mancala_done')">マンカラ局を確定する</button>`;break;
  case "speed":
  html=`<p class="sub">場札につながるカードを選べ！</p><div class="speed-cards"><div><span class="tiny muted">場札</span><br>${cardHTML(d.target||drawCard())}</div><div><span class="tiny muted">自分の手札</span><br>${cardHTML(d.pCard||drawCard())}</div></div><div class="choices"><button class="choice gold" onclick="submitChoice('play')">⚡ カードを出す！</button><button class="choice" onclick="submitChoice('pass')">パス</button></div>`;break;
  case "reversi":
@@ -975,6 +975,61 @@ function handleQuoridorMove(targetIdx) {
 
  if(state.local) { state.room.gameData = d; renderGameContent(); }
  else { updateRoom({gameData: d}); }
+}
+
+function handleMancalaClick(pitIndex) {
+ if(!state.room?.gameData) return;
+ const d = JSON.parse(JSON.stringify(state.room.gameData));
+ const pits = d.pits || [4,4,4,4,4,4,4,4];
+ let stones = pits[pitIndex];
+ if(stones === 0) {
+   toast("石が入っているポケットを選んでください");
+   return;
+ }
+ pits[pitIndex] = 0;
+ let cur = pitIndex;
+ while(stones > 0) {
+   cur = (cur + 1) % pits.length;
+   pits[cur]++;
+   stones--;
+ }
+ d.pits = pits;
+ const mySum = pits.slice(0, 4).reduce((a,b)=>a+b, 0);
+ const oppSum = pits.slice(4, 8).reduce((a,b)=>a+b, 0);
+ if(mySum === 0 || oppSum === 0 || pits.every(v=>v<=1)) {
+   const win = mySum >= oppSum;
+   if(state.local) {
+     state.room.gameData = d;
+     renderGameContent();
+     submitChoice(win ? "win" : "lose");
+     return;
+   }
+ }
+ if(state.local) {
+   state.room.gameData = d;
+   renderGameContent();
+   // AI reply for Mancala
+   setTimeout(() => {
+     if(!state.room || !state.room.gameData) return;
+     const cpuPits = state.room.gameData.pits;
+     const cpuChoices = [4,5,6,7].filter(i=>cpuPits[i]>0);
+     if(cpuChoices.length) {
+       const pick = cpuChoices[Math.floor(Math.random()*cpuChoices.length)];
+       let s = cpuPits[pick];
+       cpuPits[pick] = 0;
+       let c = pick;
+       while(s > 0) {
+         c = (c + 1) % cpuPits.length;
+         cpuPits[c]++;
+         s--;
+       }
+       state.room.gameData.pits = cpuPits;
+       renderGameContent();
+     }
+   }, 400);
+ } else {
+   updateRoom({gameData: d});
+ }
 }
 
 function flipMemory(i){
