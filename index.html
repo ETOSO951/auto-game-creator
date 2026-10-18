@@ -371,6 +371,27 @@ function checkDotsAndBoxesWin(boxes){
   }
   return 0;
 }
+function handleHitAndBlowSubmit() {
+  const val = ($("hbInput")?.value || "").trim();
+  if(!val || val.length !== 3) {
+    toast("3桁の数字を入力してください");
+    return;
+  }
+  submitChoice(val);
+}
+function rotateMastermindColor(idx) {
+  if(!state.room?.gameData) return;
+  const d = JSON.parse(JSON.stringify(state.room.gameData));
+  const cur = d.currentGuess || [1,1,1];
+  cur[idx] = (cur[idx] % 4) + 1;
+  d.currentGuess = cur;
+  if(state.local) {
+    state.room.gameData = d;
+    renderGameContent();
+  } else {
+    updateRoom({gameData: d});
+  }
+}
 function executeAdvancedGameCheck(gameId, choice, data) {
   let win = false;
   let msg = "";
