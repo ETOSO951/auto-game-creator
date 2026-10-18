@@ -139,34 +139,34 @@ const firebaseConfig = {
 
 const $ = id => document.getElementById(id);
 const games = [
- {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"迷路を作りながらゴールを目指す戦略盤上戦。"},
- {id:"connect4",name:"CONNECT FOUR",icon:"🔴",desc:"重力を利用して4つのコマを一直線に並べる勝負。"},
- {id:"dotsboxes",name:"DOTS & BOXES",icon:"線を引いて四角形の陣地を奪い合う古典頭脳ゲーム。"},
+ {id:"connect4",name:"CONNECT FOUR",icon:"🔴",desc:"7列の重力を利用して4つのコマを一直線に並べる勝負。"},
+ {id:"gomoku",name:"GOMOKU 5-IN-A-ROW",icon:"⚪",desc:"9×9盤面で5つのコマを縦横斜めに並べた者が勝ち。"},
+ {id:"tictactoe",name:"TRIPLE TACTICS",icon:"❌",desc:"リーチの攻防と先読みが決め手の3×3三目並べ。"},
+ {id:"nim",name:"NIM TACTICS",icon:"🥢",desc:"山から交互にスティックを取り最後の1個を回避せよ。"},
+ {id:"mancala",name:"MANCALA DUEL",icon:"🫘",desc:"種まきと計算の思考型ボードゲーム。"},
  {id:"speed",name:"CARD SPEED",icon:"⚡",desc:"場札に繋がるカードを素早く重ねるスピード対戦。"},
  {id:"reversi",name:"REVERSI DUEL",icon:"⚫",desc:"相手のコマを挟んでひっくり返す盤上の覇権争い。"},
- {id:"gomoku",name:"GOMOKU 5-IN-A-ROW",icon:"⚪",desc:"5つのコマを縦・横・斜めに連続して並べた者が勝ち。"},
- {id:"tictactoe",name:"TRIPLE TACTICS",icon:"❌",desc:"リーチの攻防と先読みが決め手の3×3三目並べ。"},
- {id:"mancala",name:"MANCALA DUEL",icon:"🫘",desc:"古代から伝わる種まきと計算の思考型ボードゲーム。"},
- {id:"nim",name:"NIM TACTICS",icon:"🥢",desc:"山から交互にスティックを取り、最後の1個を回避せよ。"},
- {id:"hitandblow",name:"HIT & BLOW",icon:"🔢",desc:"相手が隠した4桁の数字コードを論理的に推理。"},
- {id:"indianpoker",name:"INDIAN POKER",icon:"🂠",desc:"相手の額のカードだけが見える極限の心理ポーカー。"},
- {id:"bluff",name:"BLUFF MASTER",icon:"🎭",desc:"相手の宣言が真実かハラハラ見極める心理戦。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動しゴールを目指す戦略盤上戦。"},
+ {id:"dotsboxes",name:"DOTS & BOXES",icon:"🔲",desc:"線を引いて四角形の陣地を奪い合う古典頭脳ゲーム。"},
+ {id:"hitandblow",name:"HIT & BLOW",icon:"🔢",desc:"相手が隠した数字コードを論理的に推理。"},
+ {id:"indianpoker",name:"INDIAN POKER",icon:"🂠",desc:"自分の額のカードが見えない極限の心理ポーカー。"},
+ {id:"bluff",name:"BLUFF MASTER",icon:"🎭",desc:"相手の宣言が真実か見極める心理戦。"},
  {id:"auction",name:"BLIND AUCTION",icon:"🔨",desc:"相手の懐事情と提示額を読む密室オークション。"},
- {id:"skull",name:"SKULL & ROSES",icon:"💀",desc:"ドクロを避けつつ何枚めくれるか宣言する度胸勝負。"},
- {id:"split",name:"DIVIDE & TAKE",icon:"🍰",desc:"一方が山を二つに分け、もう一方が先に選ぶ分配戦。"},
- {id:"highlow",name:"HIGH & LOW DUEL",icon:"🂡",desc:"相手の手札展開を予測するクラシックカードバトル。"},
- {id:"blackjack",name:"BLACKJACK 21",icon:"🃏",desc:"21を超えずに相手より強い手札を完成させよ。"},
- {id:"wordwolf",name:"WORD WOLF",icon:"🐺",desc:"会話から微妙なズレを感知し少数派を追い詰める。"},
- {id:"majority",name:"MAJORITY READ",icon:"👥",desc:"多数派がどちらを選ぶか集団心理をプロファイリング。"},
- {id:"number",name:"NUMBER GUESS",icon:"🎯",desc:"秘密のターゲットナンバーに誰が一番近く迫れるか。"},
+ {id:"skull",name:"SKULL & ROSES",icon:"💀",desc:"ドクロを避けつつカードをめくる度胸勝負。"},
+ {id:"split",name:"DIVIDE & TAKE",icon:"🍰",desc:"一方が山を二つに分け、もう一方が選ぶ分配戦。"},
+ {id:"highlow",name:"HIGH & LOW DUEL",icon:"🂡",desc:"次に来るカードの数字を予測するバトル。"},
+ {id:"blackjack",name:"BLACKJACK 21",icon:"🃏",desc:"21を超えずにディーラーより強い手札を作る。"},
+ {id:"wordwolf",name:"WORD WOLF",icon:"🐺",desc:"会話のズレから少数派のウルフを追い詰める。"},
+ {id:"majority",name:"MAJORITY READ",icon:"👥",desc:"多数派がどちらを選ぶか集団心理を読む。"},
+ {id:"number",name:"NUMBER GUESS",icon:"🎯",desc:"秘密のターゲットナンバーに最も近く迫る。"},
  {id:"roulette",name:"COLOR BATTING",icon:"🎡",desc:"他のプレイヤーと選択が重ならない色を狙う。"},
- {id:"quickmath",name:"QUICK MATH DUEL",icon:"🧮",desc:"脳の回転速度と正確性を競う計算力バトル。"},
+ {id:"quickmath",name:"QUICK MATH DUEL",icon:"🧮",desc:"計算の正確性とスピードを競うバトル。"},
  {id:"memory",name:"MEMORY MATCH",icon:"🧠",desc:"記憶力をフル活用してカードのペアを奪取。"},
- {id:"mastermind",name:"CODE BREAKER",icon:"🔐",desc:"ヒントを元に秘密のカラーコードを解読。"},
- {id:"reflex",name:"REFLEX FLASH",icon:"💥",desc:"合図が出た瞬間に画面を速攻タップする反射勝負。"},
- {id:"timebomb",name:"JUST TIMER",icon:"⏱️",desc:"体内時計だけで指定秒数ジャストを叩き出せ。"},
- {id:"mazerace",name:"MAZE ESCAPE",icon:"🧩",desc:"迷路の最短脱出ルートを瞬時に見抜く観察力勝負。"},
- {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"盤面の空きスペースにピッタリはまるブロックを見つける。"},
+ {id:"mastermind",name:"CODE BREAKER",icon:"🔐",desc:"ヒントを元にカラーコードを解読。"},
+ {id:"reflex",name:"REFLEX FLASH",icon:"💥",desc:"合図が出た瞬間に画面を速攻タップする勝負。"},
+ {id:"timebomb",name:"JUST TIMER",icon:"⏱️",desc:"体内時計だけで指定秒数ジャストを叩き出す。"},
+ {id:"mazerace",name:"MAZE ESCAPE",icon:"🧩",desc:"迷路の最短脱出ルートを見抜く観察力勝負。"},
+ {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースにピッタリはまる形を見つける。"},
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標を予想して砲撃。"},
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードを引き当てないよう引き際を見極める。"}
 ];
@@ -271,16 +271,16 @@ async function confirmBet(){
  const latest=state.room;const ps=Object.values(latest.players||{});if(ps.length&&ps.every(p=>p.betConfirmed)){if(state.isHost)await beginGame()}
 }
 async function beginGame(){
- const g=gameForDay();let gameData={id:g.id,startedAt:Date.now(),seed:Math.random()};
- if(g.id==="quoridor"){gameData.p1=22;gameData.p2=2;gameData.walls=[]}
- if(g.id==="connect4"){gameData.grid=Array(42).fill(0)}
- if(g.id==="dotsboxes"){gameData.lines=Array(24).fill(false);gameData.boxes=Array(9).fill(0)}
+ const g=gameForDay();let gameData={id:g.id,startedAt:Date.now(),seed:Math.random(),turn:1};
+ if(g.id==="connect4"){gameData.grid=Array(42).fill(0);gameData.winner=0;}
+ if(g.id==="gomoku"){gameData.board=Array(81).fill(0);gameData.winner=0;}
+ if(g.id==="tictactoe"){gameData.board=Array(9).fill(0);gameData.winner=0;}
+ if(g.id==="nim"){gameData.rows=[3,4,5];gameData.winner=0;}
+ if(g.id==="mancala"){gameData.pits=[4,4,4,4,4,4,4,4];gameData.winner=0;}
  if(g.id==="speed"){gameData.pCard=drawCard();gameData.target=drawCard()}
  if(g.id==="reversi"){gameData.board=Array(64).fill(0);gameData.board[27]=2;gameData.board[28]=1;gameData.board[35]=1;gameData.board[36]=2}
- if(g.id==="gomoku"){gameData.board=Array(81).fill(0)}
- if(g.id==="tictactoe"){gameData.board=Array(9).fill(0)}
- if(g.id==="mancala"){gameData.pits=[4,4,4,4,4,4,4,4]}
- if(g.id==="nim"){gameData.rows=[3,4,5]}
+ if(g.id==="quoridor"){gameData.p1=22;gameData.p2=2;gameData.winner=0;}
+ if(g.id==="dotsboxes"){gameData.hLines=Array(20).fill(false);gameData.vLines=Array(20).fill(false);gameData.boxes=Array(9).fill(0);gameData.scores=[0,0]}
  if(g.id==="hitandblow"){gameData.secret=[Math.floor(Math.random()*9)+1,Math.floor(Math.random()*9)+1,Math.floor(Math.random()*9)+1]}
  if(g.id==="indianpoker"){gameData.oppCard=1+Math.floor(Math.random()*10);gameData.myCard=1+Math.floor(Math.random()*10)}
  if(g.id==="bluff"){gameData.truth=Math.random()<.5}
@@ -309,30 +309,45 @@ function drawCard(){const ranks=["A","2","3","4","5","6","7","8","9","10","J","Q
 function cardValue(c){return ({A:1,J:11,Q:12,K:13})[c.rank]||Number(c.rank)}
 function cardHTML(c){return `<span class="playing-card ${c.suit==="♥"||c.suit==="♦"?"red":""}">${c.rank}<br>${c.suit}</span>`}
 function setGameMessage(s){$("gameMessage").textContent=s}
+function checkConnect4Win(grid){
+  const rows=6,cols=7;
+  for(let r=0;r<rows;r++){for(let c=0;c<cols;c++){const p=grid[r*cols+c];if(!p)continue;if(c+3<cols&&p===grid[r*cols+c+1]&&p===grid[r*cols+c+2]&&p===grid[r*cols+c+3])return p;if(r+3<rows&&p===grid[(r+1)*cols+c]&&p===grid[(r+2)*cols+c]&&p===grid[(r+3)*cols+c])return p;if(r+3<rows&&c+3<cols&&p===grid[(r+1)*cols+c+1]&&p===grid[(r+2)*cols+c+2]&&p===grid[(r+3)*cols+c+3])return p;if(r+3<rows&&c-3>=0&&p===grid[(r+1)*cols+c-1]&&p===grid[(r+2)*cols+c-2]&&p===grid[(r+3)*cols+c-3])return p;}}
+  return 0;
+}
+function checkGomokuWin(board){
+  const sz=9;
+  for(let r=0;r<sz;r++){for(let c=0;c<sz;c++){const p=board[r*sz+c];if(!p)continue;if(c+4<sz&&p===board[r*sz+c+1]&&p===board[r*sz+c+2]&&p===board[r*sz+c+3]&&p===board[r*sz+c+4])return p;if(r+4<sz&&p===board[(r+1)*sz+c]&&p===board[(r+2)*sz+c]&&p===board[(r+3)*sz+c]&&p===board[(r+4)*sz+c])return p;if(r+4<sz&&c+4<sz&&p===board[(r+1)*sz+c+1]&&p===board[(r+2)*sz+c+2]&&p===board[(r+3)*sz+c+3]&&p===board[(r+4)*sz+c+4])return p;if(r+4<sz&&c-4>=0&&p===board[(r+1)*sz+c-1]&&p===board[(r+2)*sz+c-2]&&p===board[(r+3)*sz+c-3]&&p===board[(r+4)*sz+c-4])return p;}}
+  return 0;
+}
+function checkTicTacToeWin(b){
+  const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for(const [x,y,z] of lines){if(b[x]&&b[x]===b[y]&&b[x]===b[z])return b[x];}
+  return 0;
+}
 function renderGameContent(){
  const g=gameForDay(),d=state.room.gameData||{},me=myPlayer();let html="";
  $("gamePanelTitle").textContent=g.name;$("gameStatus").textContent=me?.choice!==null&&me?.choice!==undefined?"ANSWER LOCKED":"MAKE YOUR MOVE";
  $("finishGameBtn").classList.toggle("hidden",!state.isHost||!Object.values(state.room.players).every(p=>p.choice!==null&&p.choice!==undefined));
  if(me?.choice!==null&&me?.choice!==undefined){$("gameContent").innerHTML=`<div class="notice good">選択をロックしました。ほかのプレイヤーを待っています…</div>`;return}
  switch(g.id){
- case "quoridor":
- html=`<p class="sub">ゴールを目指して駒を進めよう。相手の着手を読め！</p><div class="quoridor-board">${Array.from({length:25},(_,i)=>`<div class="q-cell ${i===(d.p1||22)?"p1-pos":i===(d.p2||2)?"p2-pos":""}" onclick="submitChoice(${i})">${i===(d.p1||22)?"♟️":i===(d.p2||2)?"♟":""}</div>`).join("")}</div>`;break;
  case "connect4":
- html=`<p class="sub">列を選んでコマを落とそう。4つ並べたら勝ち！</p><div class="c4-board">${(d.grid||Array(42).fill(0)).map((v,i)=>`<div class="c4-cell ${v===1?"p1":v===2?"p2":""}" onclick="submitChoice(${i%7})"></div>`).join("")}</div>`;break;
- case "dotsboxes":
- html=`<p class="sub">線を引いて枠を完成させよう！</p><div class="dots-grid">${Array.from({length:25},(_,i)=>`<div class="dot"></div>${i%5<4?`<div class="line-h ${(d.lines||[])[i]?"active":""}" onclick="submitChoice('h_${i}')"></div>`:""}`).join("")}</div>`;break;
+ html=`<p class="sub">列をタップしてコマを落とせ！4つ並べたら勝ち。</p><div class="c4-board">${(d.grid||Array(42).fill(0)).map((v,i)=>`<div class="c4-cell ${v===1?"p1":v===2?"p2":""}" onclick="submitChoice(${i%7})"></div>`).join("")}</div>`;break;
+ case "gomoku":
+ html=`<p class="sub">9×9盤面で5つ並べよう。</p><div style="display:grid;grid-template-columns:repeat(9,1fr);gap:2px;background:#2b2214;padding:6px;border-radius:10px;width:min(100%,320px);margin:10px auto">${Array.from({length:81},(_,i)=>`<div style="aspect-ratio:1;background:#8d6f47;border-radius:3px;display:grid;place-items:center;cursor:pointer;font-size:16px" onclick="submitChoice(${i})">${(d.board||[])[i]===1?"⚫":(d.board||[])[i]===2?"⚪":""}</div>`).join("")}</div>`;break;
+ case "tictactoe":
+ html=`<p class="sub">3×3のラインを奪い合え！</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:210px;margin:12px auto">${Array.from({length:9},(_,i)=>`<button class="choice" style="font-size:28px;height:64px;padding:0" onclick="submitChoice(${i})">${(d.board||[])[i]===1?"❌":(d.board||[])[i]===2?"⭕":""}</button>`).join("")}</div>`;break;
+ case "nim":
+ html=`<p class="sub">山からスティックを取れ！最後の1本を取らせた方が勝ち。</p><div class="nim-rows">${(d.rows||[3,4,5]).map((count,r)=>`<div class="nim-row"><span class="tiny muted" style="width:30px">山${r+1}</span>${Array.from({length:count},(_,c)=>`<div class="nim-stick" onclick="submitChoice(${r})"></div>`).join("")}</div>`).join("")}</div>`;break;
+ case "mancala":
+ html=`<p class="sub">ポケットを選んで種を撒こう。</p><div class="mancala-board">${(d.pits||[4,4,4,4,4,4,4,4]).map((v,i)=>`<div class="mancala-pit" onclick="submitChoice(${i})"><span class="tiny muted">P${i+1}</span><b>${v}</b></div>`).join("")}</div>`;break;
  case "speed":
  html=`<p class="sub">場札につながるカードを選べ！</p><div class="speed-cards"><div><span class="tiny muted">場札</span><br>${cardHTML(d.target||drawCard())}</div><div><span class="tiny muted">自分の手札</span><br>${cardHTML(d.pCard||drawCard())}</div></div><div class="choices"><button class="choice gold" onclick="submitChoice('play')">⚡ カードを出す！</button><button class="choice" onclick="submitChoice('pass')">パス</button></div>`;break;
  case "reversi":
  html=`<p class="sub">盤面をひっくり返す頭脳戦。</p><div id="reversiBoard" class="board"></div><div class="tiny muted" id="reversiInfo"></div>`;break;
- case "gomoku":
- html=`<p class="sub">9×9盤面で5つ並べよう。</p><div style="display:grid;grid-template-columns:repeat(9,1fr);gap:2px;background:#2b2214;padding:6px;border-radius:10px;width:min(100%,320px);margin:10px auto">${Array.from({length:81},(_,i)=>`<div style="aspect-ratio:1;background:#8d6f47;border-radius:3px;display:grid;place-items:center;cursor:pointer" onclick="submitChoice(${i})">${(d.board||[])[i]===1?"⚫":(d.board||[])[i]===2?"⚪":""}</div>`).join("")}</div>`;break;
- case "tictactoe":
- html=`<p class="sub">3×3のラインを奪い合え！</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:210px;margin:12px auto">${Array.from({length:9},(_,i)=>`<button class="choice" style="font-size:28px;height:64px;padding:0" onclick="submitChoice(${i})">${(d.board||[])[i]===1?"❌":(d.board||[])[i]===2?"⭕":""}</button>`).join("")}</div>`;break;
- case "mancala":
- html=`<p class="sub">ポケットを選んで種を撒こう。</p><div class="mancala-board">${(d.pits||[4,4,4,4,4,4,4,4]).map((v,i)=>`<div class="mancala-pit" onclick="submitChoice(${i})"><span class="tiny muted">P${i+1}</span><b>${v}</b></div>`).join("")}</div>`;break;
- case "nim":
- html=`<p class="sub">1つの山から好きな数だけ取ろう。</p><div class="nim-rows">${(d.rows||[3,4,5]).map((count,r)=>`<div class="nim-row">${Array.from({length:count},(_,c)=>`<div class="nim-stick" onclick="submitChoice('row_${r}')"></div>`).join("")}</div>`).join("")}</div>`;break;
+ case "quoridor":
+ html=`<p class="sub">マス目を選んでゴールを目指せ！</p><div class="quoridor-board">${Array.from({length:25},(_,i)=>`<div class="q-cell ${i===(d.p1||22)?"p1-pos":i===(d.p2||2)?"p2-pos":""}" onclick="submitChoice(${i})">${i===(d.p1||22)?"♟️":i===(d.p2||2)?"♟":""}</div>`).join("")}</div>`;break;
+ case "dotsboxes":
+ html=`<p class="sub">線を引いて四角形を作ろう！</p><div class="dots-grid">${Array.from({length:16},(_,i)=>`<div class="dot"></div>${i%4<3?`<div class="line-h ${(d.hLines||[])[i]?"active":""}" onclick="submitChoice('h_${i}')"></div>`:""}`).join("")}</div>`;break;
  case "hitandblow":
  html=`<p class="sub">相手の3桁数字を予測！</p><input id="hbInput" class="field" maxlength="3" placeholder="例: 382"><button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(document.getElementById('hbInput').value)">コール</button>`;break;
  case "indianpoker":
@@ -396,15 +411,50 @@ async function submitChoice(choice){
 }
 function resolveLocalGame(choice){
  const g=gameForDay(),d=state.room.gameData,p=state.room.players[state.uid];let win=false,msg="";
- if(g.id==="quoridor"){win=Number(choice)<10;msg=win?"壁をすり抜け前進成功！":"足止めを食らった…"}
- else if(g.id==="connect4"){win=Math.random()<.6;msg=win?"4連ライン完成！":"相手にブロックされた…"}
- else if(g.id==="dotsboxes"){win=Math.random()<.6;msg=win?"ボックス占領！":"相手に陣地を奪われた"}
- else if(g.id==="speed"){win=choice==="play";msg=win?"スピード勝利！":"出遅れた…"}
+ if(g.id==="connect4"){
+   const col=Number(choice);let placed=false;
+   for(let r=5;r>=0;r--){if(!d.grid[r*7+col]){d.grid[r*7+col]=1;placed=true;break;}}
+   const w=checkConnect4Win(d.grid);
+   if(w===1){win=true;msg="コネクトフォー達成！勝利！";}
+   else{
+     // CPU turn
+     const avail=[];for(let c=0;c<7;c++){if(!d.grid[c])avail.push(c);}
+     if(avail.length){const cc=avail[Math.floor(Math.random()*avail.length)];for(let r=5;r>=0;r--){if(!d.grid[r*7+cc]){d.grid[r*7+cc]=2;break;}}}
+     const cw=checkConnect4Win(d.grid);
+     win=cw!==2;msg=cw===2?"CPUに4目並べを許した…":"巧みなブロックで勝利！";
+   }
+ }else if(g.id==="gomoku"){
+   const idx=Number(choice);if(!d.board[idx])d.board[idx]=1;
+   const w=checkGomokuWin(d.board);
+   if(w===1){win=true;msg="五目並べ達成！勝利！";}
+   else{
+     const empty=d.board.map((v,i)=>v===0?i:null).filter(v=>v!==null);
+     if(empty.length)d.board[empty[Math.floor(Math.random()*empty.length)]]=2;
+     const cw=checkGomokuWin(d.board);
+     win=cw!==2;msg=cw===2?"CPUに先を越された…":"見事な五目完成！";
+   }
+ }else if(g.id==="tictactoe"){
+   const idx=Number(choice);if(!d.board[idx])d.board[idx]=1;
+   const w=checkTicTacToeWin(d.board);
+   if(w===1){win=true;msg="三目並べ制覇！";}
+   else{
+     const empty=d.board.map((v,i)=>v===0?i:null).filter(v=>v!==null);
+     if(empty.length)d.board[empty[Math.floor(Math.random()*empty.length)]]=2;
+     const cw=checkTicTacToeWin(d.board);
+     win=cw!==2;msg=cw===2?"敗北…":"勝利！";
+   }
+ }else if(g.id==="nim"){
+   const r=Number(choice);if(d.rows[r]>0)d.rows[r]--;
+   const total=d.rows.reduce((a,b)=>a+b,0);
+   win=total%2===1;msg=win?"相手に最後のスティックを取らせた！":"敗北…";
+ }else if(g.id==="mancala"){
+   const idx=Number(choice);let stones=d.pits[idx];d.pits[idx]=0;let cur=idx;
+   while(stones>0){cur=(cur+1)%8;d.pits[cur]++;stones--;}
+   win=d.pits[0]+d.pits[1]>d.pits[6]+d.pits[7];msg=win?"種まき勝負に勝利！":"石が足りなかった…";
+ }else if(g.id==="speed"){win=choice==="play";msg=win?"スピード勝利！":"出遅れた…"}
  else if(g.id==="reversi"){win=(state.reversi?.black||0)>(state.reversi?.white||0);msg=`黒 ${state.reversi?.black||2} / 白 ${state.reversi?.white||2}。${win?"盤面を制覇！":"制覇失敗…"}`}
- else if(g.id==="gomoku"){win=Math.random()<.6;msg=win?"5連ライン成立！":"先手を奪われた…"}
- else if(g.id==="tictactoe"){win=Math.random()<.5;msg=win?"3目成立！":"引き分け/敗北…"}
- else if(g.id==="mancala"){win=Math.random()<.6;msg=win?"種まき計算成功！":"石が足りなかった…"}
- else if(g.id==="nim"){win=Math.random()<.5;msg=win?"相手に最後のスティックを取らせた！":"失敗…"}
+ else if(g.id==="quoridor"){win=Number(choice)<12;msg=win?"最短ルートで前進成功！":"足止めを食らった…"}
+ else if(g.id==="dotsboxes"){win=Math.random()<.6;msg=win?"ボックス占領！":"相手に陣地を奪われた"}
  else if(g.id==="hitandblow"){win=String(choice).length===3;msg=win?"ヒット＆ブロー的中！":"ニアピン！"}
  else if(g.id==="indianpoker"){win=choice==="call"&&d.oppCard<d.myCard;msg=`あなた[${d.myCard}] vs 相手[${d.oppCard}]。${win?"強気成功！":"読みが外れた…"}`}
  else if(g.id==="bluff"){win=(choice==="believe")===d.truth;msg=win?"ブラフを見抜いた！":"騙された…"}
@@ -437,12 +487,12 @@ function renderLocalResult(msg,win,delta){
  setGameMessage("チップを精算しました。");$("finishGameBtn").classList.remove("hidden");$("finishGameBtn").textContent=state.room.day===4?"最終結果を見る":"次の日へ進む";$("myChips").textContent=state.room.players[state.uid].chips.toLocaleString();$("myBet").textContent=state.room.players[state.uid].bet.toLocaleString();$("dayLeaderboard").innerHTML=sortedPlayers().map((p,i)=>`<div class="result-rank"><b>${i+1}. ${escapeHtml(p.name)}</b><span class="chip">${p.chips.toLocaleString()} ◈</span></div>`).join("");
 }
 async function resolveOnlineGame(){
- // Shared round result is calculated by the host. This prototype uses simple deterministic checks.
  const g=gameForDay(),d=state.room.gameData,ps=Object.values(state.room.players||{});let resultText=[];
  const players={...state.room.players};
  for(const p of ps){
    let win=false;const c=p.choice;
-   if(g.id==="highlow")win=c==="high"?cardValue(d.next)>cardValue(d.card):cardValue(d.next)<cardValue(d.card);
+   if(g.id==="connect4"||g.id==="gomoku"||g.id==="tictactoe")win=Math.random()<.5;
+   else if(g.id==="highlow")win=c==="high"?cardValue(d.next)>cardValue(d.card):cardValue(d.next)<cardValue(d.card);
    else if(g.id==="roulette")win=c===d.result;
    else if(g.id==="number")win=Math.abs(Number(c)-d.secret)<4;
    else if(g.id==="blackjack")win=handValue(d.player)<=21;
