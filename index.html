@@ -352,6 +352,16 @@ function checkHitAndBlow(secret, guess){
   }
   return {hits, blows};
 }
+function checkMastermind(code, guess){
+  const cStr = String(code);
+  const gStr = String(guess);
+  let bulls = 0, cows = 0;
+  for(let i=0; i<3; i++){
+    if(gStr[i] === cStr[i]) bulls++;
+    else if(cStr.includes(gStr[i])) cows++;
+  }
+  return {bulls, cows};
+}
 function checkQuoridorWin(p1, p2){
   return Math.floor(p1/5) === 0 ? 1 : (Math.floor(p2/5) === 4 ? 2 : 0);
 }
@@ -589,10 +599,15 @@ function resolveLocalGame(choice){
  switch(g.id){
  case "hitandblow":
    {
-     const res = checkHitAndBlow("382", choice);
+     const secretStr = String(d.secret || "472");
+     const res = checkHitAndBlow(secretStr, String(choice));
      win = res.hits === 3;
-     msg = `推測コード[${choice}] ⇒ ${res.hits} HIT / ${res.blows} BLOW。${win?"完全解読成功！":"推理を続けよ…"}`,
+     msg = `推測コード[${choice}] ⇒ ${res.hits} HIT / ${res.blows} BLOW。${win?"完全解読成功！":"推理を続けよ…"}`;
      d.history = [...(d.history||[]), {guess: choice, hits: res.hits, blows: res.blows}];
+     if(!win && d.history.length >= 5) {
+       win = res.hits >= 2;
+       msg = `推理上限到達！判定結果: ${res.hits} HIT (${win?"勝利！":"敗北"})`;
+     }
    }
    break;
  case "indianpoker":
@@ -650,8 +665,12 @@ function resolveLocalGame(choice){
    msg = win ? "記憶力バトルで多数のペアを奪取！" : "ペアを十分に揃えられず…";
    break;
  case "mastermind":
-   win = String(choice).length === 3;
-   msg = win ? "カラーコード暗号を完璧に解読！" : "セキュリティ解除失敗…";
+   {
+     const codeStr = (d.code || [1,2,3]).join("");
+     const mmRes = checkMastermind(codeStr, String(choice));
+     win = mmRes.bulls === 3;
+     msg = `コード[${choice}] ⇒ 🎯Bulls: ${mmRes.bulls} / ⚪Cows: ${mmRes.bulls+mmRes.cows}。${win?"完全解読成功！":"ロック解除失敗..."}`;
+   }
    break;
  case "reflex":
    win = true;
@@ -749,7 +768,7 @@ function resolveLocalGame(choice){
  case "dotsboxes":
    {
      const sc=d.scores||[0,0];
-     win=sc[0]>=sc[1];
+     win=sc[0] > sc[1] || (sc[0] === sc[1] && Math.random() < 0.5);
      msg=win?`ボックス占領戦勝利！(${sc[0]} vs ${sc[1]})`:`惜敗 (${sc[0]} vs ${sc[1]})`;
    }
    break;
