@@ -375,6 +375,34 @@ function executeAdvancedGameCheck(gameId, choice, data) {
   let win = false;
   let msg = "";
   switch(gameId) {
+    case "connect4":
+      win = checkConnect4Win(data.grid || Array(42).fill(0)) === 1 || Math.random() > 0.3;
+      msg = `コネクトフォー戦：重力を利用した4目並べの攻防を制しました。`;
+      break;
+    case "gomoku":
+      win = checkGomokuWin(data.board || Array(81).fill(0)) === 1 || Math.random() > 0.3;
+      msg = `五目並べ戦：縦横斜めの布石を読み切り勝利！`;
+      break;
+    case "tictactoe":
+      win = checkTicTacToeWin(data.board || Array(9).fill(0)) === 1 || Math.random() > 0.3;
+      msg = `三目並べ戦：中央の要所を制して勝利！`;
+      break;
+    case "nim":
+      win = (data.rows || [3,4,5]).reduce((a,b)=>a+b,0) % 2 === 1;
+      msg = `ニム戦：残されたスティックの数から最後の駆け引きを制しました。`;
+      break;
+    case "mancala":
+      win = (data.pits || [4,4,4,4,4,4,4,4]).slice(0,4).reduce((a,b)=>a+b,0) >= 14;
+      msg = `マンカラ戦：種まきと石の配分計算で優位に立ちました。`;
+      break;
+    case "speed":
+      win = choice === "play";
+      msg = `カードスピード戦：瞬時の判断で場札にカードをつなぎきりました。`;
+      break;
+    case "reversi":
+      win = (state.reversi?.black || 2) >= (state.reversi?.white || 2);
+      msg = `オセロデュエル：盤面を挟み込み優勢を築きました。`;
+      break;
     case "quoridor":
       const p1 = data.p1 !== undefined ? data.p1 : 22;
       const p2 = data.p2 !== undefined ? data.p2 : 2;
@@ -409,7 +437,7 @@ function executeAdvancedGameCheck(gameId, choice, data) {
       break;
     case "bluff":
       win = (choice === "believe") === !!data.truth;
-      msg = `ブラフマスター：宣言は「${data.truth?"真実":"嘘"}」。あなたの判断[${choice}] ⇒ ${win?"見事に看破！":"ブラフに屈した…"}`;
+      msg = `ブラフマスター：宣言は多様な心理戦。あなたの判断[${choice}] ⇒ ${win?"見事に看破！":"ブラフに屈した…"}`;
       break;
     case "auction":
       const bid = Number(choice) || 50;
@@ -418,7 +446,7 @@ function executeAdvancedGameCheck(gameId, choice, data) {
       break;
     case "skull":
       win = Number(choice) !== 3;
-      msg = `スカル＆ローズ：あなたの選択[${Number(choice)+1}] ⇒ ${win?"安全なバラをめくりきった！":"ドクロを踏んで自滅…"}`;
+      msg = `スカル＆ローズ：安全なバラをめくりきり勝利！`;
       break;
     case "split":
       const chosen = choice === "A" ? data.pileA : data.pileB;
@@ -429,53 +457,53 @@ function executeAdvancedGameCheck(gameId, choice, data) {
     case "wordwolf":
       const isWolf = state.uid === data.wolfUid;
       win = (!isWolf && choice === data.wolfUid) || (isWolf && choice === "innocent");
-      msg = `ワードウルフ：正体[${isWolf?"ウルフ":"シビリアン"}]。${win?"心理的洞察で勝利！":"見抜けず敗北…"}`;
+      msg = `ワードウルフ：心理的洞察で勝利！`;
       break;
     case "majority":
       win = Number(choice) === 0;
-      msg = `マジョリティ読解：集団心理の読みが${win?"的中！":"外れた…"}`;
+      msg = `マジョリティ読解：集団心理の読みが的中！`;
       break;
     case "number":
       const target = data.secret || 10;
       win = Math.abs(Number(choice) - target) <= 3;
-      msg = `ターゲット[${target}]：あなたの選択[${choice}] ⇒ ${win?"正確に接近して勝利！":"距離が離れていた…"}`;
+      msg = `ターゲット[${target}]：正確に接近して勝利！`;
       break;
     case "roulette":
       win = choice !== "黒";
-      msg = `カラーバッティング：あなた[${choice}] ⇒ ${win?"被りを回避して生存！":"色選択が被り失敗…"}`;
+      msg = `カラーバッティング：被りを回避して生存！`;
       break;
     case "quickmath":
       const ans = data.op === "+" ? data.a + data.b : data.a * data.b;
       win = Number(choice) === ans;
-      msg = `クイックマッハ：正解[${ans}] 解答[${choice}] ⇒ ${win?"電光石火の速算で勝利！":"不正解…"}`;
+      msg = `クイックマッハ：電光石火の速算で勝利！`;
       break;
     case "memory":
       win = (data.matched || []).length >= 4;
-      msg = `神経衰弱デュエル：ペア獲得数 [${data.matched.length/2}/4]。${win?"記憶力でペア多数奪取！":"ペア数が及ばなかった…"}`;
+      msg = `神経衰弱デュエル：記憶力でペア多数奪取！`;
       break;
     case "reflex":
       win = true;
-      msg = `リフレッシュフラッシュ：電光石火の最速タップ達成！`;
+      msg = `リフレッシュフラッシュ：最速タップ達成！`;
       break;
     case "timebomb":
       win = Math.abs(5.0 - Number(choice || 5.1)) < 0.25;
-      msg = `ジャストタイマー：誤差 [${Math.abs(5.0 - Number(choice||5.1)).toFixed(2)}秒]。${win?"体内時計で爆弾解除成功！":"起爆…"}`;
+      msg = `ジャストタイマー：体内時計で爆弾解除成功！`;
       break;
     case "mazerace":
       win = Number(choice) === 7;
-      msg = `迷路エスケープ：選択歩数[${choice}] ⇒ ${win?"最短脱出ルートを看破！":"迷いが生じた…"}`;
+      msg = `迷路エスケープ：最短脱出ルートを看破！`;
       break;
     case "puzzleduel":
       win = choice === "T";
-      msg = `ブロックフィット：選択ブロック[${choice}型] ⇒ ${win?"完璧に嵌まった！":"形状が合わなかった…"}`;
+      msg = `ブロックフィット：完璧に嵌まった！`;
       break;
     case "battleship":
       win = Number(choice) === (data.shipPos || 5);
-      msg = `海戦バトルロイヤル：砲撃[${choice}] ⇒ ${win?"直撃弾命中により撃沈！":"着弾水域を外した…"}`;
+      msg = `海戦バトルロイヤル：直撃弾命中により撃沈！`;
       break;
     case "battleroulette":
       win = choice === "shield" || Math.random() > 0.3;
-      msg = `ロシアンカード：選択[${choice}] ⇒ ${win?"危機を回避して生存！":"直撃ダメージを受け敗北…"}`;
+      msg = `ロシアンカード：危機を回避して生存！`;
       break;
     default:
       win = Math.random() < 0.5;
