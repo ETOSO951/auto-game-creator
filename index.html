@@ -33,6 +33,7 @@
 .nim-stick.selected{background:#ff657a;transform:translateY(-6px)}
 .speed-cards{display:flex;justify-content:center;gap:12px;margin:16px 0;align-items:center}.hidden{display:none!important}.result-rank{display:flex;align-items:center;justify-content:space-between;padding:12px;background:#1a1e2c;border-radius:12px;margin-top:8px}.result-rank:first-child{border:1px solid #b98a3b}.footer{text-align:center;color:#686d81;font-size:10px;line-height:1.6;margin-top:18px}.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#f2c76b;color:#1c160b;padding:12px 16px;border-radius:12px;font-size:12px;font-weight:850;z-index:9;transition:.2s;max-width:90%;text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}.modal-back{position:fixed;inset:0;background:#000a;z-index:10;display:grid;place-items:center;padding:18px}.modal{width:min(100%,420px);background:#171a29;border:1px solid #655335;border-radius:20px;padding:20px;box-shadow:0 20px 80px #0009}.modal h2{margin-top:0}.modal-actions{display:flex;gap:8px;margin-top:14px}.modal-actions>*{flex:1}
 @media(min-width:600px){.actions{grid-template-columns:1fr 1fr}.hero{padding:34px}.main-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.main-grid .panel{margin-top:0}}
+button, .choice, .c4-cell, .q-cell, .mancala-pit, .nim-stick { touch-action: manipulation; }
 </style>
 </head>
 <body>
@@ -1416,15 +1417,40 @@ async function joinRoom(code){
  }catch(e){console.error(e);toast("参加できませんでした。Firebase設定を確認してください")}
 }
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch){if(state.local){state.room={...state.room,...patch};return}if(!state.roomRef)throw new Error("No room");await state.roomRef.update(patch)}
+async function updateRoom(patch){
+ if(state.local){state.room={...state.room,...patch};return}
+ if(!state.roomRef)throw new Error("No room");
+ try {
+   await db.runTransaction(async (transaction) => {
+     const doc = await transaction.get(state.roomRef);
+     if(!doc.exists) throw new Error("Room does not exist");
+     transaction.update(state.roomRef, patch);
+   });
+ } catch(e) {
+   console.error("Transaction failed: ", e);
+   await state.roomRef.update(patch);
+ }
+}
+
 async function updateMyPlayer(patch){
- if(!state.room)return;const p=myPlayer();if(!p)return;const updated={...p,...patch};
+ if(!state.room)return;
+ const p=myPlayer();if(!p)return;
+ const updated={...p,...patch};
  if(state.local){
    state.room.players[state.uid]=updated;
    if(state.room.status==="lobby")renderLobby();else renderDay();
    return;
  }
- await state.roomRef.update({["players."+state.uid]:updated});
+ try {
+   await db.runTransaction(async (transaction) => {
+     const doc = await transaction.get(state.roomRef);
+     if(!doc.exists) throw new Error("Room does not exist");
+     transaction.update(state.roomRef, {["players."+state.uid]: updated});
+   });
+ } catch(e) {
+   console.error("Player update transaction failed: ", e);
+   await state.roomRef.update({["players."+state.uid]:updated});
+ }
 }
 function renderLobby(){
  $("roomCode").textContent=state.roomId||"------";$("nameInput").value=state.name;
@@ -1662,15 +1688,40 @@ async function joinRoom(code){
 }
 
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch){if(state.local){state.room={...state.room,...patch};return}if(!state.roomRef)throw new Error("No room");await state.roomRef.update(patch)}
+async function updateRoom(patch){
+ if(state.local){state.room={...state.room,...patch};return}
+ if(!state.roomRef)throw new Error("No room");
+ try {
+   await db.runTransaction(async (transaction) => {
+     const doc = await transaction.get(state.roomRef);
+     if(!doc.exists) throw new Error("Room does not exist");
+     transaction.update(state.roomRef, patch);
+   });
+ } catch(e) {
+   console.error("Transaction failed: ", e);
+   await state.roomRef.update(patch);
+ }
+}
+
 async function updateMyPlayer(patch){
- if(!state.room)return;const p=myPlayer();if(!p)return;const updated={...p,...patch};
+ if(!state.room)return;
+ const p=myPlayer();if(!p)return;
+ const updated={...p,...patch};
  if(state.local){
    state.room.players[state.uid]=updated;
    if(state.room.status==="lobby")renderLobby();else renderDay();
    return;
  }
- await state.roomRef.update({["players."+state.uid]:updated});
+ try {
+   await db.runTransaction(async (transaction) => {
+     const doc = await transaction.get(state.roomRef);
+     if(!doc.exists) throw new Error("Room does not exist");
+     transaction.update(state.roomRef, {["players."+state.uid]: updated});
+   });
+ } catch(e) {
+   console.error("Player update transaction failed: ", e);
+   await state.roomRef.update({["players."+state.uid]:updated});
+ }
 }
 
 function renderLobby(){
@@ -2279,15 +2330,40 @@ async function joinRoom(code){
  }catch(e){console.error(e);toast("参加できませんでした。Firebase設定を確認してください")}
 }
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch){if(state.local){state.room={...state.room,...patch};return}if(!state.roomRef)throw new Error("No room");await state.roomRef.update(patch)}
+async function updateRoom(patch){
+ if(state.local){state.room={...state.room,...patch};return}
+ if(!state.roomRef)throw new Error("No room");
+ try {
+   await db.runTransaction(async (transaction) => {
+     const doc = await transaction.get(state.roomRef);
+     if(!doc.exists) throw new Error("Room does not exist");
+     transaction.update(state.roomRef, patch);
+   });
+ } catch(e) {
+   console.error("Transaction failed: ", e);
+   await state.roomRef.update(patch);
+ }
+}
+
 async function updateMyPlayer(patch){
- if(!state.room)return;const p=myPlayer();if(!p)return;const updated={...p,...patch};
+ if(!state.room)return;
+ const p=myPlayer();if(!p)return;
+ const updated={...p,...patch};
  if(state.local){
    state.room.players[state.uid]=updated;
    if(state.room.status==="lobby")renderLobby();else renderDay();
    return;
  }
- await state.roomRef.update({["players."+state.uid]:updated});
+ try {
+   await db.runTransaction(async (transaction) => {
+     const doc = await transaction.get(state.roomRef);
+     if(!doc.exists) throw new Error("Room does not exist");
+     transaction.update(state.roomRef, {["players."+state.uid]: updated});
+   });
+ } catch(e) {
+   console.error("Player update transaction failed: ", e);
+   await state.roomRef.update({["players."+state.uid]:updated});
+ }
 }
 function renderLobby(){
  $("roomCode").textContent=state.roomId||"------";$("nameInput").value=state.name;
@@ -2503,10 +2579,17 @@ function renderDay(){
  }
 }
 async function confirmBet(){
- const me=myPlayer();if(!me)return;const amount=Math.max(10,Math.min(Number($("betSlider").value)||10,me.chips));
- await updateMyPlayer({bet:amount,betConfirmed:true});toast("ベットを確定しました！");
+ const me=myPlayer();if(!me)return;
+ const rawVal = Number($("betSlider").value) || 10;
+ const amount = Math.max(10, Math.min(Math.floor(rawVal), me.chips));
+ await updateMyPlayer({bet:amount, betConfirmed:true});
+ toast("ベットを確定しました！");
  if(state.local){await beginGame();return}
- const latest=state.room;const ps=Object.values(latest.players||{});if(ps.length&&ps.every(p=>p.betConfirmed)){if(state.isHost)await beginGame()}
+ const latest = state.room;
+ const ps = Object.values(latest.players || {});
+ if(ps.length && ps.every(p => p.betConfirmed)){
+   if(state.isHost) await beginGame();
+ }
 }
 async function beginGame(){
  const g=gameForDay();let gameData={id:g.id,startedAt:Date.now(),seed:Math.random(),turn:1};
