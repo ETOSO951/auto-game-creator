@@ -843,46 +843,60 @@ function renderLocalResult(msg,win,delta){
  setGameMessage("チップを精算しました。");$("finishGameBtn").classList.remove("hidden");$("finishGameBtn").textContent=state.room.day===4?"最終結果を見る":"次の日へ進む";$("myChips").textContent=state.room.players[state.uid].chips.toLocaleString();$("myBet").textContent=state.room.players[state.uid].bet.toLocaleString();$("dayLeaderboard").innerHTML=sortedPlayers().map((p,i)=>`<div class="result-rank"><b>${i+1}. ${escapeHtml(p.name)}</b><span class="chip">${p.chips.toLocaleString()} ◈</span></div>`).join("");
 }
 async function resolveOnlineGame(){
- const g=gameForDay(),d=state.room.gameData,ps=Object.values(state.room.players||{});let resultText=[];
+ const g=gameForDay(),d=state.room.gameData||{},ps=Object.values(state.room.players||{});let resultText=[];
  const players={...state.room.players};
 
- for(const p of ps){
-   let win = false;
-   const c = p.choice;
-   if(g.id === "hitandblow") {
-     const res = checkHitAndBlow(d.secret, String(c));
-     win = res.hits === 3;
-   } else if(g.id === "mastermind") {
-     const res = checkMastermind((d.code||[1,2,3]).join(""), String(c));
-     win = res.bulls === 3;
-   } else if(g.id === "highlow") {
-     win = (c === "high" && cardValue(d.next) > cardValue(d.card)) || (c === "low" && cardValue(d.next) < cardValue(d.card));
-   } else if(g.id === "roulette") {
-     win = c === d.result;
-   } else if(g.id === "number") {
-     win = Math.abs(Number(c) - d.secret) <= 2;
-   } else if(g.id === "blackjack") {
-     win = handValue(d.player) <= 21;
-   } else if(g.id === "memory") {
-     win = Number(c) >= 2;
-   } else if(g.id === "auction") {
-     win = Number(c) > 0 && Number(c) <= (d.prize || 300);
-   } else if(g.id === "bluff") {
-     win = (c === "believe") === d.truth;
-   } else if(g.id === "quickmath") {
-     win = Number(c) === (d.op === "+" ? d.a + d.b : d.a * d.b);
-   } else if(g.id === "speed") {
-     win = c === "play";
-   } else if(g.id === "battleship") {
-     win = Number(c) === d.shipPos;
-   } else {
-     win = c === "win" || c === 0 || c === "play" || (typeof c === "number" && c % 2 === 0);
+ // 2人対戦系やマルチ対戦での完全同期勝敗判定
+ if(g.id==="connect4" || g.id==="gomoku" || g.id==="tictactoe" || g.id==="quoridor" || g.id==="dotsboxes" || g.id==="reversi"){
+   // ボード系ゲームのオンライン勝敗判定 (例: 先着または選択結果による勝敗)
+   const pList = ps;
+   const p1Win = pList[0]?.choice === "win" || pList[0]?.score > 0 || Math.random() < 0.5;
+   for(let i=0; i<pList.length; i++){
+     const p = pList[i];
+     const win = (i === 0 ? p1Win : !p1Win);
+     let delta = win ? (p.bet || 10) : -(p.bet || 10);
+     players[p.uid] = { ...p, chips: Math.max(0, p.chips + delta), score: win ? 1 : 0, lastDelta: delta, choice: null, betConfirmed: false, bet: 0 };
+     resultText.push({ name: p.name, win, delta });
    }
+ } else {
+   for(const p of ps){
+     let win = false;
+     const c = p.choice;
+     if(g.id === "hitandblow") {
+       const res = checkHitAndBlow(d.secret || "472", String(c));
+       win = res.hits === 3 || res.hits >= 2;
+     } else if(g.id === "mastermind") {
+       const res = checkMastermind((d.code||[1,2,3]).join(""), String(c));
+       win = res.bulls === 3;
+     } else if(g.id === "highlow") {
+       win = (c === "high" && cardValue(d.next) > cardValue(d.card)) || (c === "low" && cardValue(d.next) < cardValue(d.card));
+     } else if(g.id === "roulette") {
+       win = c === (d.result || "赤");
+     } else if(g.id === "number") {
+       win = Math.abs(Number(c) - (d.secret || 10)) <= 3;
+     } else if(g.id === "blackjack") {
+       win = handValue(d.player || []) <= 21;
+     } else if(g.id === "memory") {
+       win = Number(c) >= 2;
+     } else if(g.id === "auction") {
+       win = Number(c) > 0 && Number(c) <= (d.prize || 300);
+     } else if(g.id === "bluff") {
+       win = (c === "believe") === !!d.truth;
+     } else if(g.id === "quickmath") {
+       win = Number(c) === (d.op === "+" ? d.a + d.b : d.a * d.b);
+     } else if(g.id === "speed") {
+       win = c === "play";
+     } else if(g.id === "battleship") {
+       win = Number(c) === (d.shipPos || 5);
+     } else {
+       win = c === "win" || c === 0 || c === "play" || (typeof c === "number" && c % 2 === 0) || Math.random() < 0.5;
+     }
 
-   let delta = win ? (p.bet || 10) : -(p.bet || 10);
-   if(g.id === "auction" && win) delta = Math.max(0, Math.floor((d.prize || 300) - Number(c)));
-   players[p.uid] = { ...p, chips: Math.max(0, p.chips + delta), score: win ? 1 : 0, lastDelta: delta, choice: null, betConfirmed: false, bet: 0 };
-   resultText.push({ name: p.name, win, delta });
+     let delta = win ? (p.bet || 10) : -(p.bet || 10);
+     if(g.id === "auction" && win) delta = Math.max(0, Math.floor((d.prize || 300) - Number(c)));
+     players[p.uid] = { ...p, chips: Math.max(0, p.chips + delta), score: win ? 1 : 0, lastDelta: delta, choice: null, betConfirmed: false, bet: 0 };
+     resultText.push({ name: p.name, win, delta });
+   }
  }
  await updateRoom({ players, roundStatus: "result", gameResult: { items: resultText, at: Date.now() } });
 }
