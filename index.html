@@ -401,21 +401,21 @@ function executeAdvancedGameCheck(gameId, choice, data) {
     case "connect4": {
       const grid = data.grid || Array(42).fill(0);
       const winner = checkConnect4Win(grid);
-      win = winner === 1 || (winner === 0 && Math.random() > 0.4);
+      win = winner === 1 || (winner === 0 && Math.random() > 0.3);
       msg = `コネクトフォー戦：重力を利用した4目並べの攻防${win ? "を制して勝利！" : "に敗北…"}`;
       break;
     }
     case "gomoku": {
       const board = data.board || Array(81).fill(0);
       const winner = checkGomokuWin(board);
-      win = winner === 1 || (winner === 0 && Math.random() > 0.4);
+      win = winner === 1 || (winner === 0 && Math.random() > 0.3);
       msg = `五目並べ戦：縦横斜めの布石を読み切り${win ? "勝利！" : "惜敗…"}`;
       break;
     }
     case "tictactoe": {
       const b = data.board || Array(9).fill(0);
       const winner = checkTicTacToeWin(b);
-      win = winner === 1 || (winner === 0 && Math.random() > 0.4);
+      win = winner === 1 || (winner === 0 && Math.random() > 0.3);
       msg = `三目並べ戦：中央の要所を制して${win ? "勝利！" : "敗北…"}`;
       break;
     }
@@ -428,7 +428,7 @@ function executeAdvancedGameCheck(gameId, choice, data) {
     case "mancala": {
       const pits = data.pits || [4,4,4,4,4,4,4,4];
       const myPitsSum = pits.slice(0, 4).reduce((a,b)=>a+b,0);
-      win = myPitsSum >= 14;
+      win = myPitsSum >= 12;
       msg = `マンカラ戦：種まきと石の配分計算で${win ? "優位に立ち勝利！" : "惜敗しました。"}期`;
       break;
     }
@@ -488,7 +488,7 @@ function executeAdvancedGameCheck(gameId, choice, data) {
     }
     case "auction": {
       const bid = Number(choice) || 50;
-      win = bid >= (data.prize || 300) * 0.4;
+      win = bid >= (data.prize || 300) * 0.35;
       msg = `ブラインドオークション：入札[${bid}◈]。${win?"適正価値を見極めて落札成功！":"入札額が競り負けた…"}`;
       break;
     }
