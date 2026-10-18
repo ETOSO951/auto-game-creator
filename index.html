@@ -906,9 +906,8 @@ function handleDotsClick(type, idx) {
    d.turn = turn === 1 ? 2 : 1;
    if(state.local && d.turn === 2) {
      setTimeout(() => {
-       if(!state.room || !state.room.gameData) return;
+       if(!state.room || !state.room.gameData || state.room.gameData.turn !== 2) return;
        const curD = state.room.gameData;
-       if(curD.turn !== 2) return;
        const availH = (curD.hLines || []).map((val, i) => val === 0 ? i : null).filter(i => i !== null);
        const availV = (curD.vLines || []).map((val, i) => val === 0 ? i : null).filter(i => i !== null);
        if(availH.length || availV.length) {
@@ -957,9 +956,8 @@ function handleQuoridorMove(targetIdx) {
 
  if(state.local && d.turn === 2) {
    setTimeout(() => {
-     if(!state.room || !state.room.gameData) return;
+     if(!state.room || !state.room.gameData || state.room.gameData.turn !== 2) return;
      const curD = state.room.gameData;
-     if(curD.turn !== 2) return;
      const cp2 = curD.p2;
      const cr = Math.floor(cp2 / 5), cc = cp2 % 5;
      const candidates = [
