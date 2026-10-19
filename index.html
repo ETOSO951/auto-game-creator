@@ -127,6 +127,38 @@ button, .choice, .c4-cell, .q-cell, .mancala-pit, .nim-stick { touch-action: man
   NOTE: 本プロトタイプはクライアント主導の試作です。本番運用でチップの改ざんを防ぐには
         Cloud Functionsによるサーバー側のゲーム進行・精算とFirestore Security Rulesが必須です。
 */
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+async function startTournament(){
+====
+async function setReady(){state.ready=!state.ready;await updateMyPlayer({ready:state.ready});renderLobby();toast(state.ready?"準備OK！":"準備を解除しました")}
+async function startTournament(){
+====
+function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+=======
+{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+];
+====
+```
+====
 const firebaseConfig = {
   apiKey: "AIzaSyBfCIcope9_paZiVXHAiqyIOUonOYztW28",
   authDomain: "onlinegame-341cf.firebaseapp.com",
@@ -139,10 +171,6 @@ const firebaseConfig = {
 };
 
 const $ = id => document.getElementById(id);
-function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
-=======
-{id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
-];
 ====
 =======
 {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
