@@ -554,7 +554,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"mazerace",name:"MAZE ESCAPE",icon:"🧩",desc:"迷路構造から最短脱出歩数(7歩)を看破する観察力勝負。"},
  {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
- {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+ {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を書くオークション。少ない順の最適者にボーナスチップ。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -1099,7 +1102,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"mazerace",name:"MAZE ESCAPE",icon:"🧩",desc:"迷路構造から最短脱出歩数(7歩)を看破する観察力勝負。"},
  {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
- {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+ {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を書くオークション。少ない順の最適者にボーナスチップ。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -1662,7 +1668,10 @@ async function startTournament(){
  {id:"mazerace",name:"MAZE ESCAPE",icon:"🧩",desc:"迷路構造から最短脱出歩数(7歩)を看破する観察力勝負。"},
  {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
- {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+ {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を書くオークション。少ない順の最適者にボーナスチップ。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"}
 ];
 
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
@@ -2050,7 +2059,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"mazerace",name:"MAZE ESCAPE",icon:"🧩",desc:"迷路構造から最短脱出歩数(7歩)を看破する観察力勝負。"},
  {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
- {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"}
+ {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を書くオークション。少ない順の最適者にボーナスチップ。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -3653,6 +3665,51 @@ function handleMancalaClick(pitIndex) {
  } else {
    updateRoom({gameData: d});
  }
+}
+
+function handleMysteryDraw(takeMore){
+  if(!state.room?.gameData) return;
+  const d = JSON.parse(JSON.stringify(state.room.gameData));
+  if(!d.mystery) d.mystery = {drawn: 0, score: 0, active: true};
+  if(takeMore) {
+    d.mystery.drawn += 1;
+    const isHit = Math.random() > 0.4;
+    if(isHit) {
+      d.mystery.score += Math.floor(10 * (1 + d.mystery.drawn * 0.5));
+      toast("✨ アタリの紙を引き当てた！");
+    } else {
+      toast("💦 ハズレ、チップ変動なし");
+    }
+  } else {
+    d.mystery.active = false;
+    toast("🛑 降板しました。結果を確定してください。");
+  }
+  if(state.local) {
+    state.room.gameData = d;
+    renderGameContent();
+  } else {
+    updateRoom({gameData: d});
+  }
+}
+
+function handleDoubtDraw(){
+  if(!state.room?.gameData) return;
+  const d = JSON.parse(JSON.stringify(state.room.gameData));
+  if(!d.doubt) d.doubt = {round: 1, total: Math.floor(Math.random()*15)+5, declared: 0, doubted: false};
+  d.doubt.round += 1;
+  d.doubt.total += Math.floor(Math.random() * 6) + 1;
+  toast(`🂠 周回 ${d.doubt.round}/3 完了。カードを引きました。`);
+  if(state.local) {
+    state.room.gameData = d;
+    renderGameContent();
+  } else {
+    updateRoom({gameData: d});
+  }
+}
+
+function submitDoubtDeclare(isDoubtOrLie){
+  const val = Number($("doubtDeclareInput")?.value) || 10;
+  submitChoice(isDoubtOrLie ? "doubt_or_lie" : val);
 }
 
 function handleMysteryDraw(takeMore){
