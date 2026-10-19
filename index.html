@@ -1426,7 +1426,7 @@ async function joinRoom(code){
  }catch(e){console.error(e);toast("参加できませんでした。Firebase設定を確認してください")}
 }
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch, maxRetries = 5){
+async function updateRoom(patch, maxRetries = 6){
  if(state.local){state.room={...state.room,...patch};return}
  if(!state.roomRef)throw new Error("No room reference");
  let attempt = 0;
@@ -1441,16 +1441,16 @@ async function updateRoom(patch, maxRetries = 5){
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Transaction updateRoom failed after max retries: ", e);
-       await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
+       console.warn("Transaction updateRoom exhausted retries, applying direct set fallback.", e);
+       await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Direct set fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 200 * attempt));
+       await new Promise(r => setTimeout(r, 150 * attempt));
      }
    }
  }
 }
 
-async function updateMyPlayer(patch, maxRetries = 5){
+async function updateMyPlayer(patch, maxRetries = 6){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -1474,10 +1474,10 @@ async function updateMyPlayer(patch, maxRetries = 5){
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Transaction updateMyPlayer failed after max retries: ", e);
-       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Fallback set player failed:", err));
+       console.warn("Transaction updateMyPlayer exhausted retries, applying direct set fallback.", e);
+       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Direct set player fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 150 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
@@ -1721,7 +1721,7 @@ async function joinRoom(code){
 }
 
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch, maxRetries = 5){
+async function updateRoom(patch, maxRetries = 6){
  if(state.local){state.room={...state.room,...patch};return}
  if(!state.roomRef)throw new Error("No room reference");
  let attempt = 0;
@@ -1736,16 +1736,16 @@ async function updateRoom(patch, maxRetries = 5){
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Transaction updateRoom failed after max retries: ", e);
-       await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
+       console.warn("Transaction updateRoom exhausted retries, applying direct set fallback.", e);
+       await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Direct set fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 200 * attempt));
+       await new Promise(r => setTimeout(r, 150 * attempt));
      }
    }
  }
 }
 
-async function updateMyPlayer(patch, maxRetries = 5){
+async function updateMyPlayer(patch, maxRetries = 6){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -1769,10 +1769,10 @@ async function updateMyPlayer(patch, maxRetries = 5){
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Transaction updateMyPlayer failed after max retries: ", e);
-       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Fallback set player failed:", err));
+       console.warn("Transaction updateMyPlayer exhausted retries, applying direct set fallback.", e);
+       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Direct set player fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 150 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
@@ -2387,7 +2387,7 @@ async function joinRoom(code){
  }catch(e){console.error(e);toast("参加できませんでした。Firebase設定を確認してください")}
 }
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch, maxRetries = 5){
+async function updateRoom(patch, maxRetries = 6){
  if(state.local){state.room={...state.room,...patch};return}
  if(!state.roomRef)throw new Error("No room reference");
  let attempt = 0;
@@ -2402,16 +2402,16 @@ async function updateRoom(patch, maxRetries = 5){
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Transaction updateRoom failed after max retries: ", e);
-       await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
+       console.warn("Transaction updateRoom exhausted retries, applying direct set fallback.", e);
+       await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Direct set fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 200 * attempt));
+       await new Promise(r => setTimeout(r, 150 * attempt));
      }
    }
  }
 }
 
-async function updateMyPlayer(patch, maxRetries = 5){
+async function updateMyPlayer(patch, maxRetries = 6){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -2435,10 +2435,10 @@ async function updateMyPlayer(patch, maxRetries = 5){
    } catch(e) {
      attempt++;
      if(attempt >= maxRetries) {
-       console.error("Transaction updateMyPlayer failed after max retries: ", e);
-       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Fallback set player failed:", err));
+       console.warn("Transaction updateMyPlayer exhausted retries, applying direct set fallback.", e);
+       await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Direct set player fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 150 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
@@ -2719,7 +2719,7 @@ async function beginGame(){
  if(g.id==="battleroulette"){gameData.chambers=[0,0,0,1,0,0]}
  if(g.id==="chipauction"){gameData.bids={}}
  if(g.id==="misterydraw"){gameData.mystery={drawn:0,score:0,active:true}}
- if(g.id==="doubtcard"){gameData.doubt={round:1,total:Math.floor(Math.random()*15)+5,declared:0,doubted:false}}
+ if(g.id==="doubtcard"){gameData.doubt={round:1,total:Math.floor(Math.random()*15)+5,declarations:{},douters:[]}}
  if(state.local){state.room.roundStatus="playing";state.room.gameData=gameData;Object.values(state.room.players).forEach(p=>p.choice=null);renderDay();return}
  await updateRoom({roundStatus:"playing",gameData});
 }
@@ -2826,21 +2826,24 @@ function handleMastermindSubmit() {
     toast("解読完了！結果を確定してください");
   }
 }
-function executeAdvancedGameCheck(gameId, choice, data) {
+function executeAdvancedGameCheck(gameId, choice, data, allChoices = {}, ps = []) {
   let win = false;
   let msg = "";
   let deltaOverride = null;
-  const ps = currentPlayers();
   const meUid = state.uid;
   switch(gameId) {
     case "chipauction": {
       const bids = data.bids || {};
+      // もしallChoicesに今回のチップ入札値が含まれていれば反映
+      if(allChoices[meUid] !== undefined && !bids[meUid]) {
+        bids[meUid] = allChoices[meUid];
+      }
       const entries = Object.entries(bids).map(([uid, val]) => ({uid, val: Number(val) || 0}));
       entries.sort((a,b) => a.val - b.val);
       if(entries.length === 0) {
         win = false;
         deltaOverride = -10;
-        msg = `チップオークション：入札者がいませんでした。`;
+        msg = `チップオークション：入札データなし。`;
         break;
       }
       const minVal = entries[0]?.val;
@@ -2853,7 +2856,7 @@ function executeAdvancedGameCheck(gameId, choice, data) {
       } else {
         deltaOverride = -10;
       }
-      msg = `チップオークション：申告数[${bids[meUid] || 0}◈]。${win ? `同率含む最小申告達成で +${deltaOverride}◈ 獲得！` : "獲得ならず…"}`;
+      msg = `チップオークション：希望数[${bids[meUid] || choice || 0}◈]。${win ? `最小申告同率達成で +${deltaOverride}◈ 獲得！` : "惜しくも獲得ならず…"}`;
       break;
     }
     case "misterydraw": {
@@ -2866,10 +2869,9 @@ function executeAdvancedGameCheck(gameId, choice, data) {
     case "doubtcard": {
       const dc = data.doubt || {total: 10, declarations: {}, douters: []};
       const declarations = dc.declarations || {};
-      const douters = dc.douters || [];
-      const myDecl = declarations[meUid];
-      const isDoubt = myDecl?.doubted;
-      const declaredVal = Number(myDecl?.val) || dc.total;
+      const myDecl = declarations[meUid] || { val: Number(choice) || dc.total, doubted: choice === "doubt" };
+      const isDoubt = myDecl.doubted;
+      const declaredVal = Number(myDecl.val) || dc.total;
       const isLie = declaredVal !== dc.total;
 
       if(isDoubt) {
