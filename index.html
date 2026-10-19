@@ -368,7 +368,7 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
  {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
  {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
  {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
@@ -651,7 +651,7 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
  {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
  {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
  {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
@@ -912,7 +912,7 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
  {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
  {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
  {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
@@ -1207,7 +1207,7 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
  {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
  {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
  {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
@@ -1881,7 +1881,7 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
  {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
  {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
  {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
@@ -2176,7 +2176,7 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
  {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
  {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
  {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
