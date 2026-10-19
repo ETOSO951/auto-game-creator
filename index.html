@@ -559,9 +559,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
- {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を書くオークション。少ない順の最適者にボーナスチップ。"},
- {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"}
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を実数で書き、少ない順および同率で5の倍数切り上げ＋30を獲得する心理オークション。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを引いて倍率を上げながらチップを獲得するか、マイナスを避けて安全に降りる引き際勝負。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽やダウト山分け・ペナルティを競う心理ブラフ戦。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を置いて相手の進路を塞ぎつつ敵陣ゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -1115,9 +1116,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
- {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を書くオークション。少ない順の最適者にボーナスチップ。"},
- {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"}
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を実数で書き、少ない順および同率で5の倍数切り上げ＋30を獲得する心理オークション。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを引いて倍率を上げながらチップを獲得するか、マイナスを避けて安全に降りる引き際勝負。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽やダウト山分け・ペナルティを競う心理ブラフ戦。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を置いて相手の進路を塞ぎつつ敵陣ゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -1687,9 +1689,10 @@ async function startTournament(){
  {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
- {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を書くオークション。少ない順の最適者にボーナスチップ。"},
- {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"}
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を実数で書き、少ない順および同率で5の倍数切り上げ＋30を獲得する心理オークション。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを引いて倍率を上げながらチップを獲得するか、マイナスを避けて安全に降りる引き際勝負。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽やダウト山分け・ペナルティを競う心理ブラフ戦。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を置いて相手の進路を塞ぎつつ敵陣ゴールを目指す戦略戦。"}
 ];
 
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
@@ -2084,9 +2087,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
  {id:"puzzleduel",name:"BLOCK FIT",icon:"🟩",desc:"空きスペースに完璧にハマるブロック形状(T型)を見極める。"},
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
- {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を書くオークション。少ない順の最適者にボーナスチップ。"},
- {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽を見破るか正直に申告する心理ブラフ戦。"}
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を実数で書き、少ない順および同率で5の倍数切り上げ＋30を獲得する心理オークション。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを引いて倍率を上げながらチップを獲得するか、マイナスを避けて安全に降りる引き際勝負。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽やダウト山分け・ペナルティを競う心理ブラフ戦。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を置いて相手の進路を塞ぎつつ敵陣ゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -2856,6 +2860,144 @@ function executeAdvancedGameCheck(gameId, choice, data, allChoices = {}, ps = []
   let deltaOverride = null;
   const meUid = state.uid;
   switch(gameId) {
+    case "quoridor": {
+      const p1 = data.p1 !== undefined ? data.p1 : 22;
+      const p2 = data.p2 !== undefined ? data.p2 : 2;
+      const dist1 = Math.floor(p1 / 5);
+      const dist2 = 4 - Math.floor(p2 / 5);
+      win = dist1 <= dist2;
+      msg = `コリドール戦：あなた(${dist1}歩) vs 相手(${dist2}歩)。${win?"最奥へのゴールルートを制して勝利！":"相手に先にゴールを阻まれた…"}`;
+      break;
+    }
+====
+
+<<<<
+function handleQuoridorMove(targetIdx) {
+ if(!state.room || !state.room.gameData) return;
+ const d = JSON.parse(JSON.stringify(state.room.gameData));
+ const turn = d.turn || 1;
+ const p1 = d.p1 !== undefined ? d.p1 : 22;
+ const p2 = d.p2 !== undefined ? d.p2 : 2;
+ const walls = d.walls || [];
+ if(walls.includes(targetIdx)) {
+   toast("壁があるため移動できません");
+   return;
+ }
+ const curPos = turn === 1 ? p1 : p2;
+ const r1 = Math.floor(curPos / 5), c1 = curPos % 5;
+ const r2 = Math.floor(targetIdx / 5), c2 = targetIdx % 5;
+ if(Math.abs(r1 - r2) + Math.abs(c1 - c2) !== 1) {
+   toast("隣接するマスへ移動してください");
+   return;
+ }
+
+ if(turn === 1) d.p1 = targetIdx;
+ else d.p2 = targetIdx;
+
+ const winCode = checkQuoridorWin(d.p1, d.p2);
+ if(winCode > 0) {
+   d.winner = winCode;
+   state.room.gameData = d;
+   renderGameContent();
+   toast(winCode === 1 ? "コリドール制覇！ゴール到達！" : "相手にゴールを許した…");
+   submitChoice(winCode === 1 ? "win" : "lose");
+   return;
+ }
+
+ d.turn = turn === 1 ? 2 : 1;
+
+ if(state.local && d.turn === 2) {
+   setTimeout(() => {
+     if(!state.room || !state.room.gameData || state.room.gameData.turn !== 2) return;
+     const curD = state.room.gameData;
+     const cp2 = curD.p2;
+     const cr = Math.floor(cp2 / 5), cc = cp2 % 5;
+     const candidates = [
+       {r: cr + 1, c: cc}, {r: cr, c: cc - 1}, {r: cr, c: cc + 1}, {r: cr - 1, c: cc}
+     ].filter(p => p.r >= 0 && p.r < 5 && p.c >= 0 && p.c < 5 && !(curD.walls || []).includes(p.r * 5 + p.c));
+     if(candidates.length) {
+       const pick = candidates[Math.floor(Math.random() * candidates.length)];
+       curD.p2 = pick.r * 5 + pick.c;
+     }
+     const w2 = checkQuoridorWin(curD.p1, curD.p2);
+     if(w2 > 0) curD.winner = w2;
+     curD.turn = 1;
+     state.room.gameData = curD;
+     renderGameContent();
+     if(w2 > 0) {
+       toast(w2 === 1 ? "勝利！" : "敗北…");
+       submitChoice(w2 === 1 ? "win" : "lose");
+     }
+   }, 400);
+ }
+
+ if(state.local) { state.room.gameData = d; renderGameContent(); }
+ else { updateRoom({gameData: d}); }
+}
+====
+function handleQuoridorMove(targetIdx) {
+ if(!state.room || !state.room.gameData) return;
+ const d = JSON.parse(JSON.stringify(state.room.gameData));
+ if(d.winner) return;
+ const turn = d.turn || 1;
+ const p1 = d.p1 !== undefined ? d.p1 : 22;
+ const p2 = d.p2 !== undefined ? d.p2 : 2;
+ const walls = d.walls || [];
+ if(targetIdx < 0 || targetIdx >= 25 || walls.includes(targetIdx)) {
+   toast("その場所へは移動できません");
+   return;
+ }
+ const curPos = turn === 1 ? p1 : p2;
+ const r1 = Math.floor(curPos / 5), c1 = curPos % 5;
+ const r2 = Math.floor(targetIdx / 5), c2 = targetIdx % 5;
+ if(Math.abs(r1 - r2) + Math.abs(c1 - c2) !== 1) {
+   toast("隣接するマスへ移動してください");
+   return;
+ }
+
+ if(turn === 1) d.p1 = targetIdx;
+ else d.p2 = targetIdx;
+
+ const winCode = checkQuoridorWin(d.p1, d.p2);
+ if(winCode > 0) {
+   d.winner = winCode;
+   state.room.gameData = d;
+   renderGameContent();
+   toast(winCode === 1 ? "コリドール制覇！ゴール到達！" : "相手にゴールを許した…");
+   submitChoice(winCode === 1 ? "win" : "lose");
+   return;
+ }
+
+ d.turn = turn === 1 ? 2 : 1;
+
+ if(state.local && d.turn === 2) {
+   setTimeout(() => {
+     if(!state.room || !state.room.gameData || state.room.gameData.turn !== 2 || state.room.gameData.winner) return;
+     const curD = state.room.gameData;
+     const cp2 = curD.p2;
+     const cr = Math.floor(cp2 / 5), cc = cp2 % 5;
+     const candidates = [
+       {r: cr + 1, c: cc}, {r: cr, c: cc - 1}, {r: cr, c: cc + 1}, {r: cr - 1, c: cc}
+     ].filter(p => p.r >= 0 && p.r < 5 && p.c >= 0 && p.c < 5 && !(curD.walls || []).includes(p.r * 5 + p.c));
+     if(candidates.length) {
+       const pick = candidates[Math.floor(Math.random() * candidates.length)];
+       curD.p2 = pick.r * 5 + pick.c;
+     }
+     const w2 = checkQuoridorWin(curD.p1, curD.p2);
+     if(w2 > 0) curD.winner = w2;
+     curD.turn = 1;
+     state.room.gameData = curD;
+     renderGameContent();
+     if(w2 > 0) {
+       toast(w2 === 1 ? "勝利！" : "敗北…");
+       submitChoice(w2 === 1 ? "win" : "lose");
+     }
+   }, 400);
+ }
+
+ if(state.local) { state.room.gameData = d; renderGameContent(); }
+ else { updateRoom({gameData: d}); }
+}
     case "chipauction": {
       const bids = data.bids || {};
       ps.forEach(p => {
