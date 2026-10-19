@@ -3294,36 +3294,36 @@ function renderGameContent(){
    <button class="choice gold" onclick="submitChoice('shield')">🛡️ シールド防御</button>
  </div>`;break;
  case "chipauction":
- html=`<p class="sub">議論の後、欲しいチップ数を実数でGM（紙）に書くように入力しよう！欲しいチップ数が少ない順で上位2人が5の倍数切り上げ＋30チップを獲得。</p>
- <input id="chipAuctionInput" class="field" type="number" step="1" value="10" placeholder="欲しいチップ数">
+ html=`<p class="sub">欲しいチップ数を実数で申告！少ない順の最適者が切り上げ＆ボーナスチップを獲得。</p>
+ <input id="chipAuctionInput" class="field" type="number" step="1" value="20" placeholder="欲しいチップ数">
  <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('chipAuctionInput').value))">チップ数申告を確定</button>`;break;
  case "misterydraw":
  {
    const md = d.mystery || {drawn: 0, score: 0, active: true};
-   html=`<p class="sub">ミステリードロー：紙を引くごとにアタリの獲得チップが1倍・1.5倍・2倍と上昇。降りるとそれ以上マイナスを受けませんがチップも増えません。</p>
+   html=`<p class="sub">ミステリードロー：引くたびに倍率上昇！降りてマイナス回避か、引き続けるか。</p>
    <div class="row between" style="margin:12px 0"><span class="tiny muted">引いた枚数: <b>${md.drawn}</b></span><span class="chip">獲得倍率: <b>${(1 + md.drawn * 0.5).toFixed(1)}x</b></span></div>
    ${md.active ? `
      <div class="choices">
        <button class="choice gold" onclick="handleMysteryDraw(true)">📦 紙を1枚引く</button>
-       <button class="choice" onclick="handleMysteryDraw(false)">🛑 ここで降りる (スタンド)</button>
+       <button class="choice" onclick="handleMysteryDraw(false)">🛑 ここで降りる</button>
      </div>
-   ` : `<div class="notice good">降板しました。結果確定をお待ちください。</div>
+   ` : `<div class="notice good">降板しました。結果を確定してください。</div>
         <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(${md.drawn})">結果を確定</button>`}`;
    break;
  }
  case "doubtcard":
  {
-   const dc = d.doubt || {round: 1, total: 0, declared: 0, doubted: false};
-   html=`<p class="sub">ダウトカード：3周引いた数字の合計を申告せよ！嘘をついていなければチップ獲得、ダウトに成功/失敗時のペナルティや山分けあり。</p>
-   <div class="row between" style="margin:10px 0"><span class="tiny muted">現在の合計(非公開): <b>${dc.total}</b></span><span class="pill">ROUND ${dc.round}/3</span></div>
-   ${dc.round <= 3 ? `
-     <button class="btn primary" style="width:100%;margin-bottom:10px" onclick="handleDoubtDraw()">🂠 カードを1枚引く (周回 ${dc.round}/3)</button>
+   const dc = d.doubt || {round: 1, total: 10, declarations: {}};
+   html=`<p class="sub">ダウトカード：3周引いた合計を申告し、正直申告かダウトで勝負！</p>
+   <div class="row between" style="margin:10px 0"><span class="tiny muted">現在の周回: <b>${dc.round} / 3</b></span><span class="pill">合計推定</span></div>
+   ${dc.round < 3 ? `
+     <button class="btn primary" style="width:100%;margin-bottom:10px" onclick="handleDoubtDraw()">🂠 カードを1枚引く (次へ)</button>
    ` : `
-     <div class="notice">3周終了しました。あなたの合計の申告数とダウト判定を行います。</div>
+     <div class="notice">3周完了しました。申告値とダウト判定を決定してください。</div>
      <input id="doubtDeclareInput" class="field" type="number" value="${dc.total}" placeholder="申告する合計数" style="margin-bottom:8px">
      <div class="choices">
-       <button class="choice gold" onclick="submitDoubtDeclare(false)">✨ 正直に申告する</button>
-       <button class="choice danger" onclick="submitDoubtDeclare(true)">🚨 ダウトを仕掛ける / 嘘をつく</button>
+       <button class="choice gold" onclick="submitDoubtDeclare(false)">✨ 正直に申告</button>
+       <button class="choice danger" onclick="submitDoubtDeclare(true)">🚨 ダウトを仕掛ける</button>
      </div>
    `}`;
    break;
@@ -3366,13 +3366,15 @@ async function resolveOnlineGame(){
  if(state.room.roundStatus === "result") return;
  let resultText=[];
  const players={...state.room.players};
+ const allChoices = {};
+ ps.forEach(p => { allChoices[p.uid] = p.choice; });
 
  for(const p of ps){
-   const res = executeAdvancedGameCheck(g.id, p.choice, d);
+   const res = executeAdvancedGameCheck(g.id, p.choice, d, allChoices, ps);
    const win = res.win;
    let delta = res.deltaOverride !== null && res.deltaOverride !== undefined ? res.deltaOverride : (win ? (p.bet || 10) : -(p.bet || 10));
    players[p.uid] = { ...p, chips: Math.max(0, p.chips + delta), score: win ? 1 : 0, lastDelta: delta, choice: null, betConfirmed: false, bet: 0 };
-   resultText.push({ name: p.name, win, delta });
+   resultText.push({ name: p.name, delta, win });
  }
  await updateRoom({ players, roundStatus: "result", gameResult: { items: resultText, at: Date.now() } });
 }
