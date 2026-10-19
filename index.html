@@ -1442,8 +1442,8 @@ async function joinRoom(code){
  }catch(e){console.error(e);toast("参加できませんでした。Firebase設定を確認してください")}
 }
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch, maxRetries = 6){
- if(state.local){state.room={...state.room,...patch};return}
+async function updateRoom(patch, maxRetries = 10){
+ if(state.local){state.room={...state.room,...patch};if(state.room.status==="playing")renderDay();return}
  if(!state.roomRef)throw new Error("No room reference");
  let attempt = 0;
  while(attempt < maxRetries) {
@@ -1460,13 +1460,13 @@ async function updateRoom(patch, maxRetries = 6){
        console.warn("Transaction updateRoom exhausted retries, applying direct set fallback.", e);
        await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Direct set fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 150 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
 }
 
-async function updateMyPlayer(patch, maxRetries = 6){
+async function updateMyPlayer(patch, maxRetries = 10){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -1493,7 +1493,7 @@ async function updateMyPlayer(patch, maxRetries = 6){
        console.warn("Transaction updateMyPlayer exhausted retries, applying direct set fallback.", e);
        await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Direct set player fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 120 * attempt));
+       await new Promise(r => setTimeout(r, 100 * attempt));
      }
    }
  }
@@ -1737,8 +1737,8 @@ async function joinRoom(code){
 }
 
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch, maxRetries = 6){
- if(state.local){state.room={...state.room,...patch};return}
+async function updateRoom(patch, maxRetries = 10){
+ if(state.local){state.room={...state.room,...patch};if(state.room.status==="playing")renderDay();return}
  if(!state.roomRef)throw new Error("No room reference");
  let attempt = 0;
  while(attempt < maxRetries) {
@@ -1755,13 +1755,13 @@ async function updateRoom(patch, maxRetries = 6){
        console.warn("Transaction updateRoom exhausted retries, applying direct set fallback.", e);
        await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Direct set fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 150 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
 }
 
-async function updateMyPlayer(patch, maxRetries = 6){
+async function updateMyPlayer(patch, maxRetries = 10){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -1788,7 +1788,7 @@ async function updateMyPlayer(patch, maxRetries = 6){
        console.warn("Transaction updateMyPlayer exhausted retries, applying direct set fallback.", e);
        await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Direct set player fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 120 * attempt));
+       await new Promise(r => setTimeout(r, 100 * attempt));
      }
    }
  }
@@ -2411,8 +2411,8 @@ async function joinRoom(code){
  }catch(e){console.error(e);toast("参加できませんでした。Firebase設定を確認してください")}
 }
 function subscribeRoom(){if(state.unsub)state.unsub();if(!state.roomRef)return;state.unsub=state.roomRef.onSnapshot(s=>{if(!s.exists){toast("ルームが終了しました");return}state.room=s.data();state.isHost=state.room.hostUid===state.uid;if(state.room.status==="lobby"){renderLobby();if(!$("lobbyScreen").classList.contains("active"))showScreen("lobbyScreen")}else if(state.room.status==="playing"){renderDay();if(!$("dayScreen").classList.contains("active"))showScreen("dayScreen")}else if(state.room.status==="finished"){renderFinal();showScreen("finalScreen")}},e=>{console.error(e);toast("同期エラーが発生しました")})}
-async function updateRoom(patch, maxRetries = 6){
- if(state.local){state.room={...state.room,...patch};return}
+async function updateRoom(patch, maxRetries = 10){
+ if(state.local){state.room={...state.room,...patch};if(state.room.status==="playing")renderDay();return}
  if(!state.roomRef)throw new Error("No room reference");
  let attempt = 0;
  while(attempt < maxRetries) {
@@ -2429,13 +2429,13 @@ async function updateRoom(patch, maxRetries = 6){
        console.warn("Transaction updateRoom exhausted retries, applying direct set fallback.", e);
        await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Direct set fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 150 * attempt));
+       await new Promise(r => setTimeout(r, 120 * attempt));
      }
    }
  }
 }
 
-async function updateMyPlayer(patch, maxRetries = 6){
+async function updateMyPlayer(patch, maxRetries = 10){
  if(!state.room)return;
  const p=myPlayer();if(!p)return;
  const updated={...p,...patch};
@@ -2462,7 +2462,7 @@ async function updateMyPlayer(patch, maxRetries = 6){
        console.warn("Transaction updateMyPlayer exhausted retries, applying direct set fallback.", e);
        await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Direct set player fallback failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 120 * attempt));
+       await new Promise(r => setTimeout(r, 100 * attempt));
      }
    }
  }
