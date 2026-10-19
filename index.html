@@ -1438,7 +1438,7 @@ async function updateRoom(patch, maxRetries = 5){
        console.error("Transaction updateRoom failed after max retries: ", e);
        await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 120 * attempt));
+       await new Promise(r => setTimeout(r, 150 * attempt));
      }
    }
  }
@@ -1728,7 +1728,7 @@ async function updateRoom(patch, maxRetries = 5){
        console.error("Transaction updateRoom failed after max retries: ", e);
        await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 120 * attempt));
+       await new Promise(r => setTimeout(r, 150 * attempt));
      }
    }
  }
@@ -2389,7 +2389,7 @@ async function updateRoom(patch, maxRetries = 5){
        console.error("Transaction updateRoom failed after max retries: ", e);
        await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 120 * attempt));
+       await new Promise(r => setTimeout(r, 150 * attempt));
      }
    }
  }
@@ -2811,9 +2811,43 @@ function handleMastermindSubmit() {
 function executeAdvancedGameCheck(gameId, choice, data) {
   let win = false;
   let msg = "";
+  let deltaOverride = null;
   const ps = currentPlayers();
   const meUid = state.uid;
   switch(gameId) {
+    case "chipauction": {
+      const bids = data.bids || {};
+      const entries = Object.entries(bids).map(([uid, val]) => ({uid, val: Number(val) || 0}));
+      entries.sort((a,b) => a.val - b.val);
+      const minVal = entries[0]?.val;
+      const winners = entries.filter(e => e.val === minVal);
+      const isWinner = winners.some(e => e.uid === meUid);
+      win = isWinner;
+      if(win) {
+        const rounded = Math.ceil(minVal / 5) * 5;
+        deltaOverride = rounded + 30;
+      } else {
+        deltaOverride = -10;
+      }
+      msg = `チップオークション：申告数[${bids[meUid] || 0}◈]。${win ? "最小申告数に一致しボーナスチップを獲得！" : "惜しくも獲得ならず…"}`;
+      break;
+    }
+    case "misterydraw": {
+      const md = data.mystery || {drawn: 0, score: 0};
+      win = md.score > 0;
+      deltaOverride = md.score > 0 ? md.score : -15;
+      msg = `ミステリードロー：引いた枚数 ${md.drawn}枚。${win ? `アタリを引き当てて +${md.score}◈ 獲得！` : "獲得ならずマイナス精算…"}`;
+      break;
+    }
+    case "doubtcard": {
+      const dc = data.doubt || {total: 10, declared: 10, doubted: false};
+      const myDeclared = Number(choice) || dc.total;
+      const isLie = myDeclared !== dc.total;
+      win = !isLie;
+      deltaOverride = win ? Math.ceil(dc.total / 2) : -30;
+      msg = `ダウトカード：実際の合計[${dc.total}] vs 申告[${myDeclared}]。${win ? "正直な申告または看破成功でチップ獲得！" : "虚偽またはダウト失敗によりペナルティ…"}`;
+      break;
+    }
     case "connect4": {
       const winner = data.winner || 0;
       win = choice === "win" || winner === 1;
@@ -3282,14 +3316,14 @@ function renderLocalResult(msg,win,delta){
 async function resolveOnlineGame(){
  if(!state.isHost) return;
  const g=gameForDay(),d=state.room.gameData||{},ps=Object.values(state.room.players||{});
- if(state.room.roundStatus === "result") return; // 重複集計防止
+ if(state.room.roundStatus === "result") return;
  let resultText=[];
  const players={...state.room.players};
 
  for(const p of ps){
    const res = executeAdvancedGameCheck(g.id, p.choice, d);
    const win = res.win;
-   let delta = win ? (p.bet || 10) : -(p.bet || 10);
+   let delta = res.deltaOverride !== null && res.deltaOverride !== undefined ? res.deltaOverride : (win ? (p.bet || 10) : -(p.bet || 10));
    players[p.uid] = { ...p, chips: Math.max(0, p.chips + delta), score: win ? 1 : 0, lastDelta: delta, choice: null, betConfirmed: false, bet: 0 };
    resultText.push({ name: p.name, win, delta });
  }
