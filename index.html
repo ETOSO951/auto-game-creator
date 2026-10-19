@@ -2834,7 +2834,6 @@ function executeAdvancedGameCheck(gameId, choice, data, allChoices = {}, ps = []
   switch(gameId) {
     case "chipauction": {
       const bids = data.bids || {};
-      // もしallChoicesに今回のチップ入札値が含まれていれば反映
       if(allChoices[meUid] !== undefined && !bids[meUid]) {
         bids[meUid] = allChoices[meUid];
       }
@@ -2860,25 +2859,35 @@ function executeAdvancedGameCheck(gameId, choice, data, allChoices = {}, ps = []
       break;
     }
     case "misterydraw": {
-      const md = data.mystery || {drawn: 0, score: 0};
+      const md = data.mystery || {drawn: 0, score: 0, active: false, spent: 0};
       win = md.score > 0;
-      deltaOverride = md.score > 0 ? md.score : -15;
-      msg = `ミステリードロー：引いた枚数 ${md.drawn}枚。${win ? `アタリを引き当てて +${md.score}◈ 獲得！` : "獲得ならずマイナス精算…"}`;
+      const netScore = md.score - (md.spent || 0);
+      deltaOverride = netScore !== 0 ? netScore : -10;
+      msg = `ミステリードロー：引いた枚数 ${md.drawn}枚 (コスト:${md.spent || 0}◈)。${win ? `獲得チップ +${md.score}◈ (純益:${deltaOverride}◈)` : "獲得ならずマイナス精算…"}`;
       break;
     }
     case "doubtcard": {
-      const dc = data.doubt || {total: 10, declarations: {}, douters: []};
+      const dc = data.doubt || {total: 15, declarations: {}, douters: []};
       const declarations = dc.declarations || {};
       const myDecl = declarations[meUid] || { val: Number(choice) || dc.total, doubted: choice === "doubt" };
       const isDoubt = myDecl.doubted;
       const declaredVal = Number(myDecl.val) || dc.total;
       const isLie = declaredVal !== dc.total;
 
+      // すべての宣言からダウト者と嘘つきを厳密に判定
+      const allDecls = Object.entries(declarations);
+      const douters = allDecls.filter(([_, d]) => d.doubted).map(([u]) => u);
+      const liars = allDecls.filter(([u, d]) => !d.doubted && Number(d.val) !== dc.total).map(([u]) => u);
+      const anyLiar = liars.length > 0;
+
       if(isDoubt) {
-        const correctDoubt = isLie;
+        // ダウト成功のとき、嘘つきが一人以上いれば成功、いれば山分け
+        const correctDoubt = anyLiar;
         win = correctDoubt;
-        deltaOverride = correctDoubt ? 35 : -25;
-        msg = `ダウトカード：ダウト判定⇒${correctDoubt ? "大成功！虚偽を暴いてチップ獲得！" : "失敗…ペナルティ発生"}`;
+        const rewardBase = 45;
+        const splitCount = Math.max(1, douters.length);
+        deltaOverride = correctDoubt ? Math.floor(rewardBase / splitCount) : -20;
+        msg = `ダウトカード：ダウト判定⇒${correctDoubt ? `大成功！嘘を暴いて山分け獲得(+${deltaOverride}◈)` : "失敗…ペナルティ発生"}`;
       } else {
         if(!isLie) {
           win = true;
@@ -2886,8 +2895,10 @@ function executeAdvancedGameCheck(gameId, choice, data, allChoices = {}, ps = []
           msg = `ダウトカード：正直な申告(合計:${dc.total})が通り、ハーフボーナス獲得！`;
         } else {
           win = false;
-          deltaOverride = -30;
-          msg = `ダウトカード：嘘の申告が見破られペナルティ…`;
+          const penaltyBase = 35;
+          const victimCount = Math.max(1, douters.length);
+          deltaOverride = -Math.floor(penaltyBase / victimCount);
+          msg = `ダウトカード：嘘の申告が見破られペナルティ(${deltaOverride}◈)…`;
         }
       }
       break;
@@ -2995,8 +3006,19 @@ function executeAdvancedGameCheck(gameId, choice, data, allChoices = {}, ps = []
     }
     case "wordwolf": {
       const isWolf = meUid === data.wolfUid;
-      win = (!isWolf && choice === data.wolfUid) || (isWolf && choice === "innocent");
-      msg = `ワードウルフ：お題のズレから少数派のウルフを${win ? "見事に見抜いて勝利！" : "特定できず敗北…"}期`;
+      const votes = allChoices || {};
+      const voteEntries = Object.values(votes);
+      const wolfVotes = voteEntries.filter(v => v === data.wolfUid).length;
+      const totalVotes = Math.max(1, voteEntries.length);
+      const majorityFoundWolf = (wolfVotes / totalVotes) >= 0.5;
+
+      if(!isWolf) {
+        win = majorityFoundWolf && choice === data.wolfUid;
+        msg = `ワードウルフ(シビリアン)：ウルフ特定投票⇒${win ? "多数決で見事にウルフを討伐！" : "ウルフ討伐に失敗…"}`;
+      } else {
+        win = !majorityFoundWolf || choice === "innocent";
+        msg = `ワードウルフ(ウルフ)：欺き作戦⇒${win ? "シビリアンを欺き通して勝利！" : "正体を見破られて敗北…"}`;
+      }
       break;
     }
     case "majority": {
@@ -3301,12 +3323,12 @@ function renderGameContent(){
  <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('chipAuctionInput').value))">チップ数申告を確定</button>`;break;
  case "misterydraw":
  {
-   const md = d.mystery || {drawn: 0, score: 0, active: true};
-   html=`<p class="sub">ミステリードロー：引くたびに倍率上昇！降りてマイナス回避か、引き続けるか。</p>
-   <div class="row between" style="margin:12px 0"><span class="tiny muted">引いた枚数: <b>${md.drawn}</b></span><span class="chip">獲得倍率: <b>${(1 + md.drawn * 0.5).toFixed(1)}x</b></span></div>
+   const md = d.mystery || {drawn: 0, score: 0, active: true, spent: 0, hitsLeft: 2};
+   html=`<p class="sub">ミステリードロー：1枚引くのに5◈消費。アタリを引き当てて賞金を増やせ！(残り山札: 不明)</p>
+   <div class="row between" style="margin:12px 0"><span class="tiny muted">引いた枚数: <b>${md.drawn}</b> (コスト:${md.spent}◈)</span><span class="chip">現在賞金: <b>${md.score} ◈</b></span></div>
    ${md.active ? `
      <div class="choices">
-       <button class="choice gold" onclick="handleMysteryDraw(true)">📦 紙を1枚引く</button>
+       <button class="choice gold" onclick="handleMysteryDraw(true)">📦 紙を1枚引く (-5◈)</button>
        <button class="choice" onclick="handleMysteryDraw(false)">🛑 ここで降りる</button>
      </div>
    ` : `<div class="notice good">降板しました。結果を確定してください。</div>
@@ -3315,16 +3337,16 @@ function renderGameContent(){
  }
  case "doubtcard":
  {
-   const dc = d.doubt || {round: 1, total: 10, declarations: {}};
+   const dc = d.doubt || {round: 1, total: 15, declarations: {}};
    html=`<p class="sub">ダウトカード：3周引いた合計を申告し、正直申告かダウトで勝負！</p>
-   <div class="row between" style="margin:10px 0"><span class="tiny muted">現在の周回: <b>${dc.round} / 3</b></span><span class="pill">合計推定</span></div>
+   <div class="row between" style="margin:10px 0"><span class="tiny muted">現在の周回: <b>${dc.round} / 3 周目</b></span><span class="pill">推定合計: ?</span></div>
    ${dc.round < 3 ? `
-     <button class="btn primary" style="width:100%;margin-bottom:10px" onclick="handleDoubtDraw()">🂠 カードを1枚引く (次へ)</button>
+     <button class="btn primary" style="width:100%;margin-bottom:10px" onclick="handleDoubtDraw()">🂠 カードを1枚引く (周回進行)</button>
    ` : `
-     <div class="notice">3周完了しました。申告値とダウト判定を決定してください。</div>
+     <div class="notice">3周完了しました。最終的な合計数とダウト宣言を決定してください。</div>
      <input id="doubtDeclareInput" class="field" type="number" value="${dc.total}" placeholder="申告する合計数" style="margin-bottom:8px">
      <div class="choices">
-       <button class="choice gold" onclick="submitDoubtDeclare(false)">✨ 正直に申告</button>
+       <button class="choice gold" onclick="submitDoubtDeclare(false)">✨ 正直に申告する</button>
        <button class="choice danger" onclick="submitDoubtDeclare(true)">🚨 ダウトを仕掛ける</button>
      </div>
    `}`;
@@ -3727,15 +3749,17 @@ function handleMancalaClick(pitIndex) {
 function handleMysteryDraw(takeMore){
   if(!state.room?.gameData) return;
   const d = JSON.parse(JSON.stringify(state.room.gameData));
-  if(!d.mystery) d.mystery = {drawn: 0, score: 0, active: true};
+  if(!d.mystery) d.mystery = {drawn: 0, score: 0, active: true, spent: 0, hitsLeft: 2};
   if(takeMore) {
     d.mystery.drawn += 1;
-    const isHit = Math.random() > 0.4;
+    d.mystery.spent = (d.mystery.spent || 0) + 5;
+    const isHit = Math.random() > 0.45 && d.mystery.hitsLeft > 0;
     if(isHit) {
-      d.mystery.score += Math.floor(10 * (1 + d.mystery.drawn * 0.5));
-      toast("✨ アタリの紙を引き当てた！");
+      d.mystery.hitsLeft -= 1;
+      d.mystery.score += Math.floor(15 * (1 + d.mystery.drawn * 0.4));
+      toast("✨ アタリの紙を引き当てた！賞金アップ！");
     } else {
-      toast("💦 ハズレ、チップ変動なし");
+      toast("💦 ハズレの紙でした…コスト5◈消費");
     }
   } else {
     d.mystery.active = false;
@@ -3752,10 +3776,14 @@ function handleMysteryDraw(takeMore){
 function handleDoubtDraw(){
   if(!state.room?.gameData) return;
   const d = JSON.parse(JSON.stringify(state.room.gameData));
-  if(!d.doubt) d.doubt = {round: 1, total: Math.floor(Math.random()*15)+5, declared: 0, doubted: false};
-  d.doubt.round += 1;
-  d.doubt.total += Math.floor(Math.random() * 6) + 1;
-  toast(`🂠 周回 ${d.doubt.round}/3 完了。カードを引きました。`);
+  if(!d.doubt) d.doubt = {round: 1, total: 15, declarations: {}};
+  if(d.doubt.round < 3) {
+    d.doubt.round += 1;
+    d.doubt.total += Math.floor(Math.random() * 7) + 2;
+    toast(`🂠 周回 ${d.doubt.round}/3 完了。カードを引きました。`);
+  } else {
+    toast("すでに3周完了しています。申告またはダウトを決めてください。");
+  }
   if(state.local) {
     state.room.gameData = d;
     renderGameContent();
@@ -3783,15 +3811,17 @@ function submitDoubtDeclare(isDoubtOrLie){
 function handleMysteryDraw(takeMore){
   if(!state.room?.gameData) return;
   const d = JSON.parse(JSON.stringify(state.room.gameData));
-  if(!d.mystery) d.mystery = {drawn: 0, score: 0, active: true};
+  if(!d.mystery) d.mystery = {drawn: 0, score: 0, active: true, spent: 0, hitsLeft: 2};
   if(takeMore) {
     d.mystery.drawn += 1;
-    const isHit = Math.random() > 0.4;
+    d.mystery.spent = (d.mystery.spent || 0) + 5;
+    const isHit = Math.random() > 0.45 && d.mystery.hitsLeft > 0;
     if(isHit) {
-      d.mystery.score += Math.floor(10 * (1 + d.mystery.drawn * 0.5));
-      toast("✨ アタリの紙を引き当てた！");
+      d.mystery.hitsLeft -= 1;
+      d.mystery.score += Math.floor(15 * (1 + d.mystery.drawn * 0.4));
+      toast("✨ アタリの紙を引き当てた！賞金アップ！");
     } else {
-      toast("💦 ハズレ、チップ変動なし");
+      toast("💦 ハズレの紙でした…コスト5◈消費");
     }
   } else {
     d.mystery.active = false;
@@ -3808,10 +3838,14 @@ function handleMysteryDraw(takeMore){
 function handleDoubtDraw(){
   if(!state.room?.gameData) return;
   const d = JSON.parse(JSON.stringify(state.room.gameData));
-  if(!d.doubt) d.doubt = {round: 1, total: Math.floor(Math.random()*15)+5, declared: 0, doubted: false};
-  d.doubt.round += 1;
-  d.doubt.total += Math.floor(Math.random() * 6) + 1;
-  toast(`🂠 周回 ${d.doubt.round}/3 完了。カードを引きました。`);
+  if(!d.doubt) d.doubt = {round: 1, total: 15, declarations: {}};
+  if(d.doubt.round < 3) {
+    d.doubt.round += 1;
+    d.doubt.total += Math.floor(Math.random() * 7) + 2;
+    toast(`🂠 周回 ${d.doubt.round}/3 完了。カードを引きました。`);
+  } else {
+    toast("すでに3周完了しています。申告またはダウトを決めてください。");
+  }
   if(state.local) {
     state.room.gameData = d;
     renderGameContent();
