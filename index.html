@@ -366,10 +366,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
 ====
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
- {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
- {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
- {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を実数で書き、少なさの順や同率に応じて5の倍数切り上げ＋30を獲得する心理オークション。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。残りのアタリを見極めろ。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽や正直申告、多人数ダウトの山分け・ペナルティを競う心理戦。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を置いて相手の進路を塞ぎつつ敵陣ゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -649,10 +649,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
 ====
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
- {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
- {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
- {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を実数で書き、少なさの順や同率に応じて5の倍数切り上げ＋30を獲得する心理オークション。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。残りのアタリを見極めろ。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽や正直申告、多人数ダウトの山分け・ペナルティを競う心理戦。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を置いて相手の進路を塞ぎつつ敵陣ゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -910,10 +910,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
 ====
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
- {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
- {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
- {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を実数で書き、少なさの順や同率に応じて5の倍数切り上げ＋30を獲得する心理オークション。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。残りのアタリを見極めろ。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽や正直申告、多人数ダウトの山分け・ペナルティを競う心理戦。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を置いて相手の進路を塞ぎつつ敵陣ゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -1205,10 +1205,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
 ====
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
- {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
- {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
- {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を実数で書き、少なさの順や同率に応じて5の倍数切り上げ＋30を獲得する心理オークション。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。残りのアタリを見極めろ。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽や正直申告、多人数ダウトの山分け・ペナルティを競う心理戦。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を置いて相手の進路を塞ぎつつ敵陣ゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -1879,10 +1879,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
 ====
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
- {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
- {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
- {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を実数で書き、少なさの順や同率に応じて5の倍数切り上げ＋30を獲得する心理オークション。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。残りのアタリを見極めろ。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽や正直申告、多人数ダウトの山分け・ペナルティを競う心理戦。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を置いて相手の進路を塞ぎつつ敵陣ゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -2174,10 +2174,10 @@ const state={uid:null,name:"Player",roomId:null,roomRef:null,room:null,unsub:nul
 ====
  {id:"battleship",name:"NAVAL CLASH",icon:"⚓",desc:"相手の戦艦の潜伏座標(1〜9)を直感と推理で撃破する海戦。"},
  {id:"battleroulette",name:"RUSSIAN CARD",icon:"💥",desc:"爆弾カードのリスクを避けつつ引き際を見極めるロシアン勝負。"},
- {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を紙に書き、少なさの順や同率に応じてボーナスチップを獲得する心理オークション。"},
- {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。"},
- {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた数字の合計を申告し、虚偽があればダウトでペナルティまたは山分けの心理ブラフ戦。"},
- {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を掻い潜り最奥のゴールを目指す戦略戦。"}
+ {id:"chipauction",name:"CHIP AUCTION",icon:"🏛️",desc:"欲しいチップ数を実数で書き、少なさの順や同率に応じて5の倍数切り上げ＋30を獲得する心理オークション。"},
+ {id:"misterydraw",name:"MYSTERY DRAW",icon:"📦",desc:"アタリを求めて紙を引き続けるか、マイナスを避けて降りる引き際勝負。残りのアタリを見極めろ。"},
+ {id:"doubtcard",name:"DOUBT CARD",icon:"🃏",desc:"3周引いた合計を申告し、虚偽や正直申告、多人数ダウトの山分け・ペナルティを競う心理戦。"},
+ {id:"quoridor",name:"CORRIDOR DUEL",icon:"🧱",desc:"マス目を移動し壁を置いて相手の進路を塞ぎつつ敵陣ゴールを目指す戦略戦。"}
 ];
 function chooseGameOrder(){return shuffle(games.map(g=>g.id)).slice(0,5)}
 const dayTitles=["開幕戦","心理戦","中盤の逆転","決戦前夜","FINAL DAY"];
@@ -2858,9 +2858,11 @@ function executeAdvancedGameCheck(gameId, choice, data, allChoices = {}, ps = []
   switch(gameId) {
     case "chipauction": {
       const bids = data.bids || {};
-      if(allChoices[meUid] !== undefined && !bids[meUid]) {
-        bids[meUid] = allChoices[meUid];
-      }
+      ps.forEach(p => {
+        if(allChoices[p.uid] !== undefined && bids[p.uid] === undefined) {
+          bids[p.uid] = Number(allChoices[p.uid]) || 10;
+        }
+      });
       const entries = Object.entries(bids).map(([uid, val]) => ({uid, val: Number(val) || 0}));
       entries.sort((a,b) => a.val - b.val);
       if(entries.length === 0) {
@@ -2879,7 +2881,7 @@ function executeAdvancedGameCheck(gameId, choice, data, allChoices = {}, ps = []
       } else {
         deltaOverride = -10;
       }
-      msg = `チップオークション：希望数[${bids[meUid] || choice || 0}◈]。${win ? `最小申告同率達成で +${deltaOverride}◈ 獲得！` : "惜しくも獲得ならず…"}`;
+      msg = `チップオークション(希望数:${bids[meUid] || choice || 0})⇒${win ? `最小申告同率達成！切り上げ(${Math.ceil(Math.max(1, minVal)/5)*5})+30で +${deltaOverride}◈ 獲得！` : "惜しくも最小値ではなく獲得ならず…"}`;
       break;
     }
     case "misterydraw": {
@@ -2891,38 +2893,42 @@ function executeAdvancedGameCheck(gameId, choice, data, allChoices = {}, ps = []
       break;
     }
     case "doubtcard": {
-      const dc = data.doubt || {total: 15, declarations: {}, douters: []};
+      const dc = data.doubt || {total: 15, declarations: {}};
       const declarations = dc.declarations || {};
-      const myDecl = declarations[meUid] || { val: Number(choice) || dc.total, doubted: choice === "doubt" };
+      ps.forEach(p => {
+        if(allChoices[p.uid] !== undefined && !declarations[p.uid]) {
+          const c = allChoices[p.uid];
+          declarations[p.uid] = { val: c === "doubt" ? dc.total : (Number(c) || dc.total), doubted: c === "doubt" };
+        }
+      });
+      const myDecl = declarations[meUid] || { val: dc.total, doubted: choice === "doubt" };
       const isDoubt = myDecl.doubted;
       const declaredVal = Number(myDecl.val) || dc.total;
       const isLie = declaredVal !== dc.total;
 
-      // すべての宣言からダウト者と嘘つきを厳密に判定
       const allDecls = Object.entries(declarations);
       const douters = allDecls.filter(([_, d]) => d.doubted).map(([u]) => u);
       const liars = allDecls.filter(([u, d]) => !d.doubted && Number(d.val) !== dc.total).map(([u]) => u);
       const anyLiar = liars.length > 0;
 
       if(isDoubt) {
-        // ダウト成功のとき、嘘つきが一人以上いれば成功、いれば山分け
         const correctDoubt = anyLiar;
         win = correctDoubt;
         const rewardBase = 45;
         const splitCount = Math.max(1, douters.length);
         deltaOverride = correctDoubt ? Math.floor(rewardBase / splitCount) : -20;
-        msg = `ダウトカード：ダウト判定⇒${correctDoubt ? `大成功！嘘を暴いて山分け獲得(+${deltaOverride}◈)` : "失敗…ペナルティ発生"}`;
+        msg = `ダウトカード(ダウト宣言)⇒${correctDoubt ? `大成功！嘘を暴いて山分け獲得(+${deltaOverride}◈)` : "失敗…ダウトペナルティ(-20◈)"}`;
       } else {
         if(!isLie) {
           win = true;
           deltaOverride = Math.ceil(dc.total / 2);
-          msg = `ダウトカード：正直な申告(合計:${dc.total})が通り、ハーフボーナス獲得！`;
+          msg = `ダウトカード(正直申告)⇒合計一致(真実:${dc.total})！ハーフボーナス(+${deltaOverride}◈)獲得！`;
         } else {
           win = false;
           const penaltyBase = 35;
           const victimCount = Math.max(1, douters.length);
           deltaOverride = -Math.floor(penaltyBase / victimCount);
-          msg = `ダウトカード：嘘の申告が見破られペナルティ(${deltaOverride}◈)…`;
+          msg = `ダウトカード(虚偽申告)⇒嘘を見破られペナルティ(${deltaOverride}◈)…`;
         }
       }
       break;
@@ -3342,9 +3348,9 @@ function renderGameContent(){
    <button class="choice gold" onclick="submitChoice('shield')">🛡️ シールド防御</button>
  </div>`;break;
  case "chipauction":
- html=`<p class="sub">欲しいチップ数を実数で申告！少ない順の最適者が切り上げ＆ボーナスチップを獲得。</p>
- <input id="chipAuctionInput" class="field" type="number" step="1" value="20" placeholder="欲しいチップ数">
- <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChoice(Number(document.getElementById('chipAuctionInput').value))">チップ数申告を確定</button>`;break;
+ html=`<p class="sub">チップオークション：欲しいチップ数を実数で紙に書く。少ない順同率者が切り上げ(+30)ボーナス獲得！</p>
+ <input id="chipAuctionInput" class="field" type="number" step="1" value="20" placeholder="欲しいチップ数 (例: 15)">
+ <button class="btn primary" style="width:100%;margin-top:10px" onclick="submitChipAuction(Number(document.getElementById('chipAuctionInput').value))">チップ数申告を確定</button>`;break;
  case "misterydraw":
  {
    const md = d.mystery || {drawn: 0, score: 0, active: true, spent: 0, hitsLeft: 2};
