@@ -3010,7 +3010,7 @@ function handleQuoridorMove(targetIdx) {
       if(entries.length === 0) {
         win = false;
         deltaOverride = -10;
-        msg = `チップオークション：入札データなし。`;
+        msg = `チップオークション：入札データがありません。`;
         break;
       }
       const minVal = entries[0]?.val;
@@ -3023,7 +3023,7 @@ function handleQuoridorMove(targetIdx) {
       } else {
         deltaOverride = -10;
       }
-      msg = `チップオークション(希望数:${bids[meUid] || choice || 0})⇒${win ? `最小申告同率達成！切り上げ(${Math.ceil(Math.max(1, minVal)/5)*5})+30で +${deltaOverride}◈ 獲得！` : "惜しくも最小値ではなく獲得ならず…"}`;
+      msg = `チップオークション(希望:${bids[meUid] || choice || 0})⇒${win ? `最小申告同率達成！5の倍数切り上げ(${Math.ceil(Math.max(1, minVal)/5)*5})+30 で +${deltaOverride}◈ 獲得！` : "最小申告ではなく獲得ならず…"}`;
       break;
     }
     case "misterydraw": {
@@ -3031,7 +3031,7 @@ function handleQuoridorMove(targetIdx) {
       win = md.score > 0;
       const netScore = md.score - (md.spent || 0);
       deltaOverride = netScore !== 0 ? netScore : -10;
-      msg = `ミステリードロー：引いた枚数 ${md.drawn}枚 (コスト:${md.spent || 0}◈)。${win ? `獲得チップ +${md.score}◈ (純益:${deltaOverride}◈)` : "獲得ならずマイナス精算…"}`;
+      msg = `ミステリードロー：引いた枚数 ${md.drawn}枚 (コスト計:${md.spent || 0}◈)。${win ? `獲得総賞金 +${md.score}◈ (純益: ${deltaOverride}◈)` : "獲得ならずマイナス精算…"}`;
       break;
     }
     case "doubtcard": {
@@ -3046,31 +3046,32 @@ function handleQuoridorMove(targetIdx) {
       const myDecl = declarations[meUid] || { val: dc.total, doubted: choice === "doubt" };
       const isDoubt = myDecl.doubted;
       const declaredVal = Number(myDecl.val) || dc.total;
-      const isLie = declaredVal !== dc.total;
+      const realTotal = Number(dc.total) || 15;
+      const isLie = declaredVal !== realTotal;
 
       const allDecls = Object.entries(declarations);
       const douters = allDecls.filter(([_, d]) => d.doubted).map(([u]) => u);
-      const liars = allDecls.filter(([u, d]) => !d.doubted && Number(d.val) !== dc.total).map(([u]) => u);
+      const liars = allDecls.filter(([u, d]) => !d.doubted && Number(d.val) !== realTotal).map(([u]) => u);
       const anyLiar = liars.length > 0;
 
       if(isDoubt) {
         const correctDoubt = anyLiar;
         win = correctDoubt;
-        const rewardBase = 45;
+        const rewardBase = Math.ceil(realTotal / 2) + 30;
         const splitCount = Math.max(1, douters.length);
-        deltaOverride = correctDoubt ? Math.floor(rewardBase / splitCount) : -20;
-        msg = `ダウトカード(ダウト宣言)⇒${correctDoubt ? `大成功！嘘を暴いて山分け獲得(+${deltaOverride}◈)` : "失敗…ダウトペナルティ(-20◈)"}`;
+        deltaOverride = correctDoubt ? Math.floor(rewardBase / splitCount) : -15;
+        msg = `ダウトカード(ダウト宣言)⇒${correctDoubt ? `看破成功！山分け獲得(+${deltaOverride}◈)` : "誤認…ペナルティ(-15◈)"}`;
       } else {
         if(!isLie) {
           win = true;
-          deltaOverride = Math.ceil(dc.total / 2);
-          msg = `ダウトカード(正直申告)⇒合計一致(真実:${dc.total})！ハーフボーナス(+${deltaOverride}◈)獲得！`;
+          deltaOverride = Math.ceil(realTotal / 2);
+          msg = `ダウトカード(正直申告)⇒真実一致(${realTotal})！切り上げハーフ獲得(+${deltaOverride}◈)！`;
         } else {
           win = false;
-          const penaltyBase = 35;
+          const penaltyBase = Math.ceil(declaredVal / 2) + 20;
           const victimCount = Math.max(1, douters.length);
           deltaOverride = -Math.floor(penaltyBase / victimCount);
-          msg = `ダウトカード(虚偽申告)⇒嘘を見破られペナルティ(${deltaOverride}◈)…`;
+          msg = `ダウトカード(虚偽申告)⇒ダウトされペナルティ(${deltaOverride}◈)…`;
         }
       }
       break;
