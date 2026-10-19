@@ -1444,7 +1444,7 @@ async function updateRoom(patch, maxRetries = 5){
        console.error("Transaction updateRoom failed after max retries: ", e);
        await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 150 * attempt));
+       await new Promise(r => setTimeout(r, 200 * attempt));
      }
    }
  }
@@ -1466,7 +1466,9 @@ async function updateMyPlayer(patch, maxRetries = 5){
      await db.runTransaction(async (transaction) => {
        const doc = await transaction.get(state.roomRef);
        if(!doc.exists) throw new Error("Room does not exist");
-       transaction.set(state.roomRef, { players: { [state.uid]: updated } }, { merge: true });
+       const currentPlayersData = doc.data().players || {};
+       const existingPlayer = currentPlayersData[state.uid] || {};
+       transaction.set(state.roomRef, { players: { [state.uid]: { ...existingPlayer, ...updated } } }, { merge: true });
      });
      return;
    } catch(e) {
@@ -1475,7 +1477,7 @@ async function updateMyPlayer(patch, maxRetries = 5){
        console.error("Transaction updateMyPlayer failed after max retries: ", e);
        await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Fallback set player failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 120 * attempt));
+       await new Promise(r => setTimeout(r, 150 * attempt));
      }
    }
  }
@@ -1737,7 +1739,7 @@ async function updateRoom(patch, maxRetries = 5){
        console.error("Transaction updateRoom failed after max retries: ", e);
        await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 150 * attempt));
+       await new Promise(r => setTimeout(r, 200 * attempt));
      }
    }
  }
@@ -1759,7 +1761,9 @@ async function updateMyPlayer(patch, maxRetries = 5){
      await db.runTransaction(async (transaction) => {
        const doc = await transaction.get(state.roomRef);
        if(!doc.exists) throw new Error("Room does not exist");
-       transaction.set(state.roomRef, { players: { [state.uid]: updated } }, { merge: true });
+       const currentPlayersData = doc.data().players || {};
+       const existingPlayer = currentPlayersData[state.uid] || {};
+       transaction.set(state.roomRef, { players: { [state.uid]: { ...existingPlayer, ...updated } } }, { merge: true });
      });
      return;
    } catch(e) {
@@ -1768,7 +1772,7 @@ async function updateMyPlayer(patch, maxRetries = 5){
        console.error("Transaction updateMyPlayer failed after max retries: ", e);
        await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Fallback set player failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 120 * attempt));
+       await new Promise(r => setTimeout(r, 150 * attempt));
      }
    }
  }
@@ -2401,7 +2405,7 @@ async function updateRoom(patch, maxRetries = 5){
        console.error("Transaction updateRoom failed after max retries: ", e);
        await state.roomRef.set(patch, { merge: true }).catch(err => console.error("Fallback set failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 150 * attempt));
+       await new Promise(r => setTimeout(r, 200 * attempt));
      }
    }
  }
@@ -2423,7 +2427,9 @@ async function updateMyPlayer(patch, maxRetries = 5){
      await db.runTransaction(async (transaction) => {
        const doc = await transaction.get(state.roomRef);
        if(!doc.exists) throw new Error("Room does not exist");
-       transaction.set(state.roomRef, { players: { [state.uid]: updated } }, { merge: true });
+       const currentPlayersData = doc.data().players || {};
+       const existingPlayer = currentPlayersData[state.uid] || {};
+       transaction.set(state.roomRef, { players: { [state.uid]: { ...existingPlayer, ...updated } } }, { merge: true });
      });
      return;
    } catch(e) {
@@ -2432,7 +2438,7 @@ async function updateMyPlayer(patch, maxRetries = 5){
        console.error("Transaction updateMyPlayer failed after max retries: ", e);
        await state.roomRef.set({players: {[state.uid]: updated}}, { merge: true }).catch(err => console.error("Fallback set player failed:", err));
      } else {
-       await new Promise(r => setTimeout(r, 120 * attempt));
+       await new Promise(r => setTimeout(r, 150 * attempt));
      }
    }
  }
@@ -2831,17 +2837,23 @@ function executeAdvancedGameCheck(gameId, choice, data) {
       const bids = data.bids || {};
       const entries = Object.entries(bids).map(([uid, val]) => ({uid, val: Number(val) || 0}));
       entries.sort((a,b) => a.val - b.val);
+      if(entries.length === 0) {
+        win = false;
+        deltaOverride = -10;
+        msg = `チップオークション：入札者がいませんでした。`;
+        break;
+      }
       const minVal = entries[0]?.val;
       const winners = entries.filter(e => e.val === minVal);
       const isWinner = winners.some(e => e.uid === meUid);
       win = isWinner;
       if(win) {
-        const rounded = Math.ceil(minVal / 5) * 5;
+        const rounded = Math.ceil(Math.max(1, minVal) / 5) * 5;
         deltaOverride = rounded + 30;
       } else {
         deltaOverride = -10;
       }
-      msg = `チップオークション：申告数[${bids[meUid] || 0}◈]。${win ? "最小申告数に一致しボーナスチップを獲得！" : "惜しくも獲得ならず…"}`;
+      msg = `チップオークション：申告数[${bids[meUid] || 0}◈]。${win ? `同率含む最小申告達成で +${deltaOverride}◈ 獲得！` : "獲得ならず…"}`;
       break;
     }
     case "misterydraw": {
@@ -2852,12 +2864,30 @@ function executeAdvancedGameCheck(gameId, choice, data) {
       break;
     }
     case "doubtcard": {
-      const dc = data.doubt || {total: 10, declared: 10, doubted: false};
-      const myDeclared = Number(choice) || dc.total;
-      const isLie = myDeclared !== dc.total;
-      win = !isLie;
-      deltaOverride = win ? Math.ceil(dc.total / 2) : -30;
-      msg = `ダウトカード：実際の合計[${dc.total}] vs 申告[${myDeclared}]。${win ? "正直な申告または看破成功でチップ獲得！" : "虚偽またはダウト失敗によりペナルティ…"}`;
+      const dc = data.doubt || {total: 10, declarations: {}, douters: []};
+      const declarations = dc.declarations || {};
+      const douters = dc.douters || [];
+      const myDecl = declarations[meUid];
+      const isDoubt = myDecl?.doubted;
+      const declaredVal = Number(myDecl?.val) || dc.total;
+      const isLie = declaredVal !== dc.total;
+
+      if(isDoubt) {
+        const correctDoubt = isLie;
+        win = correctDoubt;
+        deltaOverride = correctDoubt ? 35 : -25;
+        msg = `ダウトカード：ダウト判定⇒${correctDoubt ? "大成功！虚偽を暴いてチップ獲得！" : "失敗…ペナルティ発生"}`;
+      } else {
+        if(!isLie) {
+          win = true;
+          deltaOverride = Math.ceil(dc.total / 2);
+          msg = `ダウトカード：正直な申告(合計:${dc.total})が通り、ハーフボーナス獲得！`;
+        } else {
+          win = false;
+          deltaOverride = -30;
+          msg = `ダウトカード：嘘の申告が見破られペナルティ…`;
+        }
+      }
       break;
     }
     case "connect4": {
@@ -3062,19 +3092,24 @@ function renderGameContent(){
   const p1 = d.p1 !== undefined ? d.p1 : 22;
   const p2 = d.p2 !== undefined ? d.p2 : 2;
   const turn = d.turn || 1;
+  const walls = d.walls || [];
   const dist1 = Math.floor(p1 / 5);
   const dist2 = 4 - Math.floor(p2 / 5);
-  html = `<p class="sub">駒を進めて最奥を目指せ！[あなた: 1行目到達で勝利 / 相手: 5行目到達で勝利]</p>
-  <div class="row between" style="max-width:320px;margin:0 auto 8px"><span class="tiny ${turn===1?"gold":""}">YOU: 残壁 ${(d.p1Walls!==undefined?d.p1Walls:3)}</span><span class="tiny ${turn===2?"gold":""}">CPU/OPP: 残壁 ${(d.p2Walls!==undefined?d.p2Walls:3)}</span></div>
+  html = `<p class="sub">コリドール：壁を置くか移動して最奥(0行目)を目指せ！</p>
+  <div class="row between" style="max-width:320px;margin:0 auto 8px"><span class="tiny ${turn===1?"gold":""}">YOU: 残壁 ${(d.p1Walls!==undefined?d.p1Walls:3)}</span><span class="tiny ${turn===2?"gold":""}">OPP: 残壁 ${(d.p2Walls!==undefined?d.p2Walls:3)}</span></div>
   <div class="quoridor-board">${Array.from({length:25},(_,i)=>{
     const isP1 = i === p1;
     const isP2 = i === p2;
     const r = Math.floor(i / 5), c = i % 5;
     const p1R = Math.floor(p1 / 5), p1C = p1 % 5;
     const isAdj = Math.abs(r - p1R) + Math.abs(c - p1C) === 1;
-    return `<div class="q-cell ${isP1?"p1-pos":isP2?"p2-pos":""} ${isAdj&&!isP2?"hint":""}" onclick="handleQuoridorMove(${i})">${isP1?"♟️":isP2?"♟":""}</div>`;
+    const hasWall = walls.includes(i);
+    return `<div class="q-cell ${isP1?"p1-pos":isP2?"p2-pos":""} ${hasWall?"wall-pos":""} ${isAdj&&!isP2&&!hasWall?"hint":""}" onclick="handleQuoridorMove(${i})">${isP1?"♟️":isP2?"♟":hasWall?"🧱":""}</div>`;
   }).join("")}</div>
-  <div class="choices"><button class="choice gold" onclick="submitChoice('quoridor_finish')">現在の進行度で着手確定 (${4 - dist1}マス進破)</button></div>`;
+  <div class="choices">
+    <button class="choice gold" onclick="handleQuoridorPlaceWall()">🧱 壁を設置</button>
+    <button class="choice" onclick="submitChoice('quoridor_finish')">勝敗確定 (${4 - dist1}マス進破)</button>
+  </div>`;
   break;
  }
  case "dotsboxes":
@@ -3556,8 +3591,12 @@ function handleQuoridorMove(targetIdx) {
  const turn = d.turn || 1;
  const p1 = d.p1 !== undefined ? d.p1 : 22;
  const p2 = d.p2 !== undefined ? d.p2 : 2;
+ const walls = d.walls || [];
+ if(walls.includes(targetIdx)) {
+   toast("壁があるため移動できません");
+   return;
+ }
  const curPos = turn === 1 ? p1 : p2;
-
  const r1 = Math.floor(curPos / 5), c1 = curPos % 5;
  const r2 = Math.floor(targetIdx / 5), c2 = targetIdx % 5;
  if(Math.abs(r1 - r2) + Math.abs(c1 - c2) !== 1) {
@@ -3588,7 +3627,7 @@ function handleQuoridorMove(targetIdx) {
      const cr = Math.floor(cp2 / 5), cc = cp2 % 5;
      const candidates = [
        {r: cr + 1, c: cc}, {r: cr, c: cc - 1}, {r: cr, c: cc + 1}, {r: cr - 1, c: cc}
-     ].filter(p => p.r >= 0 && p.r < 5 && p.c >= 0 && p.c < 5);
+     ].filter(p => p.r >= 0 && p.r < 5 && p.c >= 0 && p.c < 5 && !(curD.walls || []).includes(p.r * 5 + p.c));
      if(candidates.length) {
        const pick = candidates[Math.floor(Math.random() * candidates.length)];
        curD.p2 = pick.r * 5 + pick.c;
@@ -3605,6 +3644,20 @@ function handleQuoridorMove(targetIdx) {
    }, 400);
  }
 
+ if(state.local) { state.room.gameData = d; renderGameContent(); }
+ else { updateRoom({gameData: d}); }
+}
+
+function handleQuoridorPlaceWall() {
+ if(!state.room?.gameData) return;
+ const d = JSON.parse(JSON.stringify(state.room.gameData));
+ const walls = d.walls || [];
+ const emptyCells = Array.from({length: 25}, (_, i) => i).filter(i => i !== d.p1 && i !== d.p2 && !walls.includes(i));
+ if(!emptyCells.length) return toast("壁を置ける場所がありません");
+ const place = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+ walls.push(place);
+ d.walls = walls;
+ toast("🧱 壁を設置しました！");
  if(state.local) { state.room.gameData = d; renderGameContent(); }
  else { updateRoom({gameData: d}); }
 }
@@ -3709,7 +3762,18 @@ function handleDoubtDraw(){
 
 function submitDoubtDeclare(isDoubtOrLie){
   const val = Number($("doubtDeclareInput")?.value) || 10;
-  submitChoice(isDoubtOrLie ? "doubt_or_lie" : val);
+  if(!state.room?.gameData) return;
+  const d = JSON.parse(JSON.stringify(state.room.gameData));
+  if(!d.doubt) d.doubt = {round: 3, total: 10, declarations: {}, douters: []};
+  if(!d.doubt.declarations) d.doubt.declarations = {};
+  d.doubt.declarations[state.uid] = { val, doubted: isDoubtOrLie };
+  if(state.local) {
+    state.room.gameData = d;
+    renderGameContent();
+  } else {
+    updateRoom({gameData: d});
+  }
+  submitChoice(isDoubtOrLie ? "doubt" : val);
 }
 
 function handleMysteryDraw(takeMore){
@@ -3754,7 +3818,18 @@ function handleDoubtDraw(){
 
 function submitDoubtDeclare(isDoubtOrLie){
   const val = Number($("doubtDeclareInput")?.value) || 10;
-  submitChoice(isDoubtOrLie ? "doubt_or_lie" : val);
+  if(!state.room?.gameData) return;
+  const d = JSON.parse(JSON.stringify(state.room.gameData));
+  if(!d.doubt) d.doubt = {round: 3, total: 10, declarations: {}, douters: []};
+  if(!d.doubt.declarations) d.doubt.declarations = {};
+  d.doubt.declarations[state.uid] = { val, doubted: isDoubtOrLie };
+  if(state.local) {
+    state.room.gameData = d;
+    renderGameContent();
+  } else {
+    updateRoom({gameData: d});
+  }
+  submitChoice(isDoubtOrLie ? "doubt" : val);
 }
 
 function flipMemory(i){
