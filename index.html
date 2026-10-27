@@ -136,27 +136,29 @@
             transform: scale(1);
         }
 
-        /* アイデア1 & 3：HUDヘッダーの極限スリム化と引き算の美学の徹底（非アクティブ時は透過・フェードアウトしテキストへ没入） */
+        /* アイデア1 & 3：HUDヘッダーの極限スリム化と引き算の美学の徹底（タイピング中や静寂時は透過・フェードアウトしテキストへ没入） */
         .hud-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 8px 16px;
-            background: rgba(14, 18, 30, 0.65);
+            background: rgba(14, 18, 30, 0.5);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.04);
             margin-bottom: 12px;
             z-index: 15;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-            transition: border-color 0.3s ease, opacity 0.4s ease, transform 0.4s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            opacity: 0.55;
+            transition: border-color 0.3s ease, opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s ease;
         }
 
-        .screen.active .hud-header {
-            opacity: 0.9;
+        #main-screen.typing-active .hud-header {
+            opacity: 0.25;
+            transform: translateY(-3px);
         }
 
         .screen.active .hud-header:hover {
@@ -822,19 +824,18 @@
             </div>
         </div>
 
-        <!-- スタート画面 -->
+        <!-- スタート画面（引き算の美学に基づく極限まで洗練されたミニマルUI） -->
         <div id="start-screen" class="screen active">
             <div class="title-logo">ECHOES OF<br>REASON</div>
             <div class="title-sub">- 記憶の伏線と7日間のループ -</div>
             <button class="btn" onclick="game.startNewGame()">物語を始める</button>
             <button class="btn btn-secondary" id="continue-btn" onclick="game.loadGame()" style="display:none;">記憶を再開する</button>
             
-            <!-- 整理されたスタート画面：引き算の美学によるミニマルUI -->
-            <button class="btn btn-secondary" onclick="game.openArchiveModal()" style="width:80%; max-width:280px; font-size:0.85rem; margin-top:6px; border-color:rgba(93,109,255,0.4); color:var(--text-main);">
-                💎 記憶アーカイブ（特典 & ネットワーク）
+            <button class="btn btn-secondary" onclick="game.openArchiveModal()" style="width:80%; max-width:280px; font-size:0.82rem; margin-top:6px; border-color:rgba(93,109,255,0.3); color:var(--text-sub);">
+                💎 記憶アーカイブ室
             </button>
 
-            <div style="margin-top:16px; font-size:0.7rem; color:var(--text-sub); letter-spacing:1px;">
+            <div style="margin-top:16px; font-size:0.7rem; color:var(--text-sub); letter-spacing:1px; opacity:0.8;">
                 推奨：サウンドON / ループの果てに真実が待つ
             </div>
         </div>
@@ -906,17 +907,20 @@
         </div>
 
         <!-- アイデア3：パズルモーダルの視覚ノイズ整理とアクション領域の洗練 -->
+        <!-- アイデア3：パズルモーダルの視覚ノイズ整理とアクション領域の洗練 -->
         <div id="puzzle-modal">
-            <h3 style="color:var(--gold); margin-bottom:6px; font-size:0.95rem;">【記憶復元プロトコル】</h3>
-            <p style="font-size:0.75rem; color:var(--text-sub); text-align:center; margin-bottom:4px;" id="puzzle-desc-text">
-                タイルをタップして1〜8に並べ替えよ
-            </p>
-            <div style="font-size:0.7rem; color:var(--gold); margin:2px 0;" id="puzzle-combo-display">COMBO: 0 | Bonus Sync: +0%</div>
-            <div class="puzzle-success-msg" id="puzzle-success-msg">✔ 同期完了</div>
-            <div class="puzzle-grid" id="puzzle-grid"></div>
-            <div style="display:flex; gap:6px;">
-                <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:6px 14px; font-size:0.75rem;">スキップ</button>
-                <button class="btn btn-secondary" id="puzzle-autopass-btn" onclick="game.useAutoPuzzle()" style="width:auto; padding:6px 14px; font-size:0.75rem; border-color:var(--gold); color:var(--gold);">自動解析</button>
+            <div style="background:rgba(18,23,40,0.85); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:18px; display:flex; flex-direction:column; align-items:center; backdrop-filter:blur(24px); box-shadow:0 20px 50px rgba(0,0,0,0.8);">
+                <h3 style="color:var(--gold); margin-bottom:4px; font-size:0.92rem; letter-spacing:1px;">【記憶復元プロトコル】</h3>
+                <p style="font-size:0.72rem; color:var(--text-sub); text-align:center; margin-bottom:6px;" id="puzzle-desc-text">
+                    タイルをタップまたはスワイプして1〜8に並べ替えよ
+                </p>
+                <div style="font-size:0.7rem; color:var(--gold); margin-bottom:4px; font-weight:bold;" id="puzzle-combo-display">COMBO: 0 | Bonus Sync: +0%</div>
+                <div class="puzzle-success-msg" id="puzzle-success-msg">✔ 同期完了</div>
+                <div class="puzzle-grid" id="puzzle-grid"></div>
+                <div style="display:flex; gap:8px; margin-top:4px;">
+                    <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:6px 14px; font-size:0.72rem; border-radius:8px;">スキップ</button>
+                    <button class="btn btn-secondary" id="puzzle-autopass-btn" onclick="game.useAutoPuzzle()" style="width:auto; padding:6px 14px; font-size:0.72rem; border-radius:8px; border-color:var(--gold); color:var(--gold);">自動解析</button>
+                </div>
             </div>
         </div>
 
@@ -2162,7 +2166,9 @@
                 
                 const dialogEl = document.getElementById('dialog-text');
                 const hintEl = document.getElementById('dialog-hint');
+                const mainScreen = document.getElementById('main-screen');
                 
+                if (mainScreen) mainScreen.classList.add('typing-active');
                 if (dialogEl) dialogEl.innerText = '';
                 this.currentFullText = text;
                 this.state = GAME_STATES.TYPING;
@@ -2212,7 +2218,9 @@
                 const dialogEl = document.getElementById('dialog-text');
                 const choicesBox = document.getElementById('choices-container');
                 const hintEl = document.getElementById('dialog-hint');
+                const mainScreen = document.getElementById('main-screen');
                 
+                if (mainScreen) mainScreen.classList.remove('typing-active');
                 if (dialogEl && this.currentFullText) {
                     dialogEl.innerText = this.currentFullText;
                 }
