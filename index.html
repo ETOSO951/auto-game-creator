@@ -514,7 +514,7 @@
             </div>
 
             <!-- ダイアログエリア -->
-            <div class="dialog-box" id="dialog-box">
+            <div class="dialog-box" id="dialog-box" onclick="game.handleDialogClick()">
                 <div class="speaker-name" id="speaker-name">システム</div>
                 <div class="dialog-text" id="dialog-text">...</div>
                 <div class="dialog-hint" id="dialog-hint">TAP TO FAST-FORWARD▶</div>
@@ -577,14 +577,15 @@
                 }
             }
 
-            playBeep(freq = 440, type = 'sine', duration = 0.1) {
+            playBeep(freq = 440, type = 'sine', duration = 0.1, randomize = false) {
                 if (!this.ctx) return;
                 try {
+                    const finalFreq = randomize ? freq + (Math.random() * 60 - 30) : freq;
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     osc.type = type;
-                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    osc.frequency.setValueAtTime(finalFreq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
@@ -830,10 +831,44 @@
                 this.syncRate = 0;
                 this.puzzleBoard = [1, 2, 3, 4, 5, 6, 7, 0, 8]; // スライドパズル
                 this.allForeshadowsCount = 4;
+                this.choiceLock = false;
+                this.touchStartX = 0;
+                this.touchStartY = 0;
             }
 
             init() {
                 this.checkSaveData();
+                this.bindPuzzleTouchEvents();
+            }
+
+            resetState() {
+                this.currentScene = 'start';
+                this.unlockedForeshadows.clear();
+                this.syncRate = 0;
+                this.choiceLock = false;
+                localStorage.removeItem('echoes_save');
+            }
+
+            bindPuzzleTouchEvents() {
+                const grid = document.getElementById('puzzle-grid');
+                if (!grid) return;
+
+                grid.addEventListener('touchstart', (e) => {
+                    if (e.touches.length > 0) {
+                        this.touchStartX = e.touches[0].clientX;
+                        this.touchStartY = e.touches[0].clientY;
+                    }
+                }, { passive: true });
+
+                grid.addEventListener('touchend', (e) => {
+                    if (e.changedTouches.length > 0) {
+                        const diffX = e.changedTouches[0].clientX - this.touchStartX;
+                        const diffY = e.changedTouches[0].clientY - this.touchStartY;
+                        if (Math.abs(diffX) > 30 || Math.abs(diffY) > 30) {
+                            this.handlePuzzleSwipe(diffX, diffY);
+                        }
+                    }
+                }, { passive: true });
             }
 
             checkSaveData() {
@@ -878,6 +913,8 @@
             unlockForeshadow(info) {
                 if (!this.unlockedForeshadows.has(info.id)) {
                     this.unlockedForeshadows.add(info.id);
+                    // 同調率 (Sync Rate) を獲得伏線数に応じて自動更新
+                    this.syncRate = Math.min(100, Math.round((this.unlockedForeshadows.size / this.allForeshadowsCount) * 100));
                     sound.playRecallSound();
 
                     // 画面フラッシュ演出
@@ -958,8 +995,10 @@
                     const btn = document.createElement('button');
                     btn.className = `choice-btn ${c.isTruth ? 'truth' : ''}`;
                     btn.innerHTML = `<span>${c.text}</span> <span>➔</span>`;
-                    btn.onclick = () => {
-                        if (this.isTyping) return;
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        // タイピング中またはダイアログスキップ直後の誤操作ロック判定
+                        if (this.isTyping || this.choiceLock) return;
                         sound.playBeep(600, 'sine', 0.05);
                         if (c.puzzle) {
                             this.startPuzzle(c.next);
@@ -988,7 +1027,7 @@
                     if (idx < text.length) {
                         dialogEl.innerText += text.charAt(idx);
                         idx++;
-                        if (idx % 3 === 0) sound.playBeep(800, 'sine', 0.02);
+                        if (idx % 2 === 0) sound.playBeep(850, 'sine', 0.02, true);
                     } else {
                         this.completeTypewriter();
                     }
@@ -1013,6 +1052,12 @@
                 this.isTyping = false;
                 if (choicesBox) choicesBox.classList.remove('disabled');
                 if (hintEl) hintEl.style.display = 'none';
+
+                // スキップ直後の誤入力（事故タップ）を防止するミリ秒ウェイト
+                this.choiceLock = true;
+                setTimeout(() => {
+                    this.choiceLock = false;
+                }, 200);
             }
 
             stopTypewriter() {
