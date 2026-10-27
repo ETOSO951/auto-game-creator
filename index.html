@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ECHOES OF REASON - 伏線回収アドベンチャー</title>
+    <style>
+        :root {
+            --bg-color: #0b0d17;
+            --card-bg: rgba(22, 27, 46, 0.75);
+            --primary: #5d6dff;
+            --primary-glow: rgba(93, 109, 255, 0.4);
+            --accent: #ff477e;
+            --accent-glow: rgba(255, 71, 126, 0.4);
+            --text-main: #f0f3fe;
+            --text-sub: #a0aabf;
+            --gold: #ffb703;
+            --danger: #ef476f;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: var(--font-family);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ゲームコンテナ */
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 100%;
+            max-height: 900px;
+            background: radial-gradient(circle at center, #161b33 0%, #080910 100%);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+
+        /* 背景エフェクトCanvas */
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* ノイズ overlay */
+        .glitch-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* スクリーン共通レイアウト */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            transform: scale(0.98);
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+
+        /* ヘッダー / スコアUI */
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 16px;
+            z-index: 15;
+        }
+
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hud-label {
+            font-size: 0.7rem;
+            color: var(--text-sub);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .hud-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-shadow: 0 0 8px var(--primary-glow);
+        }
+
+        /* スタート画面 */
+        #start-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: radial-gradient(circle at center, rgba(30,38,74,0.8) 0%, rgba(8,9,16,0.95) 100%);
+        }
+
+        .title-logo {
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #fff 0%, var(--primary) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            filter: drop-shadow(0 0 15px var(--primary-glow));
+        }
+
+        .title-sub {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary) 0%, #4353d9 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px var(--primary-glow);
+            transition: all 0.2s ease;
+            width: 80%;
+            max-width: 280px;
+            margin: 8px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+            box-shadow: 0 2px 10px var(--primary-glow);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: none;
+            color: var(--text-sub);
+        }
+
+        /* メインアドベンチャー画面 */
+        #main-screen {
+            justify-content: flex-end;
+            padding-bottom: 20px;
+        }
+
+        /* 視覚演出ウィンドウ（キャラクター／シーン） */
+        .visual-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            margin-bottom: 16px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .avatar-box {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 30px var(--primary-glow);
+            transition: all 0.5s ease;
+        }
+
+        .avatar-icon {
+            font-size: 3.5rem;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));
+        }
+
+        /* ダイアログボックス */
+        .dialog-box {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 20px;
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            margin-bottom: 12px;
+        }
+
+        .speaker-name {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--accent);
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .dialog-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-main);
+            flex: 1;
+            white-space: pre-wrap;
+        }
+
+        /* 選択肢ボタン群 */
+        .choices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .choice-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-main);
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .choice-btn:hover, .choice-btn:active {
+            background: rgba(93, 109, 255, 0.2);
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .choice-btn.truth {
+            border-color: var(--gold);
+            background: rgba(255, 183, 3, 0.1);
+        }
+
+        /* ミニゲーム（記憶復元パズル） */
+        #puzzle-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(8, 9, 16, 0.95);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #puzzle-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .puzzle-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 270px;
+            height: 270px;
+            margin: 20px 0;
+        }
+
+        .puzzle-tile {
+            background: var(--card-bg);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--text-main);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            transition: transform 0.1s ease, background 0.2s;
+        }
+
+        .puzzle-tile.empty {
+            background: transparent;
+            border: 1px dashed rgba(255,255,255,0.1);
+            box-shadow: none;
+        }
+
+        /* ゲームオーバー・エンディング画面 */
+        #result-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: radial-gradient(circle at center, rgba(20,15,35,0.95) 0%, rgba(5,5,10,0.98) 100%);
+        }
+
+        .result-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+
+        .result-title.bad { color: var(--danger); text-shadow: 0 0 10px rgba(239,71,111,0.5); }
+        .result-title.normal { color: var(--text-sub); }
+        .result-title.true { color: var(--gold); text-shadow: 0 0 20px rgba(255,183,3,0.8); }
+
+        .result-desc {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            line-height: 1.6;
+            margin-bottom: 24px;
+            max-width: 320px;
+        }
+
+        .recall-list {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 12px;
+            width: 100%;
+            max-width: 340px;
+            margin-bottom: 24px;
+            text-align: left;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .recall-item {
+            font-size: 0.75rem;
+            color: var(--accent);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* 特殊エフェクト：フラッシュバック */
+        .flashback {
+            animation: flashAnim 0.8s ease-in-out;
+        }
+
+        @keyframes flashAnim {
+            0% { filter: invert(0); }
+            50% { filter: invert(1) hue-rotate(180deg); }
+            100% { filter: invert(0); }
+        }
+
+        /* 伏線解除トースト通知 */
+        #foreshadow-toast {
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: linear-gradient(90deg, #ffb703, #ff477e);
+            color: #000;
+            font-weight: bold;
+            font-size: 0.8rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 0 15px rgba(255,183,3,0.6);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 50;
+        }
+
+        #foreshadow-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- 背景演出Canvas -->
+        <canvas id="bg-canvas"></canvas>
+        <div class="glitch-overlay"></div>
+
+        <!-- 伏線回収通知トースト -->
+        <div id="foreshadow-toast">⚡ 伏線回収：<span id="toast-text"></span></div>
+
+        <!-- スタート画面 -->
+        <div id="start-screen" class="screen active">
+            <div class="title-logo">ECHOES OF<br>REASON</div>
+            <div class="title-sub">- 記憶の伏線と7日間のループ -</div>
+            <button class="btn" onclick="game.startNewGame()">物語を始める</button>
+            <button class="btn btn-secondary" id="continue-btn" onclick="game.loadGame()" style="display:none;">記憶を再開する</button>
+            <div style="margin-top:20px; font-size:0.75rem; color:var(--text-sub);">
+                推奨：サウンドON / ループの果てに真実が待つ
+            </div>
+        </div>
+
+        <!-- メイン画面 -->
+        <div id="main-screen" class="screen">
+            <!-- HUD スコアUI -->
+            <div class="hud-header">
+                <div class="hud-item">
+                    <span class="hud-label">世界崩壊まで</span>
+                    <span class="hud-value" id="hud-days">残り 7 日</span>
+                </div>
+                <div class="hud-item" style="text-align: right;">
+                    <span class="hud-label">記憶同調率 (Sync)</span>
+                    <span class="hud-value" id="hud-sync">0 %</span>
+                </div>
+            </div>
+
+            <!-- ビジュアルエリア -->
+            <div class="visual-area" id="visual-area">
+                <div class="avatar-box" id="avatar-box">
+                    <div class="avatar-icon" id="avatar-icon">👁️</div>
+                </div>
+            </div>
+
+            <!-- ダイアログエリア -->
+            <div class="dialog-box">
+                <div class="speaker-name" id="speaker-name">システム</div>
+                <div class="dialog-text" id="dialog-text">...</div>
+            </div>
+
+            <!-- 選択肢エリア -->
+            <div class="choices-container" id="choices-container">
+                <!-- Dynamic choices -->
+            </div>
+        </div>
+
+        <!-- パズル・ミニゲーム モーダル -->
+        <div id="puzzle-modal">
+            <h3 style="color:var(--gold); margin-bottom:8px;">【記憶復元プロトコル】</h3>
+            <p style="font-size:0.8rem; color:var(--text-sub); text-align:center;">
+                数字を順番(1〜8)に並べ替えて断片的な記憶を修復せよ。
+            </p>
+            <div class="puzzle-grid" id="puzzle-grid"></div>
+            <button class="btn btn-secondary" onclick="game.skipPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem;">記憶を解析(スキップ)</button>
+        </div>
+
+        <!-- 結果 / エンディング画面 -->
+        <div id="result-screen" class="screen">
+            <div class="result-title" id="result-title">END</div>
+            <div class="result-desc" id="result-desc">...</div>
+            
+            <div style="font-size:0.8rem; color:var(--text-sub); margin-bottom:8px; text-align:left; width:100%; max-width:340px;">
+                【今回の世界線で回収した伏線】
+            </div>
+            <div class="recall-list" id="recall-list">
+                <!-- 回収された伏線のリスト -->
+            </div>
+
+            <div class="hud-header" style="width:100%; max-width:340px;">
+                <div class="hud-item">
+                    <span class="hud-label">最終同調スコア</span>
+                    <span class="hud-value" id="final-score">0 PTS</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">全伏線回収率</span>
+                    <span class="hud-value" id="final-completion">0 %</span>
+                </div>
+            </div>
+
+            <button class="btn" onclick="game.restartLoop()">時を巻き戻してやり直す</button>
+        </div>
+    </div>
+
+    <script>
+        /* --- Web Audio API によるサウンド生成 --- */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playBeep(freq = 440, type = 'sine', duration = 0.1) {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e){}
+            }
+
+            playRecallSound() {
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => this.playBeep(freq, 'triangle', 0.3), idx * 80);
+                });
+            }
+
+            playGlitchSound() {
+                if (!this.ctx) return;
+                this.playBeep(120, 'sawtooth', 0.2);
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        /* --- 背景パーティクル・エフェクト --- */
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedY = -(Math.random() * 0.5 + 0.2);
+                this.alpha = Math.random() * 0.5 + 0.1;
+            }
+            update() {
+                this.y += this.speedY;
+                if (this.y < 0) this.reset();
+            }
+            draw() {
+                ctx.fillStyle = `rgba(93, 109, 255, ${this.alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 40; i++) particles.push(new Particle());
+
+        function animateBg() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animateBg);
+        }
+        animateBg();
+
+        /* --- シナリオデータベース & 伏線設計 --- */
+        /*
+           【伏線マップ】
+           1. key_clock: 「文字盤の刻印『00:00』」 ➔ 崩壊するのは世界ではなく端末のタイマー
+           2. key_girl: 「少女エリスの口癖『また会えた』」 ➔ 主人公は過去何千回もループしている
+           3. key_noise: 「特定の会話で発生するバグ」 ➔ エリスは生身人間ではなく感情補助AI
+           4. key_name: 「アレンという名前に反応しない自分」 ➔ 主人公の正体は開発者本人「Dr.エリック」
+        */
+
+        const SCENARIO = {
+            start: {
+                day: 7,
+                speaker: "？？？",
+                icon: "👁️",
+                color: "#5d6dff",
+                text: "……目を覚ましてください。\n世界が「7日後」に終わりを迎えます。",
+                choices: [
+                    { text: "君は誰だ？", next: "sec_1_who" },
+                    { text: "ここはどこだ？", next: "sec_1_where" }
+                ]
+            },
+            sec_1_who: {
+                day: 7,
+                speaker: "少女エリス",
+                icon: "👩‍💼",
+                color: "#ff477e",
+                text: "私はエリス。あなたの補助AI……いいえ、記憶の案内人です。\nふふ、『また会えましたね』。",
+                foreshadow: { id: "key_girl", title: "言葉の違和感「また会えた」" },
+                choices: [
+                    { text: "「また」……？ 初対面じゃないのか？", next: "sec_2_loop_hint" },
+                    { text: "7日後に何が起きる？", next: "sec_2_main" }
+                ]
+            },
+            sec_1_where: {
+                day: 7,
+                speaker: "少女エリス",
+                icon: "👩‍💼",
+                color: "#ff477e",
+                text: "ここは静寂の部屋。崩壊していく世界の特等席です。\n壁の大きな【デジタル時計】を見てください。",
+                choices: [
+                    { text: "時計をじっと観察する", next: "sec_1_clock_obs" },
+                    { text: "エリスについて訊く", next: "sec_1_who" }
+                ]
+            },
+            sec_1_clock_obs: {
+                day: 7,
+                speaker: "観察",
+                icon: "⏱️",
+                color: "#ffb703",
+                text: "時計はカウントダウンしているが、秒針の動きが不自然に歪んでいる。\n裏側に『PROJECT: REASON - E.C.』と刻印されている。",
+                foreshadow: { id: "key_clock", title: "時計の刻印『E.C.』" },
+                choices: [
+                    { text: "刻印について深く考える", next: "sec_2_main" },
+                    { text: "気にせず先を急ぐ", next: "sec_2_main" }
+                ]
+            },
+            sec_2_loop_hint: {
+                day: 6,
+                speaker: "エリス",
+                icon: "👩‍💼",
+                color: "#ff477e",
+                text: "……さあ？ あなたが忘れているだけかもしれません。\nあなたの名は「アレン」。そうですね？",
+                choices: [
+                    { text: "「ああ、アレンだ」（直感で応える）", next: "sec_2_main" },
+                    { text: "「アレン」という名に強烈な違和感を覚える", next: "sec_2_name_glitch" }
+                ]
+            },
+            sec_2_name_glitch: {
+                day: 6,
+                speaker: "視界のノイズ",
+                icon: "⚡",
+                color: "#ef476f",
+                text: "【エラー：ID拒絶】\n「アレン」の名に脳が激しく拒絶反応を示した！視界にノイズが走る。",
+                foreshadow: { id: "key_name", title: "偽りの名前への拒絶" },
+                choices: [
+                    { text: "痛みを堪えて記憶を探索する", puzzle: true, next: "sec_3_puzzle_after" }
+                ]
+            },
+            sec_2_main: {
+                day: 5,
+                speaker: "エリス",
+                icon: "👩‍💼",
+                color: "#ff477e",
+                text: "5日後、世界の【記憶領域】が完全に消去されます。\nそれを防ぐには、あなたが途切れた記憶を取り戻すしかありません。",
+                choices: [
+                    { text: "記憶を取り戻すパズルを始める", puzzle: true, next: "sec_3_puzzle_after" },
+                    { text: "諦めてこの部屋で静かに過ごす", next: "bad_end_1" }
+                ]
+            },
+            sec_3_puzzle_after: {
+                day: 4,
+                speaker: "復元された記憶",
+                icon: "💾",
+                color: "#5d6dff",
+                text: "断片的な画像が脳裏に浮かぶ。\n白衣を着た男と、病室のベッドで眠る少女……そして【ノイズ音】。",
+                choices: [
+                    { text: "エリスの顔を見る", next: "sec_3_check_girl" },
+                    { text: "周りの状況を分析する", next: "sec_4_deep" }
+                ]
+            },
+            sec_3_check_girl: {
+                day: 3,
+                speaker: "エリス",
+                icon: "🤖",
+                color: "#ff477e",
+                text: "エリスが一瞬、ホログラムのようにブレた。\n「……私の顔に、何かついていますか？ ドクター」",
+                foreshadow: { id: "key_noise", title: "エリスの正体「AIとドクター」" },
+                choices: [
+                    { text: "「今、ドクターと言ったか？」", next: "sec_4_revelation" },
+                    { text: "気のせいか……", next: "sec_4_deep" }
+                ]
+            },
+            sec_4_deep: {
+                day: 2,
+                speaker: "エリス",
+                icon: "👩‍💼",
+                color: "#ff477e",
+                text: "残された時間はあとわずかです。\nあなたは記憶の核心に触れる覚悟がありますか？",
+                choices: [
+                    { text: "覚悟を決めて真実を聞く", next: "sec_4_revelation" },
+                    { text: "怖くなって目を閉じる", next: "bad_end_2" }
+                ]
+            },
+            sec_4_revelation: {
+                day: 1,
+                speaker: "世界の崩壊",
+                icon: "⚠️",
+                color: "#ef476f",
+                text: "空間が歪み始める！\nすべての伏線が頭の中で一つに繋がっていく……！",
+                choices: [
+                    { text: "真実を構築する（伏線チェック）", next: "sec_final_branch" }
+                ]
+            },
+            sec_final_branch: {
+                day: 0,
+                speaker: "思考回路",
+                icon: "🧠",
+                color: "#ffb703",
+                text: "すべての手がかりが揃った。\n崩壊しようとしている「世界」とは何なのか？\n私とエリスの真の関係とは……！？",
+                dynamicChoices: true // 獲得した伏線によって変化
+            },
+
+            // --- ENDINGS ---
+            bad_end_1: {
+                isEnd: true,
+                type: "bad",
+                title: "BAD END 1：永久の静寂",
+                text: "あなたは思考を止めた。\n7日目が訪れ、世界は静かに真っ暗な闇へと呑み込まれて行った……。"
+            },
+            bad_end_2: {
+                isEnd: true,
+                type: "bad",
+                title: "BAD END 2：エラーによる強制終了",
+                text: "現実からの逃避により、脳内の記憶システムがオーバーヒートを起こした。\nあなたの意識は二度と目覚めなかった。"
+            },
+            normal_end: {
+                isEnd: true,
+                type: "normal",
+                title: "NORMAL END：偽りの安らぎ",
+                text: "あなたはエリスと共に滅びゆく世界を受け入れた。\n真実に辿り着くことはなかったが、最期の瞬間、優しい温もりに包まれた。"
+            },
+            true_end: {
+                isEnd: true,
+                type: "true",
+                title: "TRUE END：Re:Birth - 記憶の彼方へ",
+                text: "【伏線完全回収】\n崩壊するのは世界ではなく、脳死状態にあるあなた（Dr.エリック）の意識端末だった。\nエリスは亡き妹の面影を残した脳内AI。\nあなたは自らの意志で端末の保護ロックを解除し、妹の記憶を未来へ残すプログラムを起動して、満足げに微笑みながら目覚めた――。"
+            }
+        };
+
+        /* --- ゲームロジック・状態管理 --- */
+        class GameEngine {
+            constructor() {
+                this.currentScene = 'start';
+                this.unlockedForeshadows = new Set();
+                this.syncRate = 0;
+                this.puzzleBoard = [1, 2, 3, 4, 5, 6, 7, 0, 8]; // スライドパズル
+                this.allForeshadowsCount = 4;
+            }
+
+            init() {
+                this.checkSaveData();
+            }
+
+            checkSaveData() {
+                if (localStorage.getItem('echoes_save')) {
+                    document.getElementById('continue-btn').style.display = 'inline-block';
+                }
+            }
+
+            startNewGame() {
+                this.currentScene = 'start';
+                this.unlockedForeshadows.clear();
+                this.syncRate = 0;
+                this.switchScreen('main-screen');
+                this.renderScene('start');
+            }
+
+            loadGame() {
+                const data = JSON.parse(localStorage.getItem('echoes_save'));
+                if (data) {
+                    this.currentScene = data.scene;
+                    this.unlockedForeshadows = new Set(data.foreshadows);
+                    this.syncRate = data.sync;
+                    this.switchScreen('main-screen');
+                    this.renderScene(this.currentScene);
+                }
+            }
+
+            saveGame() {
+                const data = {
+                    scene: this.currentScene,
+                    foreshadows: Array.from(this.unlockedForeshadows),
+                    sync: this.syncRate
+                };
+                localStorage.setItem('echoes_save', JSON.stringify(data));
+            }
+
+            switchScreen(screenId) {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(screenId).classList.add('active');
+            }
+
+            unlockForeshadow(info) {
+                if (!this.unlockedForeshadows.has(info.id)) {
+                    this.unlockedForeshadows.add(info.id);
+                    this.syncRate += 25;
+                    sound.playRecallSound();
+
+                    // 画面フラッシュ演出
+                    document.getElementById('main-screen').classList.add('flashback');
+                    setTimeout(() => document.getElementById('main-screen').classList.remove('flashback'), 800);
+
+                    // トースト表示
+                    const toast = document.getElementById('foreshadow-toast');
+                    document.getElementById('toast-text').innerText = info.title;
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 3000);
+                }
+            }
+
+            renderScene(sceneKey) {
+                this.currentScene = sceneKey;
+                const node = SCENARIO[sceneKey];
+
+                if (!node) return;
+
+                // 伏線解放チェック
+                if (node.foreshadow) {
+                    this.unlockForeshadow(node.foreshadow);
+                }
+
+                // エンディング判定
+                if (node.isEnd) {
+                    this.showResult(node);
+                    return;
+                }
+
+                // HUD更新
+                document.getElementById('hud-days').innerText = `残り ${node.day} 日`;
+                document.getElementById('hud-sync').innerText = `${this.syncRate} %`;
+
+                // UI更新
+                document.getElementById('speaker-name').innerText = node.speaker;
+                document.getElementById('speaker-name').style.color = node.color || '#ff477e';
+                document.getElementById('avatar-icon').innerText = node.icon || '👁️';
+                document.getElementById('avatar-box').style.background = `radial-gradient(circle, ${node.color || '#5d6dff'} 0%, transparent 70%)`;
+
+                // ダイアログ文字送り
+                this.typeWriter(node.text);
+
+                // 選択肢レンダリング
+                const choicesBox = document.getElementById('choices-container');
+                choicesBox.innerHTML = '';
+
+                let choices = node.choices || [];
+
+                // 最終章の動的選択肢生成（伏線回収度による分岐）
+                if (node.dynamicChoices) {
+                    choices = [];
+                    choices.push({ text: "世界は本当に崩壊するのか？（標準の理解）", next: "normal_end" });
+
+                    if (this.unlockedForeshadows.size >= 3) {
+                        choices.push({
+                            text: "⚡【真実の選択】これは脳内AI『エリス』と自分の記憶プログラムだ！",
+                            next: "true_end",
+                            isTruth: true
+                        });
+                    } else {
+                        choices.push({ text: "❓（記憶の伏線が足りず、真実が見えない…）", next: "bad_end_2" });
+                    }
+                }
+
+                choices.forEach(c => {
+                    const btn = document.createElement('button');
+                    btn.className = `choice-btn ${c.isTruth ? 'truth' : ''}`;
+                    btn.innerHTML = `<span>${c.text}</span> <span>➔</span>`;
+                    btn.onclick = () => {
+                        sound.playBeep(600, 'sine', 0.05);
+                        if (c.puzzle) {
+                            this.startPuzzle(c.next);
+                        } else {
+                            this.renderScene(c.next);
+                        }
+                    };
+                    choicesBox.appendChild(btn);
+                });
+
+                this.saveGame();
+            }
+
+            typeWriter(text) {
+                const dialogEl = document.getElementById('dialog-text');
+                dialogEl.innerText = '';
+                let idx = 0;
+                clearInterval(this.typeInterval);
+
+                this.typeInterval = setInterval(() => {
+                    if (idx < text.length) {
+                        dialogEl.innerText += text.charAt(idx);
+                        idx++;
+                        if (idx % 3 === 0) sound.playBeep(800, 'sine', 0.02);
+                    } else {
+                        clearInterval(this.typeInterval);
+                    }
+                }, 25);
+            }
+
+            /* --- スライドパズル ミニゲーム --- */
+            startPuzzle(nextScene) {
+                this.puzzleNextScene = nextScene;
+                document.getElementById('puzzle-modal').classList.add('active');
+                this.puzzleBoard = [1, 2, 3, 4, 0, 5, 7, 8, 6]; // シャッフル状態
+                this.renderPuzzle();
+            }
+
+            renderPuzzle() {
+                const grid = document.getElementById('puzzle-grid');
+                grid.innerHTML = '';
+                this.puzzleBoard.forEach((num, idx) => {
+                    const tile = document.createElement('div');
+                    tile.className = `puzzle-tile ${num === 0 ? 'empty' : ''}`;
+                    tile.innerText = num !== 0 ? num : '';
+                    tile.onclick = () => this.moveTile(idx);
+                    grid.appendChild(tile);
+                });
+            }
+
+            moveTile(idx) {
+                const emptyIdx = this.puzzleBoard.indexOf(0);
+                const validMoves = [idx - 1, idx + 1, idx - 3, idx + 3];
+
+                if (validMoves.includes(emptyIdx)) {
+                    // 横移動の境界判定
+                    if (Math.abs(idx % 3 - emptyIdx % 3) + Math.abs(Math.floor(idx / 3) - Math.floor(emptyIdx / 3)) === 1) {
+                        [this.puzzleBoard[idx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[idx]];
+                        sound.playBeep(400, 'triangle', 0.05);
+                        this.renderPuzzle();
+                        this.checkPuzzleWin();
+                    }
+                }
+            }
+
+            checkPuzzleWin() {
+                const winState = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+                if (JSON.stringify(this.puzzleBoard) === JSON.stringify(winState)) {
+                    setTimeout(() => {
+                        alert("【記憶の復元に成功しました】");
+                        this.skipPuzzle();
+                    }, 200);
+                }
+            }
+
+            skipPuzzle() {
+                document.getElementById('puzzle-modal').classList.remove('active');
+                this.renderScene(this.puzzleNextScene);
+            }
+
+            /* --- エンディング表示 --- */
+            showResult(node) {
+                this.switchScreen('result-screen');
+                sound.playGlitchSound();
+
+                const titleEl = document.getElementById('result-title');
+                titleEl.innerText = node.title;
+                titleEl.className = `result-title ${node.type}`;
+
+                document.getElementById('result-desc').innerText = node.text;
+
+                // 伏線回収リスト描画
+                const listEl = document.getElementById('recall-list');
+                listEl.innerHTML = '';
+                
+                const allForeshadowDefs = [
+                    { id: "key_girl", title: "言葉の違和感「また会えた」" },
+                    { id: "key_clock", title: "時計の刻印『E.C.』" },
+                    { id: "key_name", title: "偽りの名前への拒絶" },
+                    { id: "key_noise", title: "エリスの正体「AIとドクター」" }
+                ];
+
+                allForeshadowDefs.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'recall-item';
+                    const isUnlocked = this.unlockedForeshadows.has(item.id);
+                    div.innerHTML = `${isUnlocked ? '✅' : '🔒'} <span>${isUnlocked ? item.title : '？？？？？？？？'}</span>`;
+                    if (!isUnlocked) div.style.color = 'var(--text-sub)';
+                    listEl.appendChild(div);
+                });
+
+                // スコア計算
+                const completionRate = Math.round((this.unlockedForeshadows.size / this.allForeshadowsCount) * 100);
+                document.getElementById('final-score').innerText = `${this.syncRate * 10} PTS`;
+                document.getElementById('final-completion').innerText = `${completionRate} %`;
+            }
+
+            restartLoop() {
+                this.switchScreen('start-screen');
+                this.checkSaveData();
+            }
+        }
+
+        const game = new GameEngine();
+        window.addEventListener('DOMContentLoaded', () => {
+            game.init();
+            document.body.addEventListener('touchstart', () => sound.init(), { once: true });
+            document.body.addEventListener('click', () => sound.init(), { once: true });
+        });
+    </script>
+</body>
+</html>
