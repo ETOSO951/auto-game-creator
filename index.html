@@ -883,24 +883,13 @@
         <!-- パズル・ミニゲーム モーダル -->
         <div id="puzzle-modal">
             <h3 style="color:var(--gold); margin-bottom:8px;">【記憶復元プロトコル】</h3>
-            <p style="font-size:0.8rem; color:var(--text-sub); text-align:center;">
-                タップまたはスワイプで数字を1〜8に並べ替えよ。
+            <p style="font-size:0.8rem; color:var(--text-sub); text-align:center;" id="puzzle-desc-text">
+                タップまたはスワイプで数字を1〜8に並べ替えよ。（コンボボーナス対応）
             </p>
+            <div style="font-size:0.75rem; color:var(--gold); margin:4px 0;" id="puzzle-combo-display">COMBO: 0 | Bonus Sync: +0%</div>
             <div class="puzzle-success-msg" id="puzzle-success-msg">✔ 記憶領域の同期完了</div>
             <div class="puzzle-grid" id="puzzle-grid"></div>
             <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem;">記憶を解析(スキップ)</button>
-        </div>
-
-        <!-- アイデア1：「記憶の断片」探索フェーズ モーダル -->
-        <div id="explore-modal">
-            <h3 style="color:var(--gold); margin-bottom:4px;">【残響データ探索】</h3>
-            <p style="font-size:0.75rem; color:var(--text-sub); text-align:center;" id="explore-desc">
-                浮遊する全ての光の欠片を回収せよ (0/3)
-            </p>
-            <div class="explore-area" id="explore-area">
-                <!-- 動的フラグメント配置 -->
-            </div>
-            <button class="btn btn-secondary" id="explore-skip-btn" onclick="game.finishExplore()" style="width:auto; padding:8px 16px; font-size:0.8rem; display:none;">解析完了（進む）</button>
         </div>
 
         <!-- 結果 / エンディング画面 -->
@@ -1306,6 +1295,11 @@
                 icon: "👁️",
                 color: "#5d6dff",
                 text: "……目を覚ましてください。\n世界が「7日後」に終わりを迎えます。",
+                onEnter: () => {
+                    if (Math.random() < 0.45) {
+                        game.addTimeout(() => game.triggerHazard(), 1200);
+                    }
+                },
                 choices: [
                     { text: "君は誰だ？", next: "sec_1_who" },
                     { text: "ここはどこだ？", next: "sec_1_where" }
@@ -1375,9 +1369,18 @@
                 color: "#ff477e",
                 text: "5日後、世界の【記憶領域】が完全に消去されます。\nそれを防ぐには、あなたが途切れた記憶を取り戻すしかありません。",
                 choices: [
-                    { text: "記憶を取り戻すパズルを始める", puzzle: true, next: "sec_3_puzzle_after" },
+                    { text: "記憶を取り戻すパズルを始める", puzzle: true, next: "sec_3_explore_phase" },
                     { text: "諦めてこの部屋で静かに過ごす", next: "bad_end_1" }
                 ]
+            },
+            sec_3_explore_phase: {
+                day: 4,
+                speaker: "システム",
+                icon: "💎",
+                color: "#ffb703",
+                text: "脳内に散らばる残響データの探索フェーズに移行します。",
+                explore: true,
+                next: "sec_3_puzzle_after"
             },
             sec_3_puzzle_after: {
                 day: 4,
@@ -1486,12 +1489,157 @@
                 this.isPuzzleClearing = false;
                 this.lastSkipTimestamp = 0;
                 this.currentFullText = '';
+
+                // アイデア拡張変数
+                this.karmaShards = 0;
+                this.loopCount = 1;
+                this.perkSpeedOn = false;
+                this.hazardActive = false;
+                this.hazardTimer = null;
+                this.puzzleCombo = 0;
+                this.puzzleBonusSync = 0;
+                this.exploreFragmentsRemaining = 3;
             }
 
             init() {
+                this.loadPerkData();
                 this.checkSaveData();
                 this.bindPuzzleTouchEvents();
                 this.bindGlobalSkipEvents();
+            }
+
+            loadPerkData() {
+                try {
+                    const raw = localStorage.getItem('echoes_meta');
+                    if (raw) {
+                        const data = JSON.parse(raw);
+                        this.karmaShards = data.shards || 0;
+                        this.loopCount = data.loops || 1;
+                        this.perkSpeedOn = !!data.speed;
+                    }
+                } catch(e){}
+                this.updatePerkUI();
+            }
+
+            savePerkData() {
+                try {
+                    const data = {
+                        shards: this.karmaShards,
+                        loops: this.loopCount,
+                        speed: this.perkSpeedOn
+                    };
+                    localStorage.setItem('echoes_meta', JSON.stringify(data));
+                } catch(e){}
+                this.updatePerkUI();
+            }
+
+            updatePerkUI() {
+                const shardsEl = document.getElementById('karma-shards');
+                const loopsEl = document.getElementById('loop-count');
+                const speedBtn = document.getElementById('perk-speed-btn');
+                if (shardsEl) shardsEl.innerText = this.karmaShards;
+                if (loopsEl) loopsEl.innerText = this.loopCount;
+                if (speedBtn) {
+                    speedBtn.innerText = `高速思考 (テキスト加速): ${this.perkSpeedOn ? 'ON' : 'OFF'}`;
+                    speedBtn.style.borderColor = this.perkSpeedOn ? 'var(--primary)' : 'rgba(255,255,255,0.2)';
+                }
+            }
+
+            togglePerkSpeed() {
+                this.perkSpeedOn = !this.perkSpeedOn;
+                sound.playBeep(520, 'sine', 0.05);
+                this.savePerkData();
+            }
+
+            triggerHazard() {
+                if (this.hazardActive) return;
+                this.hazardActive = true;
+                const overlay = document.getElementById('glitch-hazard-overlay');
+                const warning = document.getElementById('hazard-warning');
+                if (overlay) overlay.classList.add('active');
+                if (warning) warning.style.display = 'block';
+                sound.playGlitchSound();
+
+                this.hazardTimer = this.addTimeout(() => {
+                    if (this.hazardActive) {
+                        this.resolveHazard(true); // 鎮静化失敗時ペナルティ
+                    }
+                }, 4500);
+            }
+
+            resolveHazard(isFailure = false) {
+                if (!this.hazardActive) return;
+                this.hazardActive = false;
+                if (this.hazardTimer) {
+                    clearTimeout(this.hazardTimer);
+                    this.hazardTimer = null;
+                }
+                const overlay = document.getElementById('glitch-hazard-overlay');
+                const warning = document.getElementById('hazard-warning');
+                if (overlay) overlay.classList.remove('active');
+                if (warning) warning.style.display = 'none';
+
+                if (isFailure) {
+                    sound.playBeep(120, 'sawtooth', 0.2);
+                    this.syncRate = Math.max(0, this.syncRate - 15);
+                    const toast = document.getElementById('foreshadow-toast');
+                    document.getElementById('toast-text').innerText = "⚠️ 脳内エラー侵食が進行！同調率低下";
+                    toast.classList.add('show');
+                    this.addTimeout(() => toast.classList.remove('show'), 2500);
+                } else {
+                    sound.playBeep(780, 'sine', 0.1);
+                    this.karmaShards += 1;
+                    this.savePerkData();
+                }
+            }
+
+            startExplorePhase(nextScene) {
+                this.exploreNextScene = nextScene;
+                this.exploreFragmentsRemaining = 3;
+                const modal = document.getElementById('explore-modal');
+                const area = document.getElementById('explore-area');
+                const desc = document.getElementById('explore-desc');
+                const skipBtn = document.getElementById('explore-skip-btn');
+
+                if (desc) desc.innerText = `浮遊する全ての光の欠片を回収せよ (0/3)`;
+                if (skipBtn) skipBtn.style.display = 'none';
+                area.innerHTML = '';
+                modal.classList.add('active');
+
+                for (let i = 0; i < 3; i++) {
+                    const frag = document.createElement('div');
+                    frag.className = 'fragment-item';
+                    frag.style.left = `${Math.floor(Math.random() * 210 + 20)}px`;
+                    frag.style.top = `${Math.floor(Math.random() * 240 + 20)}px`;
+                    frag.innerHTML = '💎';
+
+                    const collectFrag = () => {
+                        if (frag.classList.contains('collected')) return;
+                        frag.classList.add('collected');
+                        sound.playBeep(920, 'sine', 0.08);
+                        this.exploreFragmentsRemaining--;
+                        if (desc) desc.innerText = `浮遊する全ての光の欠片を回収せよ (${3 - this.exploreFragmentsRemaining}/3)`;
+
+                        if (this.exploreFragmentsRemaining <= 0) {
+                            if (skipBtn) {
+                                skipBtn.style.display = 'inline-block';
+                                skipBtn.innerText = '解析完了（進む）';
+                            }
+                            this.karmaShards += 2;
+                            this.savePerkData();
+                        }
+                    };
+
+                    frag.onclick = collectFrag;
+                    frag.onpointerdown = collectFrag;
+                    area.appendChild(frag);
+                }
+            }
+
+            finishExplore() {
+                const modal = document.getElementById('explore-modal');
+                if (modal) modal.classList.remove('active');
+                this.renderScene(this.exploreNextScene);
             }
 
             /* --- ライフサイクルクリーンアップ一元化 --- */
@@ -1622,6 +1770,8 @@
 
             startNewGame() {
                 this.resetState();
+                this.loopCount++;
+                this.savePerkData();
                 this.switchScreen('main-screen');
                 this.renderScene('start');
             }
@@ -1689,6 +1839,17 @@
                 const node = SCENARIO[sceneKey];
 
                 if (!node) return;
+
+                // 探索フェーズ判定
+                if (node.explore) {
+                    this.startExplorePhase(node.next);
+                    return;
+                }
+
+                // onEnterカスタムフック
+                if (typeof node.onEnter === 'function') {
+                    node.onEnter();
+                }
 
                 // 伏線解放チェック
                 if (node.foreshadow) {
@@ -1795,7 +1956,7 @@
 
                 let idx = 0;
                 let lastTime = performance.now();
-                const charInterval = 28;
+                const charInterval = this.perkSpeedOn ? 10 : 28;
 
                 const step = (now) => {
                     if (this.state !== GAME_STATES.TYPING) return;
@@ -1868,12 +2029,17 @@
                 this.puzzleNextScene = nextScene;
                 this.isPuzzleClearing = false;
                 this.isPuzzleAnimating = false;
+                this.puzzleCombo = 0;
+                this.puzzleBonusSync = 0;
+                
                 const modal = document.getElementById('puzzle-modal');
                 const msg = document.getElementById('puzzle-success-msg');
                 const skipBtn = document.getElementById('puzzle-skip-btn');
+                const comboDisp = document.getElementById('puzzle-combo-display');
 
                 if (msg) msg.classList.remove('show');
                 if (skipBtn) skipBtn.style.display = 'inline-block';
+                if (comboDisp) comboDisp.innerText = `COMBO: 0 | Bonus Sync: +0%`;
                 modal.classList.add('active');
 
                 this.generateSolvablePuzzle();
@@ -1967,6 +2133,11 @@
 
                 if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) {
                     this.isPuzzleAnimating = true;
+                    this.puzzleCombo++;
+                    this.puzzleBonusSync += 2;
+                    const comboDisp = document.getElementById('puzzle-combo-display');
+                    if (comboDisp) comboDisp.innerText = `COMBO: ${this.puzzleCombo} | Bonus Sync: +${this.puzzleBonusSync}%`;
+
                     const grid = document.getElementById('puzzle-grid');
                     const tiles = grid ? grid.children : null;
                     const movingTile = tiles ? tiles[idx] : null;
@@ -1981,7 +2152,7 @@
                         movingTile.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
                     }
 
-                    sound.playBeep(450, 'triangle', 0.05);
+                    sound.playBeep(450 + this.puzzleCombo * 15, 'triangle', 0.05);
 
                     this.addTimeout(() => {
                         [this.puzzleBoard[idx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[idx]];
@@ -2081,6 +2252,7 @@
 
             skipPuzzle() {
                 document.getElementById('puzzle-modal').classList.remove('active');
+                this.syncRate = Math.min(100, this.syncRate + this.puzzleBonusSync);
                 this.renderScene(this.puzzleNextScene);
             }
 
