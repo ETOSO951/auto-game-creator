@@ -392,6 +392,12 @@
             background: rgba(93, 109, 255, 0.25);
             box-shadow: 0 0 15px var(--primary-glow);
             cursor: pointer;
+            will-change: transform;
+        }
+
+        .puzzle-tile.sliding {
+            transition: transform 0.12s cubic-bezier(0.25, 1, 0.5, 1);
+            z-index: 2;
         }
 
         .puzzle-tile.movable::after {
@@ -943,6 +949,8 @@
                 this.activeTimers = new Set();
                 this.typeAnimFrame = null;
                 this.isTransitionLocked = false;
+                this.isPuzzleAnimating = false;
+                this.lastSkipTimestamp = 0;
             }
 
             init() {
@@ -988,6 +996,9 @@
                 this.currentScene = 'start';
                 this.unlockedForeshadows.clear();
                 this.syncRate = 0;
+                this.isTransitionLocked = false;
+                this.isPuzzleAnimating = false;
+                this.lastSkipTimestamp = 0;
                 try {
                     localStorage.removeItem('echoes_save');
                 } catch(e){}
@@ -1172,8 +1183,11 @@
                     btn.innerHTML = `<span>${c.text}</span> <span>➔</span>`;
                     btn.onclick = (e) => {
                         e.stopPropagation();
-                        // ステートガードおよび遷移ロックによる誤タップ完全防止
-                        if (this.state !== GAME_STATES.WAIT_CHOICE || this.isTransitionLocked) return;
+                        // ステートガード・タップ直後の非同期ガード判定
+                        const now = performance.now();
+                        if (this.state !== GAME_STATES.WAIT_CHOICE || this.isTransitionLocked || (now - this.lastSkipTimestamp < 350)) {
+                            return;
+                        }
                         this.isTransitionLocked = true;
                         sound.playBeep(600, 'sine', 0.05);
                         
@@ -1211,7 +1225,7 @@
                             idx++;
                             if (idx % 2 === 0) sound.playBeep(850, 'sine', 0.02, true);
                         } else {
-                            this.completeTypewriter();
+                            this.completeTypewriter(false);
                             return;
                         }
                     }
@@ -1222,11 +1236,11 @@
 
             handleDialogClick() {
                 if (this.state === GAME_STATES.TYPING) {
-                    this.completeTypewriter();
+                    this.completeTypewriter(true);
                 }
             }
 
-            completeTypewriter() {
+            completeTypewriter(isManualSkip = false) {
                 this.stopTypewriter();
                 const dialogEl = document.getElementById('dialog-text');
                 const choicesBox = document.getElementById('choices-container');
@@ -1237,12 +1251,17 @@
                 }
                 if (hintEl) hintEl.style.display = 'none';
 
-                // 連打ガードバッファ（スキップ直後の誤選択防止を350msへ強化）
+                if (isManualSkip) {
+                    this.lastSkipTimestamp = performance.now();
+                }
+
+                // マニュアルスキップの場合はより余裕を持たせた400msの誤爆防止ガードを設定
+                const lockDuration = isManualSkip ? 400 : 250;
                 this.addTimeout(() => {
                     this.state = GAME_STATES.WAIT_CHOICE;
                     this.isTransitionLocked = false;
                     if (choicesBox) choicesBox.classList.remove('disabled');
-                }, 350);
+                }, lockDuration);
             }
 
             stopTypewriter() {
@@ -1257,6 +1276,7 @@
                 this.state = GAME_STATES.PUZZLE;
                 this.puzzleNextScene = nextScene;
                 this.isPuzzleClearing = false;
+                this.isPuzzleAnimating = false;
                 const modal = document.getElementById('puzzle-modal');
                 const msg = document.getElementById('puzzle-success-msg');
                 const skipBtn = document.getElementById('puzzle-skip-btn');
@@ -1319,7 +1339,7 @@
                     tile.innerText = num !== 0 ? num : '';
 
                     tile.onclick = () => {
-                        if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleClearing) return;
+                        if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleClearing || this.isPuzzleAnimating) return;
                         if (!this.moveTile(idx)) {
                             // 移動不可能なマスをクリックした際のシェイクフィードバック
                             tile.classList.remove('invalid-move');
@@ -1333,31 +1353,54 @@
             }
 
             moveTile(idx) {
+                if (this.isPuzzleAnimating) return false;
                 const emptyIdx = this.puzzleBoard.indexOf(0);
                 const r1 = Math.floor(idx / 3), c1 = idx % 3;
                 const r2 = Math.floor(emptyIdx / 3), c2 = emptyIdx % 3;
 
                 if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) {
-                    [this.puzzleBoard[idx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[idx]];
+                    this.isPuzzleAnimating = true;
+                    const grid = document.getElementById('puzzle-grid');
+                    const tiles = grid.children;
+                    const movingTile = tiles[idx];
+
+                    if (movingTile) {
+                        // 平行移動の移動ベクトルを算出（パーセンテージでレスポンシブ対応）
+                        const deltaX = (c2 - c1) * 100;
+                        const deltaY = (r2 - r1) * 100;
+                        movingTile.classList.add('sliding');
+                        movingTile.style.transform = `translate(${deltaX}%, ${deltaY}%)`;
+                    }
+
                     sound.playBeep(450, 'triangle', 0.05);
-                    this.renderPuzzle();
-                    this.checkPuzzleWin();
+
+                    // CSSのアニメーション時間(120ms)に合わせてボード状態を更新・再描画
+                    this.addTimeout(() => {
+                        [this.puzzleBoard[idx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[idx]];
+                        this.renderPuzzle();
+                        this.isPuzzleAnimating = false;
+                        this.checkPuzzleWin();
+                    }, 120);
                     return true;
                 }
                 return false;
             }
 
             handlePuzzleSwipe(diffX, diffY) {
-                if (this.isPuzzleClearing) return;
+                if (this.isPuzzleClearing || this.isPuzzleAnimating || this.state !== GAME_STATES.PUZZLE) return;
                 const emptyIdx = this.puzzleBoard.indexOf(0);
                 const r = Math.floor(emptyIdx / 3);
                 const c = emptyIdx % 3;
                 let targetIdx = -1;
 
-                if (Math.abs(diffX) > Math.abs(diffY)) {
+                // スワイプ方向の比率判定を1.4倍に厳格化して斜め入力時の誤動作を防止
+                const absX = Math.abs(diffX);
+                const absY = Math.abs(diffY);
+
+                if (absX > absY * 1.4) {
                     if (diffX > 0 && c > 0) targetIdx = emptyIdx - 1;
                     else if (diffX < 0 && c < 2) targetIdx = emptyIdx + 1;
-                } else {
+                } else if (absY > absX * 1.4) {
                     if (diffY > 0 && r > 0) targetIdx = emptyIdx - 3;
                     else if (diffY < 0 && r < 2) targetIdx = emptyIdx + 3;
                 }
