@@ -959,6 +959,17 @@
                 this.bindGlobalSkipEvents();
             }
 
+            /* --- ライフサイクルクリーンアップ一元化 --- */
+            cleanupTransition() {
+                this.stopTypewriter();
+                this.clearAllTimeouts();
+                this.isPuzzleAnimating = false;
+                const mainScreen = document.getElementById('main-screen');
+                if (mainScreen) {
+                    mainScreen.classList.remove('flashback');
+                }
+            }
+
             bindGlobalSkipEvents() {
                 const visualArea = document.getElementById('visual-area');
                 if (visualArea) {
@@ -986,8 +997,7 @@
             }
 
             resetState() {
-                this.stopTypewriter();
-                this.clearAllTimeouts();
+                this.cleanupTransition();
 
                 const toast = document.getElementById('foreshadow-toast');
                 if (toast) toast.classList.remove('show');
@@ -1000,7 +1010,6 @@
                 this.unlockedForeshadows.clear();
                 this.syncRate = 0;
                 this.isTransitionLocked = false;
-                this.isPuzzleAnimating = false;
                 this.isPuzzleClearing = false;
                 this.lastSkipTimestamp = 0;
                 try {
@@ -1014,38 +1023,43 @@
 
                 let touchedTileIndex = -1;
 
-                grid.addEventListener('touchstart', (e) => {
+                grid.addEventListener('pointerdown', (e) => {
                     if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleAnimating) return;
-                    if (e.touches.length > 0) {
-                        this.touchStartX = e.touches[0].clientX;
-                        this.touchStartY = e.touches[0].clientY;
-                        this.touchStartTime = performance.now();
-                        
-                        const target = e.target.closest('.puzzle-tile');
-                        if (target && !target.classList.contains('empty')) {
-                            const tiles = Array.from(grid.children);
-                            touchedTileIndex = tiles.indexOf(target);
-                        } else {
-                            touchedTileIndex = -1;
-                        }
+                    this.touchStartX = e.clientX;
+                    this.touchStartY = e.clientY;
+                    this.touchStartTime = performance.now();
+                    
+                    const target = e.target.closest('.puzzle-tile');
+                    if (target && !target.classList.contains('empty')) {
+                        const tiles = Array.from(grid.children);
+                        touchedTileIndex = tiles.indexOf(target);
+                    } else {
+                        touchedTileIndex = -1;
                     }
                 }, { passive: true });
 
-                grid.addEventListener('touchend', (e) => {
+                grid.addEventListener('pointerup', (e) => {
                     if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleAnimating) return;
-                    if (e.changedTouches.length > 0 && touchedTileIndex !== -1) {
-                        const diffX = e.changedTouches[0].clientX - this.touchStartX;
-                        const diffY = e.changedTouches[0].clientY - this.touchStartY;
+                    if (touchedTileIndex !== -1) {
+                        const diffX = e.clientX - this.touchStartX;
+                        const diffY = e.clientY - this.touchStartY;
                         const duration = performance.now() - (this.touchStartTime || 0);
                         const absX = Math.abs(diffX);
                         const absY = Math.abs(diffY);
                         
-                        const minSwipeDist = Math.max(12, grid.clientWidth * 0.04);
-                        if (duration < 400 && Math.max(absX, absY) > minSwipeDist) {
+                        const minSwipeDist = Math.max(10, grid.clientWidth * 0.03);
+                        if (duration < 450 && Math.max(absX, absY) > minSwipeDist) {
                             this.handleDirectTileSwipe(touchedTileIndex, diffX, diffY);
+                        } else if (duration < 350 && Math.max(absX, absY) <= minSwipeDist) {
+                            // タップ判定のフォールバック
+                            this.moveTile(touchedTileIndex);
                         }
                         touchedTileIndex = -1;
                     }
+                }, { passive: true });
+
+                grid.addEventListener('pointercancel', () => {
+                    touchedTileIndex = -1;
                 }, { passive: true });
             }
 
@@ -1130,7 +1144,7 @@
             }
 
             renderScene(sceneKey) {
-                this.stopTypewriter();
+                this.cleanupTransition();
                 this.currentScene = sceneKey;
                 const node = SCENARIO[sceneKey];
 
@@ -1412,20 +1426,22 @@
                 if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) {
                     this.isPuzzleAnimating = true;
                     const grid = document.getElementById('puzzle-grid');
-                    const tiles = grid.children;
-                    const movingTile = tiles[idx];
+                    const tiles = grid ? grid.children : null;
+                    const movingTile = tiles ? tiles[idx] : null;
 
-                    if (movingTile) {
-                        // 平行移動の移動ベクトルを算出（パーセンテージでレスポンシブ対応）
-                        const deltaX = (c2 - c1) * 100;
-                        const deltaY = (r2 - r1) * 100;
+                    if (movingTile && grid) {
+                        // CSS Gridの gap (10px) を考慮した正確な実ピクセル・パーセンテージ補正
+                        const tileWidth = movingTile.clientWidth;
+                        const gap = 10;
+                        const deltaX = (c2 - c1) * (tileWidth + gap);
+                        const deltaY = (r2 - r1) * (tileWidth + gap);
+                        
                         movingTile.classList.add('sliding');
-                        movingTile.style.transform = `translate(${deltaX}%, ${deltaY}%)`;
+                        movingTile.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
                     }
 
                     sound.playBeep(450, 'triangle', 0.05);
 
-                    // CSSのアニメーション時間(120ms)に合わせてボード状態を更新・再描画
                     this.addTimeout(() => {
                         [this.puzzleBoard[idx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[idx]];
                         this.renderPuzzle();
