@@ -992,12 +992,16 @@
                 const toast = document.getElementById('foreshadow-toast');
                 if (toast) toast.classList.remove('show');
 
+                const puzzleModal = document.getElementById('puzzle-modal');
+                if (puzzleModal) puzzleModal.classList.remove('active');
+
                 this.state = GAME_STATES.IDLE;
                 this.currentScene = 'start';
                 this.unlockedForeshadows.clear();
                 this.syncRate = 0;
                 this.isTransitionLocked = false;
                 this.isPuzzleAnimating = false;
+                this.isPuzzleClearing = false;
                 this.lastSkipTimestamp = 0;
                 try {
                     localStorage.removeItem('echoes_save');
@@ -1011,13 +1015,12 @@
                 let touchedTileIndex = -1;
 
                 grid.addEventListener('touchstart', (e) => {
-                    if (this.state !== GAME_STATES.PUZZLE) return;
+                    if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleAnimating) return;
                     if (e.touches.length > 0) {
                         this.touchStartX = e.touches[0].clientX;
                         this.touchStartY = e.touches[0].clientY;
                         this.touchStartTime = performance.now();
                         
-                        // タッチ開始位置からどのタイルに触れたかを直接特定（個別タイル指向）
                         const target = e.target.closest('.puzzle-tile');
                         if (target && !target.classList.contains('empty')) {
                             const tiles = Array.from(grid.children);
@@ -1029,7 +1032,7 @@
                 }, { passive: true });
 
                 grid.addEventListener('touchend', (e) => {
-                    if (this.state !== GAME_STATES.PUZZLE) return;
+                    if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleAnimating) return;
                     if (e.changedTouches.length > 0 && touchedTileIndex !== -1) {
                         const diffX = e.changedTouches[0].clientX - this.touchStartX;
                         const diffY = e.changedTouches[0].clientY - this.touchStartY;
@@ -1037,11 +1040,9 @@
                         const absX = Math.abs(diffX);
                         const absY = Math.abs(diffY);
                         
-                        const minSwipeDist = Math.max(16, grid.clientWidth * 0.06);
-                        if (duration < 500 && Math.max(absX, absY) > minSwipeDist) {
-                            if (absX > absY * 1.2 || absY > absX * 1.2) {
-                                this.handleDirectTileSwipe(touchedTileIndex, diffX, diffY);
-                            }
+                        const minSwipeDist = Math.max(12, grid.clientWidth * 0.04);
+                        if (duration < 400 && Math.max(absX, absY) > minSwipeDist) {
+                            this.handleDirectTileSwipe(touchedTileIndex, diffX, diffY);
                         }
                         touchedTileIndex = -1;
                     }
@@ -1264,10 +1265,8 @@
                 if (this.state === GAME_STATES.TYPING) {
                     this.completeTypewriter(true);
                 } else if (this.state === GAME_STATES.WAIT_CHOICE && !this.isTransitionLocked) {
-                    // 2回目の入力（タイピング完了後）で次の挙動をスムーズに促す拡張フック
                     const choicesBox = document.getElementById('choices-container');
                     if (choicesBox && choicesBox.children.length > 0) {
-                        // 最初の選択肢にフォーカスフィードバックを与えるなど視覚的応答性
                         const firstChoice = choicesBox.children[0];
                         if (firstChoice) {
                             firstChoice.classList.add('truth');
@@ -1292,8 +1291,7 @@
                     this.lastSkipTimestamp = performance.now();
                 }
 
-                // タイマーに依存しない明快な入力フェーズ管理と確実なガード解除
-                const lockDuration = isManualSkip ? 300 : 200;
+                const lockDuration = isManualSkip ? 250 : 150;
                 this.addTimeout(() => {
                     this.state = GAME_STATES.WAIT_CHOICE;
                     this.isTransitionLocked = false;
@@ -1446,21 +1444,30 @@
                 const r1 = Math.floor(tileIdx / 3), c1 = tileIdx % 3;
                 const r2 = Math.floor(emptyIdx / 3), c2 = emptyIdx % 3;
 
-                // 触れたタイルが空きマスの隣接位置にあるか検証
                 if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) {
                     const absX = Math.abs(diffX);
                     const absY = Math.abs(diffY);
                     let isIntentMatch = false;
 
-                    // プレイヤーがスワイプした方向と空きマスの方向が一致しているかを厳密判定
-                    if (absX > absY * 1.2) {
+                    if (absX > absY) {
                         if ((diffX > 0 && c2 > c1) || (diffX < 0 && c2 < c1)) isIntentMatch = true;
-                    } else if (absY > absX * 1.2) {
+                    } else {
                         if ((diffY > 0 && r2 > r1) || (diffY < 0 && r2 < r1)) isIntentMatch = true;
                     }
 
                     if (isIntentMatch) {
                         this.moveTile(tileIdx);
+                    }
+                } else {
+                    // タップされたタイル自体が空きマスの隣接であれば、方向スワイプがなくても直接移動を許可するフォールバック
+                    const grid = document.getElementById('puzzle-grid');
+                    const tiles = grid ? grid.children : null;
+                    const tile = tiles ? tiles[tileIdx] : null;
+                    if (tile) {
+                        tile.classList.remove('invalid-move');
+                        void tile.offsetWidth;
+                        tile.classList.add('invalid-move');
+                        sound.playBeep(180, 'sawtooth', 0.08);
                     }
                 }
             }
