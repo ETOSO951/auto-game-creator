@@ -952,14 +952,22 @@
             <div class="result-title" id="result-title">END</div>
             <div class="result-desc" id="result-desc">...</div>
             
-            <div style="font-size:0.8rem; color:var(--text-sub); margin-bottom:8px; text-align:left; width:100%; max-width:340px;">
+            <div style="font-size:0.75rem; color:var(--gold); margin-bottom:6px; text-align:left; width:100%; max-width:340px; letter-spacing:1px;">
+                ✨ 因果の回想ツリー・軌跡
+            </div>
+            <div class="memory-tree-container" id="memory-tree-container">
+                <div class="memory-tree-line"></div>
+                <!-- 動的回想ノード群 -->
+            </div>
+
+            <div style="font-size:0.75rem; color:var(--text-sub); margin-bottom:6px; text-align:left; width:100%; max-width:340px;">
                 【今回の世界線で回収した伏線】
             </div>
             <div class="recall-list" id="recall-list">
                 <!-- 回収された伏線のリスト -->
             </div>
 
-            <div class="hud-header" style="width:100%; max-width:340px;">
+            <div class="hud-header" style="width:100%; max-width:340px; margin-bottom:14px;">
                 <div class="hud-item">
                     <span class="hud-label">最終同調スコア</span>
                     <span class="hud-value" id="final-score">0 PTS</span>
@@ -970,7 +978,7 @@
                 </div>
             </div>
 
-            <button class="btn" onclick="game.restartLoop()">時を巻き戻してやり直す</button>
+            <button class="btn" onclick="game.restartLoop()" style="margin-bottom:10px;">時を巻き戻してやり直す</button>
         </div>
     </div>
 
@@ -1003,12 +1011,11 @@
                     const feedback = this.ctx.createGain();
 
                     filter.type = 'lowpass';
-                    filter.frequency.setValueAtTime(3200, this.ctx.currentTime);
+                    filter.frequency.setValueAtTime(3600, this.ctx.currentTime);
 
-                    delay.delayTime.setValueAtTime(0.12, this.ctx.currentTime); // 空間の奥行きを生むディレイ残響
-                    feedback.gain.setValueAtTime(0.28, this.ctx.currentTime); // フィードバック量
+                    delay.delayTime.setValueAtTime(0.15, this.ctx.currentTime); // 空間の奥行きを深めたディレイ残響
+                    feedback.gain.setValueAtTime(0.32, this.ctx.currentTime); // フィードバック量強化
 
-                    // フィードバック回路接続
                     delay.connect(filter);
                     filter.connect(feedback);
                     feedback.connect(delay);
@@ -1027,12 +1034,12 @@
                 if (!this.ctx || this.ctx.state !== 'running') return;
 
                 const now = performance.now();
-                if (randomize && now - this.lastBeepTime < 35) return;
+                if (randomize && now - this.lastBeepTime < 32) return;
                 this.lastBeepTime = now;
 
                 try {
                     const currentTime = this.ctx.currentTime;
-                    const finalFreq = randomize ? freq + (Math.random() * 45 - 22) : freq;
+                    const finalFreq = randomize ? freq + (Math.random() * 50 - 25) : freq;
                     
                     const osc = this.ctx.createOscillator();
                     const filter = this.ctx.createBiquadFilter();
@@ -1042,14 +1049,14 @@
                     osc.type = type;
                     osc.frequency.setValueAtTime(finalFreq, currentTime);
                     if (randomize) {
-                        osc.frequency.exponentialRampToValueAtTime(finalFreq * 0.92, currentTime + duration);
+                        osc.frequency.exponentialRampToValueAtTime(finalFreq * 0.9, currentTime + duration);
                     }
                     
                     filter.type = 'lowpass';
-                    filter.frequency.setValueAtTime(3100, currentTime);
+                    filter.frequency.setValueAtTime(3400, currentTime);
 
                     gain.gain.setValueAtTime(0.0001, currentTime);
-                    gain.gain.linearRampToValueAtTime(0.032, currentTime + 0.012);
+                    gain.gain.linearRampToValueAtTime(0.035, currentTime + 0.01);
                     gain.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
                     
                     osc.connect(filter);
@@ -1072,11 +1079,12 @@
             playRecallSound() {
                 this.init();
                 if (!this.ctx || this.ctx.state !== 'running') return;
-                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+                // リッチな階層化コード（周波数倍音合成を拡張）
+                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00];
                 notes.forEach((freq, idx) => {
                     setTimeout(() => {
-                        this.playHarmonicChord(freq, idx === notes.length - 1 ? 0.75 : 0.35);
-                    }, idx * 65);
+                        this.playHarmonicChord(freq, idx === notes.length - 1 ? 0.95 : 0.4);
+                    }, idx * 55);
                 });
             }
 
@@ -1090,18 +1098,18 @@
                     const bus = this.createSpatialBus() || this.ctx.destination;
 
                     filter.type = 'lowpass';
-                    filter.frequency.setValueAtTime(3800, currentTime);
+                    filter.frequency.setValueAtTime(4200, currentTime);
 
                     gain.gain.setValueAtTime(0.0001, currentTime);
-                    gain.gain.linearRampToValueAtTime(0.038, currentTime + 0.025);
+                    gain.gain.linearRampToValueAtTime(0.042, currentTime + 0.02);
                     gain.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
                     
                     filter.connect(gain);
                     gain.connect(bus);
 
-                    [1, 1.5, 0.5, 2, 2.5].forEach((multiplier, i) => {
+                    [1, 1.25, 1.5, 2, 2.5, 3].forEach((multiplier, i) => {
                         const osc = this.ctx.createOscillator();
-                        osc.type = i === 4 ? 'sine' : (i === 2 ? 'triangle' : 'sine');
+                        osc.type = i % 2 === 0 ? 'sine' : 'triangle';
                         osc.frequency.setValueAtTime(baseFreq * multiplier, currentTime);
                         osc.connect(filter);
                         osc.start(currentTime);
@@ -2582,7 +2590,7 @@
             openMindMap() { this.openArchiveModal(); }
             closeMindMap() { this.closeArchiveModal(); }
 
-            /* --- アイデア3：マルチエンディング・結果画面のダイナミック・スコアリング演出 --- */
+            /* --- アイデア2 & 3：マルチエンディング結果画面と回想ツリー・ビジュアライザー --- */
             showResult(node) {
                 this.state = GAME_STATES.RESULT;
                 this.switchScreen('result-screen');
@@ -2593,6 +2601,32 @@
                 titleEl.className = `result-title ${node.type}`;
 
                 document.getElementById('result-desc').innerText = node.text;
+
+                // 回想ツリー・ビジュアライザー描画
+                const treeContainer = document.getElementById('memory-tree-container');
+                treeContainer.innerHTML = '<div class="memory-tree-line"></div>';
+
+                const treeSteps = [
+                    { label: "記憶の覚醒：ループ第" + this.loopCount + "層", active: true },
+                    { label: "探索フェーズ：因果の断片収集完了", active: this.unlockedForeshadows.size > 0 },
+                    { label: "同調率判定：" + this.syncRate + "% 達成", active: this.syncRate >= 40 },
+                    { label: node.title.split('：')[0], active: true }
+                ];
+
+                treeSteps.forEach((step, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'memory-node-row';
+                    row.innerHTML = `
+                        <div class="memory-node-dot ${step.active ? 'active' : ''}"></div>
+                        <div class="memory-node-label">${step.label}</div>
+                    `;
+                    treeContainer.appendChild(row);
+
+                    this.addTimeout(() => {
+                        row.classList.add('show-node');
+                        sound.playBeep(520 + idx * 80, 'sine', 0.04);
+                    }, 150 + idx * 180);
+                });
 
                 // 伏線回収リスト描画とシネマティック順次スライドイン演出
                 const listEl = document.getElementById('recall-list');
@@ -2623,7 +2657,7 @@
                         if (isUnlocked) {
                             sound.playBeep(720 + index * 45, 'sine', 0.05);
                         }
-                    }, 250 + index * 120);
+                    }, 650 + index * 100);
                 });
 
                 // ダイナミック・カウントアップ演出付きスコア計算
