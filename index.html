@@ -368,7 +368,7 @@
 
         .puzzle-tile {
             background: var(--card-bg);
-            border: 1px solid var(--primary);
+            border: 1px solid rgba(93, 109, 255, 0.4);
             border-radius: 8px;
             display: flex;
             justify-content: center;
@@ -376,15 +376,50 @@
             font-size: 1.2rem;
             font-weight: bold;
             color: var(--text-main);
-            cursor: pointer;
+            cursor: default;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            transition: transform 0.1s ease, background 0.2s;
+            transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), background 0.2s, border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        /* 移動可能なタイルの視覚フィードバック */
+        .puzzle-tile.movable {
+            border-color: var(--primary);
+            background: rgba(93, 109, 255, 0.25);
+            box-shadow: 0 0 15px var(--primary-glow);
+            cursor: pointer;
+        }
+
+        .puzzle-tile.movable::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+        }
+
+        .puzzle-tile.movable:active {
+            transform: scale(0.94);
+            background: rgba(93, 109, 255, 0.4);
+        }
+
+        /* 移動不可タイルタップ時のシェイクアニメーション */
+        .puzzle-tile.invalid-move {
+            animation: tileShake 0.3s ease;
+        }
+
+        @keyframes tileShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
         }
 
         .puzzle-tile.empty {
-            background: transparent;
+            background: rgba(0,0,0,0.2);
             border: 1px dashed rgba(255,255,255,0.1);
             box-shadow: none;
+            cursor: default;
         }
 
         /* ゲームオーバー・エンディング画面 */
@@ -870,17 +905,28 @@
             }
         };
 
-        /* --- ゲームロジック・状態管理 --- */
+        /* --- ゲームロジック・状態管理（ステートマシン導入） --- */
+        const GAME_STATES = {
+            IDLE: 'IDLE',
+            TYPING: 'TYPING',
+            WAIT_CHOICE: 'WAIT_CHOICE',
+            PUZZLE: 'PUZZLE',
+            RESULT: 'RESULT'
+        };
+
         class GameEngine {
             constructor() {
+                this.state = GAME_STATES.IDLE;
                 this.currentScene = 'start';
                 this.unlockedForeshadows = new Set();
                 this.syncRate = 0;
-                this.puzzleBoard = [1, 2, 3, 4, 5, 6, 7, 0, 8]; // スライドパズル
+                this.puzzleBoard = [1, 2, 3, 4, 5, 6, 7, 0, 8];
                 this.allForeshadowsCount = 4;
-                this.choiceLock = false;
                 this.touchStartX = 0;
                 this.touchStartY = 0;
+                this.touchStartTime = 0;
+                this.activeTimers = new Set();
+                this.typeAnimFrame = null;
             }
 
             init() {
@@ -888,21 +934,35 @@
                 this.bindPuzzleTouchEvents();
             }
 
+            /* --- 一括タイマーマネージャー --- */
+            addTimeout(fn, delay) {
+                const timerId = setTimeout(() => {
+                    this.activeTimers.delete(timerId);
+                    fn();
+                }, delay);
+                this.activeTimers.add(timerId);
+                return timerId;
+            }
+
+            clearAllTimeouts() {
+                this.activeTimers.forEach(id => clearTimeout(id));
+                this.activeTimers.clear();
+            }
+
             resetState() {
                 this.stopTypewriter();
-                if (this.toastTimer) {
-                    clearTimeout(this.toastTimer);
-                    this.toastTimer = null;
-                }
+                this.clearAllTimeouts();
+
                 const toast = document.getElementById('foreshadow-toast');
                 if (toast) toast.classList.remove('show');
 
+                this.state = GAME_STATES.IDLE;
                 this.currentScene = 'start';
                 this.unlockedForeshadows.clear();
                 this.syncRate = 0;
-                this.choiceLock = false;
-                this.isTyping = false;
-                localStorage.removeItem('echoes_save');
+                try {
+                    localStorage.removeItem('echoes_save');
+                } catch(e){}
             }
 
             bindPuzzleTouchEvents() {
@@ -910,6 +970,7 @@
                 if (!grid) return;
 
                 grid.addEventListener('touchstart', (e) => {
+                    if (this.state !== GAME_STATES.PUZZLE) return;
                     if (e.touches.length > 0) {
                         this.touchStartX = e.touches[0].clientX;
                         this.touchStartY = e.touches[0].clientY;
@@ -918,6 +979,7 @@
                 }, { passive: true });
 
                 grid.addEventListener('touchend', (e) => {
+                    if (this.state !== GAME_STATES.PUZZLE) return;
                     if (e.changedTouches.length > 0) {
                         const diffX = e.changedTouches[0].clientX - this.touchStartX;
                         const diffY = e.changedTouches[0].clientY - this.touchStartY;
@@ -925,9 +987,9 @@
                         const absX = Math.abs(diffX);
                         const absY = Math.abs(diffY);
                         
-                        // 時間、距離、アスペクト比（主軸優先判定）を厳格に評価して誤操作を徹底防止
-                        if (duration < 500 && Math.max(absX, absY) > 20) {
-                            if (absX > absY * 1.4 || absY > absX * 1.4) {
+                        // 高精度スワイプ判定：入力時間、スワイプ距離、主要軸方向の厳密化
+                        if (duration < 400 && Math.max(absX, absY) > 25) {
+                            if (absX > absY * 1.35 || absY > absX * 1.35) {
                                 this.handlePuzzleSwipe(diffX, diffY);
                             }
                         }
@@ -999,22 +1061,19 @@
             unlockForeshadow(info) {
                 if (!this.unlockedForeshadows.has(info.id)) {
                     this.unlockedForeshadows.add(info.id);
-                    // 同調率 (Sync Rate) を獲得伏線数に応じて自動更新
                     this.syncRate = Math.min(100, Math.round((this.unlockedForeshadows.size / this.allForeshadowsCount) * 100));
                     sound.playRecallSound();
 
-                    // 画面フラッシュ演出
                     const mainScreen = document.getElementById('main-screen');
                     mainScreen.classList.remove('flashback');
-                    void mainScreen.offsetWidth; // リフロー制御
+                    void mainScreen.offsetWidth;
                     mainScreen.classList.add('flashback');
 
-                    // トースト表示
                     const toast = document.getElementById('foreshadow-toast');
                     document.getElementById('toast-text').innerText = info.title;
                     toast.classList.add('show');
-                    clearTimeout(this.toastTimer);
-                    this.toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+                    
+                    this.addTimeout(() => toast.classList.remove('show'), 3000);
                 }
             }
 
@@ -1083,8 +1142,8 @@
                     btn.innerHTML = `<span>${c.text}</span> <span>➔</span>`;
                     btn.onclick = (e) => {
                         e.stopPropagation();
-                        // タイピング中またはダイアログスキップ直後の誤操作ロック判定
-                        if (this.isTyping || this.choiceLock) return;
+                        // WAIT_CHOICE ステート以外での選択入力操作を遮断
+                        if (this.state !== GAME_STATES.WAIT_CHOICE) return;
                         sound.playBeep(600, 'sine', 0.05);
                         if (c.puzzle) {
                             this.startPuzzle(c.next);
@@ -1099,12 +1158,10 @@
             typeWriter(text) {
                 const dialogEl = document.getElementById('dialog-text');
                 const hintEl = document.getElementById('dialog-hint');
-                const choicesBox = document.getElementById('choices-container');
                 
                 dialogEl.innerText = '';
                 this.currentFullText = text;
-                this.isTyping = true;
-                this.choiceLock = true;
+                this.state = GAME_STATES.TYPING;
                 if (hintEl) hintEl.style.display = 'block';
 
                 let idx = 0;
@@ -1114,7 +1171,7 @@
                 const charInterval = 28;
 
                 const step = (now) => {
-                    if (!this.isTyping) return;
+                    if (this.state !== GAME_STATES.TYPING) return;
                     if (now - lastTime >= charInterval) {
                         lastTime = now;
                         if (idx < text.length) {
@@ -1132,7 +1189,7 @@
             }
 
             handleDialogClick() {
-                if (this.isTyping) {
+                if (this.state === GAME_STATES.TYPING) {
                     this.completeTypewriter();
                 }
             }
@@ -1146,16 +1203,13 @@
                 if (dialogEl && this.currentFullText) {
                     dialogEl.innerText = this.currentFullText;
                 }
-                this.isTyping = false;
                 if (hintEl) hintEl.style.display = 'none';
 
-                // 連打スキップによる選択肢の即時決定・誤操作防止用タイマー
-                if (this.choiceLockTimer) clearTimeout(this.choiceLockTimer);
-                this.choiceLock = true;
-                this.choiceLockTimer = setTimeout(() => {
-                    this.choiceLock = false;
+                // スキップ直後の誤クリック防止バッファ期間を挟んで選択肢を有効化
+                this.addTimeout(() => {
+                    this.state = GAME_STATES.WAIT_CHOICE;
                     if (choicesBox) choicesBox.classList.remove('disabled');
-                }, 250);
+                }, 200);
             }
 
             stopTypewriter() {
@@ -1167,6 +1221,7 @@
 
             /* --- スライドパズル ミニゲーム --- */
             startPuzzle(nextScene) {
+                this.state = GAME_STATES.PUZZLE;
                 this.puzzleNextScene = nextScene;
                 this.isPuzzleClearing = false;
                 const modal = document.getElementById('puzzle-modal');
@@ -1182,7 +1237,6 @@
             }
 
             generateSolvablePuzzle() {
-                // 解ける盤面を保証し、初期状態が完成形になってしまう事故を回避
                 const winState = [1, 2, 3, 4, 5, 6, 7, 8, 0];
                 do {
                     this.puzzleBoard = [1, 2, 3, 4, 5, 6, 7, 8, 0];
@@ -1201,7 +1255,6 @@
                         if (c > 0) neighbors.push(emptyIdx - 1);
                         if (c < 2) neighbors.push(emptyIdx + 1);
 
-                        // 無駄な往復移動をシャッフルから排除
                         const validNeighbors = neighbors.filter(idx => idx !== lastEmptyIdx);
                         const chosenIdx = validNeighbors.length > 0 
                             ? validNeighbors[Math.floor(Math.random() * validNeighbors.length)] 
@@ -1216,12 +1269,31 @@
             renderPuzzle() {
                 const grid = document.getElementById('puzzle-grid');
                 grid.innerHTML = '';
+
+                const emptyIdx = this.puzzleBoard.indexOf(0);
+                const r2 = Math.floor(emptyIdx / 3), c2 = emptyIdx % 3;
+
                 this.puzzleBoard.forEach((num, idx) => {
                     const tile = document.createElement('div');
-                    tile.className = `puzzle-tile ${num === 0 ? 'empty' : ''}`;
+                    const r1 = Math.floor(idx / 3), c1 = idx % 3;
+                    const isMovable = num !== 0 && (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1);
+
+                    let classNames = ['puzzle-tile'];
+                    if (num === 0) classNames.push('empty');
+                    else if (isMovable) classNames.push('movable');
+
+                    tile.className = classNames.join(' ');
                     tile.innerText = num !== 0 ? num : '';
+
                     tile.onclick = () => {
-                        if (!this.isPuzzleClearing) this.moveTile(idx);
+                        if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleClearing) return;
+                        if (!this.moveTile(idx)) {
+                            // 移動不可能なマスをクリックした際のシェイクフィードバック
+                            tile.classList.remove('invalid-move');
+                            void tile.offsetWidth;
+                            tile.classList.add('invalid-move');
+                            sound.playBeep(180, 'sawtooth', 0.08);
+                        }
                     };
                     grid.appendChild(tile);
                 });
@@ -1234,7 +1306,7 @@
 
                 if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) {
                     [this.puzzleBoard[idx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[idx]];
-                    sound.playBeep(400, 'triangle', 0.05);
+                    sound.playBeep(450, 'triangle', 0.05);
                     this.renderPuzzle();
                     this.checkPuzzleWin();
                     return true;
@@ -1273,7 +1345,7 @@
                     if (msg) msg.classList.add('show');
                     if (skipBtn) skipBtn.style.display = 'none';
 
-                    setTimeout(() => {
+                    this.addTimeout(() => {
                         this.skipPuzzle();
                     }, 1200);
                 }
@@ -1286,6 +1358,7 @@
 
             /* --- エンディング表示 --- */
             showResult(node) {
+                this.state = GAME_STATES.RESULT;
                 this.switchScreen('result-screen');
                 sound.playGlitchSound();
 
