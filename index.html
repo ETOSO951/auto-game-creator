@@ -64,7 +64,7 @@
             pointer-events: none;
         }
 
-        /* ノイズ overlay */
+        /* ノイズ overlay と 色収差エフェクト用クラス */
         .glitch-overlay {
             position: absolute;
             top: 0;
@@ -75,6 +75,40 @@
             z-index: 2;
             pointer-events: none;
             opacity: 0.6;
+        }
+
+        /* シネマティック色収差・被写界深度ブラー */
+        .screen.cinematic-blur {
+            filter: blur(8px) contrast(1.2);
+            transition: filter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .chromatic-aberration {
+            animation: chromaticAnim 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+
+        @keyframes chromaticAnim {
+            0% { text-shadow: -3px 0 rgba(255,71,126,0.8), 3px 0 rgba(93,109,255,0.8); }
+            50% { text-shadow: 4px 0 rgba(255,71,126,0.9), -4px 0 rgba(93,109,255,0.9); }
+            100% { text-shadow: none; }
+        }
+
+        /* 画面タップ波紋（リップルエフェクト） */
+        .ripple-effect {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(93,109,255,0.2) 60%, transparent 100%);
+            transform: scale(0);
+            pointer-events: none;
+            animation: rippleAnim 0.6s cubic-bezier(0, 0.5, 0.5, 1) forwards;
+            z-index: 5;
+        }
+
+        @keyframes rippleAnim {
+            to {
+                transform: scale(3.5);
+                opacity: 0;
+            }
         }
 
         /* スクリーン共通レイアウト */
@@ -100,18 +134,40 @@
             transform: scale(1);
         }
 
-        /* ヘッダー / スコアUI */
+        /* ヘッダー / スコアUI (ホログラフィック・シマー搭載) */
         .hud-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 12px 16px;
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
+            background: linear-gradient(135deg, rgba(22, 27, 46, 0.88) 0%, rgba(10, 14, 26, 0.94) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.14);
             margin-bottom: 16px;
             z-index: 15;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+
+        .hud-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -150%;
+            width: 150%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+            animation: shimmerEffect 6s infinite linear;
+            pointer-events: none;
+        }
+
+        @keyframes shimmerEffect {
+            0% { left: -150%; }
+            30% { left: 150%; }
+            100% { left: 150%; }
         }
 
         .hud-item {
@@ -242,25 +298,40 @@
             filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));
         }
 
-        /* ダイアログボックス（ガラスモルフィズムと光の反射・パルスエフェクト） */
+        /* ダイアログボックス（プレミアム・ガラスモルフィズムとホログラフィックボーダー） */
         .dialog-box {
-            background: linear-gradient(135deg, rgba(30, 37, 65, 0.85) 0%, rgba(18, 22, 38, 0.9) 100%);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: 18px;
-            padding: 20px;
+            background: linear-gradient(135deg, rgba(32, 40, 72, 0.9) 0%, rgba(14, 18, 32, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 20px;
+            padding: 22px;
             min-height: 160px;
             max-height: 220px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35);
             margin-bottom: 12px;
             cursor: pointer;
             position: relative;
+            overflow: hidden;
             -webkit-tap-highlight-color: transparent;
             animation: dialogPulse 6s infinite ease-in-out;
+        }
+
+        .dialog-box::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            border: 1px solid transparent;
+            background: linear-gradient(135deg, rgba(93,109,255,0.4), rgba(255,71,126,0.2), rgba(255,183,3,0.3)) border-box;
+            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: destination-out;
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0.6;
         }
 
         @keyframes dialogPulse {
@@ -317,35 +388,38 @@
             }
         }
 
-        /* 選択肢ボタン群 */
+        /* 選択肢ボタン群 (プレミアム・ガラス質感) */
         .choices-container {
             display: flex;
             flex-direction: column;
             gap: 10px;
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            transition: opacity 0.35s ease, transform 0.35s ease;
         }
 
         .choices-container.disabled {
             opacity: 0;
             pointer-events: none;
-            transform: translateY(10px);
+            transform: translateY(12px);
         }
 
         .choice-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
             color: var(--text-main);
-            padding: 14px 18px;
-            min-height: 48px;
-            border-radius: 12px;
+            padding: 15px 20px;
+            min-height: 50px;
+            border-radius: 14px;
             font-size: 0.9rem;
             text-align: left;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
             display: flex;
             justify-content: space-between;
             align-items: center;
             -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
 
         .choice-btn:hover, .choice-btn:active {
@@ -811,6 +885,8 @@
             reset() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
+                this.angle = Math.random() * Math.PI * 2;
+                this.oscSpeed = Math.random() * 0.02 + 0.01;
                 if (this.layer === 1) {
                     this.size = Math.random() * 1.2 + 0.3;
                     this.speedY = -(Math.random() * 0.25 + 0.1);
@@ -827,16 +903,29 @@
             }
             update() {
                 this.y += this.speedY;
-                if (this.y < 0) this.reset();
+                this.angle += this.oscSpeed;
+                this.x += Math.sin(this.angle) * 0.4;
+                if (this.y < 0 || this.x < 0 || this.x > canvas.width) this.reset();
             }
-            draw(syncRate) {
-                // 同調率や回収状況に応じてパーティクルの色がゴールドやオーロラカラーへダイナミックに変化
+            draw(syncRate, unlockedCount) {
+                // オーロラグラデーション連動：同調率や伏線回収状況に応じてディープブルーから神秘的なゴールド＆ネオンピンクへ滑らかに変化
                 let color;
-                if (syncRate >= 75) {
-                    const goldAlpha = this.alpha * 1.3;
-                    color = this.layer === 3 ? `rgba(255, 183, 3, ${goldAlpha})` : `rgba(255, 71, 126, ${goldAlpha})`;
+                const progress = (syncRate / 100);
+                if (progress >= 0.75) {
+                    const r = Math.floor(255);
+                    const g = Math.floor(183 + progress * 20);
+                    const b = Math.floor(3 + progress * 50);
+                    color = `rgba(${r}, ${g}, ${b}, ${this.alpha * 1.4})`;
+                } else if (progress >= 0.4) {
+                    const r = Math.floor(255 * progress);
+                    const g = Math.floor(71 + progress * 50);
+                    const b = Math.floor(126 + progress * 80);
+                    color = `rgba(${r}, ${g}, ${b}, ${this.alpha * 1.2})`;
                 } else {
-                    color = this.layer === 3 ? `rgba(255, 71, 126, ${this.alpha})` : `rgba(93, 109, 255, ${this.alpha})`;
+                    const r = Math.floor(93 + progress * 100);
+                    const g = Math.floor(109 + progress * 50);
+                    const b = 255;
+                    color = `rgba(${r}, ${g}, ${b}, ${this.alpha})`;
                 }
                 ctx.fillStyle = color;
                 ctx.beginPath();
@@ -857,9 +946,29 @@
             if (!isBgAnimating) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const currentSync = window.game ? game.syncRate : 0;
-            particles.forEach(p => { p.update(); p.draw(currentSync); });
+            const currentUnlocked = window.game ? game.unlockedForeshadows.size : 0;
+            particles.forEach(p => { p.update(); p.draw(currentSync, currentUnlocked); });
             animFrameId = requestAnimationFrame(animateBg);
         }
+
+        // インタラクティブ背景：タップ・クリック時に微細な光の波紋（リップルエフェクト）を生成
+        canvas.parentElement.addEventListener('pointerdown', (e) => {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple-effect';
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            ripple.style.width = '30px';
+            ripple.style.height = '30px';
+            ripple.style.marginLeft = '-15px';
+            ripple.style.marginTop = '-15px';
+            
+            canvas.parentElement.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        });
 
         function startBgAnimation() {
             if (!isBgAnimating) {
