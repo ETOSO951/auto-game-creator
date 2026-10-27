@@ -837,7 +837,7 @@
             <div id="bonus-shop" style="margin-top:12px; background:rgba(22,27,46,0.92); border:1px solid rgba(255,255,255,0.18); border-radius:14px; padding:10px 12px; width:90%; max-width:300px; text-align:left; max-height:220px; overflow-y:auto;">
                 <div style="font-size:0.75rem; color:var(--gold); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
                     <span>因果の欠片: <span id="karma-shards">0</span> 💎</span>
-                    <span>パラドックス: <span id="paradox-keys">0</span> ⏳</span>
+                    <span>周回Lv: <span id="loop-count">1</span> 🔄</span>
                 </div>
                 <button class="btn btn-secondary" id="perk-speed-btn" onclick="game.togglePerkSpeed()" style="width:100%; font-size:0.7rem; padding:6px; margin:3px 0; border-radius:8px;">
                     ⚡ 高速思考: OFF
@@ -851,14 +851,25 @@
                 <button class="btn btn-secondary" id="perk-eye-btn" onclick="game.buyPerk('observerEye')" style="width:100%; font-size:0.7rem; padding:6px; margin:3px 0; border-radius:8px;">
                     👁️ 観測眼(伏線ハイライト): 4 💎
                 </button>
-                <button class="btn btn-secondary" id="paradox-jump-btn" onclick="game.triggerTimelineJump()" style="width:100%; font-size:0.7rem; padding:6px; margin:3px 0; border-radius:8px; border-color:var(--gold); color:var(--gold); display:none;">
-                    ⏳ タイムラインダイバージェンス跳躍
+                <!-- アイデア1：マインドマップ記憶ネットワーク起動ボタン -->
+                <button class="btn btn-secondary" onclick="game.openMindMap()" style="width:100%; font-size:0.7rem; padding:6px; margin:3px 0; border-radius:8px; border-color:var(--primary); color:var(--primary);">
+                    🧠 記憶ネットワーク（マインドマップ）
                 </button>
             </div>
 
             <div style="margin-top:10px; font-size:0.7rem; color:var(--text-sub);">
                 推奨：サウンドON / ループの果てに真実が待つ
             </div>
+        </div>
+
+        <!-- アイデア1：マインドマップ型・記憶ネットワークモーダル -->
+        <div id="mindmap-modal" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(8,9,16,0.96); z-index:110; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px; opacity:0; pointer-events:none; transition:opacity 0.3s ease;">
+            <h3 style="color:var(--gold); margin-bottom:6px;">【記憶ネットワーク・マインドマップ】</h3>
+            <p style="font-size:0.75rem; color:var(--text-sub); text-align:center; margin-bottom:14px;">回収した伏線を接続し、隠されたタイムラインを解放せよ</p>
+            <div id="mindmap-nodes-area" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; width:100%; max-width:320px; max-height:280px; overflow-y:auto; margin-bottom:16px;">
+                <!-- 动态生成记忆节点 -->
+            </div>
+            <button class="btn btn-secondary" onclick="game.closeMindMap()" style="width:auto; padding:8px 24px; font-size:0.8rem;">閉じる</button>
         </div>
 
         <!-- メイン画面 -->
