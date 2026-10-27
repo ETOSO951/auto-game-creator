@@ -71,10 +71,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px);
             z-index: 2;
             pointer-events: none;
-            opacity: 0.6;
+            opacity: 0.55;
+            mix-blend-mode: overlay;
         }
 
         /* シネマティック色収差・被写界深度ブラー */
@@ -140,17 +141,17 @@
             justify-content: space-between;
             align-items: center;
             padding: 14px 18px;
-            background: linear-gradient(135deg, rgba(25, 31, 54, 0.92) 0%, rgba(10, 14, 26, 0.96) 100%);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.18);
+            background: linear-gradient(135deg, rgba(25, 31, 54, 0.94) 0%, rgba(10, 14, 26, 0.98) 100%);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.22);
             margin-bottom: 16px;
             z-index: 15;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 10px 35px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25);
-            transition: transform 0.3s ease, border-color 0.3s ease;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.35), inset 0 -1px 2px rgba(0,0,0,0.4);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         .hud-header:hover {
@@ -305,10 +306,10 @@
 
         /* ダイアログボックス（最高級ガラスモルフィズムとマルチレイヤー・ホログラフィックグレア） */
         .dialog-box {
-            background: linear-gradient(135deg, rgba(38, 48, 86, 0.94) 0%, rgba(10, 14, 26, 0.98) 100%);
-            backdrop-filter: blur(28px);
-            -webkit-backdrop-filter: blur(28px);
-            border: 1px solid rgba(255, 255, 255, 0.32);
+            background: linear-gradient(135deg, rgba(38, 48, 86, 0.96) 0%, rgba(10, 14, 26, 0.99) 100%);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(255, 255, 255, 0.38);
             border-radius: 24px;
             padding: 24px;
             min-height: 165px;
@@ -316,7 +317,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.5), inset 0 -2px 6px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 24px 65px rgba(0, 0, 0, 0.75), inset 0 1px 3px rgba(255, 255, 255, 0.6), inset 0 -2px 8px rgba(0, 0, 0, 0.45);
             margin-bottom: 12px;
             cursor: pointer;
             position: relative;
