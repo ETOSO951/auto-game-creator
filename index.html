@@ -669,6 +669,120 @@
             100% { filter: invert(0); }
         }
 
+        /* アイデア2：ノイズ侵食（エラー・プレッシャー）システム用オーバーレイ */
+        #glitch-hazard-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 71, 111, 0.12);
+            box-shadow: inset 0 0 50px rgba(239, 71, 111, 0.4);
+            z-index: 25;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #glitch-hazard-overlay.active {
+            opacity: 1;
+            animation: hazardPulse 0.8s infinite alternate ease-in-out;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        @keyframes hazardPulse {
+            0% { box-shadow: inset 0 0 30px rgba(239, 71, 111, 0.3); }
+            100% { box-shadow: inset 0 0 80px rgba(239, 71, 111, 0.7); }
+        }
+
+        .hazard-warning {
+            position: absolute;
+            top: 22%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 71, 111, 0.9);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            box-shadow: 0 0 20px rgba(239, 71, 111, 0.8);
+            z-index: 26;
+            display: none;
+            pointer-events: none;
+            animation: warningBlink 0.4s infinite alternate;
+        }
+
+        @keyframes warningBlink {
+            0% { opacity: 0.6; transform: translateX(-50%) scale(0.98); }
+            100% { opacity: 1; transform: translateX(-50%) scale(1.02); }
+        }
+
+        /* アイデア1：「記憶の断片」探索フェーズ用コンテナ */
+        #explore-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(8, 9, 16, 0.94);
+            z-index: 90;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        #explore-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .explore-area {
+            position: relative;
+            width: 280px;
+            height: 320px;
+            background: radial-gradient(circle at center, rgba(38,48,86,0.6) 0%, rgba(10,14,26,0.9) 100%);
+            border: 1px solid rgba(93,109,255,0.4);
+            border-radius: 20px;
+            margin: 16px 0;
+            overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(93,109,255,0.2);
+            touch-action: none;
+        }
+
+        .fragment-item {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--gold) 0%, rgba(255,183,3,0.3) 70%, transparent 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255,183,3,0.8);
+            animation: fragmentFloat 2.5s infinite ease-in-out alternate;
+            transition: transform 0.2s ease, opacity 0.3s ease;
+        }
+
+        .fragment-item.collected {
+            transform: scale(0);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @keyframes fragmentFloat {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(-8px) scale(1.08); }
+        }
+
         /* 伏線解除トースト通知 */
         #foreshadow-toast {
             position: absolute;
@@ -703,6 +817,11 @@
 
         <!-- 伏線回収通知トースト -->
         <div id="foreshadow-toast">⚡ 伏線回収：<span id="toast-text"></span></div>
+        
+        <!-- アイデア2：ノイズ侵食ハザードオーバーレイ -->
+        <div id="glitch-hazard-overlay" onclick="game.resolveHazard()">
+            <div class="hazard-warning" id="hazard-warning">⚠️ 脳内エラー侵食！タップして鎮静化せよ！</div>
+        </div>
 
         <!-- スタート画面 -->
         <div id="start-screen" class="screen active">
@@ -710,7 +829,19 @@
             <div class="title-sub">- 記憶の伏線と7日間のループ -</div>
             <button class="btn" onclick="game.startNewGame()">物語を始める</button>
             <button class="btn btn-secondary" id="continue-btn" onclick="game.loadGame()" style="display:none;">記憶を再開する</button>
-            <div style="margin-top:20px; font-size:0.75rem; color:var(--text-sub);">
+            
+            <!-- アイデア3：周回特典ショップ / カスタマイズパネル -->
+            <div id="bonus-shop" style="margin-top:16px; background:rgba(22,27,46,0.85); border:1px solid rgba(255,255,255,0.15); border-radius:14px; padding:12px; width:80%; max-width:280px; text-align:left;">
+                <div style="font-size:0.75rem; color:var(--gold); margin-bottom:6px; display:flex; justify-content:space-between;">
+                    <span>因果の欠片: <span id="karma-shards">0</span> 💎</span>
+                    <span>周回数: <span id="loop-count">1</span> 回</span>
+                </div>
+                <button class="btn btn-secondary" id="perk-speed-btn" onclick="game.togglePerkSpeed()" style="width:100%; font-size:0.75rem; padding:8px; margin:4px 0; border-radius:10px;">
+                    高速思考 (テキスト加速): OFF
+                </button>
+            </div>
+
+            <div style="margin-top:14px; font-size:0.75rem; color:var(--text-sub);">
                 推奨：サウンドON / ループの果てに真実が待つ
             </div>
         </div>
@@ -758,6 +889,18 @@
             <div class="puzzle-success-msg" id="puzzle-success-msg">✔ 記憶領域の同期完了</div>
             <div class="puzzle-grid" id="puzzle-grid"></div>
             <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem;">記憶を解析(スキップ)</button>
+        </div>
+
+        <!-- アイデア1：「記憶の断片」探索フェーズ モーダル -->
+        <div id="explore-modal">
+            <h3 style="color:var(--gold); margin-bottom:4px;">【残響データ探索】</h3>
+            <p style="font-size:0.75rem; color:var(--text-sub); text-align:center;" id="explore-desc">
+                浮遊する全ての光の欠片を回収せよ (0/3)
+            </p>
+            <div class="explore-area" id="explore-area">
+                <!-- 動的フラグメント配置 -->
+            </div>
+            <button class="btn btn-secondary" id="explore-skip-btn" onclick="game.finishExplore()" style="width:auto; padding:8px 16px; font-size:0.8rem; display:none;">解析完了（進む）</button>
         </div>
 
         <!-- 結果 / エンディング画面 -->
