@@ -136,23 +136,32 @@
             transform: scale(1);
         }
 
-        /* アイデア1 & 3：HUDヘッダーの極限スリム化と引き算の美学の徹底 */
+        /* アイデア1 & 3：HUDヘッダーの極限スリム化と引き算の美学の徹底（非アクティブ時は透過・フェードアウトしテキストへ没入） */
         .hud-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 8px 16px;
-            background: rgba(14, 18, 30, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(14, 18, 30, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.06);
             margin-bottom: 12px;
             z-index: 15;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            transition: border-color 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            transition: border-color 0.3s ease, opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .screen.active .hud-header {
+            opacity: 0.9;
+        }
+
+        .screen.active .hud-header:hover {
+            opacity: 1;
+            border-color: rgba(93, 109, 255, 0.35);
         }
 
         .hud-header:hover {
@@ -471,11 +480,11 @@
             box-shadow: 0 12px 36px rgba(255, 183, 3, 0.35), inset 0 1px 2px rgba(255,255,255,0.5);
         }
 
-        /* アイデア3：モーダル・オーバーレイの視覚的統一（ダークガラスモルフィズム） */
+        /* アイデア3：モーダル・オーバーレイの視覚的統一（深めのダークガラスモルフィズムと強力な被写界深度ブラーによるノイズ完全排除） */
         #puzzle-modal, #explore-modal, #archive-modal, #glitch-hazard-overlay {
-            background: rgba(8, 9, 16, 0.92) !important;
-            backdrop-filter: blur(24px) !important;
-            -webkit-backdrop-filter: blur(24px) !important;
+            background: rgba(5, 7, 13, 0.96) !important;
+            backdrop-filter: blur(36px) !important;
+            -webkit-backdrop-filter: blur(36px) !important;
         }
 
         #puzzle-modal {
