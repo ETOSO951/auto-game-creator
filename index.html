@@ -818,9 +818,12 @@
         <!-- 伏線回収通知トースト -->
         <div id="foreshadow-toast">⚡ 伏線回収：<span id="toast-text"></span></div>
         
-        <!-- アイデア2：ノイズ侵食ハザードオーバーレイ -->
+        <!-- アイデア2：バグ侵食ハザードオーバーレイ (QTEコード修復アクション対応) -->
         <div id="glitch-hazard-overlay" onclick="game.resolveHazard()">
-            <div class="hazard-warning" id="hazard-warning">⚠️ 脳内エラー侵食！タップして鎮静化せよ！</div>
+            <div class="hazard-warning" id="hazard-warning">⚠️ 脳内エラー侵食！コードをスワイプして修復せよ！</div>
+            <div id="qte-nodes-container" style="position:absolute; top:45%; left:50%; transform:translateX(-50%); display:flex; gap:12px; pointer-events:auto;" onclick="event.stopPropagation()">
+                <!-- Dynamic QTE nodes -->
+            </div>
         </div>
 
         <!-- スタート画面 -->
@@ -830,18 +833,27 @@
             <button class="btn" onclick="game.startNewGame()">物語を始める</button>
             <button class="btn btn-secondary" id="continue-btn" onclick="game.loadGame()" style="display:none;">記憶を再開する</button>
             
-            <!-- アイデア3：周回特典ショップ / カスタマイズパネル -->
-            <div id="bonus-shop" style="margin-top:16px; background:rgba(22,27,46,0.85); border:1px solid rgba(255,255,255,0.15); border-radius:14px; padding:12px; width:80%; max-width:280px; text-align:left;">
+            <!-- アイデア3：周回特典ショップ / メタ進行パネル -->
+            <div id="bonus-shop" style="margin-top:12px; background:rgba(22,27,46,0.92); border:1px solid rgba(255,255,255,0.18); border-radius:14px; padding:10px 12px; width:90%; max-width:300px; text-align:left; max-height:210px; overflow-y:auto;">
                 <div style="font-size:0.75rem; color:var(--gold); margin-bottom:6px; display:flex; justify-content:space-between;">
                     <span>因果の欠片: <span id="karma-shards">0</span> 💎</span>
                     <span>周回数: <span id="loop-count">1</span> 回</span>
                 </div>
-                <button class="btn btn-secondary" id="perk-speed-btn" onclick="game.togglePerkSpeed()" style="width:100%; font-size:0.75rem; padding:8px; margin:4px 0; border-radius:10px;">
-                    高速思考 (テキスト加速): OFF
+                <button class="btn btn-secondary" id="perk-speed-btn" onclick="game.togglePerkSpeed()" style="width:100%; font-size:0.7rem; padding:6px; margin:3px 0; border-radius:8px;">
+                    ⚡ 高速思考: OFF
+                </button>
+                <button class="btn btn-secondary" id="perk-sync-btn" onclick="game.buyPerk('bonusSync')" style="width:100%; font-size:0.7rem; padding:6px; margin:3px 0; border-radius:8px;">
+                    💎 初期同調率+20%: 3 💎
+                </button>
+                <button class="btn btn-secondary" id="perk-puzzle-btn" onclick="game.buyPerk('autoPuzzle')" style="width:100%; font-size:0.7rem; padding:6px; margin:3px 0; border-radius:8px;">
+                    🧩 パズル自動解析権: 5 💎
+                </button>
+                <button class="btn btn-secondary" id="perk-eye-btn" onclick="game.buyPerk('observerEye')" style="width:100%; font-size:0.7rem; padding:6px; margin:3px 0; border-radius:8px;">
+                    👁️ 観測眼(伏線ハイライト): 4 💎
                 </button>
             </div>
 
-            <div style="margin-top:14px; font-size:0.75rem; color:var(--text-sub);">
+            <div style="margin-top:10px; font-size:0.7rem; color:var(--text-sub);">
                 推奨：サウンドON / ループの果てに真実が待つ
             </div>
         </div>
@@ -889,7 +901,10 @@
             <div style="font-size:0.75rem; color:var(--gold); margin:4px 0;" id="puzzle-combo-display">COMBO: 0 | Bonus Sync: +0%</div>
             <div class="puzzle-success-msg" id="puzzle-success-msg">✔ 記憶領域の同期完了</div>
             <div class="puzzle-grid" id="puzzle-grid"></div>
-            <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem;">記憶を解析(スキップ)</button>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem;">記憶を解析(スキップ)</button>
+                <button class="btn btn-secondary" id="puzzle-autopass-btn" onclick="game.useAutoPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem; border-color:var(--gold); color:var(--gold);" id="auto-puzzle-action-btn">自動解析パス</button>
+            </div>
         </div>
 
         <!-- 結果 / エンディング画面 -->
@@ -1367,10 +1382,53 @@
                 speaker: "エリス",
                 icon: "👩‍💼",
                 color: "#ff477e",
-                text: "5日後、世界の【記憶領域】が完全に消去されます。\nそれを防ぐには、あなたが途切れた記憶を取り戻すしかありません。",
+                text: "5日後、世界の【記憶領域】が完全に消去されます。\nどの記憶の深層へダイブするかを選択してください。",
                 choices: [
-                    { text: "記憶を取り戻すパズルを始める", puzzle: true, next: "sec_3_explore_phase" },
-                    { text: "諦めてこの部屋で静かに過ごす", next: "bad_end_1" }
+                    { text: "📁 研究所火災事故の真相ルートへ", next: "route_fire_start" },
+                    { text: "📁 AI開発者としての倫理葛藤ルートへ", next: "route_ethics_start" },
+                    { text: "⚡ 標準の記憶復元パズルへ進む", puzzle: true, next: "sec_3_explore_phase" }
+                ]
+            },
+            route_fire_start: {
+                day: 4,
+                speaker: "回想データ",
+                icon: "🔥",
+                color: "#ef476f",
+                text: "【ルート分岐：研究所火災】\n炎に包まれたサーバー室。あなたは必すうのデータ端末を抱え、崩れ落ちる廊下を走っていた……！",
+                foreshadow: { id: "key_fire", title: "研究所火災の隠されたバックアップ" },
+                choices: [
+                    { text: "データをエリスに託して脱出する", next: "route_fire_deep" }
+                ]
+            },
+            route_fire_deep: {
+                day: 3,
+                speaker: "エリス",
+                icon: "👩‍💼",
+                color: "#ff477e",
+                text: "「あの日の火災は、事故ではありませんでした。\nあなた自身がシステムを止めるために……」",
+                choices: [
+                    { text: "真実の核心へ進む", next: "sec_3_explore_phase" }
+                ]
+            },
+            route_ethics_start: {
+                day: 4,
+                speaker: "回想データ",
+                icon: "⚖️",
+                color: "#ffb703",
+                text: "【ルート分岐：倫理葛藤】\n「AIに人間の感情を移植することは、神への冒涜か、それとも救済か」\n研究机には何冊もの分厚い手記が残されていた。",
+                foreshadow: { id: "key_ethics", title: "研究手記『AIと人間の境界線』" },
+                choices: [
+                    { text: "手記のページをめくる", next: "route_ethics_deep" }
+                ]
+            },
+            route_ethics_deep: {
+                day: 3,
+                speaker: "エリス",
+                icon: "🤖",
+                color: "#ff477e",
+                text: "「あなたは私に『痛み』を覚えさせました。\nだから私は、あなたを忘れない……」",
+                choices: [
+                    { text: "真実の核心へ進む", next: "sec_3_explore_phase" }
                 ]
             },
             sec_3_explore_phase: {
@@ -1478,7 +1536,7 @@
                 this.unlockedForeshadows = new Set();
                 this.syncRate = 0;
                 this.puzzleBoard = [1, 2, 3, 4, 5, 6, 7, 0, 8];
-                this.allForeshadowsCount = 4;
+                this.allForeshadowsCount = 6; // 伏線拡張に対応して6つに増加
                 this.touchStartX = 0;
                 this.touchStartY = 0;
                 this.touchStartTime = 0;
@@ -1494,6 +1552,9 @@
                 this.karmaShards = 0;
                 this.loopCount = 1;
                 this.perkSpeedOn = false;
+                this.perkBonusSync = false;
+                this.perkAutoPuzzle = false;
+                this.perkObserverEye = false;
                 this.hazardActive = false;
                 this.hazardTimer = null;
                 this.puzzleCombo = 0;
@@ -1516,6 +1577,9 @@
                         this.karmaShards = data.shards || 0;
                         this.loopCount = data.loops || 1;
                         this.perkSpeedOn = !!data.speed;
+                        this.perkBonusSync = !!data.bonusSync;
+                        this.perkAutoPuzzle = !!data.autoPuzzle;
+                        this.perkObserverEye = !!data.observerEye;
                     }
                 } catch(e){}
                 this.updatePerkUI();
@@ -1526,7 +1590,10 @@
                     const data = {
                         shards: this.karmaShards,
                         loops: this.loopCount,
-                        speed: this.perkSpeedOn
+                        speed: this.perkSpeedOn,
+                        bonusSync: this.perkBonusSync,
+                        autoPuzzle: this.perkAutoPuzzle,
+                        observerEye: this.perkObserverEye
                     };
                     localStorage.setItem('echoes_meta', JSON.stringify(data));
                 } catch(e){}
@@ -1537,11 +1604,27 @@
                 const shardsEl = document.getElementById('karma-shards');
                 const loopsEl = document.getElementById('loop-count');
                 const speedBtn = document.getElementById('perk-speed-btn');
+                const syncBtn = document.getElementById('perk-sync-btn');
+                const puzzleBtn = document.getElementById('perk-puzzle-btn');
+                const eyeBtn = document.getElementById('perk-eye-btn');
+
                 if (shardsEl) shardsEl.innerText = this.karmaShards;
                 if (loopsEl) loopsEl.innerText = this.loopCount;
                 if (speedBtn) {
-                    speedBtn.innerText = `高速思考 (テキスト加速): ${this.perkSpeedOn ? 'ON' : 'OFF'}`;
+                    speedBtn.innerText = `⚡ 高速思考: ${this.perkSpeedOn ? 'ON' : 'OFF'}`;
                     speedBtn.style.borderColor = this.perkSpeedOn ? 'var(--primary)' : 'rgba(255,255,255,0.2)';
+                }
+                if (syncBtn) {
+                    syncBtn.innerText = `💎 初期同調率+20%: ${this.perkBonusSync ? '取得済' : '3 💎'}`;
+                    syncBtn.style.borderColor = this.perkBonusSync ? 'var(--gold)' : 'rgba(255,255,255,0.2)';
+                }
+                if (puzzleBtn) {
+                    puzzleBtn.innerText = `🧩 パズル自動解析権: ${this.perkAutoPuzzle ? '取得済' : '5 💎'}`;
+                    puzzleBtn.style.borderColor = this.perkAutoPuzzle ? 'var(--gold)' : 'rgba(255,255,255,0.2)';
+                }
+                if (eyeBtn) {
+                    eyeBtn.innerText = `👁️ 観測眼(伏線ハイライト): ${this.perkObserverEye ? '取得済' : '4 💎'}`;
+                    eyeBtn.style.borderColor = this.perkObserverEye ? 'var(--gold)' : 'rgba(255,255,255,0.2)';
                 }
             }
 
@@ -1551,20 +1634,77 @@
                 this.savePerkData();
             }
 
+            buyPerk(type) {
+                if (type === 'bonusSync' && !this.perkBonusSync) {
+                    if (this.karmaShards >= 3) {
+                        this.karmaShards -= 3;
+                        this.perkBonusSync = true;
+                        sound.playRecallSound();
+                    } else {
+                        sound.playBeep(180, 'sawtooth', 0.1);
+                    }
+                } else if (type === 'autoPuzzle' && !this.perkAutoPuzzle) {
+                    if (this.karmaShards >= 5) {
+                        this.karmaShards -= 5;
+                        this.perkAutoPuzzle = true;
+                        sound.playRecallSound();
+                    } else {
+                        sound.playBeep(180, 'sawtooth', 0.1);
+                    }
+                } else if (type === 'observerEye' && !this.perkObserverEye) {
+                    if (this.karmaShards >= 4) {
+                        this.karmaShards -= 4;
+                        this.perkObserverEye = true;
+                        sound.playRecallSound();
+                    } else {
+                        sound.playBeep(180, 'sawtooth', 0.1);
+                    }
+                }
+                this.savePerkData();
+            }
+
             triggerHazard() {
                 if (this.hazardActive) return;
                 this.hazardActive = true;
                 const overlay = document.getElementById('glitch-hazard-overlay');
                 const warning = document.getElementById('hazard-warning');
+                const qteContainer = document.getElementById('qte-nodes-container');
                 if (overlay) overlay.classList.add('active');
                 if (warning) warning.style.display = 'block';
                 sound.playGlitchSound();
+
+                // QTEノード生成 (3つのコードを順番にタップ)
+                if (qteContainer) {
+                    qteContainer.innerHTML = '';
+                    this.qteTargetIndex = 0;
+                    for (let i = 1; i <= 3; i++) {
+                        const node = document.createElement('div');
+                        node.className = 'qte-node';
+                        node.style.cssText = `width:44px; height:44px; border-radius:50%; background:rgba(239,71,111,0.3); border:2px solid var(--danger); display:flex; justify-content:center; align-items:center; color:#fff; font-weight:bold; cursor:pointer; box-shadow:0 0 10px rgba(239,71,111,0.6); transition:all 0.2s;`;
+                        node.innerText = i;
+
+                        node.onclick = () => {
+                            if (i === this.qteTargetIndex + 1) {
+                                this.qteTargetIndex++;
+                                node.style.background = 'var(--gold)';
+                                node.style.borderColor = '#fff';
+                                sound.playBeep(880, 'sine', 0.05);
+                                if (this.qteTargetIndex >= 3) {
+                                    this.resolveHazard(false);
+                                }
+                            } else {
+                                sound.playBeep(150, 'sawtooth', 0.1);
+                            }
+                        };
+                        qteContainer.appendChild(node);
+                    }
+                }
 
                 this.hazardTimer = this.addTimeout(() => {
                     if (this.hazardActive) {
                         this.resolveHazard(true); // 鎮静化失敗時ペナルティ
                     }
-                }, 4500);
+                }, 5000);
             }
 
             resolveHazard(isFailure = false) {
@@ -1576,8 +1716,10 @@
                 }
                 const overlay = document.getElementById('glitch-hazard-overlay');
                 const warning = document.getElementById('hazard-warning');
+                const qteContainer = document.getElementById('qte-nodes-container');
                 if (overlay) overlay.classList.remove('active');
                 if (warning) warning.style.display = 'none';
+                if (qteContainer) qteContainer.innerHTML = '';
 
                 if (isFailure) {
                     sound.playBeep(120, 'sawtooth', 0.2);
@@ -1588,8 +1730,12 @@
                     this.addTimeout(() => toast.classList.remove('show'), 2500);
                 } else {
                     sound.playBeep(780, 'sine', 0.1);
-                    this.karmaShards += 1;
+                    this.karmaShards += 2;
                     this.savePerkData();
+                    const toast = document.getElementById('foreshadow-toast');
+                    document.getElementById('toast-text').innerText = "✨ バグ修復成功：因果の欠片+2獲得";
+                    toast.classList.add('show');
+                    this.addTimeout(() => toast.classList.remove('show'), 2500);
                 }
             }
 
@@ -1771,6 +1917,9 @@
             startNewGame() {
                 this.resetState();
                 this.loopCount++;
+                if (this.perkBonusSync) {
+                    this.syncRate = 20;
+                }
                 this.savePerkData();
                 this.switchScreen('main-screen');
                 this.renderScene('start');
@@ -2250,6 +2399,16 @@
                 }
             }
 
+            useAutoPuzzle() {
+                if (this.perkAutoPuzzle) {
+                    sound.playRecallSound();
+                    this.puzzleBonusSync = 50;
+                    this.skipPuzzle();
+                } else {
+                    sound.playBeep(180, 'sawtooth', 0.1);
+                }
+            }
+
             skipPuzzle() {
                 document.getElementById('puzzle-modal').classList.remove('active');
                 this.syncRate = Math.min(100, this.syncRate + this.puzzleBonusSync);
@@ -2276,7 +2435,9 @@
                     { id: "key_girl", title: "言葉の違和感「また会えた」" },
                     { id: "key_clock", title: "時計の刻印『E.C.』" },
                     { id: "key_name", title: "偽りの名前への拒絶" },
-                    { id: "key_noise", title: "エリスの正体「AIとドクター」" }
+                    { id: "key_noise", title: "エリスの正体「AIとドクター」" },
+                    { id: "key_fire", title: "研究所火災の隠されたバックアップ" },
+                    { id: "key_ethics", title: "研究手記『AIと人間の境界線』" }
                 ];
 
                 allForeshadowDefs.forEach(item => {
