@@ -874,19 +874,22 @@
             </div>
         </div>
 
-        <!-- スタート画面（引き算の美学に基づく極限まで洗練されたミニマルUI） -->
-        <div id="start-screen" class="screen active">
-            <div class="title-logo">ECHOES OF<br>REASON</div>
-            <div class="title-sub">- 記憶の伏線と7日間のループ -</div>
-            <button class="btn" onclick="game.startNewGame()">物語を始める</button>
-            <button class="btn btn-secondary" id="continue-btn" onclick="game.loadGame()" style="display:none;">記憶を再開する</button>
+        <!-- スタート画面（アイデア1：プロローグイントロダクション＆長押しエネルギーチャージ演出） -->
+        <div id="start-screen" class="screen active" onpointerdown="game.startTitleCharge(event)" onpointerup="game.endTitleCharge()" onpointercancel="game.endTitleCharge()">
+            <div class="title-logo" style="position:relative;">
+                ECHOES OF<br>REASON
+                <div id="title-charge-ring" style="position:absolute; inset:-12px; border:2px dashed rgba(255,71,126,0.2); border-radius:50%; opacity:0; transition:all 0.4s ease; pointer-events:none;"></div>
+            </div>
+            <div class="title-sub" id="title-prologue-text">- 記憶の伏線と7日間のループ - (画面長押しで同調解放)</div>
+            <button class="btn" onclick="game.startNewGame(); event.stopPropagation();">物語を始める</button>
+            <button class="btn btn-secondary" id="continue-btn" onclick="game.loadGame(); event.stopPropagation();" style="display:none;">記憶を再開する</button>
             
-            <button class="btn btn-secondary" onclick="game.openArchiveModal()" style="width:80%; max-width:280px; font-size:0.82rem; margin-top:6px; border-color:rgba(93,109,255,0.3); color:var(--text-sub);">
+            <button class="btn btn-secondary" onclick="game.openArchiveModal(); event.stopPropagation();" style="width:80%; max-width:280px; font-size:0.82rem; margin-top:6px; border-color:rgba(93,109,255,0.3); color:var(--text-sub);">
                 💎 記憶アーカイブ室
             </button>
 
-            <div style="margin-top:16px; font-size:0.7rem; color:var(--text-sub); letter-spacing:1px; opacity:0.8;">
-                推奨：サウンドON / ループの果てに真実が待つ
+            <div style="margin-top:16px; font-size:0.7rem; color:var(--text-sub); letter-spacing:1px; opacity:0.8;" id="title-hint">
+                推奨：サウンドON / 画面長押しで時空の歪みを観測
             </div>
         </div>
 
@@ -1257,6 +1260,10 @@
             targetMouseX = e.clientX - rect.left;
             targetMouseY = e.clientY - rect.top;
         });
+
+        // アイデア1・3連動：タイトル長押しチャージ変数
+        let isTitleCharging = false;
+        let titleChargeProgress = 0;
 
         class Particle {
             constructor(layer) {
@@ -1848,6 +1855,9 @@
                 if (this.hazardActive) return;
                 this.hazardActive = true;
                 sound.updateAmbientTension(true);
+                if (navigator.vibrate) {
+                    try { navigator.vibrate([120, 60, 180]); } catch(e){}
+                }
                 const overlay = document.getElementById('glitch-hazard-overlay');
                 const warning = document.getElementById('hazard-warning');
                 const qteContainer = document.getElementById('qte-nodes-container');
