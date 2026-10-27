@@ -136,40 +136,41 @@
             transform: scale(1);
         }
 
-        /* アイデア1 & 3：HUDヘッダーのオート・フェードアウトと引き算の美学の徹底（没入感の最大化） */
+        /* アイデア1 & 3：HUDヘッダーの完全オート・フェードアウトと引き算の美学の徹底（没入感の最大化） */
         .hud-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 14px;
-            background: rgba(10, 14, 24, 0.3);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.02);
-            margin-bottom: 12px;
+            padding: 8px 16px;
+            background: rgba(10, 14, 24, 0.45);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.04);
+            margin-bottom: 16px;
             z-index: 15;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            opacity: 0.15;
-            transform: translateY(-4px);
-            transition: border-color 0.35s ease, opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            opacity: 0.08;
+            transform: translateY(-8px);
+            transition: border-color 0.4s ease, opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         #main-screen.typing-active .hud-header,
         #main-screen:not(:hover) .hud-header {
-            opacity: 0.12;
-            transform: translateY(-6px);
+            opacity: 0.08;
+            transform: translateY(-8px);
             pointer-events: none;
         }
 
         .screen.active #main-screen:hover .hud-header,
         .screen.active .hud-header:hover,
-        .screen.active .dialog-box:active ~ .hud-header {
-            opacity: 0.95;
+        .screen.active .dialog-box:active ~ .hud-header,
+        .screen.active .visual-area:active ~ .hud-header {
+            opacity: 0.98;
             transform: translateY(0);
-            border-color: rgba(93, 109, 255, 0.3);
+            border-color: rgba(93, 109, 255, 0.4);
             pointer-events: auto;
         }
 
@@ -256,10 +257,10 @@
             color: var(--text-sub);
         }
 
-        /* メインアドベンチャー画面 */
+        /* メインアドベンチャー画面とネガティブスペースの最適化 */
         #main-screen {
             justify-content: flex-end;
-            padding-bottom: 20px;
+            padding: 20px 20px 28px 20px;
         }
 
         /* 視覚演出ウィンドウ（キャラクター／シーン） */
@@ -270,11 +271,12 @@
             justify-content: center;
             align-items: center;
             position: relative;
-            margin-bottom: 16px;
-            border-radius: 16px;
+            margin-bottom: 20px;
+            border-radius: 20px;
             overflow: hidden;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.05);
+            background: radial-gradient(circle at center, rgba(22,27,51,0.35) 0%, rgba(8,9,16,0.65) 100%);
+            border: 1px solid rgba(255,255,255,0.06);
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.4);
         }
 
         .avatar-box {
@@ -303,19 +305,19 @@
 
         /* ダイアログボックス（最高級ガラスモルフィズムとマルチレイヤー・ホログラフィックグレア） */
         .dialog-box {
-            background: linear-gradient(135deg, rgba(38, 48, 86, 0.96) 0%, rgba(10, 14, 26, 0.99) 100%);
-            backdrop-filter: blur(32px);
-            -webkit-backdrop-filter: blur(32px);
-            border: 1px solid rgba(255, 255, 255, 0.38);
-            border-radius: 24px;
-            padding: 24px;
-            min-height: 165px;
-            max-height: 225px;
+            background: linear-gradient(135deg, rgba(32, 42, 78, 0.97) 0%, rgba(10, 14, 26, 0.99) 100%);
+            backdrop-filter: blur(36px);
+            -webkit-backdrop-filter: blur(36px);
+            border: 1px solid rgba(255, 255, 255, 0.32);
+            border-radius: 22px;
+            padding: 22px 24px;
+            min-height: 160px;
+            max-height: 215px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            box-shadow: 0 24px 65px rgba(0, 0, 0, 0.75), inset 0 1px 3px rgba(255, 255, 255, 0.6), inset 0 -2px 8px rgba(0, 0, 0, 0.45);
-            margin-bottom: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), inset 0 1px 3px rgba(255, 255, 255, 0.5), inset 0 -2px 6px rgba(0, 0, 0, 0.4);
+            margin-bottom: 16px;
             cursor: pointer;
             position: relative;
             overflow: hidden;
