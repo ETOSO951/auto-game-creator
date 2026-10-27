@@ -569,42 +569,60 @@
         class SoundEngine {
             constructor() {
                 this.ctx = null;
+                this.lastBeepTime = 0;
             }
 
             init() {
                 if (!this.ctx) {
                     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
                 }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
             }
 
             playBeep(freq = 440, type = 'sine', duration = 0.1, randomize = false) {
+                this.init();
                 if (!this.ctx) return;
+
+                // 打鍵音・文字送りの連続生成による音割れ・負荷を防止
+                const now = performance.now();
+                if (randomize && now - this.lastBeepTime < 30) return;
+                this.lastBeepTime = now;
+
                 try {
-                    const finalFreq = randomize ? freq + (Math.random() * 60 - 30) : freq;
+                    const currentTime = this.ctx.currentTime;
+                    const finalFreq = randomize ? freq + (Math.random() * 40 - 20) : freq;
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
+                    
                     osc.type = type;
-                    osc.frequency.setValueAtTime(finalFreq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.frequency.setValueAtTime(finalFreq, currentTime);
+                    
+                    gain.gain.setValueAtTime(0.05, currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
+                    
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + duration);
+                    
+                    osc.start(currentTime);
+                    osc.stop(currentTime + duration);
                 } catch(e){}
             }
 
             playRecallSound() {
+                this.init();
                 if (!this.ctx) return;
                 const notes = [523.25, 659.25, 783.99, 1046.50];
                 notes.forEach((freq, idx) => {
-                    setTimeout(() => this.playBeep(freq, 'triangle', 0.3), idx * 80);
+                    setTimeout(() => this.playBeep(freq, 'triangle', 0.25), idx * 80);
                 });
             }
 
             playGlitchSound() {
+                this.init();
                 if (!this.ctx) return;
-                this.playBeep(120, 'sawtooth', 0.2);
+                this.playBeep(120, 'sawtooth', 0.25);
             }
         }
 
@@ -647,12 +665,41 @@
 
         for (let i = 0; i < 40; i++) particles.push(new Particle());
 
+        let isBgAnimating = true;
+        let animFrameId = null;
+
         function animateBg() {
+            if (!isBgAnimating) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animateBg);
+            animFrameId = requestAnimationFrame(animateBg);
         }
-        animateBg();
+
+        function startBgAnimation() {
+            if (!isBgAnimating) {
+                isBgAnimating = true;
+                animateBg();
+            }
+        }
+
+        function stopBgAnimation() {
+            isBgAnimating = false;
+            if (animFrameId) {
+                cancelAnimationFrame(animFrameId);
+                animFrameId = null;
+            }
+        }
+
+        // 画面のバックグラウンド移行時にCanvas描画ループを停止してCPU負荷を軽減
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopBgAnimation();
+            } else {
+                startBgAnimation();
+            }
+        });
+
+        startBgAnimation();
 
         /* --- シナリオデータベース & 伏線設計 --- */
         /*
@@ -842,10 +889,19 @@
             }
 
             resetState() {
+                this.stopTypewriter();
+                if (this.toastTimer) {
+                    clearTimeout(this.toastTimer);
+                    this.toastTimer = null;
+                }
+                const toast = document.getElementById('foreshadow-toast');
+                if (toast) toast.classList.remove('show');
+
                 this.currentScene = 'start';
                 this.unlockedForeshadows.clear();
                 this.syncRate = 0;
                 this.choiceLock = false;
+                this.isTyping = false;
                 localStorage.removeItem('echoes_save');
             }
 
@@ -864,7 +920,10 @@
                     if (e.changedTouches.length > 0) {
                         const diffX = e.changedTouches[0].clientX - this.touchStartX;
                         const diffY = e.changedTouches[0].clientY - this.touchStartY;
-                        if (Math.abs(diffX) > 30 || Math.abs(diffY) > 30) {
+                        const absX = Math.abs(diffX);
+                        const absY = Math.abs(diffY);
+                        // 主軸（スワイプの優位方向）を厳格に判定して斜め操作の誤発動を防ぐ
+                        if (Math.max(absX, absY) > 25 && (absX > absY * 1.3 || absY > absX * 1.3)) {
                             this.handlePuzzleSwipe(diffX, diffY);
                         }
                     }
@@ -1050,14 +1109,14 @@
                     dialogEl.innerText = this.currentFullText;
                 }
                 this.isTyping = false;
-                if (choicesBox) choicesBox.classList.remove('disabled');
                 if (hintEl) hintEl.style.display = 'none';
 
-                // スキップ直後の誤入力（事故タップ）を防止するミリ秒ウェイト
+                // 連打スキップによる誤操作（選択肢の即時決定）を防ぐ精密ウェイト制御
                 this.choiceLock = true;
                 setTimeout(() => {
                     this.choiceLock = false;
-                }, 200);
+                    if (choicesBox) choicesBox.classList.remove('disabled');
+                }, 300);
             }
 
             stopTypewriter() {
@@ -1084,29 +1143,35 @@
             }
 
             generateSolvablePuzzle() {
-                // 完成形から有効な手のみをランダムに動かして崩す（確実に解ける盤面を作る）
-                this.puzzleBoard = [1, 2, 3, 4, 5, 6, 7, 8, 0];
-                let movesCount = 40;
-                let lastMovedTile = -1;
+                // 解ける盤面を保証し、初期状態が完成形になってしまう事故を回避
+                const winState = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+                do {
+                    this.puzzleBoard = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+                    let movesCount = 35;
+                    let lastEmptyIdx = -1;
 
-                for (let i = 0; i < movesCount; i++) {
-                    const emptyIdx = this.puzzleBoard.indexOf(0);
-                    const neighbors = [];
+                    for (let i = 0; i < movesCount; i++) {
+                        const emptyIdx = this.puzzleBoard.indexOf(0);
+                        const neighbors = [];
 
-                    const r = Math.floor(emptyIdx / 3);
-                    const c = emptyIdx % 3;
+                        const r = Math.floor(emptyIdx / 3);
+                        const c = emptyIdx % 3;
 
-                    if (r > 0) neighbors.push(emptyIdx - 3);
-                    if (r < 2) neighbors.push(emptyIdx + 3);
-                    if (c > 0) neighbors.push(emptyIdx - 1);
-                    if (c < 2) neighbors.push(emptyIdx + 1);
+                        if (r > 0) neighbors.push(emptyIdx - 3);
+                        if (r < 2) neighbors.push(emptyIdx + 3);
+                        if (c > 0) neighbors.push(emptyIdx - 1);
+                        if (c < 2) neighbors.push(emptyIdx + 1);
 
-                    const validNeighbors = neighbors.filter(idx => idx !== lastMovedTile);
-                    const chosenIdx = validNeighbors[Math.floor(Math.random() * validNeighbors.length)] || neighbors[0];
+                        // 無駄な往復移動をシャッフルから排除
+                        const validNeighbors = neighbors.filter(idx => idx !== lastEmptyIdx);
+                        const chosenIdx = validNeighbors.length > 0 
+                            ? validNeighbors[Math.floor(Math.random() * validNeighbors.length)] 
+                            : neighbors[0];
 
-                    [this.puzzleBoard[chosenIdx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[chosenIdx]];
-                    lastMovedTile = emptyIdx;
-                }
+                        [this.puzzleBoard[chosenIdx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[chosenIdx]];
+                        lastEmptyIdx = emptyIdx;
+                    }
+                } while (JSON.stringify(this.puzzleBoard) === JSON.stringify(winState));
             }
 
             renderPuzzle() {
