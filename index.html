@@ -138,7 +138,13 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            background: radial-gradient(circle at center, rgba(30,38,74,0.8) 0%, rgba(8,9,16,0.95) 100%);
+            background: radial-gradient(circle at center, rgba(30,38,74,0.9) 0%, rgba(8,9,16,0.98) 100%);
+            animation: screenIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes screenIn {
+            0% { opacity: 0; transform: scale(1.05); filter: blur(4px); }
+            100% { opacity: 1; transform: scale(1); filter: blur(0); }
         }
 
         .title-logo {
@@ -214,15 +220,21 @@
 
         .avatar-box {
             position: relative;
-            width: 120px;
-            height: 120px;
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
             background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 0 30px var(--primary-glow);
-            transition: all 0.5s ease;
+            box-shadow: 0 0 35px var(--primary-glow), inset 0 0 15px rgba(255,255,255,0.3);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: avatarPulse 4s infinite ease-in-out;
+        }
+
+        @keyframes avatarPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 30px var(--primary-glow), inset 0 0 15px rgba(255,255,255,0.3); }
+            50% { transform: scale(1.04); box-shadow: 0 0 50px var(--primary-glow), inset 0 0 25px rgba(255,255,255,0.6); }
         }
 
         .avatar-icon {
@@ -285,6 +297,24 @@
             color: var(--text-main);
             flex: 1;
             white-space: pre-wrap;
+            position: relative;
+        }
+
+        /* 1文字ごとの発光・収束アニメーション用スパン */
+        .char-fade {
+            display: inline-block;
+            opacity: 0;
+            filter: blur(4px);
+            transform: translateY(4px);
+            animation: charIn 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+
+        @keyframes charIn {
+            to {
+                opacity: 1;
+                filter: blur(0);
+                transform: translateY(0);
+            }
         }
 
         /* 選択肢ボタン群 */
@@ -799,8 +829,15 @@
                 this.y += this.speedY;
                 if (this.y < 0) this.reset();
             }
-            draw() {
-                const color = this.layer === 3 ? `rgba(255, 71, 126, ${this.alpha})` : `rgba(93, 109, 255, ${this.alpha})`;
+            draw(syncRate) {
+                // 同調率や回収状況に応じてパーティクルの色がゴールドやオーロラカラーへダイナミックに変化
+                let color;
+                if (syncRate >= 75) {
+                    const goldAlpha = this.alpha * 1.3;
+                    color = this.layer === 3 ? `rgba(255, 183, 3, ${goldAlpha})` : `rgba(255, 71, 126, ${goldAlpha})`;
+                } else {
+                    color = this.layer === 3 ? `rgba(255, 71, 126, ${this.alpha})` : `rgba(93, 109, 255, ${this.alpha})`;
+                }
                 ctx.fillStyle = color;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
@@ -819,7 +856,8 @@
         function animateBg() {
             if (!isBgAnimating) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
+            const currentSync = window.game ? game.syncRate : 0;
+            particles.forEach(p => { p.update(); p.draw(currentSync); });
             animFrameId = requestAnimationFrame(animateBg);
         }
 
