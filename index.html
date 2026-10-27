@@ -303,12 +303,12 @@
             filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));
         }
 
-        /* ダイアログボックス（プレミアム・ガラスモルフィズムとホログラフィックボーダー） */
+        /* ダイアログボックス（プレミアム・ガラスモルフィズムとホログラフィックボーダー・スプリング挙動深化） */
         .dialog-box {
             background: linear-gradient(135deg, rgba(34, 44, 78, 0.92) 0%, rgba(12, 16, 28, 0.97) 100%);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.26);
+            border: 1px solid rgba(255, 255, 255, 0.28);
             border-radius: 22px;
             padding: 22px;
             min-height: 160px;
@@ -323,30 +323,30 @@
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
             animation: dialogPulse 6s infinite ease-in-out;
-            transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
         }
 
         .dialog-box:active {
-            transform: scale(0.985);
+            transform: scale(0.975) translateY(2px);
         }
 
         .dialog-box::after {
             content: '';
             position: absolute;
-            inset: 0;
-            border-radius: 20px;
-            border: 1px solid transparent;
-            background: linear-gradient(135deg, rgba(93,109,255,0.4), rgba(255,71,126,0.2), rgba(255,183,3,0.3)) border-box;
-            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: destination-out;
-            mask-composite: exclude;
+            inset: -50%;
+            background: linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%);
+            animation: holoSweep 8s infinite linear;
             pointer-events: none;
-            opacity: 0.6;
+        }
+
+        @keyframes holoSweep {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(30deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(30deg); }
         }
 
         @keyframes dialogPulse {
-            0%, 100% { border-color: rgba(255, 255, 255, 0.18); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
-            50% { border-color: rgba(93, 109, 255, 0.45); box-shadow: 0 12px 45px rgba(93, 109, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+            0%, 100% { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+            50% { border-color: rgba(93, 109, 255, 0.55); box-shadow: 0 14px 48px rgba(93, 109, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.45); }
         }
 
         .dialog-hint {
@@ -761,7 +761,7 @@
     </div>
 
     <script>
-        /* --- Web Audio API による空間音響・ADSRエンベロープ・倍音合成エンジン --- */
+        /* --- Web Audio API による空間音響・ディレイリバーブ＆高精度倍音合成エンジン --- */
         class SoundEngine {
             constructor() {
                 this.ctx = null;
@@ -780,6 +780,34 @@
                 }
             }
 
+            createSpatialBus() {
+                if (!this.ctx) return null;
+                try {
+                    const masterGain = this.ctx.createGain();
+                    const filter = this.ctx.createBiquadFilter();
+                    const delay = this.ctx.createDelay();
+                    const feedback = this.ctx.createGain();
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(3200, this.ctx.currentTime);
+
+                    delay.delayTime.setValueAtTime(0.12, this.ctx.currentTime); // 空間の奥行きを生むディレイ残響
+                    feedback.gain.setValueAtTime(0.28, this.ctx.currentTime); // フィードバック量
+
+                    // フィードバック回路接続
+                    delay.connect(filter);
+                    filter.connect(feedback);
+                    feedback.connect(delay);
+
+                    masterGain.connect(this.ctx.destination);
+                    masterGain.connect(delay);
+
+                    return masterGain;
+                } catch(e) {
+                    return this.ctx.destination;
+                }
+            }
+
             playBeep(freq = 440, type = 'sine', duration = 0.12, randomize = false) {
                 this.init();
                 if (!this.ctx || this.ctx.state !== 'running') return;
@@ -795,6 +823,7 @@
                     const osc = this.ctx.createOscillator();
                     const filter = this.ctx.createBiquadFilter();
                     const gain = this.ctx.createGain();
+                    const bus = this.createSpatialBus() || this.ctx.destination;
                     
                     osc.type = type;
                     osc.frequency.setValueAtTime(finalFreq, currentTime);
@@ -805,14 +834,13 @@
                     filter.type = 'lowpass';
                     filter.frequency.setValueAtTime(2600, currentTime);
 
-                    // 調律されたADSRエンベロープ (より滑らかなアタック＆残響感を帯びた自然な減衰)
                     gain.gain.setValueAtTime(0.0001, currentTime);
                     gain.gain.linearRampToValueAtTime(0.028, currentTime + 0.015);
                     gain.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
                     
                     osc.connect(filter);
                     filter.connect(gain);
-                    gain.connect(this.ctx.destination);
+                    gain.connect(bus);
                     
                     osc.onended = () => {
                         try {
@@ -833,7 +861,7 @@
                 const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
                 notes.forEach((freq, idx) => {
                     setTimeout(() => {
-                        this.playHarmonicChord(freq, idx === notes.length - 1 ? 0.65 : 0.32);
+                        this.playHarmonicChord(freq, idx === notes.length - 1 ? 0.75 : 0.35);
                     }, idx * 65);
                 });
             }
@@ -845,19 +873,18 @@
                     const currentTime = this.ctx.currentTime;
                     const gain = this.ctx.createGain();
                     const filter = this.ctx.createBiquadFilter();
+                    const bus = this.createSpatialBus() || this.ctx.destination;
 
                     filter.type = 'lowpass';
-                    filter.frequency.setValueAtTime(3600, currentTime);
+                    filter.frequency.setValueAtTime(3800, currentTime);
 
-                    // 空間反響感を高めた洗練されたADSRエンベロープ
                     gain.gain.setValueAtTime(0.0001, currentTime);
                     gain.gain.linearRampToValueAtTime(0.038, currentTime + 0.025);
                     gain.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
                     
                     filter.connect(gain);
-                    gain.connect(this.ctx.destination);
+                    gain.connect(bus);
 
-                    // 精緻な倍音合成 (基音 + 5度上のハーモニクス + サブオクターブ + 煌めきの高次倍音)
                     [1, 1.5, 0.5, 2, 2.5].forEach((multiplier, i) => {
                         const osc = this.ctx.createOscillator();
                         osc.type = i === 4 ? 'sine' : (i === 2 ? 'triangle' : 'sine');
@@ -876,13 +903,17 @@
                     const currentTime = this.ctx.currentTime;
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
+                    const bus = this.createSpatialBus() || this.ctx.destination;
+
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(80, currentTime);
                     osc.frequency.linearRampToValueAtTime(260, currentTime + 0.12);
                     gain.gain.setValueAtTime(0.05, currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.0001, currentTime + 0.28);
+                    
                     osc.connect(gain);
-                    gain.connect(this.ctx.destination);
+                    gain.connect(bus);
+                    
                     osc.start(currentTime);
                     osc.stop(currentTime + 0.28);
                 } catch(e){}
@@ -899,17 +930,29 @@
 
         const sound = new SoundEngine();
 
-        /* --- 多層（レイヤー）構造による奥行きのある背景パーティクル・エフェクト（被写界深度＆オーロラ連動深化） --- */
+        /* --- 多層（レイヤー）構造による奥行きのある背景パーティクル・エフェクト（視差効果・被写界深度＆オーロラ連動深化） --- */
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
+        let mouseX = 0, mouseY = 0;
+        let targetMouseX = 0, targetMouseY = 0;
 
         function resizeCanvas() {
             canvas.width = canvas.parentElement.clientWidth;
             canvas.height = canvas.parentElement.clientHeight;
+            mouseX = canvas.width / 2;
+            mouseY = canvas.height / 2;
+            targetMouseX = mouseX;
+            targetMouseY = mouseY;
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
+
+        window.addEventListener('pointermove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            targetMouseX = e.clientX - rect.left;
+            targetMouseY = e.clientY - rect.top;
+        });
 
         class Particle {
             constructor(layer) {
@@ -926,26 +969,32 @@
                     this.speedY = -(Math.random() * 0.2 + 0.08);
                     this.alpha = Math.random() * 0.2 + 0.04;
                     this.blur = 3; // 遠景の被写界深度ブラー
+                    this.parallaxFactor = 0.02;
                 } else if (this.layer === 2) {
                     this.size = Math.random() * 1.8 + 0.7;
                     this.speedY = -(Math.random() * 0.42 + 0.2);
                     this.alpha = Math.random() * 0.35 + 0.12;
                     this.blur = 1.2; // 中景
+                    this.parallaxFactor = 0.05;
                 } else {
                     this.size = Math.random() * 2.8 + 1.2;
                     this.speedY = -(Math.random() * 0.75 + 0.35);
                     this.alpha = Math.random() * 0.6 + 0.25;
                     this.blur = 0; // 近景（シャープ）
+                    this.parallaxFactor = 0.09;
                 }
             }
-            update() {
+            update(dx, dy) {
                 this.y += this.speedY;
                 this.angle += this.oscSpeed;
-                this.x += Math.sin(this.angle) * 0.35;
-                if (this.y < -10 || this.x < -10 || this.x > canvas.width + 10) this.reset();
+                this.x += Math.sin(this.angle) * 0.35 + (dx * this.parallaxFactor * 0.1);
+                this.y += dy * this.parallaxFactor * 0.1;
+
+                if (this.y < -10 || this.x < -10 || this.x > canvas.width + 10 || this.y > canvas.height + 10) {
+                    this.reset();
+                }
             }
             draw(syncRate, unlockedCount) {
-                // 記憶同調率および伏線回収数に呼応して滑らかに呼吸するオーロラ・ホログラフィックカラー (被写界深度連動)
                 let color;
                 const progress = (syncRate / 100);
                 const pulseAlpha = this.alpha * (0.88 + Math.sin(performance.now() * 0.0018 + this.x * 0.01) * 0.22);
@@ -968,7 +1017,6 @@
                 }
 
                 ctx.save();
-                // 被写界深度（DoF）に応じた滑らかなガウスぼかしグラデーション
                 const dynamicBlur = Math.max(0, this.blur + (progress * 0.4));
                 if (dynamicBlur > 0 && ctx.filter !== undefined) {
                     ctx.filter = `blur(${dynamicBlur.toFixed(2)}px)`;
@@ -992,9 +1040,16 @@
         function animateBg() {
             if (!isBgAnimating) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // パララックス・モーショントラッキングの滑らかな補間追従
+            mouseX += (targetMouseX - mouseX) * 0.06;
+            mouseY += (targetMouseY - mouseY) * 0.06;
+            const dx = mouseX - (canvas.width / 2);
+            const dy = mouseY - (canvas.height / 2);
+
             const currentSync = window.game ? game.syncRate : 0;
             const currentUnlocked = window.game ? game.unlockedForeshadows.size : 0;
-            particles.forEach(p => { p.update(); p.draw(currentSync, currentUnlocked); });
+            particles.forEach(p => { p.update(dx, dy); p.draw(currentSync, currentUnlocked); });
             animFrameId = requestAnimationFrame(animateBg);
         }
 
