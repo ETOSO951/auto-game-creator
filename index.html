@@ -949,6 +949,7 @@
                 this.typeAnimFrame = null;
                 this.isTransitionLocked = false;
                 this.isPuzzleAnimating = false;
+                this.isPuzzleClearing = false;
                 this.lastSkipTimestamp = 0;
             }
 
@@ -963,6 +964,7 @@
                 this.stopTypewriter();
                 this.clearAllTimeouts();
                 this.isPuzzleAnimating = false;
+                this.isPuzzleClearing = false;
                 this.isTransitionLocked = false;
                 const mainScreen = document.getElementById('main-screen');
                 if (mainScreen) {
@@ -975,7 +977,7 @@
                 if (visualArea) {
                     visualArea.addEventListener('click', () => {
                         if (this.state === GAME_STATES.TYPING) {
-                            this.completeTypewriter();
+                            this.completeTypewriter(true);
                         }
                     });
                 }
@@ -1211,7 +1213,6 @@
                     btn.className = `choice-btn ${c.isTruth ? 'truth' : ''}`;
                     btn.innerHTML = `<span>${c.text}</span> <span>➔</span>`;
                     
-                    // タップ／クリック時の誤爆防止・ポインターアップ確定処理の導入
                     let isPointerDown = false;
                     btn.addEventListener('pointerdown', (e) => {
                         if (this.state !== GAME_STATES.WAIT_CHOICE || this.isTransitionLocked) return;
@@ -1219,12 +1220,12 @@
                     });
 
                     btn.addEventListener('pointerup', (e) => {
-                        if (!isPointerDown) return;
+                        if (!isPointerDown || this.state !== GAME_STATES.WAIT_CHOICE || this.isTransitionLocked) return;
                         isPointerDown = false;
 
                         e.stopPropagation();
                         const now = performance.now();
-                        if (this.state !== GAME_STATES.WAIT_CHOICE || this.isTransitionLocked || (now - this.lastSkipTimestamp < 300)) {
+                        if (now - this.lastSkipTimestamp < 350) {
                             return;
                         }
                         this.isTransitionLocked = true;
@@ -1310,11 +1311,9 @@
                     this.lastSkipTimestamp = performance.now();
                 }
 
-                const lockDuration = isManualSkip ? 250 : 150;
+                this.state = GAME_STATES.WAIT_CHOICE;
+                const lockDuration = isManualSkip ? 300 : 150;
                 this.addTimeout(() => {
-                    if (this.state === GAME_STATES.TYPING || this.state === GAME_STATES.IDLE) {
-                        this.state = GAME_STATES.WAIT_CHOICE;
-                    }
                     this.isTransitionLocked = false;
                     if (choicesBox) choicesBox.classList.remove('disabled');
                 }, lockDuration);
@@ -1450,8 +1449,8 @@
 
                     this.addTimeout(() => {
                         [this.puzzleBoard[idx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[idx]];
-                        this.renderPuzzle();
                         this.isPuzzleAnimating = false;
+                        this.renderPuzzle();
                         this.checkPuzzleWin();
                     }, 120);
                     return true;
