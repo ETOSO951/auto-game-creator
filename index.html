@@ -1264,6 +1264,71 @@
         // アイデア1・3連動：タイトル長押しチャージ変数
         let isTitleCharging = false;
         let titleChargeProgress = 0;
+        let titleChargeTimer = null;
+
+        function startTitleCharge(e) {
+            if (isTitleCharging) return;
+            isTitleCharging = true;
+            titleChargeProgress = 0;
+            const ring = document.getElementById('title-charge-ring');
+            const sub = document.getElementById('title-prologue-text');
+            if (ring) {
+                ring.style.opacity = '1';
+                ring.style.transform = 'scale(1.15)';
+            }
+            if (sub) sub.innerText = "- 時空の歪みを観測中…… (長押しキープ) -";
+            sound.playBeep(320, 'sine', 0.8);
+
+            if (navigator.vibrate) {
+                try { navigator.vibrate([40, 80, 40]); } catch(e){}
+            }
+
+            const startTime = performance.now();
+            const chargeDuration = 1200;
+
+            const updateCharge = (now) => {
+                if (!isTitleCharging) return;
+                const elapsed = now - startTime;
+                titleChargeProgress = Math.min(1, elapsed / chargeDuration);
+                
+                if (ring) {
+                    ring.style.transform = `scale(${1.15 + titleChargeProgress * 0.25})`;
+                    ring.style.borderColor = titleChargeProgress >= 1 ? 'var(--gold)' : 'rgba(255,71,126,0.5)';
+                }
+
+                if (titleChargeProgress >= 1) {
+                    isTitleCharging = false;
+                    if (sub) sub.innerText = "- 時空同調率 100% 達成！物語が加速する -";
+                    sound.playRecallSound();
+                    if (navigator.vibrate) {
+                        try { navigator.vibrate([100, 50, 150]); } catch(e){}
+                    }
+                    game.syncRate = Math.max(game.syncRate, 30);
+                    game.startNewGame();
+                } else {
+                    titleChargeTimer = requestAnimationFrame(updateCharge);
+                }
+            };
+            titleChargeTimer = requestAnimationFrame(updateCharge);
+        }
+
+        function endTitleCharge() {
+            if (!isTitleCharging) return;
+            isTitleCharging = false;
+            if (titleChargeTimer) {
+                cancelAnimationFrame(titleChargeTimer);
+                titleChargeTimer = null;
+            }
+            const ring = document.getElementById('title-charge-ring');
+            const sub = document.getElementById('title-prologue-text');
+            if (ring) {
+                ring.style.opacity = '0';
+                ring.style.transform = 'scale(1)';
+            }
+            if (sub && titleChargeProgress < 1) {
+                sub.innerText = "- 記憶の伏線と7日間のループ - (画面長押しで同調解放)";
+            }
+        }
 
         class Particle {
             constructor(layer) {
@@ -2677,12 +2742,28 @@
                 allForeshadowDefs.forEach((item, idx) => {
                     const isUnlocked = this.unlockedForeshadows.has(item.id);
                     const nodeEl = document.createElement('div');
-                    nodeEl.style.cssText = `background:${isUnlocked ? 'rgba(93,109,255,0.22)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${isUnlocked ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:10px; font-size:0.72rem; color:${isUnlocked ? '#fff' : 'var(--text-sub)'}; text-align:center; transition:transform 0.3s;`;
+                    nodeEl.style.cssText = `position:relative; background:${isUnlocked ? 'rgba(93,109,255,0.22)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${isUnlocked ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:10px; font-size:0.72rem; color:${isUnlocked ? '#fff' : 'var(--text-sub)'}; text-align:center; transition:transform 0.3s;`;
                     nodeEl.innerHTML = `<strong>${isUnlocked ? '🔓 接続' : '🔒 未解放'}</strong><br>${item.title}`;
                     
                     if (isUnlocked && this.perkObserverEye) {
                         nodeEl.style.boxShadow = '0 0 12px var(--primary-glow)';
                     }
+
+                    // アイデア2：ホログラフィック・コネクター線（クロスリファレンス網の視覚化）
+                    if (idx > 0 && idx % 2 === 1) {
+                        const connector = document.createElement('div');
+                        connector.style.cssText = `position:absolute; top:-8px; left:50%; width:2px; height:8px; background:linear-gradient(to bottom, var(--primary), var(--gold)); opacity:0.6;`;
+                        nodeEl.appendChild(connector);
+                    }
+
+                    nodeEl.onclick = () => {
+                        sound.playBeep(680, 'sine', 0.04);
+                        const toast = document.getElementById('foreshadow-toast');
+                        document.getElementById('toast-text').innerText = `${item.title} - 因果クロスリファレンス相関度: ${isUnlocked ? '100%' : '0%'}`;
+                        toast.classList.add('show');
+                        this.addTimeout(() => toast.classList.remove('show'), 2000);
+                    };
+
                     area.appendChild(nodeEl);
                 });
 
@@ -2762,7 +2843,7 @@
 
                     const nodeCard = document.createElement('div');
                     nodeCard.style.cssText = `background:${step.active ? 'rgba(93,109,255,0.22)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${step.active ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}; border-radius:12px; padding:10px 14px; font-size:0.72rem; color:${step.active ? '#fff' : 'var(--text-sub)'}; display:flex; flex-direction:column; gap:4px; cursor:pointer; opacity:0; transform:translateY(16px); box-shadow:${step.active ? '0 0 20px var(--primary-glow)' : 'none'}; transition:all 0.45s cubic-bezier(0.16, 1, 0.3, 1);`;
-                    nodeCard.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;"><strong>${step.active ? '🔓 接続完了' : '🔒 ロック'} : ${step.label}</strong><span style="font-size:0.6rem; color:var(--gold);">詳細 ▶</span></div><div style="font-size:0.65rem; color:var(--text-sub); display:none; margin-top:4px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.08);" class="node-detail">${step.detail}</div>`;
+                    nodeCard.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;"><strong>${step.active ? '🔓 接続完了' : '🔒 ロック'} : ${step.label}</strong><span style="font-size:0.6rem; color:var(--gold);">記憶スコープ ▶</span></div><div style="font-size:0.65rem; color:var(--text-sub); display:none; margin-top:4px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.08);" class="node-detail">✨ 記憶の巻き戻しスコープ活動中...<br>${step.detail}</div>`;
                     
                     nodeCard.onclick = (e) => {
                         sound.playRecallSound();
@@ -2778,6 +2859,10 @@
                         ripple.style.marginTop = '-20px';
                         document.getElementById('result-screen').appendChild(ripple);
                         setTimeout(() => ripple.remove(), 700);
+
+                        // アイデア3：記憶の巻き戻しスコープによるアニメーション・プレビューエフェクト
+                        nodeCard.classList.add('flashback');
+                        this.addTimeout(() => nodeCard.classList.remove('flashback'), 800);
 
                         const detailEl = nodeCard.querySelector('.node-detail');
                         if (detailEl) {
