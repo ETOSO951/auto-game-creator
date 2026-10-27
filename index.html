@@ -2423,10 +2423,51 @@
                 }
             }
 
-            skipPuzzle() {
+            skipPuzzle(targetScene = null) {
                 document.getElementById('puzzle-modal').classList.remove('active');
                 this.syncRate = Math.min(100, this.syncRate + this.puzzleBonusSync);
-                this.renderScene(this.puzzleNextScene);
+                this.renderScene(targetScene || this.puzzleNextScene);
+            }
+
+            openMindMap() {
+                sound.playBeep(640, 'sine', 0.08);
+                const modal = document.getElementById('mindmap-modal');
+                const area = document.getElementById('mindmap-nodes-area');
+                if (!modal || !area) return;
+
+                area.innerHTML = '';
+                const allForeshadowDefs = [
+                    { id: "key_girl", title: "少女の違和感" },
+                    { id: "key_clock", title: "時計の刻印" },
+                    { id: "key_name", title: "偽りの名前" },
+                    { id: "key_noise", title: "エリスの正体" },
+                    { id: "key_fire", title: "研究所の炎" },
+                    { id: "key_ethics", title: "研究手記" }
+                ];
+
+                allForeshadowDefs.forEach(item => {
+                    const isUnlocked = this.unlockedForeshadows.has(item.id);
+                    const nodeEl = document.createElement('div');
+                    nodeEl.style.cssText = `background:${isUnlocked ? 'rgba(93,109,255,0.25)' : 'rgba(255,255,255,0.05)'}; border:1px solid ${isUnlocked ? 'var(--primary)' : 'rgba(255,255,255,0.15)'}; border-radius:10px; padding:10px; font-size:0.75rem; color:${isUnlocked ? '#fff' : 'var(--text-sub)'}; text-align:center; box-shadow:${isUnlocked ? '0 0 12px var(--primary-glow)' : 'none'}; cursor:${isUnlocked ? 'pointer' : 'default'};`;
+                    nodeEl.innerHTML = `<strong>${isUnlocked ? '🔓 接続済' : '🔒 未解放'}</strong><br>${item.title}`;
+                    
+                    if (isUnlocked) {
+                        nodeEl.onclick = () => {
+                            sound.playBeep(880, 'sine', 0.05);
+                            nodeEl.style.transform = 'scale(1.05)';
+                            this.addTimeout(() => nodeEl.style.transform = 'scale(1)', 150);
+                        };
+                    }
+                    area.appendChild(nodeEl);
+                });
+
+                modal.classList.add('active');
+            }
+
+            closeMindMap() {
+                sound.playBeep(480, 'sine', 0.05);
+                const modal = document.getElementById('mindmap-modal');
+                if (modal) modal.classList.remove('active');
             }
 
             /* --- エンディング表示 --- */
