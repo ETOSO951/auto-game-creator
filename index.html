@@ -136,38 +136,41 @@
             transform: scale(1);
         }
 
-        /* アイデア1 & 3：HUDヘッダーの極限スリム化と引き算の美学の徹底（静寂時は透過・フェードアウトしテキストへ没入） */
+        /* アイデア1 & 3：HUDヘッダーのオート・フェードアウトと引き算の美学の徹底（没入感の最大化） */
         .hud-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 6px 14px;
-            background: rgba(14, 18, 30, 0.45);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(10, 14, 24, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.03);
-            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.02);
+            margin-bottom: 12px;
             z-index: 15;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-            opacity: 0.5;
-            transition: border-color 0.3s ease, opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            opacity: 0.15;
+            transform: translateY(-4px);
+            transition: border-color 0.35s ease, opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        #main-screen.typing-active .hud-header {
-            opacity: 0.25;
-            transform: translateY(-3px);
+        #main-screen.typing-active .hud-header,
+        #main-screen:not(:hover) .hud-header {
+            opacity: 0.12;
+            transform: translateY(-6px);
+            pointer-events: none;
         }
 
-        .screen.active .hud-header:hover {
-            opacity: 1;
-            border-color: rgba(93, 109, 255, 0.35);
-        }
-
-        .hud-header:hover {
+        .screen.active #main-screen:hover .hud-header,
+        .screen.active .hud-header:hover,
+        .screen.active .dialog-box:active ~ .hud-header {
+            opacity: 0.95;
+            transform: translateY(0);
             border-color: rgba(93, 109, 255, 0.3);
+            pointer-events: auto;
         }
 
         .hud-item {
@@ -840,33 +843,36 @@
             </div>
         </div>
 
-        <!-- アイデア2：構造的一本化された統合型「記憶アーカイブ室」(メタ特典 & マインドマップ) -->
+        <!-- アイデア2：アーカイブ室の情報階層化とタブによる排他表示による洗練されたUI -->
         <div id="archive-modal" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:115; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px; opacity:0; pointer-events:none; transition:opacity 0.35s ease;">
-            <div style="width:100%; max-width:340px; background:rgba(18, 23, 40, 0.96); border:1px solid rgba(255,255,255,0.15); border-radius:20px; padding:20px; backdrop-filter:blur(24px); box-shadow:0 20px 50px rgba(0,0,0,0.85); display:flex; flex-direction:column; max-height:85vh; overflow-y:auto;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:8px;">
-                    <h3 style="color:var(--gold); font-size:0.9rem; letter-spacing:1px;">【記憶アーカイブ室】</h3>
-                    <div style="font-size:0.75rem; color:var(--text-sub);">因果の欠片: <span id="karma-shards" style="color:var(--gold); font-weight:bold;">0</span> 💎</div>
+            <div style="width:100%; max-width:340px; background:rgba(12, 16, 28, 0.97); border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:20px; backdrop-filter:blur(32px); box-shadow:0 24px 60px rgba(0,0,0,0.9); display:flex; flex-direction:column; max-height:85vh; overflow-hidden;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:8px;">
+                    <h3 style="color:var(--gold); font-size:0.88rem; letter-spacing:1.5px;">【記憶アーカイブ室】</h3>
+                    <div style="font-size:0.72rem; color:var(--text-sub);">因果の欠片: <span id="karma-shards" style="color:var(--gold); font-weight:bold;">0</span> 💎</div>
                 </div>
 
-                <div style="font-size:0.75rem; color:var(--primary); margin-bottom:4px; font-weight:bold;">⚡ メタ進行・周回特典</div>
-                <div style="display:flex; flex-direction:column; gap:5px; margin-bottom:12px;">
-                    <button class="btn btn-secondary" id="perk-speed-btn" onclick="game.togglePerkSpeed()" style="width:100%; font-size:0.75rem; padding:7px; margin:0; border-radius:6px; text-align:left;">
-                        ⚡ 高速思考: OFF
-                    </button>
-                    <button class="btn btn-secondary" id="perk-sync-btn" onclick="game.buyPerk('bonusSync')" style="width:100%; font-size:0.75rem; padding:7px; margin:0; border-radius:6px; text-align:left;">
-                        💎 初期同調率+20%: 3 💎
-                    </button>
-                    <button class="btn btn-secondary" id="perk-puzzle-btn" onclick="game.buyPerk('autoPuzzle')" style="width:100%; font-size:0.75rem; padding:7px; margin:0; border-radius:6px; text-align:left;">
-                        🧩 パズル自動解析権: 5 💎
-                    </button>
+                <!-- タブ切替ヘッダー -->
+                <div style="display:flex; gap:6px; margin-bottom:14px;">
+                    <button class="btn btn-secondary" id="archive-tab-mind" onclick="game.switchArchiveTab('mind')" style="flex:1; padding:7px; font-size:0.75rem; margin:0; border-radius:8px; border-color:var(--primary); color:var(--text-main);">🧠 回想記憶</button>
+                    <button class="btn btn-secondary" id="archive-tab-perk" onclick="game.switchArchiveTab('perk')" style="flex:1; padding:7px; font-size:0.75rem; margin:0; border-radius:8px;">⚡ メタ強化</button>
                 </div>
 
-                <div style="font-size:0.75rem; color:var(--accent); margin-bottom:4px; font-weight:bold;">🧠 マインドマップ（接続状態）</div>
-                <div id="mindmap-nodes-area" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:6px; margin-bottom:14px; max-height:140px; overflow-y:auto;">
-                    <!-- 動的生成ノード -->
+                <!-- タブコンテンツ：回想記憶エリア -->
+                <div id="archive-content-mind" style="display:flex; flex-direction:column; flex:1; overflow-y:auto; margin-bottom:14px; min-height:160px;">
+                    <div id="mindmap-nodes-area" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;">
+                        <!-- 動的生成ノード -->
+                    </div>
                 </div>
 
-                <button class="btn" onclick="game.closeArchiveModal()" style="width:100%; padding:10px; font-size:0.8rem; margin:0;">閉じる</button>
+                <!-- タブコンテンツ：メタ強化エリア -->
+                <div id="archive-content-perk" style="display:none; flex-direction:column; flex:1; gap:8px; overflow-y:auto; margin-bottom:14px; min-height:160px;">
+                    <button class="btn btn-secondary" id="perk-speed-btn" onclick="game.togglePerkSpeed()" style="width:100%; font-size:0.75rem; padding:9px; margin:0; border-radius:8px; text-align:left;">⚡ 高速思考: OFF</button>
+                    <button class="btn btn-secondary" id="perk-sync-btn" onclick="game.buyPerk('bonusSync')" style="width:100%; font-size:0.75rem; padding:9px; margin:0; border-radius:8px; text-align:left;">💎 初期同調率+20%: 3 💎</button>
+                    <button class="btn btn-secondary" id="perk-puzzle-btn" onclick="game.buyPerk('autoPuzzle')" style="width:100%; font-size:0.75rem; padding:9px; margin:0; border-radius:8px; text-align:left;">🧩 パズル自動解析権: 5 💎</button>
+                    <button class="btn btn-secondary" id="perk-eye-btn" onclick="game.buyPerk('observerEye')" style="width:100%; font-size:0.75rem; padding:9px; margin:0; border-radius:8px; text-align:left;">👁️ 観測眼ハイライト: 4 💎</button>
+                </div>
+
+                <button class="btn" onclick="game.closeArchiveModal()" style="width:100%; padding:10px; font-size:0.8rem; margin:0; border-radius:10px;">閉じる</button>
             </div>
         </div>
 
@@ -906,19 +912,19 @@
             </div>
         </div>
 
-        <!-- アイデア3：パズルモーダルの視覚ノイズ整理とアクション領域の洗練（ネガティブスペース最適化） -->
+        <!-- アイデア3：パズルモーダルおよびミニゲーム画面のネガティブスペース（余白）の拡大とノイズの完全排除 -->
         <div id="puzzle-modal">
-            <div style="background:rgba(14,18,30,0.92); border:1px solid rgba(255,255,255,0.06); border-radius:18px; padding:16px; display:flex; flex-direction:column; align-items:center; backdrop-filter:blur(28px); box-shadow:0 18px 45px rgba(0,0,0,0.85);">
-                <h3 style="color:var(--gold); margin-bottom:3px; font-size:0.88rem; letter-spacing:1px;">記憶復元プロトコル</h3>
-                <p style="font-size:0.7rem; color:var(--text-sub); text-align:center; margin-bottom:5px;" id="puzzle-desc-text">
+            <div style="background:rgba(8, 12, 22, 0.95); border:1px solid rgba(255,255,255,0.08); border-radius:24px; padding:24px; display:flex; flex-direction:column; align-items:center; backdrop-filter:blur(36px); box-shadow:0 24px 65px rgba(0,0,0,0.9); width:320px;">
+                <h3 style="color:var(--gold); margin-bottom:6px; font-size:0.92rem; letter-spacing:1.5px;">記憶復元プロトコル</h3>
+                <p style="font-size:0.72rem; color:var(--text-sub); text-align:center; margin-bottom:12px; line-height:1.4;" id="puzzle-desc-text">
                     タイルをタップまたはスワイプして1〜8に並べ替えよ
                 </p>
-                <div style="font-size:0.68rem; color:var(--gold); margin-bottom:4px; font-weight:bold;" id="puzzle-combo-display">COMBO: 0 | Bonus Sync: +0%</div>
+                <div style="font-size:0.7rem; color:var(--gold); margin-bottom:10px; font-weight:bold;" id="puzzle-combo-display">COMBO: 0 | Bonus Sync: +0%</div>
                 <div class="puzzle-success-msg" id="puzzle-success-msg">✔ 同期完了</div>
-                <div class="puzzle-grid" id="puzzle-grid"></div>
-                <div style="display:flex; gap:6px; margin-top:4px;">
-                    <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:5px 12px; font-size:0.7rem; border-radius:8px;">スキップ</button>
-                    <button class="btn btn-secondary" id="puzzle-autopass-btn" onclick="game.useAutoPuzzle()" style="width:auto; padding:5px 12px; font-size:0.7rem; border-radius:8px; border-color:var(--gold); color:var(--gold);">自動解析</button>
+                <div class="puzzle-grid" id="puzzle-grid" style="margin:12px 0 18px 0;"></div>
+                <div style="display:flex; gap:10px; width:100%; justify-content:center;">
+                    <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:8px 18px; font-size:0.75rem; border-radius:10px; opacity:0.85;">スキップ</button>
+                    <button class="btn btn-secondary" id="puzzle-autopass-btn" onclick="game.useAutoPuzzle()" style="width:auto; padding:8px 18px; font-size:0.75rem; border-radius:10px; border-color:var(--gold); color:var(--gold);">自動解析</button>
                 </div>
             </div>
         </div>
@@ -2494,6 +2500,7 @@
                 if (!modal || !area) return;
 
                 this.updatePerkUI();
+                this.switchArchiveTab('mind');
                 area.innerHTML = '';
                 const allForeshadowDefs = [
                     { id: "key_girl", title: "少女の違和感" },
@@ -2507,13 +2514,39 @@
                 allForeshadowDefs.forEach(item => {
                     const isUnlocked = this.unlockedForeshadows.has(item.id);
                     const nodeEl = document.createElement('div');
-                    nodeEl.style.cssText = `background:${isUnlocked ? 'rgba(93,109,255,0.25)' : 'rgba(255,255,255,0.03)'}; border:1px solid ${isUnlocked ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}; border-radius:8px; padding:8px; font-size:0.7rem; color:${isUnlocked ? '#fff' : 'var(--text-sub)'}; text-align:center;`;
+                    nodeEl.style.cssText = `background:${isUnlocked ? 'rgba(93,109,255,0.22)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${isUnlocked ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:10px; font-size:0.72rem; color:${isUnlocked ? '#fff' : 'var(--text-sub)'}; text-align:center;`;
                     nodeEl.innerHTML = `<strong>${isUnlocked ? '🔓 接続' : '🔒 未解放'}</strong><br>${item.title}`;
                     area.appendChild(nodeEl);
                 });
 
                 modal.style.pointerEvents = 'auto';
                 modal.style.opacity = '1';
+            }
+
+            switchArchiveTab(tabName) {
+                const tabMind = document.getElementById('archive-tab-mind');
+                const tabPerk = document.getElementById('archive-tab-perk');
+                const contentMind = document.getElementById('archive-content-mind');
+                const contentPerk = document.getElementById('archive-content-perk');
+
+                if (!tabMind || !tabPerk || !contentMind || !contentPerk) return;
+
+                if (tabName === 'mind') {
+                    tabMind.style.borderColor = 'var(--primary)';
+                    tabMind.style.color = 'var(--text-main)';
+                    tabPerk.style.borderColor = 'rgba(255,255,255,0.2)';
+                    tabPerk.style.color = 'var(--text-sub)';
+                    contentMind.style.display = 'flex';
+                    contentPerk.style.display = 'none';
+                } else {
+                    tabPerk.style.borderColor = 'var(--primary)';
+                    tabPerk.style.color = 'var(--text-main)';
+                    tabMind.style.borderColor = 'rgba(255,255,255,0.2)';
+                    tabMind.style.color = 'var(--text-sub)';
+                    contentPerk.style.display = 'flex';
+                    contentMind.style.display = 'none';
+                }
+                sound.playBeep(520, 'sine', 0.03);
             }
 
             closeArchiveModal() {
