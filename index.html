@@ -79,7 +79,7 @@
 
         /* シネマティック色収差・被写界深度ブラー */
         .screen.cinematic-blur {
-            filter: blur(8px) contrast(1.2);
+            filter: blur(8px) contrast(1.25);
             transition: filter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -88,27 +88,27 @@
         }
 
         @keyframes chromaticAnim {
-            0% { text-shadow: -3px 0 rgba(255,71,126,0.8), 3px 0 rgba(93,109,255,0.8); }
-            50% { text-shadow: 4px 0 rgba(255,71,126,0.9), -4px 0 rgba(93,109,255,0.9); }
-            100% { text-shadow: none; }
+            0% { text-shadow: -4px 0 rgba(255,71,126,0.9), 4px 0 rgba(93,109,255,0.9); filter: contrast(1.3); }
+            50% { text-shadow: 6px 0 rgba(255,71,126,1), -6px 0 rgba(93,109,255,1); filter: contrast(1.4); }
+            100% { text-shadow: none; filter: contrast(1); }
         }
 
-        /* 画面タップ波紋（リップルエフェクト） */
+        /* 画面タップ波紋（プレミアムリップル＆ホログラフィック光波） */
         .ripple-effect {
             position: absolute;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(93,109,255,0.2) 60%, transparent 100%);
+            background: radial-gradient(circle, rgba(255,255,255,0.85) 0%, rgba(93,109,255,0.35) 45%, rgba(255,71,126,0.15) 75%, transparent 100%);
             transform: scale(0);
             pointer-events: none;
-            animation: rippleAnim 0.6s cubic-bezier(0, 0.5, 0.5, 1) forwards;
+            animation: rippleAnim 0.7s cubic-bezier(0, 0.55, 0.45, 1) forwards;
             z-index: 5;
+            box-shadow: 0 0 25px rgba(93,109,255,0.6);
         }
 
         @keyframes rippleAnim {
-            to {
-                transform: scale(3.5);
-                opacity: 0;
-            }
+            0% { transform: scale(0); opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { transform: scale(4.2); opacity: 0; }
         }
 
         /* スクリーン共通レイアウト */
@@ -303,31 +303,36 @@
             filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));
         }
 
-        /* ダイアログボックス（プレミアム・ガラスモルフィズムとホログラフィックボーダー・スプリング挙動深化） */
+        /* ダイアログボックス（最高級ガラスモルフィズムとマルチレイヤー・ホログラフィックグレア） */
         .dialog-box {
-            background: linear-gradient(135deg, rgba(34, 44, 78, 0.92) 0%, rgba(12, 16, 28, 0.97) 100%);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.28);
-            border-radius: 22px;
-            padding: 22px;
-            min-height: 160px;
-            max-height: 220px;
+            background: linear-gradient(135deg, rgba(38, 48, 86, 0.94) 0%, rgba(10, 14, 26, 0.98) 100%);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.32);
+            border-radius: 24px;
+            padding: 24px;
+            min-height: 165px;
+            max-height: 225px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            box-shadow: 0 18px 55px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.5), inset 0 -2px 6px rgba(0, 0, 0, 0.4);
             margin-bottom: 12px;
             cursor: pointer;
             position: relative;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
             animation: dialogPulse 6s infinite ease-in-out;
-            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+        }
+
+        .dialog-box:hover {
+            border-color: rgba(93, 109, 255, 0.65);
+            box-shadow: 0 24px 70px rgba(93, 109, 255, 0.22), inset 0 1px 3px rgba(255, 255, 255, 0.6), inset 0 -2px 6px rgba(0, 0, 0, 0.4);
         }
 
         .dialog-box:active {
-            transform: scale(0.975) translateY(2px);
+            transform: scale(0.972) translateY(2px);
         }
 
         .dialog-box::after {
@@ -398,38 +403,38 @@
             }
         }
 
-        /* 選択肢ボタン群 (プレミアム・ガラス質感) */
+        /* 選択肢ボタン群 (プレミアム・ガラス質感とホログラフィック・ハイライト) */
         .choices-container {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            transition: opacity 0.35s ease, transform 0.35s ease;
+            gap: 12px;
+            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .choices-container.disabled {
             opacity: 0;
             pointer-events: none;
-            transform: translateY(12px);
+            transform: translateY(16px);
         }
 
         .choice-btn {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.03) 100%);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.04) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.26);
             color: var(--text-main);
             padding: 16px 22px;
-            min-height: 52px;
-            border-radius: 16px;
+            min-height: 54px;
+            border-radius: 18px;
             font-size: 0.9rem;
             text-align: left;
             cursor: pointer;
-            transition: all 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
             display: flex;
             justify-content: space-between;
             align-items: center;
             -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 6px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.35);
             position: relative;
             overflow: hidden;
         }
@@ -813,12 +818,12 @@
                 if (!this.ctx || this.ctx.state !== 'running') return;
 
                 const now = performance.now();
-                if (randomize && now - this.lastBeepTime < 40) return;
+                if (randomize && now - this.lastBeepTime < 35) return;
                 this.lastBeepTime = now;
 
                 try {
                     const currentTime = this.ctx.currentTime;
-                    const finalFreq = randomize ? freq + (Math.random() * 30 - 15) : freq;
+                    const finalFreq = randomize ? freq + (Math.random() * 45 - 22) : freq;
                     
                     const osc = this.ctx.createOscillator();
                     const filter = this.ctx.createBiquadFilter();
@@ -828,14 +833,14 @@
                     osc.type = type;
                     osc.frequency.setValueAtTime(finalFreq, currentTime);
                     if (randomize) {
-                        osc.frequency.exponentialRampToValueAtTime(finalFreq * 0.95, currentTime + duration);
+                        osc.frequency.exponentialRampToValueAtTime(finalFreq * 0.92, currentTime + duration);
                     }
                     
                     filter.type = 'lowpass';
-                    filter.frequency.setValueAtTime(2600, currentTime);
+                    filter.frequency.setValueAtTime(3100, currentTime);
 
                     gain.gain.setValueAtTime(0.0001, currentTime);
-                    gain.gain.linearRampToValueAtTime(0.028, currentTime + 0.015);
+                    gain.gain.linearRampToValueAtTime(0.032, currentTime + 0.012);
                     gain.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
                     
                     osc.connect(filter);
@@ -963,69 +968,85 @@
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
                 this.angle = Math.random() * Math.PI * 2;
-                this.oscSpeed = Math.random() * 0.015 + 0.008;
+                this.oscSpeed = Math.random() * 0.018 + 0.006;
                 if (this.layer === 1) {
-                    this.size = Math.random() * 1.0 + 0.3;
-                    this.speedY = -(Math.random() * 0.2 + 0.08);
-                    this.alpha = Math.random() * 0.2 + 0.04;
-                    this.blur = 3; // 遠景の被写界深度ブラー
-                    this.parallaxFactor = 0.02;
+                    this.size = Math.random() * 1.1 + 0.3;
+                    this.speedY = -(Math.random() * 0.22 + 0.08);
+                    this.alpha = Math.random() * 0.22 + 0.05;
+                    this.blur = 2.8;
+                    this.parallaxFactor = 0.025;
                 } else if (this.layer === 2) {
-                    this.size = Math.random() * 1.8 + 0.7;
-                    this.speedY = -(Math.random() * 0.42 + 0.2);
-                    this.alpha = Math.random() * 0.35 + 0.12;
-                    this.blur = 1.2; // 中景
-                    this.parallaxFactor = 0.05;
+                    this.size = Math.random() * 1.9 + 0.8;
+                    this.speedY = -(Math.random() * 0.45 + 0.22);
+                    this.alpha = Math.random() * 0.38 + 0.14;
+                    this.blur = 1.0;
+                    this.parallaxFactor = 0.06;
                 } else {
-                    this.size = Math.random() * 2.8 + 1.2;
-                    this.speedY = -(Math.random() * 0.75 + 0.35);
-                    this.alpha = Math.random() * 0.6 + 0.25;
-                    this.blur = 0; // 近景（シャープ）
-                    this.parallaxFactor = 0.09;
+                    this.size = Math.random() * 3.0 + 1.4;
+                    this.speedY = -(Math.random() * 0.82 + 0.38);
+                    this.alpha = Math.random() * 0.65 + 0.28;
+                    this.blur = 0;
+                    this.parallaxFactor = 0.11;
                 }
             }
-            update(dx, dy) {
+            update(dx, dy, cursorDistRatio) {
                 this.y += this.speedY;
                 this.angle += this.oscSpeed;
-                this.x += Math.sin(this.angle) * 0.35 + (dx * this.parallaxFactor * 0.1);
-                this.y += dy * this.parallaxFactor * 0.1;
+                // プレイヤーのポインター位置や同調率に有機的に反応するベクトル補正
+                const cursorInfl = (1 - cursorDistRatio) * 0.4;
+                this.x += Math.sin(this.angle) * (0.4 + cursorInfl) + (dx * this.parallaxFactor * 0.12);
+                this.y += dy * this.parallaxFactor * 0.12;
 
-                if (this.y < -10 || this.x < -10 || this.x > canvas.width + 10 || this.y > canvas.height + 10) {
+                if (this.y < -15 || this.x < -15 || this.x > canvas.width + 15 || this.y > canvas.height + 15) {
                     this.reset();
                 }
             }
-            draw(syncRate, unlockedCount) {
+            draw(syncRate, unlockedCount, mouseX, mouseY) {
                 let color;
                 const progress = (syncRate / 100);
-                const pulseAlpha = this.alpha * (0.88 + Math.sin(performance.now() * 0.0018 + this.x * 0.01) * 0.22);
+                const pulseAlpha = this.alpha * (0.85 + Math.sin(performance.now() * 0.002 + this.x * 0.012) * 0.25);
                 
+                // カーソルとの距離に応じた動的グロー拡張
+                const distX = this.x - mouseX;
+                const distY = this.y - mouseY;
+                const dist = Math.sqrt(distX * distX + distY * distY);
+                const maxInteractDist = 140;
+                let cursorBoost = 0;
+                let cursorDistRatio = 1;
+                if (dist < maxInteractDist) {
+                    cursorDistRatio = dist / maxInteractDist;
+                    cursorBoost = (1 - cursorDistRatio) * 0.6;
+                }
+
                 if (progress >= 0.75) {
                     const r = 255;
                     const g = Math.floor(195 + progress * 20);
                     const b = Math.floor(30 + progress * 35);
-                    color = `rgba(${r}, ${g}, ${b}, ${pulseAlpha * 1.35})`;
+                    color = `rgba(${r}, ${g}, ${b}, ${(pulseAlpha + cursorBoost) * 1.4})`;
                 } else if (progress >= 0.4) {
                     const r = Math.floor(110 + 145 * progress);
                     const g = Math.floor(85 + progress * 50);
                     const b = Math.floor(150 + progress * 60);
-                    color = `rgba(${r}, ${g}, ${b}, ${pulseAlpha * 1.18})`;
+                    color = `rgba(${r}, ${g}, ${b}, ${(pulseAlpha + cursorBoost) * 1.25})`;
                 } else {
                     const r = Math.floor(80 + progress * 55);
                     const g = Math.floor(100 + progress * 35);
                     const b = 255;
-                    color = `rgba(${r}, ${g}, ${b}, ${pulseAlpha})`;
+                    color = `rgba(${r}, ${g}, ${b}, ${pulseAlpha + cursorBoost})`;
                 }
 
                 ctx.save();
-                const dynamicBlur = Math.max(0, this.blur + (progress * 0.4));
+                const dynamicBlur = Math.max(0, this.blur * (1 - cursorBoost * 0.5));
                 if (dynamicBlur > 0 && ctx.filter !== undefined) {
                     ctx.filter = `blur(${dynamicBlur.toFixed(2)}px)`;
                 }
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.size * (1 + cursorBoost * 0.4), 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
+                
+                return cursorDistRatio;
             }
         }
 
@@ -1042,14 +1063,20 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             // パララックス・モーショントラッキングの滑らかな補間追従
-            mouseX += (targetMouseX - mouseX) * 0.06;
-            mouseY += (targetMouseY - mouseY) * 0.06;
+            mouseX += (targetMouseX - mouseX) * 0.07;
+            mouseY += (targetMouseY - mouseY) * 0.07;
             const dx = mouseX - (canvas.width / 2);
             const dy = mouseY - (canvas.height / 2);
 
             const currentSync = window.game ? game.syncRate : 0;
             const currentUnlocked = window.game ? game.unlockedForeshadows.size : 0;
-            particles.forEach(p => { p.update(dx, dy); p.draw(currentSync, currentUnlocked); });
+            particles.forEach(p => {
+                const distX = p.x - mouseX;
+                const distY = p.y - mouseY;
+                const distRatio = Math.min(1, Math.sqrt(distX * distX + distY * distY) / 140);
+                p.update(dx, dy, distRatio);
+                p.draw(currentSync, currentUnlocked, mouseX, mouseY);
+            });
             animFrameId = requestAnimationFrame(animateBg);
         }
 
