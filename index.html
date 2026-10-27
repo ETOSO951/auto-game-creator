@@ -139,17 +139,22 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 16px;
-            background: linear-gradient(135deg, rgba(22, 27, 46, 0.88) 0%, rgba(10, 14, 26, 0.94) 100%);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.14);
+            padding: 14px 18px;
+            background: linear-gradient(135deg, rgba(25, 31, 54, 0.92) 0%, rgba(10, 14, 26, 0.96) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.18);
             margin-bottom: 16px;
             z-index: 15;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+            box-shadow: 0 10px 35px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .hud-header:hover {
+            border-color: rgba(93, 109, 255, 0.4);
         }
 
         .hud-header::before {
@@ -300,24 +305,29 @@
 
         /* ダイアログボックス（プレミアム・ガラスモルフィズムとホログラフィックボーダー） */
         .dialog-box {
-            background: linear-gradient(135deg, rgba(32, 40, 72, 0.9) 0%, rgba(14, 18, 32, 0.95) 100%);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(34, 44, 78, 0.92) 0%, rgba(12, 16, 28, 0.97) 100%);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.26);
+            border-radius: 22px;
             padding: 22px;
             min-height: 160px;
             max-height: 220px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+            box-shadow: 0 18px 55px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.4);
             margin-bottom: 12px;
             cursor: pointer;
             position: relative;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
             animation: dialogPulse 6s infinite ease-in-out;
+            transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+        }
+
+        .dialog-box:active {
+            transform: scale(0.985);
         }
 
         .dialog-box::after {
@@ -403,34 +413,53 @@
         }
 
         .choice-btn {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.03) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.22);
             color: var(--text-main);
-            padding: 15px 20px;
-            min-height: 50px;
-            border-radius: 14px;
+            padding: 16px 22px;
+            min-height: 52px;
+            border-radius: 16px;
             font-size: 0.9rem;
             text-align: left;
             cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+            transition: all 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
             display: flex;
             justify-content: space-between;
             align-items: center;
             -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .choice-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .choice-btn:hover::after, .choice-btn:active::after {
+            left: 100%;
         }
 
         .choice-btn:hover, .choice-btn:active {
-            background: rgba(93, 109, 255, 0.2);
+            background: rgba(93, 109, 255, 0.24);
             border-color: var(--primary);
-            transform: translateX(4px);
+            transform: translateX(5px);
+            box-shadow: 0 8px 30px var(--primary-glow);
         }
 
         .choice-btn.truth {
             border-color: var(--gold);
-            background: rgba(255, 183, 3, 0.1);
+            background: rgba(255, 183, 3, 0.14);
+            box-shadow: 0 8px 30px rgba(255, 183, 3, 0.3);
         }
 
         /* ミニゲーム（記憶復元パズル） */
@@ -751,17 +780,17 @@
                 }
             }
 
-            playBeep(freq = 440, type = 'sine', duration = 0.1, randomize = false) {
+            playBeep(freq = 440, type = 'sine', duration = 0.12, randomize = false) {
                 this.init();
                 if (!this.ctx || this.ctx.state !== 'running') return;
 
                 const now = performance.now();
-                if (randomize && now - this.lastBeepTime < 35) return;
+                if (randomize && now - this.lastBeepTime < 40) return;
                 this.lastBeepTime = now;
 
                 try {
                     const currentTime = this.ctx.currentTime;
-                    const finalFreq = randomize ? freq + (Math.random() * 35 - 17) : freq;
+                    const finalFreq = randomize ? freq + (Math.random() * 30 - 15) : freq;
                     
                     const osc = this.ctx.createOscillator();
                     const filter = this.ctx.createBiquadFilter();
@@ -770,15 +799,15 @@
                     osc.type = type;
                     osc.frequency.setValueAtTime(finalFreq, currentTime);
                     if (randomize) {
-                        osc.frequency.exponentialRampToValueAtTime(finalFreq * 0.94, currentTime + duration);
+                        osc.frequency.exponentialRampToValueAtTime(finalFreq * 0.95, currentTime + duration);
                     }
                     
                     filter.type = 'lowpass';
-                    filter.frequency.setValueAtTime(2200, currentTime);
+                    filter.frequency.setValueAtTime(2600, currentTime);
 
-                    // ADSRエンベロープ (滑らかなアタック＆ナチュラルな減衰)
+                    // 調律されたADSRエンベロープ (より滑らかなアタック＆残響感を帯びた自然な減衰)
                     gain.gain.setValueAtTime(0.0001, currentTime);
-                    gain.gain.linearRampToValueAtTime(0.035, currentTime + 0.012);
+                    gain.gain.linearRampToValueAtTime(0.028, currentTime + 0.015);
                     gain.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
                     
                     osc.connect(filter);
@@ -818,20 +847,20 @@
                     const filter = this.ctx.createBiquadFilter();
 
                     filter.type = 'lowpass';
-                    filter.frequency.setValueAtTime(3200, currentTime);
+                    filter.frequency.setValueAtTime(3600, currentTime);
 
-                    // 空間反響感を高めた滑らかなADSRエンベロープ
+                    // 空間反響感を高めた洗練されたADSRエンベロープ
                     gain.gain.setValueAtTime(0.0001, currentTime);
-                    gain.gain.linearRampToValueAtTime(0.045, currentTime + 0.02);
+                    gain.gain.linearRampToValueAtTime(0.038, currentTime + 0.025);
                     gain.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
                     
                     filter.connect(gain);
                     gain.connect(this.ctx.destination);
 
                     // 精緻な倍音合成 (基音 + 5度上のハーモニクス + サブオクターブ + 煌めきの高次倍音)
-                    [1, 1.5, 0.5, 2].forEach((multiplier, i) => {
+                    [1, 1.5, 0.5, 2, 2.5].forEach((multiplier, i) => {
                         const osc = this.ctx.createOscillator();
-                        osc.type = i === 3 ? 'sine' : (i === 2 ? 'triangle' : 'sine');
+                        osc.type = i === 4 ? 'sine' : (i === 2 ? 'triangle' : 'sine');
                         osc.frequency.setValueAtTime(baseFreq * multiplier, currentTime);
                         osc.connect(filter);
                         osc.start(currentTime);
@@ -916,31 +945,33 @@
                 if (this.y < -10 || this.x < -10 || this.x > canvas.width + 10) this.reset();
             }
             draw(syncRate, unlockedCount) {
-                // 記憶同調率および伏線回収数に呼応して滑らかに呼吸するオーロラ・ホログラフィックカラー
+                // 記憶同調率および伏線回収数に呼応して滑らかに呼吸するオーロラ・ホログラフィックカラー (被写界深度連動)
                 let color;
                 const progress = (syncRate / 100);
-                const pulseAlpha = this.alpha * (0.85 + Math.sin(performance.now() * 0.002 + this.x) * 0.15);
+                const pulseAlpha = this.alpha * (0.88 + Math.sin(performance.now() * 0.0018 + this.x * 0.01) * 0.22);
                 
                 if (progress >= 0.75) {
                     const r = 255;
-                    const g = Math.floor(190 + progress * 25);
-                    const b = Math.floor(20 + progress * 40);
-                    color = `rgba(${r}, ${g}, ${b}, ${pulseAlpha * 1.3})`;
+                    const g = Math.floor(195 + progress * 20);
+                    const b = Math.floor(30 + progress * 35);
+                    color = `rgba(${r}, ${g}, ${b}, ${pulseAlpha * 1.35})`;
                 } else if (progress >= 0.4) {
-                    const r = Math.floor(100 + 155 * progress);
-                    const g = Math.floor(80 + progress * 45);
-                    const b = Math.floor(140 + progress * 70);
-                    color = `rgba(${r}, ${g}, ${b}, ${pulseAlpha * 1.15})`;
+                    const r = Math.floor(110 + 145 * progress);
+                    const g = Math.floor(85 + progress * 50);
+                    const b = Math.floor(150 + progress * 60);
+                    color = `rgba(${r}, ${g}, ${b}, ${pulseAlpha * 1.18})`;
                 } else {
-                    const r = Math.floor(75 + progress * 60);
-                    const g = Math.floor(95 + progress * 40);
+                    const r = Math.floor(80 + progress * 55);
+                    const g = Math.floor(100 + progress * 35);
                     const b = 255;
                     color = `rgba(${r}, ${g}, ${b}, ${pulseAlpha})`;
                 }
 
                 ctx.save();
-                if (this.blur > 0 && ctx.filter !== undefined) {
-                    ctx.filter = `blur(${this.blur}px)`;
+                // 被写界深度（DoF）に応じた滑らかなガウスぼかしグラデーション
+                const dynamicBlur = Math.max(0, this.blur + (progress * 0.4));
+                if (dynamicBlur > 0 && ctx.filter !== undefined) {
+                    ctx.filter = `blur(${dynamicBlur.toFixed(2)}px)`;
                 }
                 ctx.fillStyle = color;
                 ctx.beginPath();
