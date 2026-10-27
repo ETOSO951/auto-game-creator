@@ -388,7 +388,7 @@
             position: relative;
         }
 
-        /* 1文字ごとの発光・収束アニメーション用スパン */
+        /* アイデア3：感情同調・ダイナミック・タイピングエフェクト（緊迫度に応じた動的グリッチ＆色温度変動） */
         .char-fade {
             display: inline-block;
             opacity: 0;
@@ -415,6 +415,19 @@
                 transform: translateY(0) scale(1);
                 text-shadow: 0 0 4px rgba(255,255,255,0.3);
             }
+        }
+
+        .char-glitch {
+            display: inline-block;
+            animation: textGlitchAnim 0.25s infinite alternate ease-in-out;
+            color: var(--accent) !important;
+            text-shadow: 2px 0 var(--primary), -2px 0 var(--danger);
+        }
+
+        @keyframes textGlitchAnim {
+            0% { transform: translate(0, 0) skewX(0deg); }
+            50% { transform: translate(-1px, 1px) skewX(-12deg); }
+            100% { transform: translate(1px, -1px) skewX(10deg); }
         }
 
         /* 選択肢ボタン群 (プレミアム・ガラス質感とホログラフィック・ハイライト) */
@@ -1008,10 +1021,14 @@
 
     <script>
         /* --- Web Audio API による空間音響・ディレイリバーブ＆高精度倍音合成エンジン --- */
+        /* アイデア1：サウンドスケープのダイナミック・アダプティブ化（アンビエント・ドローン＆緊迫度連動リアルタイム音響空間） */
         class SoundEngine {
             constructor() {
                 this.ctx = null;
                 this.lastBeepTime = 0;
+                this.droneOsc = null;
+                this.droneGain = null;
+                this.isDroneActive = false;
             }
 
             init() {
@@ -1024,6 +1041,48 @@
                 if (this.ctx && this.ctx.state === 'suspended') {
                     this.ctx.resume().catch(() => {});
                 }
+                this.startAmbientDrone();
+            }
+
+            startAmbientDrone() {
+                if (this.isDroneActive || !this.ctx) return;
+                try {
+                    const currentTime = this.ctx.currentTime;
+                    this.droneOsc = this.ctx.createOscillator();
+                    const filter = this.ctx.createBiquadFilter();
+                    this.droneGain = this.ctx.createGain();
+                    const bus = this.createSpatialBus() || this.ctx.destination;
+
+                    this.droneOsc.type = 'sawtooth';
+                    this.droneOsc.frequency.setValueAtTime(55, currentTime); // 低音ドローン（A1）
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(180, currentTime);
+
+                    this.droneGain.gain.setValueAtTime(0.0001, currentTime);
+                    this.droneGain.gain.linearRampToValueAtTime(0.018, currentTime + 2.0);
+
+                    this.droneOsc.connect(filter);
+                    filter.connect(this.droneGain);
+                    this.droneGain.connect(bus);
+
+                    this.droneOsc.start(currentTime);
+                    this.isDroneActive = true;
+                } catch(e){}
+            }
+
+            updateAmbientTension(isHighTension) {
+                if (!this.ctx || !this.droneGain || !this.droneOsc) return;
+                try {
+                    const currentTime = this.ctx.currentTime;
+                    if (isHighTension) {
+                        this.droneGain.gain.setTargetAtTime(0.038, currentTime, 0.5);
+                        this.droneOsc.frequency.setTargetAtTime(110, currentTime, 0.8);
+                    } else {
+                        this.droneGain.gain.setTargetAtTime(0.015, currentTime, 0.8);
+                        this.droneOsc.frequency.setTargetAtTime(55, currentTime, 1.2);
+                    }
+                } catch(e){}
             }
 
             createSpatialBus() {
@@ -1037,8 +1096,8 @@
                     filter.type = 'lowpass';
                     filter.frequency.setValueAtTime(3600, this.ctx.currentTime);
 
-                    delay.delayTime.setValueAtTime(0.15, this.ctx.currentTime); // 空間の奥行きを深めたディレイ残響
-                    feedback.gain.setValueAtTime(0.32, this.ctx.currentTime); // フィードバック量強化
+                    delay.delayTime.setValueAtTime(0.18, this.ctx.currentTime);
+                    feedback.gain.setValueAtTime(0.35, this.ctx.currentTime);
 
                     delay.connect(filter);
                     filter.connect(feedback);
@@ -1103,7 +1162,6 @@
             playRecallSound() {
                 this.init();
                 if (!this.ctx || this.ctx.state !== 'running') return;
-                // リッチな階層化コード（周波数倍音合成を拡張）
                 const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00];
                 notes.forEach((freq, idx) => {
                     setTimeout(() => {
@@ -1789,6 +1847,7 @@
             triggerHazard() {
                 if (this.hazardActive) return;
                 this.hazardActive = true;
+                sound.updateAmbientTension(true);
                 const overlay = document.getElementById('glitch-hazard-overlay');
                 const warning = document.getElementById('hazard-warning');
                 const qteContainer = document.getElementById('qte-nodes-container');
@@ -1853,6 +1912,7 @@
             resolveHazard(isFailure = false) {
                 if (!this.hazardActive) return;
                 this.hazardActive = false;
+                sound.updateAmbientTension(false);
                 if (this.hazardTimer) {
                     clearTimeout(this.hazardTimer);
                     this.hazardTimer = null;
@@ -2243,7 +2303,7 @@
                 const mainScreen = document.getElementById('main-screen');
                 
                 if (mainScreen) mainScreen.classList.add('typing-active');
-                if (dialogEl) dialogEl.innerText = '';
+                if (dialogEl) dialogEl.innerHTML = '';
                 this.currentFullText = text;
                 this.state = GAME_STATES.TYPING;
                 if (hintEl) hintEl.style.display = 'block';
@@ -2257,7 +2317,18 @@
                     if (now - lastTime >= charInterval) {
                         lastTime = now;
                         if (idx < text.length) {
-                            if (dialogEl) dialogEl.innerText += text.charAt(idx);
+                            const char = text.charAt(idx);
+                            const span = document.createElement('span');
+                            
+                            // アイデア3：感情同調・ダイナミックタイピング（エラーや警告キーワードに特殊グリッチ演出を動的付与）
+                            if (text.includes('エラー') || text.includes('警告') || text.includes('崩壊') || char === '！') {
+                                span.className = 'char-fade char-glitch';
+                            } else {
+                                span.className = 'char-fade';
+                            }
+                            span.textContent = char;
+                            if (dialogEl) dialogEl.appendChild(span);
+
                             idx++;
                             if (idx % 2 === 0) sound.playBeep(850, 'sine', 0.02, true);
                         } else {
@@ -2296,7 +2367,18 @@
                 
                 if (mainScreen) mainScreen.classList.remove('typing-active');
                 if (dialogEl && this.currentFullText) {
-                    dialogEl.innerText = this.currentFullText;
+                    dialogEl.innerHTML = '';
+                    // スキップ時も全文字にchar-fadeを付与して美しく一括表示
+                    for (let i = 0; i < this.currentFullText.length; i++) {
+                        const span = document.createElement('span');
+                        span.className = 'char-fade';
+                        span.style.animationDelay = '0s';
+                        span.style.opacity = '1';
+                        span.style.filter = 'none';
+                        span.style.transform = 'none';
+                        span.textContent = this.currentFullText.charAt(i);
+                        dialogEl.appendChild(span);
+                    }
                 }
                 if (hintEl) hintEl.style.display = 'none';
 
@@ -2659,25 +2741,31 @@
                     { id: 'node_end', label: node.title.split('：')[0], detail: node.text.substring(0, 48) + "...", active: true }
                 ];
 
+                // アイデア2：因果の回想ツリー・ビジュアライザー（解放されたノード同士を結ぶ光のホログラフィック・接続コネクター表現の強化）
                 treeSteps.forEach((step, idx) => {
+                    if (idx > 0) {
+                        const connector = document.createElement('div');
+                        connector.style.cssText = `width:2px; height:14px; background:linear-gradient(to bottom, var(--primary), var(--gold)); margin:0 auto; opacity:0; transition:opacity 0.4s ease;`;
+                        connector.className = 'tree-connector';
+                        treeContainer.appendChild(connector);
+                    }
+
                     const nodeCard = document.createElement('div');
-                    nodeCard.style.cssText = `background:${step.active ? 'rgba(93,109,255,0.18)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${step.active ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:8px 12px; font-size:0.72rem; color:${step.active ? '#fff' : 'var(--text-sub)'}; display:flex; flex-direction:column; gap:3px; cursor:pointer; opacity:0; transform:translateY(12px); transition:all 0.4s cubic-bezier(0.16, 1, 0.3, 1);`;
-                    nodeCard.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;"><strong>${step.active ? '🔓' : '🔒'} ${step.label}</strong><span style="font-size:0.6rem; color:var(--gold);">詳細 ▶</span></div><div style="font-size:0.65rem; color:var(--text-sub); display:none;" class="node-detail">${step.detail}</div>`;
+                    nodeCard.style.cssText = `background:${step.active ? 'rgba(93,109,255,0.22)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${step.active ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}; border-radius:12px; padding:10px 14px; font-size:0.72rem; color:${step.active ? '#fff' : 'var(--text-sub)'}; display:flex; flex-direction:column; gap:4px; cursor:pointer; opacity:0; transform:translateY(16px); box-shadow:${step.active ? '0 0 20px var(--primary-glow)' : 'none'}; transition:all 0.45s cubic-bezier(0.16, 1, 0.3, 1);`;
+                    nodeCard.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;"><strong>${step.active ? '🔓 接続完了' : '🔒 ロック'} : ${step.label}</strong><span style="font-size:0.6rem; color:var(--gold);">詳細 ▶</span></div><div style="font-size:0.65rem; color:var(--text-sub); display:none; margin-top:4px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.08);" class="node-detail">${step.detail}</div>`;
                     
                     nodeCard.onclick = (e) => {
                         sound.playRecallSound();
-                        const rect = nodeCard.getBoundingClientRect();
                         const containerRect = document.getElementById('result-screen').getBoundingClientRect();
                         
-                        // アイデア2：因果ツリーノード展開時に光の粒子（リップルエフェクト）を生成
                         const ripple = document.createElement('div');
                         ripple.className = 'ripple-effect';
                         ripple.style.left = `${e.clientX - containerRect.left}px`;
                         ripple.style.top = `${e.clientY - containerRect.top}px`;
-                        ripple.style.width = '35px';
-                        ripple.style.height = '35px';
-                        ripple.style.marginLeft = '-17.5px';
-                        ripple.style.marginTop = '-17.5px';
+                        ripple.style.width = '40px';
+                        ripple.style.height = '40px';
+                        ripple.style.marginLeft = '-20px';
+                        ripple.style.marginTop = '-20px';
                         document.getElementById('result-screen').appendChild(ripple);
                         setTimeout(() => ripple.remove(), 700);
 
@@ -2694,6 +2782,10 @@
                     this.addTimeout(() => {
                         nodeCard.style.opacity = '1';
                         nodeCard.style.transform = 'translateY(0)';
+                        const prevConnector = nodeCard.previousElementSibling;
+                        if (prevConnector && prevConnector.classList.contains('tree-connector')) {
+                            prevConnector.style.opacity = '1';
+                        }
                         sound.playHarmonicChord(440 + idx * 110, 0.25);
                     }, 150 + idx * 180);
                 });
