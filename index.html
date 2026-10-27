@@ -136,49 +136,27 @@
             transform: scale(1);
         }
 
-        /* アイデア2：HUDヘッダー情報の階層整理と常時表示項目の厳選（引き算の美学） */
+        /* アイデア1 & 3：HUDヘッダーの極限スリム化と引き算の美学の徹底 */
         .hud-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 16px;
-            background: rgba(14, 18, 30, 0.88);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.12);
-            margin-bottom: 14px;
+            padding: 8px 16px;
+            background: rgba(14, 18, 30, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+            margin-bottom: 12px;
             z-index: 15;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
             transition: border-color 0.3s ease;
         }
 
         .hud-header:hover {
             border-color: rgba(93, 109, 255, 0.3);
-        }
-
-        .hud-header:hover {
-            border-color: rgba(93, 109, 255, 0.4);
-        }
-
-        .hud-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -150%;
-            width: 150%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), rgba(255,71,126,0.06), rgba(93,109,255,0.08), transparent);
-            animation: shimmerEffect 5s infinite cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-        }
-
-        @keyframes shimmerEffect {
-            0% { left: -150%; transform: skewX(-20deg); }
-            35% { left: 150%; transform: skewX(-20deg); }
-            100% { left: 150%; transform: skewX(-20deg); }
         }
 
         .hud-item {
@@ -852,36 +830,33 @@
             </div>
         </div>
 
-        <!-- アイデア1：統合型「記憶アーカイブ」モーダル (周回特典ショップ ＆ マインドマップ) の洗練・一本化 -->
+        <!-- アイデア2：構造的一本化された統合型「記憶アーカイブ室」(メタ特典 & マインドマップ) -->
         <div id="archive-modal" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:115; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px; opacity:0; pointer-events:none; transition:opacity 0.35s ease;">
-            <div style="width:100%; max-width:340px; background:rgba(18, 23, 40, 0.95); border:1px solid rgba(255,255,255,0.18); border-radius:22px; padding:20px; backdrop-filter:blur(28px); box-shadow:0 24px 60px rgba(0,0,0,0.85), inset 0 1px 1px rgba(255,255,255,0.2); display:flex; flex-direction:column; max-height:85vh; overflow-y:auto;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
-                    <h3 style="color:var(--gold); font-size:0.95rem; letter-spacing:1px;">【記憶アーカイブ室】</h3>
+            <div style="width:100%; max-width:340px; background:rgba(18, 23, 40, 0.96); border:1px solid rgba(255,255,255,0.15); border-radius:20px; padding:20px; backdrop-filter:blur(24px); box-shadow:0 20px 50px rgba(0,0,0,0.85); display:flex; flex-direction:column; max-height:85vh; overflow-y:auto;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:8px;">
+                    <h3 style="color:var(--gold); font-size:0.9rem; letter-spacing:1px;">【記憶アーカイブ室】</h3>
                     <div style="font-size:0.75rem; color:var(--text-sub);">因果の欠片: <span id="karma-shards" style="color:var(--gold); font-weight:bold;">0</span> 💎</div>
                 </div>
 
-                <div style="font-size:0.75rem; color:var(--primary); margin-bottom:6px; font-weight:bold;">⚡ メタ進行・周回特典</div>
-                <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:16px;">
-                    <button class="btn btn-secondary" id="perk-speed-btn" onclick="game.togglePerkSpeed()" style="width:100%; font-size:0.75rem; padding:8px; margin:0; border-radius:8px; text-align:left;">
+                <div style="font-size:0.75rem; color:var(--primary); margin-bottom:4px; font-weight:bold;">⚡ メタ進行・周回特典</div>
+                <div style="display:flex; flex-direction:column; gap:5px; margin-bottom:12px;">
+                    <button class="btn btn-secondary" id="perk-speed-btn" onclick="game.togglePerkSpeed()" style="width:100%; font-size:0.75rem; padding:7px; margin:0; border-radius:6px; text-align:left;">
                         ⚡ 高速思考: OFF
                     </button>
-                    <button class="btn btn-secondary" id="perk-sync-btn" onclick="game.buyPerk('bonusSync')" style="width:100%; font-size:0.75rem; padding:8px; margin:0; border-radius:8px; text-align:left;">
+                    <button class="btn btn-secondary" id="perk-sync-btn" onclick="game.buyPerk('bonusSync')" style="width:100%; font-size:0.75rem; padding:7px; margin:0; border-radius:6px; text-align:left;">
                         💎 初期同調率+20%: 3 💎
                     </button>
-                    <button class="btn btn-secondary" id="perk-puzzle-btn" onclick="game.buyPerk('autoPuzzle')" style="width:100%; font-size:0.75rem; padding:8px; margin:0; border-radius:8px; text-align:left;">
+                    <button class="btn btn-secondary" id="perk-puzzle-btn" onclick="game.buyPerk('autoPuzzle')" style="width:100%; font-size:0.75rem; padding:7px; margin:0; border-radius:6px; text-align:left;">
                         🧩 パズル自動解析権: 5 💎
-                    </button>
-                    <button class="btn btn-secondary" id="perk-eye-btn" onclick="game.buyPerk('observerEye')" style="width:100%; font-size:0.75rem; padding:8px; margin:0; border-radius:8px; text-align:left;">
-                        👁️ 観測眼(伏線ハイライト): 4 💎
                     </button>
                 </div>
 
-                <div style="font-size:0.75rem; color:var(--accent); margin-bottom:6px; font-weight:bold;">🧠 記憶ネットワーク（マインドマップ）</div>
-                <div id="mindmap-nodes-area" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:16px; max-height:160px; overflow-y:auto;">
+                <div style="font-size:0.75rem; color:var(--accent); margin-bottom:4px; font-weight:bold;">🧠 マインドマップ（接続状態）</div>
+                <div id="mindmap-nodes-area" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:6px; margin-bottom:14px; max-height:140px; overflow-y:auto;">
                     <!-- 動的生成ノード -->
                 </div>
 
-                <button class="btn" onclick="game.closeArchiveModal()" style="width:100%; padding:12px; font-size:0.85rem; margin:0;">アーカイブを閉じる</button>
+                <button class="btn" onclick="game.closeArchiveModal()" style="width:100%; padding:10px; font-size:0.8rem; margin:0;">閉じる</button>
             </div>
         </div>
 
@@ -921,18 +896,18 @@
             </div>
         </div>
 
-        <!-- パズル・ミニゲーム モーダル -->
+        <!-- アイデア3：パズルモーダルの視覚ノイズ整理とアクション領域の洗練 -->
         <div id="puzzle-modal">
-            <h3 style="color:var(--gold); margin-bottom:8px;">【記憶復元プロトコル】</h3>
-            <p style="font-size:0.8rem; color:var(--text-sub); text-align:center;" id="puzzle-desc-text">
-                タップまたはスワイプで数字を1〜8に並べ替えよ。（コンボボーナス対応）
+            <h3 style="color:var(--gold); margin-bottom:6px; font-size:0.95rem;">【記憶復元プロトコル】</h3>
+            <p style="font-size:0.75rem; color:var(--text-sub); text-align:center; margin-bottom:4px;" id="puzzle-desc-text">
+                タイルをタップして1〜8に並べ替えよ
             </p>
-            <div style="font-size:0.75rem; color:var(--gold); margin:4px 0;" id="puzzle-combo-display">COMBO: 0 | Bonus Sync: +0%</div>
-            <div class="puzzle-success-msg" id="puzzle-success-msg">✔ 記憶領域の同期完了</div>
+            <div style="font-size:0.7rem; color:var(--gold); margin:2px 0;" id="puzzle-combo-display">COMBO: 0 | Bonus Sync: +0%</div>
+            <div class="puzzle-success-msg" id="puzzle-success-msg">✔ 同期完了</div>
             <div class="puzzle-grid" id="puzzle-grid"></div>
-            <div style="display:flex; gap:8px;">
-                <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem;">記憶を解析(スキップ)</button>
-                <button class="btn btn-secondary" id="puzzle-autopass-btn" onclick="game.useAutoPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem; border-color:var(--gold); color:var(--gold);">自動解析パス</button>
+            <div style="display:flex; gap:6px;">
+                <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:6px 14px; font-size:0.75rem;">スキップ</button>
+                <button class="btn btn-secondary" id="puzzle-autopass-btn" onclick="game.useAutoPuzzle()" style="width:auto; padding:6px 14px; font-size:0.75rem; border-color:var(--gold); color:var(--gold);">自動解析</button>
             </div>
         </div>
 
