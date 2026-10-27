@@ -1008,31 +1008,42 @@
                 const grid = document.getElementById('puzzle-grid');
                 if (!grid) return;
 
+                let touchedTileIndex = -1;
+
                 grid.addEventListener('touchstart', (e) => {
                     if (this.state !== GAME_STATES.PUZZLE) return;
                     if (e.touches.length > 0) {
                         this.touchStartX = e.touches[0].clientX;
                         this.touchStartY = e.touches[0].clientY;
                         this.touchStartTime = performance.now();
+                        
+                        // タッチ開始位置からどのタイルに触れたかを直接特定（個別タイル指向）
+                        const target = e.target.closest('.puzzle-tile');
+                        if (target && !target.classList.contains('empty')) {
+                            const tiles = Array.from(grid.children);
+                            touchedTileIndex = tiles.indexOf(target);
+                        } else {
+                            touchedTileIndex = -1;
+                        }
                     }
                 }, { passive: true });
 
                 grid.addEventListener('touchend', (e) => {
                     if (this.state !== GAME_STATES.PUZZLE) return;
-                    if (e.changedTouches.length > 0) {
+                    if (e.changedTouches.length > 0 && touchedTileIndex !== -1) {
                         const diffX = e.changedTouches[0].clientX - this.touchStartX;
                         const diffY = e.changedTouches[0].clientY - this.touchStartY;
                         const duration = performance.now() - (this.touchStartTime || 0);
                         const absX = Math.abs(diffX);
                         const absY = Math.abs(diffY);
                         
-                        // 相対閾値による高精度スワイプ判定（小画面対応・誤作動防止）
-                        const minSwipeDist = Math.max(20, grid.clientWidth * 0.08);
-                        if (duration < 450 && Math.max(absX, absY) > minSwipeDist) {
-                            if (absX > absY * 1.25 || absY > absX * 1.25) {
-                                this.handlePuzzleSwipe(diffX, diffY);
+                        const minSwipeDist = Math.max(16, grid.clientWidth * 0.06);
+                        if (duration < 500 && Math.max(absX, absY) > minSwipeDist) {
+                            if (absX > absY * 1.2 || absY > absX * 1.2) {
+                                this.handleDirectTileSwipe(touchedTileIndex, diffX, diffY);
                             }
                         }
+                        touchedTileIndex = -1;
                     }
                 }, { passive: true });
             }
@@ -1181,11 +1192,21 @@
                     const btn = document.createElement('button');
                     btn.className = `choice-btn ${c.isTruth ? 'truth' : ''}`;
                     btn.innerHTML = `<span>${c.text}</span> <span>➔</span>`;
-                    btn.onclick = (e) => {
+                    
+                    // タップ／クリック時の誤爆防止・ポインターアップ確定処理の導入
+                    let isPointerDown = false;
+                    btn.addEventListener('pointerdown', (e) => {
+                        if (this.state !== GAME_STATES.WAIT_CHOICE || this.isTransitionLocked) return;
+                        isPointerDown = true;
+                    });
+
+                    btn.addEventListener('pointerup', (e) => {
+                        if (!isPointerDown) return;
+                        isPointerDown = false;
+
                         e.stopPropagation();
-                        // ステートガード・タップ直後の非同期ガード判定
                         const now = performance.now();
-                        if (this.state !== GAME_STATES.WAIT_CHOICE || this.isTransitionLocked || (now - this.lastSkipTimestamp < 350)) {
+                        if (this.state !== GAME_STATES.WAIT_CHOICE || this.isTransitionLocked || (now - this.lastSkipTimestamp < 300)) {
                             return;
                         }
                         this.isTransitionLocked = true;
@@ -1196,7 +1217,12 @@
                         } else {
                             this.renderScene(c.next);
                         }
-                    };
+                    });
+
+                    btn.addEventListener('pointercancel', () => {
+                        isPointerDown = false;
+                    });
+
                     choicesBox.appendChild(btn);
                 });
             }
@@ -1237,6 +1263,17 @@
             handleDialogClick() {
                 if (this.state === GAME_STATES.TYPING) {
                     this.completeTypewriter(true);
+                } else if (this.state === GAME_STATES.WAIT_CHOICE && !this.isTransitionLocked) {
+                    // 2回目の入力（タイピング完了後）で次の挙動をスムーズに促す拡張フック
+                    const choicesBox = document.getElementById('choices-container');
+                    if (choicesBox && choicesBox.children.length > 0) {
+                        // 最初の選択肢にフォーカスフィードバックを与えるなど視覚的応答性
+                        const firstChoice = choicesBox.children[0];
+                        if (firstChoice) {
+                            firstChoice.classList.add('truth');
+                            this.addTimeout(() => firstChoice.classList.remove('truth'), 150);
+                        }
+                    }
                 }
             }
 
@@ -1255,8 +1292,8 @@
                     this.lastSkipTimestamp = performance.now();
                 }
 
-                // マニュアルスキップの場合はより余裕を持たせた400msの誤爆防止ガードを設定
-                const lockDuration = isManualSkip ? 400 : 250;
+                // タイマーに依存しない明快な入力フェーズ管理と確実なガード解除
+                const lockDuration = isManualSkip ? 300 : 200;
                 this.addTimeout(() => {
                     this.state = GAME_STATES.WAIT_CHOICE;
                     this.isTransitionLocked = false;
@@ -1291,9 +1328,22 @@
 
             generateSolvablePuzzle() {
                 const winState = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+                
+                // 数学的置換の反転数（インバージョン数）を算出し可解性と適正難易度を確実に保証する生成ルーチン
+                const countInversions = (arr) => {
+                    let inv = 0;
+                    const clean = arr.filter(n => n !== 0);
+                    for (let i = 0; i < clean.length; i++) {
+                        for (let j = i + 1; j < clean.length; j++) {
+                            if (clean[i] > clean[j]) inv++;
+                        }
+                    }
+                    return inv;
+                };
+
                 do {
                     this.puzzleBoard = [1, 2, 3, 4, 5, 6, 7, 8, 0];
-                    let movesCount = 35;
+                    let movesCount = 42; // 適正な手数でシャッフル
                     let lastEmptyIdx = -1;
 
                     for (let i = 0; i < movesCount; i++) {
@@ -1316,7 +1366,10 @@
                         [this.puzzleBoard[chosenIdx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[chosenIdx]];
                         lastEmptyIdx = emptyIdx;
                     }
-                } while (JSON.stringify(this.puzzleBoard) === JSON.stringify(winState));
+                } while (
+                    JSON.stringify(this.puzzleBoard) === JSON.stringify(winState) || 
+                    countInversions(this.puzzleBoard) % 2 !== 0
+                );
             }
 
             renderPuzzle() {
@@ -1386,14 +1439,40 @@
                 return false;
             }
 
+            handleDirectTileSwipe(tileIdx, diffX, diffY) {
+                if (this.isPuzzleClearing || this.isPuzzleAnimating || this.state !== GAME_STATES.PUZZLE) return;
+                
+                const emptyIdx = this.puzzleBoard.indexOf(0);
+                const r1 = Math.floor(tileIdx / 3), c1 = tileIdx % 3;
+                const r2 = Math.floor(emptyIdx / 3), c2 = emptyIdx % 3;
+
+                // 触れたタイルが空きマスの隣接位置にあるか検証
+                if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) {
+                    const absX = Math.abs(diffX);
+                    const absY = Math.abs(diffY);
+                    let isIntentMatch = false;
+
+                    // プレイヤーがスワイプした方向と空きマスの方向が一致しているかを厳密判定
+                    if (absX > absY * 1.2) {
+                        if ((diffX > 0 && c2 > c1) || (diffX < 0 && c2 < c1)) isIntentMatch = true;
+                    } else if (absY > absX * 1.2) {
+                        if ((diffY > 0 && r2 > r1) || (diffY < 0 && r2 < r1)) isIntentMatch = true;
+                    }
+
+                    if (isIntentMatch) {
+                        this.moveTile(tileIdx);
+                    }
+                }
+            }
+
             handlePuzzleSwipe(diffX, diffY) {
+                // 後方互換維持用フォールバック
                 if (this.isPuzzleClearing || this.isPuzzleAnimating || this.state !== GAME_STATES.PUZZLE) return;
                 const emptyIdx = this.puzzleBoard.indexOf(0);
                 const r = Math.floor(emptyIdx / 3);
                 const c = emptyIdx % 3;
                 let targetIdx = -1;
 
-                // スワイプ方向の比率判定を1.4倍に厳格化して斜め入力時の誤動作を防止
                 const absX = Math.abs(diffX);
                 const absY = Math.abs(diffY);
 
