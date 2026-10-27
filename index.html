@@ -653,16 +653,15 @@
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
                     
-                    osc.start(currentTime);
-                    osc.stop(currentTime + duration);
-
-                    // ガベージコレクションとメモリリーク防止のための自動クリーンアップ
                     osc.onended = () => {
                         try {
                             osc.disconnect();
                             gain.disconnect();
                         } catch(e){}
                     };
+
+                    osc.start(currentTime);
+                    osc.stop(currentTime + duration);
                 } catch(e){}
             }
 
@@ -964,6 +963,7 @@
                 this.stopTypewriter();
                 this.clearAllTimeouts();
                 this.isPuzzleAnimating = false;
+                this.isTransitionLocked = false;
                 const mainScreen = document.getElementById('main-screen');
                 if (mainScreen) {
                     mainScreen.classList.remove('flashback');
@@ -1024,7 +1024,7 @@
                 let touchedTileIndex = -1;
 
                 grid.addEventListener('pointerdown', (e) => {
-                    if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleAnimating) return;
+                    if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleAnimating || this.isPuzzleClearing) return;
                     this.touchStartX = e.clientX;
                     this.touchStartY = e.clientY;
                     this.touchStartTime = performance.now();
@@ -1039,7 +1039,10 @@
                 }, { passive: true });
 
                 grid.addEventListener('pointerup', (e) => {
-                    if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleAnimating) return;
+                    if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleAnimating || this.isPuzzleClearing) {
+                        touchedTileIndex = -1;
+                        return;
+                    }
                     if (touchedTileIndex !== -1) {
                         const diffX = e.clientX - this.touchStartX;
                         const diffY = e.clientY - this.touchStartY;
@@ -1047,11 +1050,11 @@
                         const absX = Math.abs(diffX);
                         const absY = Math.abs(diffY);
                         
-                        const minSwipeDist = Math.max(10, grid.clientWidth * 0.03);
-                        if (duration < 450 && Math.max(absX, absY) > minSwipeDist) {
+                        const minSwipeDist = Math.max(12, grid.clientWidth * 0.05);
+                        if (duration < 450 && Math.max(absX, absY) >= minSwipeDist) {
                             this.handleDirectTileSwipe(touchedTileIndex, diffX, diffY);
-                        } else if (duration < 350 && Math.max(absX, absY) <= minSwipeDist) {
-                            // タップ判定のフォールバック
+                        } else if (duration < 400 && Math.max(absX, absY) < minSwipeDist) {
+                            // タップ移動の実行
                             this.moveTile(touchedTileIndex);
                         }
                         touchedTileIndex = -1;
@@ -1243,17 +1246,17 @@
             }
 
             typeWriter(text) {
+                this.stopTypewriter();
+                
                 const dialogEl = document.getElementById('dialog-text');
                 const hintEl = document.getElementById('dialog-hint');
                 
-                dialogEl.innerText = '';
+                if (dialogEl) dialogEl.innerText = '';
                 this.currentFullText = text;
                 this.state = GAME_STATES.TYPING;
                 if (hintEl) hintEl.style.display = 'block';
 
                 let idx = 0;
-                this.stopTypewriter();
-
                 let lastTime = performance.now();
                 const charInterval = 28;
 
@@ -1262,7 +1265,7 @@
                     if (now - lastTime >= charInterval) {
                         lastTime = now;
                         if (idx < text.length) {
-                            dialogEl.innerText += text.charAt(idx);
+                            if (dialogEl) dialogEl.innerText += text.charAt(idx);
                             idx++;
                             if (idx % 2 === 0) sound.playBeep(850, 'sine', 0.02, true);
                         } else {
@@ -1291,6 +1294,8 @@
             }
 
             completeTypewriter(isManualSkip = false) {
+                if (this.state !== GAME_STATES.TYPING && !isManualSkip) return;
+                
                 this.stopTypewriter();
                 const dialogEl = document.getElementById('dialog-text');
                 const choicesBox = document.getElementById('choices-container');
@@ -1307,7 +1312,9 @@
 
                 const lockDuration = isManualSkip ? 250 : 150;
                 this.addTimeout(() => {
-                    this.state = GAME_STATES.WAIT_CHOICE;
+                    if (this.state === GAME_STATES.TYPING || this.state === GAME_STATES.IDLE) {
+                        this.state = GAME_STATES.WAIT_CHOICE;
+                    }
                     this.isTransitionLocked = false;
                     if (choicesBox) choicesBox.classList.remove('disabled');
                 }, lockDuration);
@@ -1418,7 +1425,7 @@
             }
 
             moveTile(idx) {
-                if (this.isPuzzleAnimating) return false;
+                if (this.isPuzzleAnimating || this.isPuzzleClearing || this.state !== GAME_STATES.PUZZLE) return false;
                 const emptyIdx = this.puzzleBoard.indexOf(0);
                 const r1 = Math.floor(idx / 3), c1 = idx % 3;
                 const r2 = Math.floor(emptyIdx / 3), c2 = emptyIdx % 3;
@@ -1430,7 +1437,6 @@
                     const movingTile = tiles ? tiles[idx] : null;
 
                     if (movingTile && grid) {
-                        // CSS Gridの gap (10px) を考慮した正確な実ピクセル・パーセンテージ補正
                         const tileWidth = movingTile.clientWidth;
                         const gap = 10;
                         const deltaX = (c2 - c1) * (tileWidth + gap);
