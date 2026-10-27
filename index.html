@@ -917,8 +917,16 @@
             <div class="puzzle-grid" id="puzzle-grid"></div>
             <div style="display:flex; gap:8px;">
                 <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem;">記憶を解析(スキップ)</button>
-                <button class="btn btn-secondary" id="puzzle-autopass-btn" onclick="game.useAutoPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem; border-color:var(--gold); color:var(--gold);" id="auto-puzzle-action-btn">自動解析パス</button>
+                <button class="btn btn-secondary" id="puzzle-autopass-btn" onclick="game.useAutoPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem; border-color:var(--gold); color:var(--gold);">自動解析パス</button>
             </div>
+        </div>
+
+        <!-- アイデア1 & 2：「メモリー・ハント」探索フェーズモーダル -->
+        <div id="explore-modal">
+            <h3 style="color:var(--gold); margin-bottom:6px;">【メモリー・ハント探索フェーズ】</h3>
+            <p style="font-size:0.75rem; color:var(--text-sub); text-align:center; margin-bottom:10px;" id="explore-desc">浮遊するすべての光の欠片を回収せよ (0/3)</p>
+            <div class="explore-area" id="explore-area"></div>
+            <button class="btn btn-secondary" id="explore-skip-btn" onclick="game.finishExplore()" style="width:auto; padding:8px 24px; font-size:0.8rem; display:none;">解析完了（進む）</button>
         </div>
 
         <!-- 結果 / エンディング画面 -->
