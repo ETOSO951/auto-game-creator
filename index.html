@@ -238,6 +238,7 @@
             border-radius: 16px;
             padding: 20px;
             min-height: 160px;
+            max-height: 220px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -245,6 +246,7 @@
             margin-bottom: 12px;
             cursor: pointer;
             position: relative;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .dialog-hint {
@@ -297,6 +299,7 @@
             border: 1px solid rgba(255, 255, 255, 0.15);
             color: var(--text-main);
             padding: 14px 18px;
+            min-height: 48px;
             border-radius: 12px;
             font-size: 0.9rem;
             text-align: left;
@@ -305,6 +308,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .choice-btn:hover, .choice-btn:active {
@@ -600,7 +604,7 @@
     </div>
 
     <script>
-        /* --- Web Audio API によるサウンド生成 --- */
+        /* --- Web Audio API によるサウンド生成（リソース・オシレータープール最適化） --- */
         class SoundEngine {
             constructor() {
                 this.ctx = null;
@@ -609,32 +613,35 @@
 
             init() {
                 if (!this.ctx) {
-                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        this.ctx = new AudioCtx();
+                    }
                 }
                 if (this.ctx && this.ctx.state === 'suspended') {
-                    this.ctx.resume();
+                    this.ctx.resume().catch(() => {});
                 }
             }
 
             playBeep(freq = 440, type = 'sine', duration = 0.1, randomize = false) {
                 this.init();
-                if (!this.ctx) return;
+                if (!this.ctx || this.ctx.state !== 'running') return;
 
-                // 打鍵音・文字送りの連続生成による音割れ・負荷を防止
                 const now = performance.now();
-                if (randomize && now - this.lastBeepTime < 30) return;
+                if (randomize && now - this.lastBeepTime < 45) return;
                 this.lastBeepTime = now;
 
                 try {
                     const currentTime = this.ctx.currentTime;
-                    const finalFreq = randomize ? freq + (Math.random() * 40 - 20) : freq;
+                    const finalFreq = randomize ? freq + (Math.random() * 30 - 15) : freq;
+                    
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     
                     osc.type = type;
                     osc.frequency.setValueAtTime(finalFreq, currentTime);
                     
-                    gain.gain.setValueAtTime(0.05, currentTime);
+                    gain.gain.setValueAtTime(0.035, currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
                     
                     osc.connect(gain);
@@ -642,6 +649,14 @@
                     
                     osc.start(currentTime);
                     osc.stop(currentTime + duration);
+
+                    // ガベージコレクションとメモリリーク防止のための自動クリーンアップ
+                    osc.onended = () => {
+                        try {
+                            osc.disconnect();
+                            gain.disconnect();
+                        } catch(e){}
+                    };
                 } catch(e){}
             }
 
@@ -927,11 +942,24 @@
                 this.touchStartTime = 0;
                 this.activeTimers = new Set();
                 this.typeAnimFrame = null;
+                this.isTransitionLocked = false;
             }
 
             init() {
                 this.checkSaveData();
                 this.bindPuzzleTouchEvents();
+                this.bindGlobalSkipEvents();
+            }
+
+            bindGlobalSkipEvents() {
+                const visualArea = document.getElementById('visual-area');
+                if (visualArea) {
+                    visualArea.addEventListener('click', () => {
+                        if (this.state === GAME_STATES.TYPING) {
+                            this.completeTypewriter();
+                        }
+                    });
+                }
             }
 
             /* --- 一括タイマーマネージャー --- */
@@ -987,9 +1015,10 @@
                         const absX = Math.abs(diffX);
                         const absY = Math.abs(diffY);
                         
-                        // 高精度スワイプ判定：入力時間、スワイプ距離、主要軸方向の厳密化
-                        if (duration < 400 && Math.max(absX, absY) > 25) {
-                            if (absX > absY * 1.35 || absY > absX * 1.35) {
+                        // 相対閾値による高精度スワイプ判定（小画面対応・誤作動防止）
+                        const minSwipeDist = Math.max(20, grid.clientWidth * 0.08);
+                        if (duration < 450 && Math.max(absX, absY) > minSwipeDist) {
+                            if (absX > absY * 1.25 || absY > absX * 1.25) {
                                 this.handlePuzzleSwipe(diffX, diffY);
                             }
                         }
@@ -1118,6 +1147,7 @@
                 const choicesBox = document.getElementById('choices-container');
                 choicesBox.innerHTML = '';
                 choicesBox.classList.add('disabled');
+                this.isTransitionLocked = true;
 
                 let choices = node.choices || [];
 
@@ -1142,9 +1172,11 @@
                     btn.innerHTML = `<span>${c.text}</span> <span>➔</span>`;
                     btn.onclick = (e) => {
                         e.stopPropagation();
-                        // WAIT_CHOICE ステート以外での選択入力操作を遮断
-                        if (this.state !== GAME_STATES.WAIT_CHOICE) return;
+                        // ステートガードおよび遷移ロックによる誤タップ完全防止
+                        if (this.state !== GAME_STATES.WAIT_CHOICE || this.isTransitionLocked) return;
+                        this.isTransitionLocked = true;
                         sound.playBeep(600, 'sine', 0.05);
+                        
                         if (c.puzzle) {
                             this.startPuzzle(c.next);
                         } else {
@@ -1205,11 +1237,12 @@
                 }
                 if (hintEl) hintEl.style.display = 'none';
 
-                // スキップ直後の誤クリック防止バッファ期間を挟んで選択肢を有効化
+                // 連打ガードバッファ（スキップ直後の誤選択防止を350msへ強化）
                 this.addTimeout(() => {
                     this.state = GAME_STATES.WAIT_CHOICE;
+                    this.isTransitionLocked = false;
                     if (choicesBox) choicesBox.classList.remove('disabled');
-                }, 200);
+                }, 350);
             }
 
             stopTypewriter() {
