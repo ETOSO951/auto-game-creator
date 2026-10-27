@@ -243,6 +243,23 @@
             justify-content: space-between;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             margin-bottom: 12px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .dialog-hint {
+            position: absolute;
+            bottom: 8px;
+            right: 14px;
+            font-size: 0.7rem;
+            color: var(--text-sub);
+            opacity: 0.6;
+            animation: blinkHint 1.5s infinite ease-in-out;
+        }
+
+        @keyframes blinkHint {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
         }
 
         .speaker-name {
@@ -266,6 +283,13 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .choices-container.disabled {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(10px);
         }
 
         .choice-btn {
@@ -325,6 +349,21 @@
             width: 270px;
             height: 270px;
             margin: 20px 0;
+            touch-action: none;
+        }
+
+        .puzzle-success-msg {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--gold);
+            text-shadow: 0 0 10px rgba(255, 183, 3, 0.8);
+            margin: 10px 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .puzzle-success-msg.show {
+            opacity: 1;
         }
 
         .puzzle-tile {
@@ -475,9 +514,10 @@
             </div>
 
             <!-- ダイアログエリア -->
-            <div class="dialog-box">
+            <div class="dialog-box" id="dialog-box">
                 <div class="speaker-name" id="speaker-name">システム</div>
                 <div class="dialog-text" id="dialog-text">...</div>
+                <div class="dialog-hint" id="dialog-hint">TAP TO FAST-FORWARD▶</div>
             </div>
 
             <!-- 選択肢エリア -->
@@ -490,10 +530,11 @@
         <div id="puzzle-modal">
             <h3 style="color:var(--gold); margin-bottom:8px;">【記憶復元プロトコル】</h3>
             <p style="font-size:0.8rem; color:var(--text-sub); text-align:center;">
-                数字を順番(1〜8)に並べ替えて断片的な記憶を修復せよ。
+                タップまたはスワイプで数字を1〜8に並べ替えよ。
             </p>
+            <div class="puzzle-success-msg" id="puzzle-success-msg">✔ 記憶領域の同期完了</div>
             <div class="puzzle-grid" id="puzzle-grid"></div>
-            <button class="btn btn-secondary" onclick="game.skipPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem;">記憶を解析(スキップ)</button>
+            <button class="btn btn-secondary" id="puzzle-skip-btn" onclick="game.skipPuzzle()" style="width:auto; padding:8px 16px; font-size:0.8rem;">記憶を解析(スキップ)</button>
         </div>
 
         <!-- 結果 / エンディング画面 -->
@@ -837,22 +878,25 @@
             unlockForeshadow(info) {
                 if (!this.unlockedForeshadows.has(info.id)) {
                     this.unlockedForeshadows.add(info.id);
-                    this.syncRate += 25;
                     sound.playRecallSound();
 
                     // 画面フラッシュ演出
-                    document.getElementById('main-screen').classList.add('flashback');
-                    setTimeout(() => document.getElementById('main-screen').classList.remove('flashback'), 800);
+                    const mainScreen = document.getElementById('main-screen');
+                    mainScreen.classList.remove('flashback');
+                    void mainScreen.offsetWidth; // リフロー制御
+                    mainScreen.classList.add('flashback');
 
                     // トースト表示
                     const toast = document.getElementById('foreshadow-toast');
                     document.getElementById('toast-text').innerText = info.title;
                     toast.classList.add('show');
-                    setTimeout(() => toast.classList.remove('show'), 3000);
+                    clearTimeout(this.toastTimer);
+                    this.toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
                 }
             }
 
             renderScene(sceneKey) {
+                this.stopTypewriter();
                 this.currentScene = sceneKey;
                 const node = SCENARIO[sceneKey];
 
@@ -879,16 +923,22 @@
                 document.getElementById('avatar-icon').innerText = node.icon || '👁️';
                 document.getElementById('avatar-box').style.background = `radial-gradient(circle, ${node.color || '#5d6dff'} 0%, transparent 70%)`;
 
-                // ダイアログ文字送り
+                // 選択肢準備
+                this.setupChoices(node);
+
+                // ダイアログ文字送り開始
                 this.typeWriter(node.text);
 
-                // 選択肢レンダリング
+                this.saveGame();
+            }
+
+            setupChoices(node) {
                 const choicesBox = document.getElementById('choices-container');
                 choicesBox.innerHTML = '';
+                choicesBox.classList.add('disabled');
 
                 let choices = node.choices || [];
 
-                // 最終章の動的選択肢生成（伏線回収度による分岐）
                 if (node.dynamicChoices) {
                     choices = [];
                     choices.push({ text: "世界は本当に崩壊するのか？（標準の理解）", next: "normal_end" });
@@ -909,6 +959,7 @@
                     btn.className = `choice-btn ${c.isTruth ? 'truth' : ''}`;
                     btn.innerHTML = `<span>${c.text}</span> <span>➔</span>`;
                     btn.onclick = () => {
+                        if (this.isTyping) return;
                         sound.playBeep(600, 'sine', 0.05);
                         if (c.puzzle) {
                             this.startPuzzle(c.next);
@@ -918,15 +969,20 @@
                     };
                     choicesBox.appendChild(btn);
                 });
-
-                this.saveGame();
             }
 
             typeWriter(text) {
                 const dialogEl = document.getElementById('dialog-text');
+                const choicesBox = document.getElementById('choices-container');
+                const hintEl = document.getElementById('dialog-hint');
+                
                 dialogEl.innerText = '';
+                this.currentFullText = text;
+                this.isTyping = true;
+                if (hintEl) hintEl.style.display = 'block';
+
                 let idx = 0;
-                clearInterval(this.typeInterval);
+                this.stopTypewriter();
 
                 this.typeInterval = setInterval(() => {
                     if (idx < text.length) {
@@ -934,17 +990,78 @@
                         idx++;
                         if (idx % 3 === 0) sound.playBeep(800, 'sine', 0.02);
                     } else {
-                        clearInterval(this.typeInterval);
+                        this.completeTypewriter();
                     }
                 }, 25);
+            }
+
+            handleDialogClick() {
+                if (this.isTyping) {
+                    this.completeTypewriter();
+                }
+            }
+
+            completeTypewriter() {
+                this.stopTypewriter();
+                const dialogEl = document.getElementById('dialog-text');
+                const choicesBox = document.getElementById('choices-container');
+                const hintEl = document.getElementById('dialog-hint');
+                
+                if (dialogEl && this.currentFullText) {
+                    dialogEl.innerText = this.currentFullText;
+                }
+                this.isTyping = false;
+                if (choicesBox) choicesBox.classList.remove('disabled');
+                if (hintEl) hintEl.style.display = 'none';
+            }
+
+            stopTypewriter() {
+                if (this.typeInterval) {
+                    clearInterval(this.typeInterval);
+                    this.typeInterval = null;
+                }
             }
 
             /* --- スライドパズル ミニゲーム --- */
             startPuzzle(nextScene) {
                 this.puzzleNextScene = nextScene;
-                document.getElementById('puzzle-modal').classList.add('active');
-                this.puzzleBoard = [1, 2, 3, 4, 0, 5, 7, 8, 6]; // シャッフル状態
+                this.isPuzzleClearing = false;
+                const modal = document.getElementById('puzzle-modal');
+                const msg = document.getElementById('puzzle-success-msg');
+                const skipBtn = document.getElementById('puzzle-skip-btn');
+
+                if (msg) msg.classList.remove('show');
+                if (skipBtn) skipBtn.style.display = 'inline-block';
+                modal.classList.add('active');
+
+                this.generateSolvablePuzzle();
                 this.renderPuzzle();
+            }
+
+            generateSolvablePuzzle() {
+                // 完成形から有効な手のみをランダムに動かして崩す（確実に解ける盤面を作る）
+                this.puzzleBoard = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+                let movesCount = 40;
+                let lastMovedTile = -1;
+
+                for (let i = 0; i < movesCount; i++) {
+                    const emptyIdx = this.puzzleBoard.indexOf(0);
+                    const neighbors = [];
+
+                    const r = Math.floor(emptyIdx / 3);
+                    const c = emptyIdx % 3;
+
+                    if (r > 0) neighbors.push(emptyIdx - 3);
+                    if (r < 2) neighbors.push(emptyIdx + 3);
+                    if (c > 0) neighbors.push(emptyIdx - 1);
+                    if (c < 2) neighbors.push(emptyIdx + 1);
+
+                    const validNeighbors = neighbors.filter(idx => idx !== lastMovedTile);
+                    const chosenIdx = validNeighbors[Math.floor(Math.random() * validNeighbors.length)] || neighbors[0];
+
+                    [this.puzzleBoard[chosenIdx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[chosenIdx]];
+                    lastMovedTile = emptyIdx;
+                }
             }
 
             renderPuzzle() {
@@ -954,33 +1071,62 @@
                     const tile = document.createElement('div');
                     tile.className = `puzzle-tile ${num === 0 ? 'empty' : ''}`;
                     tile.innerText = num !== 0 ? num : '';
-                    tile.onclick = () => this.moveTile(idx);
+                    tile.onclick = () => {
+                        if (!this.isPuzzleClearing) this.moveTile(idx);
+                    };
                     grid.appendChild(tile);
                 });
             }
 
             moveTile(idx) {
                 const emptyIdx = this.puzzleBoard.indexOf(0);
-                const validMoves = [idx - 1, idx + 1, idx - 3, idx + 3];
+                const r1 = Math.floor(idx / 3), c1 = idx % 3;
+                const r2 = Math.floor(emptyIdx / 3), c2 = emptyIdx % 3;
 
-                if (validMoves.includes(emptyIdx)) {
-                    // 横移動の境界判定
-                    if (Math.abs(idx % 3 - emptyIdx % 3) + Math.abs(Math.floor(idx / 3) - Math.floor(emptyIdx / 3)) === 1) {
-                        [this.puzzleBoard[idx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[idx]];
-                        sound.playBeep(400, 'triangle', 0.05);
-                        this.renderPuzzle();
-                        this.checkPuzzleWin();
-                    }
+                if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) {
+                    [this.puzzleBoard[idx], this.puzzleBoard[emptyIdx]] = [this.puzzleBoard[emptyIdx], this.puzzleBoard[idx]];
+                    sound.playBeep(400, 'triangle', 0.05);
+                    this.renderPuzzle();
+                    this.checkPuzzleWin();
+                    return true;
+                }
+                return false;
+            }
+
+            handlePuzzleSwipe(diffX, diffY) {
+                if (this.isPuzzleClearing) return;
+                const emptyIdx = this.puzzleBoard.indexOf(0);
+                const r = Math.floor(emptyIdx / 3);
+                const c = emptyIdx % 3;
+                let targetIdx = -1;
+
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    if (diffX > 0 && c > 0) targetIdx = emptyIdx - 1;
+                    else if (diffX < 0 && c < 2) targetIdx = emptyIdx + 1;
+                } else {
+                    if (diffY > 0 && r > 0) targetIdx = emptyIdx - 3;
+                    else if (diffY < 0 && r < 2) targetIdx = emptyIdx + 3;
+                }
+
+                if (targetIdx !== -1) {
+                    this.moveTile(targetIdx);
                 }
             }
 
             checkPuzzleWin() {
                 const winState = [1, 2, 3, 4, 5, 6, 7, 8, 0];
                 if (JSON.stringify(this.puzzleBoard) === JSON.stringify(winState)) {
+                    this.isPuzzleClearing = true;
+                    sound.playRecallSound();
+
+                    const msg = document.getElementById('puzzle-success-msg');
+                    const skipBtn = document.getElementById('puzzle-skip-btn');
+                    if (msg) msg.classList.add('show');
+                    if (skipBtn) skipBtn.style.display = 'none';
+
                     setTimeout(() => {
-                        alert("【記憶の復元に成功しました】");
                         this.skipPuzzle();
-                    }, 200);
+                    }, 1200);
                 }
             }
 
@@ -1027,6 +1173,7 @@
             }
 
             restartLoop() {
+                this.resetState();
                 this.switchScreen('start-screen');
                 this.checkSaveData();
             }
