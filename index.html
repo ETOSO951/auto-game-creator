@@ -1396,11 +1396,23 @@
                 speaker: "エリス",
                 icon: "👩‍💼",
                 color: "#ff477e",
-                text: "5日後、世界の【記憶領域】が完全に消去されます。\nどの記憶の深層へダイブするかを選択してください。",
+                text: "5日後、世界の【記憶領域】が完全に消去されます。\nどの記憶の深層（マルチタイムライン）へダイブするかを選択してください。",
                 choices: [
                     { text: "📁 研究所火災事故の真相ルートへ", next: "route_fire_start" },
                     { text: "📁 AI開発者としての倫理葛藤ルートへ", next: "route_ethics_start" },
+                    { text: "🌐 【未来世界線】荒廃した都市のアーカイブへダイブ", next: "route_future_start" },
                     { text: "⚡ 標準の記憶復元パズルへ進む", puzzle: true, next: "sec_3_explore_phase" }
+                ]
+            },
+            route_future_start: {
+                day: 3,
+                speaker: "未来アーカイブ",
+                icon: "🌐",
+                color: "#5d6dff",
+                text: "【マルチタイムライン：未来世界線】\n空は紫色の電磁嵐に覆われ、すべての生命反応が停止した都市の残骸が広がっていた……。",
+                foreshadow: { id: "key_future", title: "未来世界線の電磁嵐と沈黙" },
+                choices: [
+                    { text: "中枢タワーのターミナルにアクセスする", next: "sec_3_explore_phase" }
                 ]
             },
             route_fire_start: {
@@ -1550,7 +1562,7 @@
                 this.unlockedForeshadows = new Set();
                 this.syncRate = 0;
                 this.puzzleBoard = [1, 2, 3, 4, 5, 6, 7, 0, 8];
-                this.allForeshadowsCount = 6; // 伏線拡張に対応して6つに増加
+                this.allForeshadowsCount = 7; // 伏線拡張に対応して7つに増加
                 this.touchStartX = 0;
                 this.touchStartY = 0;
                 this.touchStartTime = 0;
@@ -2492,7 +2504,8 @@
                     { id: "key_name", title: "偽りの名前への拒絶" },
                     { id: "key_noise", title: "エリスの正体「AIとドクター」" },
                     { id: "key_fire", title: "研究所火災の隠されたバックアップ" },
-                    { id: "key_ethics", title: "研究手記『AIと人間の境界線』" }
+                    { id: "key_ethics", title: "研究手記『AIと人間の境界線』" },
+                    { id: "key_future", title: "未来世界線の電磁嵐と沈黙" }
                 ];
 
                 allForeshadowDefs.forEach(item => {
