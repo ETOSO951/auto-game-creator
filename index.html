@@ -655,10 +655,18 @@
         .recall-item {
             font-size: 0.75rem;
             color: var(--accent);
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            opacity: 0;
+            transform: translateX(-16px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .recall-item.show-item {
+            opacity: 1;
+            transform: translateX(0);
         }
 
         /* 特殊エフェクト：フラッシュバック */
@@ -1691,30 +1699,35 @@
             }
 
             buyPerk(type) {
+                let success = false;
                 if (type === 'bonusSync' && !this.perkBonusSync) {
                     if (this.karmaShards >= 3) {
                         this.karmaShards -= 3;
                         this.perkBonusSync = true;
-                        sound.playRecallSound();
-                    } else {
-                        sound.playBeep(180, 'sawtooth', 0.1);
+                        success = true;
                     }
                 } else if (type === 'autoPuzzle' && !this.perkAutoPuzzle) {
                     if (this.karmaShards >= 5) {
                         this.karmaShards -= 5;
                         this.perkAutoPuzzle = true;
-                        sound.playRecallSound();
-                    } else {
-                        sound.playBeep(180, 'sawtooth', 0.1);
+                        success = true;
                     }
                 } else if (type === 'observerEye' && !this.perkObserverEye) {
                     if (this.karmaShards >= 4) {
                         this.karmaShards -= 4;
                         this.perkObserverEye = true;
-                        sound.playRecallSound();
-                    } else {
-                        sound.playBeep(180, 'sawtooth', 0.1);
+                        success = true;
                     }
+                }
+
+                if (success) {
+                    sound.playRecallSound();
+                    const toast = document.getElementById('foreshadow-toast');
+                    document.getElementById('toast-text').innerText = "💎 メタ強化アイテム同調完了";
+                    toast.classList.add('show');
+                    this.addTimeout(() => toast.classList.remove('show'), 2200);
+                } else {
+                    sound.playBeep(180, 'sawtooth', 0.1);
                 }
                 this.savePerkData();
             }
@@ -2510,14 +2523,20 @@
                     { id: "key_name", title: "偽りの名前" },
                     { id: "key_noise", title: "エリスの正体" },
                     { id: "key_fire", title: "研究所の炎" },
-                    { id: "key_ethics", title: "研究手記" }
+                    { id: "key_ethics", title: "研究手記" },
+                    { id: "key_future", title: "未来電磁嵐" },
+                    { id: "key_timewarp", title: "時空跳躍痕跡" }
                 ];
 
-                allForeshadowDefs.forEach(item => {
+                allForeshadowDefs.forEach((item, idx) => {
                     const isUnlocked = this.unlockedForeshadows.has(item.id);
                     const nodeEl = document.createElement('div');
-                    nodeEl.style.cssText = `background:${isUnlocked ? 'rgba(93,109,255,0.22)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${isUnlocked ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:10px; font-size:0.72rem; color:${isUnlocked ? '#fff' : 'var(--text-sub)'}; text-align:center;`;
+                    nodeEl.style.cssText = `background:${isUnlocked ? 'rgba(93,109,255,0.22)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${isUnlocked ? 'var(--primary)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:10px; font-size:0.72rem; color:${isUnlocked ? '#fff' : 'var(--text-sub)'}; text-align:center; transition:transform 0.3s;`;
                     nodeEl.innerHTML = `<strong>${isUnlocked ? '🔓 接続' : '🔒 未解放'}</strong><br>${item.title}`;
+                    
+                    if (isUnlocked && this.perkObserverEye) {
+                        nodeEl.style.boxShadow = '0 0 12px var(--primary-glow)';
+                    }
                     area.appendChild(nodeEl);
                 });
 
@@ -2563,7 +2582,7 @@
             openMindMap() { this.openArchiveModal(); }
             closeMindMap() { this.closeArchiveModal(); }
 
-            /* --- エンディング表示 --- */
+            /* --- アイデア3：マルチエンディング・結果画面のダイナミック・スコアリング演出 --- */
             showResult(node) {
                 this.state = GAME_STATES.RESULT;
                 this.switchScreen('result-screen');
@@ -2575,7 +2594,7 @@
 
                 document.getElementById('result-desc').innerText = node.text;
 
-                // 伏線回収リスト描画
+                // 伏線回収リスト描画とシネマティック順次スライドイン演出
                 const listEl = document.getElementById('recall-list');
                 listEl.innerHTML = '';
                 
@@ -2591,19 +2610,39 @@
                 ];
                 this.allForeshadowsCount = allForeshadowDefs.length;
 
-                allForeshadowDefs.forEach(item => {
+                allForeshadowDefs.forEach((item, index) => {
                     const div = document.createElement('div');
                     div.className = 'recall-item';
                     const isUnlocked = this.unlockedForeshadows.has(item.id);
                     div.innerHTML = `${isUnlocked ? '✅' : '🔒'} <span>${isUnlocked ? item.title : '？？？？？？？？'}</span>`;
                     if (!isUnlocked) div.style.color = 'var(--text-sub)';
                     listEl.appendChild(div);
+
+                    this.addTimeout(() => {
+                        div.classList.add('show-item');
+                        if (isUnlocked) {
+                            sound.playBeep(720 + index * 45, 'sine', 0.05);
+                        }
+                    }, 250 + index * 120);
                 });
 
-                // スコア計算
+                // ダイナミック・カウントアップ演出付きスコア計算
+                const targetScore = this.syncRate * 10;
                 const completionRate = Math.round((this.unlockedForeshadows.size / this.allForeshadowsCount) * 100);
-                document.getElementById('final-score').innerText = `${this.syncRate * 10} PTS`;
-                document.getElementById('final-completion').innerText = `${completionRate} %`;
+                const scoreEl = document.getElementById('final-score');
+                const compEl = document.getElementById('final-completion');
+
+                if (compEl) compEl.innerText = `${completionRate} %`;
+
+                let currentScoreCount = 0;
+                const scoreInterval = setInterval(() => {
+                    currentScoreCount += Math.max(1, Math.floor(targetScore / 18));
+                    if (currentScoreCount >= targetScore) {
+                        currentScoreCount = targetScore;
+                        clearInterval(scoreInterval);
+                    }
+                    if (scoreEl) scoreEl.innerText = `${currentScoreCount} PTS`;
+                }, 35);
             }
 
             restartLoop() {
