@@ -71,10 +71,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px);
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.18), rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px),
+                        radial-gradient(circle at 50% 50%, rgba(93, 109, 255, 0.04) 0%, transparent 70%);
             z-index: 2;
             pointer-events: none;
-            opacity: 0.55;
+            opacity: 0.58;
             mix-blend-mode: overlay;
         }
 
@@ -165,15 +166,15 @@
             left: -150%;
             width: 150%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
-            animation: shimmerEffect 6s infinite linear;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), rgba(255,71,126,0.06), rgba(93,109,255,0.08), transparent);
+            animation: shimmerEffect 5s infinite cubic-bezier(0.4, 0, 0.2, 1);
             pointer-events: none;
         }
 
         @keyframes shimmerEffect {
-            0% { left: -150%; }
-            30% { left: 150%; }
-            100% { left: 150%; }
+            0% { left: -150%; transform: skewX(-20deg); }
+            35% { left: 150%; transform: skewX(-20deg); }
+            100% { left: 150%; transform: skewX(-20deg); }
         }
 
         .hud-item {
@@ -340,14 +341,16 @@
             content: '';
             position: absolute;
             inset: -50%;
-            background: linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%);
-            animation: holoSweep 8s infinite linear;
+            background: linear-gradient(120deg, transparent 38%, rgba(255,255,255,0.22) 48%, rgba(93,109,255,0.14) 52%, transparent 62%);
+            animation: holoSweep 7s infinite cubic-bezier(0.4, 0, 0.2, 1);
             pointer-events: none;
+            mix-blend-mode: screen;
         }
 
         @keyframes holoSweep {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(30deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(30deg); }
+            0% { transform: translateX(-100%) translateY(-100%) rotate(25deg); }
+            40% { transform: translateX(100%) translateY(100%) rotate(25deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(25deg); }
         }
 
         @keyframes dialogPulse {
@@ -391,16 +394,28 @@
         .char-fade {
             display: inline-block;
             opacity: 0;
-            filter: blur(4px);
-            transform: translateY(4px);
-            animation: charIn 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+            filter: blur(6px);
+            transform: translateY(6px) scale(0.96);
+            animation: charIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         @keyframes charIn {
-            to {
+            0% {
+                opacity: 0;
+                filter: blur(6px);
+                transform: translateY(6px) scale(0.96);
+                text-shadow: 0 0 12px var(--primary-glow);
+            }
+            60% {
+                opacity: 0.8;
+                filter: blur(1px);
+                transform: translateY(-1px) scale(1.02);
+            }
+            100% {
                 opacity: 1;
                 filter: blur(0);
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
+                text-shadow: 0 0 4px rgba(255,255,255,0.3);
             }
         }
 
@@ -419,10 +434,10 @@
         }
 
         .choice-btn {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.04) 100%);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.26);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.28);
             color: var(--text-main);
             padding: 16px 22px;
             min-height: 54px;
@@ -430,14 +445,15 @@
             font-size: 0.9rem;
             text-align: left;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
             display: flex;
             justify-content: space-between;
             align-items: center;
             -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 8px 28px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.35);
+            box-shadow: 0 10px 32px rgba(0,0,0,0.45), inset 0 1px 2px rgba(255,255,255,0.4);
             position: relative;
             overflow: hidden;
+            will-change: transform, box-shadow, border-color;
         }
 
         .choice-btn::after {
@@ -447,25 +463,30 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
-            transition: left 0.5s ease;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+            transition: left 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .choice-btn:hover::after, .choice-btn:active::after {
             left: 100%;
         }
 
-        .choice-btn:hover, .choice-btn:active {
-            background: rgba(93, 109, 255, 0.24);
+        .choice-btn:hover {
+            background: rgba(93, 109, 255, 0.26);
             border-color: var(--primary);
-            transform: translateX(5px);
-            box-shadow: 0 8px 30px var(--primary-glow);
+            transform: translateY(-2px) translateX(6px);
+            box-shadow: 0 14px 38px var(--primary-glow), inset 0 1px 3px rgba(255,255,255,0.6);
+        }
+
+        .choice-btn:active {
+            transform: scale(0.97) translateY(1px);
+            box-shadow: 0 4px 16px var(--primary-glow), inset 0 1px 2px rgba(255,255,255,0.3);
         }
 
         .choice-btn.truth {
             border-color: var(--gold);
-            background: rgba(255, 183, 3, 0.14);
-            box-shadow: 0 8px 30px rgba(255, 183, 3, 0.3);
+            background: rgba(255, 183, 3, 0.16);
+            box-shadow: 0 12px 36px rgba(255, 183, 3, 0.35), inset 0 1px 2px rgba(255,255,255,0.5);
         }
 
         /* ミニゲーム（記憶復元パズル） */
@@ -962,88 +983,88 @@
 
         class Particle {
             constructor(layer) {
-                this.layer = layer; // 1: 遠景(微細・低速), 2: 中景(標準), 3: 近景(大型・高速・高輝度)
+                this.layer = layer; // 1: 遠景(微細・低速・大パララックス), 2: 中景(標準), 3: 近景(大型・高速・高輝度・超パララックス)
                 this.reset();
             }
             reset() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
                 this.angle = Math.random() * Math.PI * 2;
-                this.oscSpeed = Math.random() * 0.018 + 0.006;
+                this.oscSpeed = Math.random() * 0.02 + 0.008;
                 if (this.layer === 1) {
-                    this.size = Math.random() * 1.1 + 0.3;
-                    this.speedY = -(Math.random() * 0.22 + 0.08);
-                    this.alpha = Math.random() * 0.22 + 0.05;
-                    this.blur = 2.8;
-                    this.parallaxFactor = 0.025;
+                    this.size = Math.random() * 1.2 + 0.4;
+                    this.speedY = -(Math.random() * 0.25 + 0.1);
+                    this.alpha = Math.random() * 0.28 + 0.08;
+                    this.blur = 3.2;
+                    this.parallaxFactor = 0.035;
                 } else if (this.layer === 2) {
-                    this.size = Math.random() * 1.9 + 0.8;
-                    this.speedY = -(Math.random() * 0.45 + 0.22);
-                    this.alpha = Math.random() * 0.38 + 0.14;
-                    this.blur = 1.0;
-                    this.parallaxFactor = 0.06;
+                    this.size = Math.random() * 2.0 + 1.0;
+                    this.speedY = -(Math.random() * 0.52 + 0.25);
+                    this.alpha = Math.random() * 0.45 + 0.18;
+                    this.blur = 1.2;
+                    this.parallaxFactor = 0.085;
                 } else {
-                    this.size = Math.random() * 3.0 + 1.4;
-                    this.speedY = -(Math.random() * 0.82 + 0.38);
-                    this.alpha = Math.random() * 0.65 + 0.28;
+                    this.size = Math.random() * 3.4 + 1.6;
+                    this.speedY = -(Math.random() * 0.95 + 0.45);
+                    this.alpha = Math.random() * 0.75 + 0.32;
                     this.blur = 0;
-                    this.parallaxFactor = 0.11;
+                    this.parallaxFactor = 0.16;
                 }
             }
             update(dx, dy, cursorDistRatio) {
                 this.y += this.speedY;
                 this.angle += this.oscSpeed;
-                // プレイヤーのポインター位置や同調率に有機的に反応するベクトル補正
-                const cursorInfl = (1 - cursorDistRatio) * 0.4;
-                this.x += Math.sin(this.angle) * (0.4 + cursorInfl) + (dx * this.parallaxFactor * 0.12);
-                this.y += dy * this.parallaxFactor * 0.12;
+                // プレイヤーのポインター位置や同調率に有機的に反応するベクトル補正と滑らかな慣性追従
+                const cursorInfl = (1 - cursorDistRatio) * 0.55;
+                this.x += Math.sin(this.angle) * (0.45 + cursorInfl) + (dx * this.parallaxFactor * 0.15);
+                this.y += dy * this.parallaxFactor * 0.15;
 
-                if (this.y < -15 || this.x < -15 || this.x > canvas.width + 15 || this.y > canvas.height + 15) {
+                if (this.y < -20 || this.x < -20 || this.x > canvas.width + 20 || this.y > canvas.height + 20) {
                     this.reset();
                 }
             }
             draw(syncRate, unlockedCount, mouseX, mouseY) {
                 let color;
                 const progress = (syncRate / 100);
-                const pulseAlpha = this.alpha * (0.85 + Math.sin(performance.now() * 0.002 + this.x * 0.012) * 0.25);
+                const pulseAlpha = this.alpha * (0.88 + Math.sin(performance.now() * 0.0025 + this.x * 0.015) * 0.22);
                 
-                // カーソルとの距離に応じた動的グロー拡張
+                // カーソルとの距離に応じた動的グロー拡張と色相干渉
                 const distX = this.x - mouseX;
                 const distY = this.y - mouseY;
                 const dist = Math.sqrt(distX * distX + distY * distY);
-                const maxInteractDist = 140;
+                const maxInteractDist = 160;
                 let cursorBoost = 0;
                 let cursorDistRatio = 1;
                 if (dist < maxInteractDist) {
                     cursorDistRatio = dist / maxInteractDist;
-                    cursorBoost = (1 - cursorDistRatio) * 0.6;
+                    cursorBoost = (1 - cursorDistRatio) * 0.75;
                 }
 
                 if (progress >= 0.75) {
                     const r = 255;
-                    const g = Math.floor(195 + progress * 20);
-                    const b = Math.floor(30 + progress * 35);
-                    color = `rgba(${r}, ${g}, ${b}, ${(pulseAlpha + cursorBoost) * 1.4})`;
+                    const g = Math.floor(200 + progress * 25);
+                    const b = Math.floor(40 + progress * 40);
+                    color = `rgba(${r}, ${g}, ${b}, ${(pulseAlpha + cursorBoost) * 1.5})`;
                 } else if (progress >= 0.4) {
-                    const r = Math.floor(110 + 145 * progress);
-                    const g = Math.floor(85 + progress * 50);
-                    const b = Math.floor(150 + progress * 60);
-                    color = `rgba(${r}, ${g}, ${b}, ${(pulseAlpha + cursorBoost) * 1.25})`;
+                    const r = Math.floor(120 + 135 * progress);
+                    const g = Math.floor(90 + progress * 55);
+                    const b = Math.floor(160 + progress * 55);
+                    color = `rgba(${r}, ${g}, ${b}, ${(pulseAlpha + cursorBoost) * 1.35})`;
                 } else {
-                    const r = Math.floor(80 + progress * 55);
-                    const g = Math.floor(100 + progress * 35);
+                    const r = Math.floor(90 + progress * 45);
+                    const g = Math.floor(110 + progress * 30);
                     const b = 255;
                     color = `rgba(${r}, ${g}, ${b}, ${pulseAlpha + cursorBoost})`;
                 }
 
                 ctx.save();
-                const dynamicBlur = Math.max(0, this.blur * (1 - cursorBoost * 0.5));
+                const dynamicBlur = Math.max(0, this.blur * (1 - cursorBoost * 0.6));
                 if (dynamicBlur > 0 && ctx.filter !== undefined) {
                     ctx.filter = `blur(${dynamicBlur.toFixed(2)}px)`;
                 }
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size * (1 + cursorBoost * 0.4), 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.size * (1 + cursorBoost * 0.5), 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
                 
