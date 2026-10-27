@@ -136,23 +136,27 @@
             transform: scale(1);
         }
 
-        /* ヘッダー / スコアUI (ホログラフィック・シマー搭載) */
+        /* アイデア2：HUDヘッダー情報の階層整理と常時表示項目の厳選（引き算の美学） */
         .hud-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 14px 18px;
-            background: linear-gradient(135deg, rgba(25, 31, 54, 0.94) 0%, rgba(10, 14, 26, 0.98) 100%);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-radius: 18px;
-            border: 1px solid rgba(255,255,255,0.22);
-            margin-bottom: 16px;
+            padding: 10px 16px;
+            background: rgba(14, 18, 30, 0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.12);
+            margin-bottom: 14px;
             z-index: 15;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.35), inset 0 -1px 2px rgba(0,0,0,0.4);
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            transition: border-color 0.3s ease;
+        }
+
+        .hud-header:hover {
+            border-color: rgba(93, 109, 255, 0.3);
         }
 
         .hud-header:hover {
@@ -489,14 +493,19 @@
             box-shadow: 0 12px 36px rgba(255, 183, 3, 0.35), inset 0 1px 2px rgba(255,255,255,0.5);
         }
 
-        /* ミニゲーム（記憶復元パズル） */
+        /* アイデア3：モーダル・オーバーレイの視覚的統一（ダークガラスモルフィズム） */
+        #puzzle-modal, #explore-modal, #archive-modal, #glitch-hazard-overlay {
+            background: rgba(8, 9, 16, 0.92) !important;
+            backdrop-filter: blur(24px) !important;
+            -webkit-backdrop-filter: blur(24px) !important;
+        }
+
         #puzzle-modal {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(8, 9, 16, 0.95);
             z-index: 100;
             display: flex;
             flex-direction: column;
@@ -843,9 +852,9 @@
             </div>
         </div>
 
-        <!-- 統合型「記憶アーカイブ」モーダル (周回特典ショップ ＆ マインドマップ) -->
-        <div id="archive-modal" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(8,9,16,0.97); z-index:115; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px; opacity:0; pointer-events:none; transition:opacity 0.35s ease;">
-            <div style="width:100%; max-width:340px; background:var(--card-bg); border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:20px; backdrop-filter:blur(24px); box-shadow:0 20px 50px rgba(0,0,0,0.8); display:flex; flex-direction:column; max-height:85vh; overflow-y:auto;">
+        <!-- アイデア1：統合型「記憶アーカイブ」モーダル (周回特典ショップ ＆ マインドマップ) の洗練・一本化 -->
+        <div id="archive-modal" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:115; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px; opacity:0; pointer-events:none; transition:opacity 0.35s ease;">
+            <div style="width:100%; max-width:340px; background:rgba(18, 23, 40, 0.95); border:1px solid rgba(255,255,255,0.18); border-radius:22px; padding:20px; backdrop-filter:blur(28px); box-shadow:0 24px 60px rgba(0,0,0,0.85), inset 0 1px 1px rgba(255,255,255,0.2); display:flex; flex-direction:column; max-height:85vh; overflow-y:auto;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
                     <h3 style="color:var(--gold); font-size:0.95rem; letter-spacing:1px;">【記憶アーカイブ室】</h3>
                     <div style="font-size:0.75rem; color:var(--text-sub);">因果の欠片: <span id="karma-shards" style="color:var(--gold); font-weight:bold;">0</span> 💎</div>
