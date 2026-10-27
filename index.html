@@ -679,6 +679,14 @@
                 if (!this.ctx) return;
                 this.playBeep(120, 'sawtooth', 0.25);
             }
+
+            stopAll() {
+                if (this.ctx && this.ctx.state === 'running') {
+                    try {
+                        this.ctx.suspend();
+                    } catch(e){}
+                }
+            }
         }
 
         const sound = new SoundEngine();
@@ -951,6 +959,7 @@
                 this.isPuzzleAnimating = false;
                 this.isPuzzleClearing = false;
                 this.lastSkipTimestamp = 0;
+                this.currentFullText = '';
             }
 
             init() {
@@ -975,8 +984,9 @@
             bindGlobalSkipEvents() {
                 const visualArea = document.getElementById('visual-area');
                 if (visualArea) {
-                    visualArea.addEventListener('click', () => {
+                    visualArea.addEventListener('pointerdown', (e) => {
                         if (this.state === GAME_STATES.TYPING) {
+                            e.preventDefault();
                             this.completeTypewriter(true);
                         }
                     });
@@ -1038,7 +1048,7 @@
                     } else {
                         touchedTileIndex = -1;
                     }
-                }, { passive: true });
+                }, { passive: false });
 
                 grid.addEventListener('pointerup', (e) => {
                     if (this.state !== GAME_STATES.PUZZLE || this.isPuzzleAnimating || this.isPuzzleClearing) {
@@ -1052,11 +1062,10 @@
                         const absX = Math.abs(diffX);
                         const absY = Math.abs(diffY);
                         
-                        const minSwipeDist = Math.max(12, grid.clientWidth * 0.05);
+                        const minSwipeDist = Math.max(10, grid.clientWidth * 0.04);
                         if (duration < 450 && Math.max(absX, absY) >= minSwipeDist) {
                             this.handleDirectTileSwipe(touchedTileIndex, diffX, diffY);
                         } else if (duration < 400 && Math.max(absX, absY) < minSwipeDist) {
-                            // タップ移動の実行
                             this.moveTile(touchedTileIndex);
                         }
                         touchedTileIndex = -1;
@@ -1223,9 +1232,10 @@
                         if (!isPointerDown || this.state !== GAME_STATES.WAIT_CHOICE || this.isTransitionLocked) return;
                         isPointerDown = false;
 
+                        e.preventDefault();
                         e.stopPropagation();
                         const now = performance.now();
-                        if (now - this.lastSkipTimestamp < 350) {
+                        if (now - this.lastSkipTimestamp < 300) {
                             return;
                         }
                         this.isTransitionLocked = true;
@@ -1312,7 +1322,7 @@
                 }
 
                 this.state = GAME_STATES.WAIT_CHOICE;
-                const lockDuration = isManualSkip ? 300 : 150;
+                const lockDuration = isManualSkip ? 250 : 100;
                 this.addTimeout(() => {
                     this.isTransitionLocked = false;
                     if (choicesBox) choicesBox.classList.remove('disabled');
