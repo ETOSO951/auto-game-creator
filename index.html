@@ -833,11 +833,11 @@
             <button class="btn" onclick="game.startNewGame()">物語を始める</button>
             <button class="btn btn-secondary" id="continue-btn" onclick="game.loadGame()" style="display:none;">記憶を再開する</button>
             
-            <!-- アイデア3：周回特典ショップ / メタ進行パネル -->
-            <div id="bonus-shop" style="margin-top:12px; background:rgba(22,27,46,0.92); border:1px solid rgba(255,255,255,0.18); border-radius:14px; padding:10px 12px; width:90%; max-width:300px; text-align:left; max-height:210px; overflow-y:auto;">
-                <div style="font-size:0.75rem; color:var(--gold); margin-bottom:6px; display:flex; justify-content:space-between;">
+            <!-- アイデア1 & 3：パラドックス・タイムラインジャンプ＆周回特典ショップ / メタ進行パネル -->
+            <div id="bonus-shop" style="margin-top:12px; background:rgba(22,27,46,0.92); border:1px solid rgba(255,255,255,0.18); border-radius:14px; padding:10px 12px; width:90%; max-width:300px; text-align:left; max-height:220px; overflow-y:auto;">
+                <div style="font-size:0.75rem; color:var(--gold); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
                     <span>因果の欠片: <span id="karma-shards">0</span> 💎</span>
-                    <span>周回数: <span id="loop-count">1</span> 回</span>
+                    <span>パラドックス: <span id="paradox-keys">0</span> ⏳</span>
                 </div>
                 <button class="btn btn-secondary" id="perk-speed-btn" onclick="game.togglePerkSpeed()" style="width:100%; font-size:0.7rem; padding:6px; margin:3px 0; border-radius:8px;">
                     ⚡ 高速思考: OFF
@@ -850,6 +850,9 @@
                 </button>
                 <button class="btn btn-secondary" id="perk-eye-btn" onclick="game.buyPerk('observerEye')" style="width:100%; font-size:0.7rem; padding:6px; margin:3px 0; border-radius:8px;">
                     👁️ 観測眼(伏線ハイライト): 4 💎
+                </button>
+                <button class="btn btn-secondary" id="paradox-jump-btn" onclick="game.triggerTimelineJump()" style="width:100%; font-size:0.7rem; padding:6px; margin:3px 0; border-radius:8px; border-color:var(--gold); color:var(--gold); display:none;">
+                    ⏳ タイムラインダイバージェンス跳躍
                 </button>
             </div>
 
