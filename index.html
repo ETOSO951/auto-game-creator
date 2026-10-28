@@ -578,12 +578,52 @@
             syncRate: 0,
             loopCount: 1,
             timeVal: 50, // 0 (Past) - 100 (Future)
-            foreshadowingFound: false,
             act1Solved: false,
             act2Solved: false,
+            act2Planted: null,
             act3Code: [],
             targetAct3Code: [4, 7, 2] // 伏線: Act1, Act2で見つかる暗号の統合
         };
+
+        let lastTickStep = -1;
+
+        // 全Act共通の時計盤針アニメーション
+        function updateClockHands(val) {
+            let totalMins = 10 * 60 + Math.floor((val / 100) * 240); // 10:00 〜 14:00
+            let hours = Math.floor(totalMins / 60);
+            let mins = totalMins % 60;
+            
+            let degH = (hours % 12) * 30 + mins * 0.5;
+            let degM = mins * 6;
+            
+            handH.style.transform = `rotate(${degH}deg)`;
+            handM.style.transform = `rotate(${degM}deg)`;
+        }
+
+        // 統一スライダー入力ディスパッチャー（SE最適化＆フィードバック一元化）
+        function handleSliderInput(e) {
+            const val = parseInt(e.target.value);
+            state.timeVal = val;
+            
+            // 5刻みごとにカチリと音を鳴らす (音割れ・連続過剰発火防止)
+            const currentStep = Math.floor(val / 5);
+            if (currentStep !== lastTickStep) {
+                sfx.playTick();
+                lastTickStep = currentStep;
+            }
+
+            // 全Actで時計針の回転ビジュアルを完全連動
+            updateClockHands(val);
+
+            // Actごとのフィードバック分岐
+            if (state.act === 1) {
+                onSliderChangeAct1(val);
+            } else if (state.act === 2) {
+                onSliderChangeAct2(val);
+            } else if (state.act === 3) {
+                onSliderChangeAct3(val);
+            }
+        }
 
         // UI Elements
         const screens = {
@@ -629,23 +669,21 @@
             sfx.playShift();
             triggerFlash();
 
+            state.timeVal = 50;
+            timeSlider.value = 50;
+            updateClockHands(50);
+
             if (actNum === 1) {
                 actLabel.textContent = "ACT I : 始まりの歪み";
                 puzzleTitle.textContent = "時盤のズレを正せ";
-                state.timeVal = 50;
-                timeSlider.value = 50;
                 renderAct1();
             } else if (actNum === 2) {
                 actLabel.textContent = "ACT II : タイム・パラドックス";
                 puzzleTitle.textContent = "残影の暗号 (伏線の提示)";
-                state.timeVal = 50;
-                timeSlider.value = 50;
                 renderAct2();
             } else if (actNum === 3) {
                 actLabel.textContent = "ACT III : 伏線回収・収束の刻";
                 puzzleTitle.textContent = "世界線の統合";
-                state.timeVal = 50;
-                timeSlider.value = 50;
                 renderAct3();
             }
         }
@@ -670,16 +708,10 @@
         }
 
         function onSliderChangeAct1(val) {
-            // 時間の計算: 0=10:00, 50=12:00, 100=14:00
-            let hours = 10 + Math.floor((val / 100) * 4);
-            let mins = Math.floor(((val % 25) / 25) * 60);
+            let totalMins = 10 * 60 + Math.floor((val / 100) * 240);
+            let hours = Math.floor(totalMins / 60);
+            let mins = totalMins % 60;
             timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-
-            // 時計の針を動かす
-            let degH = (hours % 12) * 30 + mins * 0.5;
-            let degM = mins * 6;
-            handH.style.transform = `rotate(${degH}deg)`;
-            handM.style.transform = `rotate(${degM}deg)`;
 
             if (val === 0) {
                 echoText.textContent = "[ 過去の残影: 記憶の原点刻印『4』 ]";
@@ -702,35 +734,31 @@
                 </div>
             `;
 
-            let plantedValue = null;
-
             document.getElementById('act2-opt-a').onclick = () => {
                 sfx.playTick();
-                plantedValue = 7;
+                state.act2Planted = 7;
                 clueText.innerHTML = "過去に『7』の因子を植え付けた。未来（スライダー最大）へ移動して果実を確認せよ。";
             };
 
             document.getElementById('act2-opt-b').onclick = () => {
                 sfx.playTick();
-                plantedValue = 2;
+                state.act2Planted = 2;
                 clueText.innerHTML = "過去に『2』の因子を植え付けた。未来（スライダー最大）へ移動して果実を確認せよ。";
             };
 
-            onSliderChangeAct2(50, plantedValue);
-            
-            // Override slider callback for Act 2
-            timeSlider.oninput = (e) => {
-                sfx.playTick();
-                state.timeVal = parseInt(e.target.value);
-                onSliderChangeAct2(state.timeVal, plantedValue);
-            };
+            onSliderChangeAct2(50);
         }
 
-        function onSliderChangeAct2(val, planted) {
-            timeDisplay.textContent = val < 50 ? "PAST" : (val === 50 ? "PRESENT" : "FUTURE");
+        function onSliderChangeAct2(val) {
+            let totalMins = 10 * 60 + Math.floor((val / 100) * 240);
+            let hours = Math.floor(totalMins / 60);
+            let mins = totalMins % 60;
+            let timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            let phaseStr = val < 50 ? "PAST" : (val === 50 ? "PRESENT" : "FUTURE");
+            timeDisplay.textContent = `${timeStr} (${phaseStr})`;
 
-            if (val === 100 && planted !== null) {
-                if (planted === 7) {
+            if (val === 100 && state.act2Planted !== null) {
+                if (state.act2Planted === 7) {
                     echoText.textContent = `[ 未来の結実: 第二の刻印『7』を回収 ]`;
                     clueText.innerHTML = "因果が繋がった！未来で第二の刻印<highlight>『7』</highlight>が芽吹いた。そして影の中に隠された<highlight>『2』</highlight>の予兆（伏線）も見えた！";
                     if (!state.act2Solved) {
@@ -749,6 +777,8 @@
                 }
             } else if (val === 0) {
                 echoText.textContent = "[ 過去の圃場: 因子の選択を待っている ]";
+            } else {
+                echoText.textContent = "";
             }
         }
 
@@ -763,10 +793,31 @@
                 </div>
                 <div class="interactive-grid">
                     ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="code-btn" onclick="pressNum(${n})">${n}</button>`).join('')}
+                    <button class="code-btn" style="color:var(--accent-red); font-size:0.9rem;" onclick="clearCode()">C</button>
+                    <button class="code-btn" onclick="pressNum(0)">0</button>
+                    <button class="code-btn" style="color:var(--accent-gold); font-size:0.9rem;" onclick="backspaceCode()">⌫</button>
                 </div>
             `;
 
             state.act3Code = [];
+            onSliderChangeAct3(50);
+        }
+
+        function onSliderChangeAct3(val) {
+            let totalMins = 10 * 60 + Math.floor((val / 100) * 240);
+            let hours = Math.floor(totalMins / 60);
+            let mins = totalMins % 60;
+            timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            
+            if (val === 0) {
+                echoText.textContent = "[ 時空位相A: ACT Iの記憶 『4』 ]";
+            } else if (val === 50) {
+                echoText.textContent = "[ 時空位相B: ACT IIの果実 『7』 ]";
+            } else if (val === 100) {
+                echoText.textContent = "[ 時空位相C: 影の予兆 『2』 ]";
+            } else {
+                echoText.textContent = "[ 統合コア: 時空位相を合わせ暗号を入力せよ ]";
+            }
         }
 
         window.pressNum = function(num) {
@@ -795,6 +846,20 @@
                         updateCodeDisplay();
                     }, 1000);
                 }
+            }
+        };
+
+        window.clearCode = function() {
+            sfx.playTick();
+            state.act3Code = [];
+            updateCodeDisplay();
+        };
+
+        window.backspaceCode = function() {
+            if (state.act3Code.length > 0) {
+                sfx.playTick();
+                state.act3Code.pop();
+                updateCodeDisplay();
             }
         };
 
@@ -834,13 +899,27 @@
                 "過去の「4」、未来の「7」、影の「2」...すべての伏線がクロノ・コアの鍵となり、永遠の循環から脱出することに成功した。";
         }
 
+        /* --- GAME RESET & STATE MANAGEMENT --- */
+        function resetGameState() {
+            state.act = 1;
+            state.syncRate = 0;
+            state.timeVal = 50;
+            state.act1Solved = false;
+            state.act2Solved = false;
+            state.act2Planted = null;
+            state.act3Code = [];
+            timeSlider.value = 50;
+            updateSync(0);
+            updateClockHands(50);
+            lastTickStep = -1;
+        }
+
         /* --- EVENT LISTENERS --- */
         document.getElementById('start-btn').onclick = () => {
             sfx.init();
             state.loopCount = 1;
-            state.act2Solved = false;
             uiLoop.textContent = state.loopCount;
-            updateSync(0);
+            resetGameState();
             showScreen('game');
             initAct(1);
         };
@@ -848,14 +927,11 @@
         document.getElementById('restart-btn').onclick = () => {
             state.loopCount++;
             uiLoop.textContent = state.loopCount;
+            resetGameState();
             showScreen('start');
         };
 
-        timeSlider.oninput = (e) => {
-            sfx.playTick();
-            state.timeVal = parseInt(e.target.value);
-            if (state.act === 1) onSliderChangeAct1(state.timeVal);
-        };
+        timeSlider.oninput = handleSliderInput;
 
     </script>
 </body>
