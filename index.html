@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CHRONO ECHO - 壊れた世界線と時直し</title>
+    <style>
+        :root {
+            --bg-color: #090c15;
+            --panel-bg: rgba(18, 24, 38, 0.75);
+            --panel-border: rgba(212, 175, 55, 0.3);
+            --accent-gold: #dfa845;
+            --accent-cyan: #00f3ff;
+            --accent-red: #ff4757;
+            --text-main: #e2e8f0;
+            --text-dim: #94a3b8;
+            --font-family: 'Cinzel', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #canvas-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .game-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 480px;
+            height: 100vh;
+            max-height: 850px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(223, 168, 69, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        /* UI Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 12px;
+        }
+
+        .title-badge {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--accent-gold);
+            text-shadow: 0 0 10px rgba(223, 168, 69, 0.4);
+        }
+
+        .status-box {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+        }
+
+        .status-item {
+            background: rgba(0,0,0,0.4);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .status-val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        /* Screens Base */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            transform: scale(0.95);
+            z-index: 10;
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+
+        /* Start Screen */
+        .start-logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .start-logo h1 {
+            font-size: 2.2rem;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #fff, var(--accent-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .start-logo p {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+        }
+
+        /* Button UI */
+        .btn {
+            background: linear-gradient(135deg, rgba(223, 168, 69, 0.2), rgba(223, 168, 69, 0.05));
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 14px 32px;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(223, 168, 69, 0.2);
+            outline: none;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+            background: rgba(223, 168, 69, 0.4);
+        }
+
+        /* Main Game Screen UI */
+        #game-screen {
+            position: relative;
+            justify-content: flex-start;
+            padding-top: 70px;
+            padding-bottom: 20px;
+        }
+
+        .act-indicator {
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .puzzle-title {
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            text-align: center;
+            color: #fff;
+        }
+
+        /* Stage Visualization Area */
+        .stage-viewport {
+            width: 100%;
+            height: 240px;
+            background: rgba(5, 8, 15, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        /* Time Visual Elements */
+        .time-node {
+            position: absolute;
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .clock-face {
+            width: 110px;
+            height: 110px;
+            border: 2px solid var(--accent-gold);
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 15px rgba(223, 168, 69, 0.2);
+        }
+
+        .clock-hand {
+            position: absolute;
+            width: 2px;
+            background: var(--accent-gold);
+            bottom: 50%;
+            transform-origin: bottom center;
+            transition: transform 0.3s ease;
+        }
+
+        .hand-hour { height: 30px; }
+        .hand-minute { height: 42px; background: var(--accent-cyan); }
+
+        /* Puzzle Controls & Clues */
+        .puzzle-body {
+            width: 100%;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .clue-box {
+            background: rgba(255,255,255,0.03);
+            border-left: 3px solid var(--accent-cyan);
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-dim);
+            min-height: 65px;
+        }
+
+        .clue-box highlight {
+            color: var(--accent-gold);
+            font-weight: bold;
+        }
+
+        /* Time Slider Control */
+        .time-slider-container {
+            background: rgba(0,0,0,0.3);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: linear-gradient(90deg, #ff4757, var(--accent-gold), var(--accent-cyan));
+            border-radius: 3px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            height: 22px;
+            width: 22px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(0,243,255,0.8);
+            border: 2px solid var(--bg-color);
+        }
+
+        /* Interactive Wheel / Input Grid */
+        .interactive-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .code-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .code-btn:active {
+            background: rgba(255,255,255,0.2);
+            transform: scale(0.95);
+        }
+
+        /* Result Modal/Overlay */
+        .overlay-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10, 15, 25, 0.95);
+            border: 1px solid var(--accent-gold);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            width: 80%;
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+            display: none;
+            z-index: 20;
+        }
+
+        /* Chrono Echo Flash FX */
+        .time-flash {
+            position: absolute;
+            top:0; left:0; width:100%; height:100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 99;
+            transition: opacity 0.3s ease;
+        }
+
+        .time-flash.active {
+            opacity: 0.8;
+        }
+
+        /* Responsive Tweaks */
+        @media (max-height: 700px) {
+            .stage-viewport { height: 180px; }
+            .game-container { padding: 12px; }
+            #game-screen { padding-top: 50px; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas-bg"></canvas>
+    <div class="time-flash" id="flash-effect"></div>
+
+    <div class="game-container">
+        <!-- Persistent Header UI -->
+        <header>
+            <div class="title-badge">CHRONO ECHO</div>
+            <div class="status-box">
+                <div class="status-item">LOOP: <span id="ui-loop" class="status-val">1</span></div>
+                <div class="status-item">SYNC: <span id="ui-sync" class="status-val">0%</span></div>
+            </div>
+        </header>
+
+        <!-- START SCREEN -->
+        <div id="start-screen" class="screen active">
+            <div class="start-logo">
+                <h1>時直し</h1>
+                <p>CHRONO ECHO: REPAIR TIMELINE</p>
+            </div>
+            <p style="text-align: center; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 30px; line-height: 1.6; max-width: 300px;">
+                崩壊した時間軸。<br>
+                過去の「違和感」が、未来の「伏線」となる。<br>
+                時間を巻き戻し、真実を繋ぎ合わせよ。
+            </p>
+            <button class="btn" id="start-btn">時間修復を開始</button>
+        </div>
+
+        <!-- MAIN GAME SCREEN -->
+        <div id="game-screen" class="screen">
+            <div class="act-indicator" id="act-label">ACT I : 始まりの歪み</div>
+            <div class="puzzle-title" id="puzzle-title">時計盤の同期</div>
+
+            <div class="stage-viewport" id="viewport">
+                <!-- Visual Nodes generated dynamically -->
+                <div class="time-node" id="time-node">
+                    <div class="clock-face">
+                        <div class="clock-hand hand-hour" id="hand-h"></div>
+                        <div class="clock-hand hand-minute" id="hand-m"></div>
+                    </div>
+                </div>
+                <div id="echo-text" style="position: absolute; bottom: 15px; font-size: 0.8rem; color: var(--accent-gold); letter-spacing: 1px;"></div>
+            </div>
+
+            <div class="puzzle-body">
+                <div class="clue-box" id="clue-text">
+                    時間をスライダーで操作し、過去と未来の「矛盾」を探してください。
+                </div>
+
+                <div class="time-slider-container">
+                    <div class="slider-label">
+                        <span>PAST (過去)</span>
+                        <span id="time-display" style="color:var(--accent-gold);">12:00</span>
+                        <span>FUTURE (未来)</span>
+                    </div>
+                    <input type="range" id="time-slider" min="0" max="100" value="50">
+                </div>
+
+                <!-- Dynamic Interaction Area -->
+                <div id="interaction-area">
+                    <!-- Dynamic Buttons or Inputs go here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME OVER / CLEAR SCREEN -->
+        <div id="end-screen" class="screen">
+            <div class="start-logo">
+                <h1 id="end-title" style="color: var(--accent-gold);">世界線修復完了</h1>
+                <p id="end-subtitle">TIMELINE RESTORED</p>
+            </div>
+            <div style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: 12px; margin-bottom: 25px; width: 100%; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+                <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px;">最終シンクロ率</p>
+                <div id="final-score" style="font-size: 2.5rem; color: var(--accent-cyan); font-weight: bold; text-shadow: 0 0 15px rgba(0,243,255,0.4);">100%</div>
+                <p id="end-story" style="font-size: 0.8rem; color: var(--text-main); margin-top: 12px; line-height: 1.5;"></p>
+            </div>
+            <button class="btn" id="restart-btn">最初から再観測</button>
+        </div>
+
+        <!-- Interactive Overlay Message -->
+        <div class="overlay-msg" id="overlay-msg">
+            <h3 id="overlay-title" style="color: var(--accent-gold); margin-bottom: 8px;">時直しの鍵</h3>
+            <p id="overlay-desc" style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 15px;"></p>
+            <button class="btn" id="overlay-btn" style="padding: 8px 20px; font-size: 0.85rem;">了解</button>
+        </div>
+    </div>
+
+    <script>
+        /* --- AUDIO SYNTHESIZER (Web Audio API) --- */
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playTick() {
+                if (!this.ctx) return;
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.03);
+                gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.03);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.03);
+            }
+            playShift() {
+                if (!this.ctx) return;
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+            playSolve() {
+                if (!this.ctx) return;
+                let notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, i) => {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.08);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime + i * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.08 + 0.4);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + i * 0.08);
+                    osc.stop(this.ctx.currentTime + i * 0.08 + 0.4);
+                });
+            }
+        }
+        const sfx = new SoundFX();
+
+        /* --- BACKGROUND CANVAS PARTICLES --- */
+        const canvas = document.getElementById('canvas-bg');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.alpha = Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.fillStyle = `rgba(223, 168, 69, ${this.alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 60; i++) particles.push(new Particle());
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateCanvas);
+        }
+        animateCanvas();
+
+        /* --- GAME LOGIC & STATE ENGINE --- */
+        const state = {
+            act: 1,
+            syncRate: 0,
+            loopCount: 1,
+            timeVal: 50, // 0 (Past) - 100 (Future)
+            foreshadowingFound: false,
+            act1Solved: false,
+            act2Solved: false,
+            act3Code: [],
+            targetAct3Code: [4, 7, 2] // 伏線: Act1, Act2で見つかる暗号の統合
+        };
+
+        // UI Elements
+        const screens = {
+            start: document.getElementById('start-screen'),
+            game: document.getElementById('game-screen'),
+            end: document.getElementById('end-screen')
+        };
+        const uiSync = document.getElementById('ui-sync');
+        const uiLoop = document.getElementById('ui-loop');
+        const timeSlider = document.getElementById('time-slider');
+        const timeDisplay = document.getElementById('time-display');
+        const clueText = document.getElementById('clue-text');
+        const actLabel = document.getElementById('act-label');
+        const puzzleTitle = document.getElementById('puzzle-title');
+        const echoText = document.getElementById('echo-text');
+        const handH = document.getElementById('hand-h');
+        const handM = document.getElementById('hand-m');
+        const interactionArea = document.getElementById('interaction-area');
+        const flashEffect = document.getElementById('flash-effect');
+
+        // Screen Switcher
+        function showScreen(screenKey) {
+            Object.keys(screens).forEach(key => {
+                screens[key].classList.remove('active');
+            });
+            screens[screenKey].classList.add('active');
+        }
+
+        function triggerFlash() {
+            flashEffect.classList.add('active');
+            setTimeout(() => flashEffect.classList.remove('active'), 300);
+        }
+
+        function updateSync(val) {
+            state.syncRate = Math.min(100, Math.max(0, val));
+            uiSync.textContent = `${state.syncRate}%`;
+        }
+
+        /* --- ACT PUZZLE MANAGERS --- */
+
+        function initAct(actNum) {
+            state.act = actNum;
+            sfx.playShift();
+            triggerFlash();
+
+            if (actNum === 1) {
+                actLabel.textContent = "ACT I : 始まりの歪み";
+                puzzleTitle.textContent = "時盤のズレを正せ";
+                state.timeVal = 50;
+                timeSlider.value = 50;
+                renderAct1();
+            } else if (actNum === 2) {
+                actLabel.textContent = "ACT II : タイム・パラドックス";
+                puzzleTitle.textContent = "残影の暗号 (伏線の提示)";
+                state.timeVal = 50;
+                timeSlider.value = 50;
+                renderAct2();
+            } else if (actNum === 3) {
+                actLabel.textContent = "ACT III : 伏線回収・収束の刻";
+                puzzleTitle.textContent = "世界線の統合";
+                state.timeVal = 50;
+                timeSlider.value = 50;
+                renderAct3();
+            }
+        }
+
+        /* --- ACT 1: 過去と未来の観測 --- */
+        function renderAct1() {
+            interactionArea.innerHTML = `<button class="btn" style="width:100%" id="act1-fix-btn">この時間を固定(時直し)</button>`;
+            
+            document.getElementById('act1-fix-btn').onclick = () => {
+                if (state.timeVal === 0) { // 過去の10:00位置で固定が正解
+                    sfx.playSolve();
+                    updateSync(33);
+                    showOverlay("時直し成功", "過去の記憶を固定した。「4」という刻印が刻まれた...", () => {
+                        initAct(2);
+                    });
+                } else {
+                    sfx.playTick();
+                    clueText.innerHTML = "<span style='color:var(--accent-red)'>修復失敗:</span> 最も過去へ遡り、針が最も真上を向く『原点』で固定せよ。";
+                }
+            };
+            onSliderChangeAct1(50);
+        }
+
+        function onSliderChangeAct1(val) {
+            // 時間の計算: 0=10:00, 50=12:00, 100=14:00
+            let hours = 10 + Math.floor((val / 100) * 4);
+            let mins = Math.floor(((val % 25) / 25) * 60);
+            timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+
+            // 時計の針を動かす
+            let degH = (hours % 12) * 30 + mins * 0.5;
+            let degM = mins * 6;
+            handH.style.transform = `rotate(${degH}deg)`;
+            handM.style.transform = `rotate(${degM}deg)`;
+
+            if (val === 0) {
+                echoText.textContent = "[ 過去の残影: 記憶の原点刻印『4』 ]";
+                clueText.innerHTML = "【過去】時計の針がまっすぐに重なる。刻印<highlight>『4』</highlight>が浮かび上がっている。";
+            } else if (val === 100) {
+                echoText.textContent = "[ 未来の崩壊: 時計は砕け散っている ]";
+                clueText.innerHTML = "【未来】崩壊した未来。ここには直すべき芽がない。";
+            } else {
+                echoText.textContent = "";
+                clueText.innerHTML = "スライダーで時間を過去へ巻き戻し、矛盾のない『時間の原点』を探してください。";
+            }
+        }
+
+        /* --- ACT 2: 過去の操作が未来を変える (伏線) --- */
+        function renderAct2() {
+            interactionArea.innerHTML = `
+                <div style="display:flex; gap:10px; width:100%;">
+                    <button class="btn" style="flex:1; font-size:0.8rem;" id="act2-opt-a">過去に『7』を植える</button>
+                    <button class="btn" style="flex:1; font-size:0.8rem;" id="act2-opt-b">過去に『2』を植える</button>
+                </div>
+            `;
+
+            let plantedValue = null;
+
+            document.getElementById('act2-opt-a').onclick = () => {
+                sfx.playTick();
+                plantedValue = 7;
+                clueText.innerHTML = "過去に『7』の因子を植え付けた。未来（スライダー最大）へ移動して果実を確認せよ。";
+            };
+
+            document.getElementById('act2-opt-b').onclick = () => {
+                sfx.playTick();
+                plantedValue = 2;
+                clueText.innerHTML = "過去に『2』の因子を植え付けた。未来（スライダー最大）へ移動して果実を確認せよ。";
+            };
+
+            onSliderChangeAct2(50, plantedValue);
+            
+            // Override slider callback for Act 2
+            timeSlider.oninput = (e) => {
+                sfx.playTick();
+                state.timeVal = parseInt(e.target.value);
+                onSliderChangeAct2(state.timeVal, plantedValue);
+            };
+        }
+
+        function onSliderChangeAct2(val, planted) {
+            timeDisplay.textContent = val < 50 ? "PAST" : (val === 50 ? "PRESENT" : "FUTURE");
+
+            if (val === 100 && planted !== null) {
+                if (planted === 7) {
+                    echoText.textContent = `[ 未来の結実: 第二の刻印『7』を回収 ]`;
+                    clueText.innerHTML = "因果が繋がった！未来で第二の刻印<highlight>『7』</highlight>が芽吹いた。そして影の中に隠された<highlight>『2』</highlight>の予兆（伏線）も見えた！";
+                    if (!state.act2Solved) {
+                        state.act2Solved = true;
+                        setTimeout(() => {
+                            sfx.playSolve();
+                            updateSync(66);
+                            showOverlay("因果の開花", "ACT Iで得た『4』、ACT IIで得た『7』、そして影の『2』...すべての伏線が出揃った。", () => {
+                                initAct(3);
+                            });
+                        }, 800);
+                    }
+                } else {
+                    echoText.textContent = "[ 未来の結実: 失敗 - 時間が停滞している ]";
+                    clueText.innerHTML = "未来に変化がない。過去に植えるべき正しい因子の数値を再検討せよ。";
+                }
+            } else if (val === 0) {
+                echoText.textContent = "[ 過去の圃場: 因子の選択を待っている ]";
+            }
+        }
+
+        /* --- ACT 3: 伏線回収とフィナーレ --- */
+        function renderAct3() {
+            echoText.textContent = "[ 統合コア: 3つの時空刻印を入力せよ ]";
+            clueText.innerHTML = "これまで集めた【時直しの伏線】を解き明かせ。<br>ACT Iの刻印、ACT IIの果実、そして影の予兆。3つの数字を順番に入力せよ。";
+
+            interactionArea.innerHTML = `
+                <div style="text-align:center; margin-bottom:10px;">
+                    <span id="code-display" style="font-size:1.8rem; letter-spacing:8px; color:var(--accent-cyan); font-weight:bold;">_ _ _</span>
+                </div>
+                <div class="interactive-grid">
+                    ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="code-btn" onclick="pressNum(${n})">${n}</button>`).join('')}
+                </div>
+            `;
+
+            state.act3Code = [];
+        }
+
+        window.pressNum = function(num) {
+            if (state.act3Code.length < 3) {
+                sfx.playTick();
+                state.act3Code.push(num);
+                updateCodeDisplay();
+            }
+
+            if (state.act3Code.length === 3) {
+                // Check Code
+                if (JSON.stringify(state.act3Code) === JSON.stringify(state.targetAct3Code)) {
+                    // Success!
+                    sfx.playSolve();
+                    updateSync(100);
+                    triggerFlash();
+                    setTimeout(() => {
+                        showGameClear();
+                    }, 500);
+                } else {
+                    // Fail
+                    sfx.playTick();
+                    clueText.innerHTML = "<span style='color:var(--accent-red)'>コード拒絶:</span> 世界線が合致しません。伏線（ACT I: 4 / ACT II: 7, 2）を思い出してください。";
+                    setTimeout(() => {
+                        state.act3Code = [];
+                        updateCodeDisplay();
+                    }, 1000);
+                }
+            }
+        };
+
+        function updateCodeDisplay() {
+            const display = document.getElementById('code-display');
+            if (!display) return;
+            let str = "";
+            for (let i = 0; i < 3; i++) {
+                if (i < state.act3Code.length) {
+                    str += state.act3Code[i] + " ";
+                } else {
+                    str += "_ ";
+                }
+            }
+            display.textContent = str.trim();
+        }
+
+        /* --- MODAL OVERLAY --- */
+        function showOverlay(title, desc, callback) {
+            const modal = document.getElementById('overlay-msg');
+            document.getElementById('overlay-title').textContent = title;
+            document.getElementById('overlay-desc').textContent = desc;
+            modal.style.display = 'block';
+
+            document.getElementById('overlay-btn').onclick = () => {
+                modal.style.display = 'none';
+                if (callback) callback();
+            };
+        }
+
+        /* --- GAME END --- */
+        function showGameClear() {
+            showScreen('end');
+            document.getElementById('final-score').textContent = "100%";
+            document.getElementById('end-story').innerHTML = 
+                "見事に時間を修復し、崩壊する世界線を一本に統合した！<br>" +
+                "過去の「4」、未来の「7」、影の「2」...すべての伏線がクロノ・コアの鍵となり、永遠の循環から脱出することに成功した。";
+        }
+
+        /* --- EVENT LISTENERS --- */
+        document.getElementById('start-btn').onclick = () => {
+            sfx.init();
+            state.loopCount = 1;
+            state.act2Solved = false;
+            uiLoop.textContent = state.loopCount;
+            updateSync(0);
+            showScreen('game');
+            initAct(1);
+        };
+
+        document.getElementById('restart-btn').onclick = () => {
+            state.loopCount++;
+            uiLoop.textContent = state.loopCount;
+            showScreen('start');
+        };
+
+        timeSlider.oninput = (e) => {
+            sfx.playTick();
+            state.timeVal = parseInt(e.target.value);
+            if (state.act === 1) onSliderChangeAct1(state.timeVal);
+        };
+
+    </script>
+</body>
+</html>
