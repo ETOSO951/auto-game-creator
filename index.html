@@ -227,6 +227,12 @@
             justify-content: center;
             align-items: center;
             box-shadow: 0 0 15px rgba(223, 168, 69, 0.2);
+            transition: box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        .clock-face.snapped {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.5);
         }
 
         .clock-hand {
@@ -235,7 +241,11 @@
             background: var(--accent-gold);
             bottom: 50%;
             transform-origin: bottom center;
-            transition: transform 0.3s ease;
+            /* 操作追従の遅延を解消するため、クラス切り替えでトランジション制御 */
+        }
+
+        .clock-hand.smooth {
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .hand-hour { height: 30px; }
@@ -588,11 +598,14 @@
         let lastTickStep = -1;
 
         // 1. スナップ吸着と時刻算出の一元化エンジン
-        function updateTimeAndClock(val) {
+        function updateTimeAndClock(val, isDragging = false) {
+            const clockFaceElem = document.querySelector('.clock-face');
+            let isSnapped = false;
+
             // 主要ポイント（0, 50, 100）への吸着スナップマージン処理
-            if (Math.abs(val - 0) <= 3) val = 0;
-            else if (Math.abs(val - 50) <= 3) val = 50;
-            else if (Math.abs(val - 100) <= 3) val = 100;
+            if (Math.abs(val - 0) <= 3) { val = 0; isSnapped = true; }
+            else if (Math.abs(val - 50) <= 3) { val = 50; isSnapped = true; }
+            else if (Math.abs(val - 100) <= 3) { val = 100; isSnapped = true; }
             
             state.timeVal = val;
             timeSlider.value = val;
@@ -604,17 +617,34 @@
             let degH = (hours % 12) * 30 + mins * 0.5;
             let degM = mins * 6;
             
+            // ドラッグ中はトランジションを切って完全同期、スナップ時・離した時は滑らかに
+            if (isDragging && !isSnapped) {
+                handH.classList.remove('smooth');
+                handM.classList.remove('smooth');
+            } else {
+                handH.classList.add('smooth');
+                handM.classList.add('smooth');
+            }
+
             handH.style.transform = `rotate(${degH}deg)`;
             handM.style.transform = `rotate(${degM}deg)`;
+
+            if (clockFaceElem) {
+                if (isSnapped) {
+                    clockFaceElem.classList.add('snapped');
+                } else {
+                    clockFaceElem.classList.remove('snapped');
+                }
+            }
 
             let timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
             return { val, timeStr };
         }
 
         // 統一スライダー入力ディスパッチャー（SE最適化＆フィードバック一元化）
-        function handleSliderInput(e) {
+        function handleSliderInput(e, isDragging = false) {
             let rawVal = parseInt(e.target.value);
-            const { val, timeStr } = updateTimeAndClock(rawVal);
+            const { val, timeStr } = updateTimeAndClock(rawVal, isDragging);
             
             // 5刻みごとにカチリと音を鳴らす (音割れ・連続過剰発火防止)
             const currentStep = Math.floor(val / 5);
@@ -732,9 +762,14 @@
         function renderAct2() {
             state.act2Planted = null; // 初期化時は未選択
             interactionArea.innerHTML = `
-                <div style="display:flex; gap:10px; width:100%;">
-                    <button class="btn" style="flex:1; font-size:0.8rem;" id="act2-opt-a">過去に『7』を植える</button>
-                    <button class="btn" style="flex:1; font-size:0.8rem;" id="act2-opt-b">過去に『2』を植える</button>
+                <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+                    <div id="causal-indicator" style="font-size:0.75rem; text-align:center; color:var(--text-dim); background:rgba(0,0,0,0.3); padding:4px; border-radius:4px;">
+                        因果ステータス: 未観測 (因子未選択)
+                    </div>
+                    <div style="display:flex; gap:10px; width:100%;">
+                        <button class="btn" style="flex:1; font-size:0.8rem;" id="act2-opt-a">過去に『7』を植える</button>
+                        <button class="btn" style="flex:1; font-size:0.8rem;" id="act2-opt-b">過去に『2』を植える</button>
+                    </div>
                 </div>
             `;
 
@@ -746,6 +781,11 @@
                 }
                 sfx.playTick();
                 state.act2Planted = 7;
+                const indicator = document.getElementById('causal-indicator');
+                if(indicator) {
+                    indicator.textContent = "因果ステータス: 『7』の因子が埋め込まれました";
+                    indicator.style.color = "var(--accent-cyan)";
+                }
                 clueText.innerHTML = "過去に『7』の因子を植え付けた。次に、未来（スライダー右端）へ時間を進めて果実を確認せよ。";
             };
 
@@ -757,6 +797,11 @@
                 }
                 sfx.playTick();
                 state.act2Planted = 2;
+                const indicator = document.getElementById('causal-indicator');
+                if(indicator) {
+                    indicator.textContent = "因果ステータス: 『2』の因子が埋め込まれました";
+                    indicator.style.color = "var(--accent-red)";
+                }
                 clueText.innerHTML = "過去に『2』の因子を植え付けた。次に、未来（スライダー右端）へ時間を進めて果実を確認せよ。";
             };
 
@@ -797,6 +842,7 @@
 
         /* --- ACT 3: 伏線回収とフィナーレ --- */
         let isCodeLocked = false;
+        let act3KeydownHandler = null;
 
         function renderAct3() {
             echoText.textContent = "[ 統合コア: 3つの時空刻印を入力せよ ]";
@@ -828,6 +874,22 @@
                     backspaceCode();
                 }
             };
+
+            // PCの物理キーボード / テンキー入力対応
+            if (act3KeydownHandler) {
+                window.removeEventListener('keydown', act3KeydownHandler);
+            }
+            act3KeydownHandler = (e) => {
+                if (state.act !== 3 || isCodeLocked) return;
+                if (e.key >= '0' && e.key <= '9') {
+                    pressNum(parseInt(e.key));
+                } else if (e.key === 'Backspace') {
+                    backspaceCode();
+                } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+                    clearCode();
+                }
+            };
+            window.addEventListener('keydown', act3KeydownHandler);
 
             state.act3Code = [];
             isCodeLocked = false;
@@ -940,9 +1002,16 @@
             state.act2Solved = false;
             state.act2Planted = null;
             state.act3Code = [];
+            isCodeLocked = false;
+            
+            if (act3KeydownHandler) {
+                window.removeEventListener('keydown', act3KeydownHandler);
+                act3KeydownHandler = null;
+            }
+
             timeSlider.value = 50;
             updateSync(0);
-            updateClockHands(50);
+            updateTimeAndClock(50, false);
             lastTickStep = -1;
         }
 
@@ -963,7 +1032,8 @@
             showScreen('start');
         };
 
-        timeSlider.oninput = handleSliderInput;
+        timeSlider.addEventListener('input', (e) => handleSliderInput(e, true));
+        timeSlider.addEventListener('change', (e) => handleSliderInput(e, false));
 
     </script>
 </body>
