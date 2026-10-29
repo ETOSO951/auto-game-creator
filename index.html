@@ -306,8 +306,8 @@
         /* タッチプレビュー時の反転予測枚数バッジ（指で隠れにくい上部にポップアップ） */
         .cell.hover-target::after {
             content: attr(data-preview-count);
-            width: 24px;
-            height: 24px;
+            width: 26px;
+            height: 26px;
             background: linear-gradient(135deg, #0284c7, #38bdf8);
             border: 2px solid #fff;
             border-radius: 50%;
@@ -317,9 +317,11 @@
             font-size: 0.75rem;
             font-weight: 800;
             color: #fff;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), 0 0 12px var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 12px var(--primary);
             position: absolute;
-            top: -12px;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 10;
             animation: badgePop 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
             pointer-events: none;
@@ -790,8 +792,14 @@
 
         function updateParticles() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
+            const len = particles.length;
+            if (len === 0) {
+                isParticleLoopRunning = false;
+                return;
+            }
+
+            for (let i = len - 1; i >= 0; i--) {
+                const p = particles[i];
                 p.x += p.vx;
                 p.y += p.vy;
                 p.alpha -= p.life;
@@ -799,14 +807,13 @@
                     particles.splice(i, 1);
                     continue;
                 }
-                ctx.save();
-                ctx.globalAlpha = p.alpha;
+                ctx.globalAlpha = Math.max(0, p.alpha);
                 ctx.fillStyle = p.color;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.restore();
             }
+            ctx.globalAlpha = 1.0;
 
             if (particles.length > 0) {
                 requestAnimationFrame(updateParticles);
@@ -869,8 +876,9 @@
             });
         }
 
-        // 盤面DOMのワンタイム構築 & イベント委譲によるパフォーマンス最適化
+        // 盤面DOMのワンタイム構築 & 高速DOM参照キャッシュ
         let isBoardDomInitialized = false;
+        let boardCellElements = []; // 6x6 DOM参照をキャッシュ
 
         // --- ユーティリティ: Promiseベースの制御機構 ---
         const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -896,6 +904,8 @@
         function setupBoardDOM() {
             const boardEl = document.getElementById('board');
             boardEl.innerHTML = '';
+            boardCellElements = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+
             for (let r = 0; r < BOARD_SIZE; r++) {
                 for (let c = 0; c < BOARD_SIZE; c++) {
                     const cell = document.createElement('div');
@@ -903,18 +913,21 @@
                     cell.dataset.row = r;
                     cell.dataset.col = c;
                     boardEl.appendChild(cell);
+                    boardCellElements[r][c] = cell;
                 }
             }
 
             const clearPreview = () => {
-                document.querySelectorAll('.cell.preview-flip').forEach(c => c.classList.remove('preview-flip'));
-                document.querySelectorAll('.cell.hover-target').forEach(c => {
-                    c.classList.remove('hover-target');
-                    c.removeAttribute('data-preview-count');
-                });
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    for (let c = 0; c < BOARD_SIZE; c++) {
+                        const cell = boardCellElements[r][c];
+                        cell.classList.remove('preview-flip', 'hover-target');
+                        cell.removeAttribute('data-preview-count');
+                    }
+                }
             };
 
-            // タッチ入力判定: 接触座標を正確にキャプチャし直感的なプレビュー・着手を実現
+            // タッチ・ポインター入力の精密トラッキング
             const getCellFromPoint = (e) => {
                 const x = e.clientX;
                 const y = e.clientY;
@@ -939,7 +952,7 @@
                 }
 
                 flippable.forEach(pos => {
-                    const flipCell = document.querySelector(`[data-row="${pos.r}"][data-col="${pos.c}"]`);
+                    const flipCell = boardCellElements[pos.r]?.[pos.c];
                     if (flipCell) flipCell.classList.add('preview-flip');
                 });
             };
@@ -961,7 +974,6 @@
 
             boardEl.addEventListener('pointermove', (e) => {
                 if (activePointerId !== null && e.pointerId !== activePointerId) return;
-                if (e.cancelable) e.preventDefault();
                 if (gameState.isProcessing || gameState.currentTurn !== PLAYER) {
                     clearPreview();
                     return;
@@ -976,7 +988,7 @@
             const handlePointerUpOrCancel = (e) => {
                 if (activePointerId !== null && e.pointerId === activePointerId) {
                     if (e.cancelable) e.preventDefault();
-                    const cellToTrigger = getCellFromPoint(e);
+                    const targetCell = getCellFromPoint(e);
                     
                     try {
                         if (boardEl.hasPointerCapture(e.pointerId)) {
@@ -984,7 +996,6 @@
                         }
                     } catch (_) {}
 
-                    const targetCell = cellToTrigger;
                     activePointerId = null;
                     currentPointerCell = null;
                     clearPreview();
@@ -1022,7 +1033,7 @@
             renderBoard();
         }
 
-        // --- ボード描画（DOM破棄を行わない差分更新） ---
+        // --- ボード描画（高速キャッシュ参照＆差分更新） ---
         function renderBoard() {
             const validMoves = (gameState.currentTurn === PLAYER && !gameState.isProcessing) 
                 ? ReversiEngine.getValidMoves(gameState.board, PLAYER) 
@@ -1030,7 +1041,7 @@
 
             for (let r = 0; r < BOARD_SIZE; r++) {
                 for (let c = 0; c < BOARD_SIZE; c++) {
-                    const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                    const cell = boardCellElements[r]?.[c];
                     if (!cell) continue;
 
                     const val = gameState.board[r][c];
@@ -1230,7 +1241,7 @@
             const bestMove = moves[0];
 
             // 敵のフォーカス演出
-            const targetCell = document.querySelector(`[data-row="${bestMove.r}"][data-col="${bestMove.c}"]`);
+            const targetCell = boardCellElements[bestMove.r]?.[bestMove.c];
             if (targetCell) {
                 targetCell.classList.add('enemy-target');
                 await wait(400);
@@ -1297,16 +1308,19 @@
 
         async function executeMove(r, c, turn, flippable) {
             // UI上の全各種ハイライト・プレビュー状態をクリーンアップ
-            document.querySelectorAll('.cell.valid, .cell.preview-flip, .cell.hover-target').forEach(el => {
-                el.classList.remove('valid', 'preview-flip', 'hover-target');
-            });
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const el = boardCellElements[row]?.[col];
+                    if (el) el.classList.remove('valid', 'preview-flip', 'hover-target');
+                }
+            }
 
             // 1. 【State】純粋エンジンによるイミュータブルな状態更新
             gameState.board = ReversiEngine.getNextBoardState(gameState.board, r, c, turn, flippable);
 
             // 2. 【View】着手マスアニメーション＆パーティクル発生
             const targetColor = (turn === PLAYER) ? 'player' : 'enemy';
-            const placedCell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+            const placedCell = boardCellElements[r]?.[c];
             if (placedCell) {
                 let disc = placedCell.querySelector('.disc');
                 if (!disc) {
@@ -1324,12 +1338,12 @@
                 );
             }
 
-            // 3. 【View】ウェーブ状の反転アニメーション処理（DOM最適化＆アニメーション同期）
+            // 3. 【View】ウェーブ状の反転アニメーション処理（DOMキャッシュ＆正確な時間差同期）
             const animPromises = [];
             for (let i = 0; i < flippable.length; i++) {
                 const pos = flippable[i];
                 if (i > 0) await wait(35); // 時間差で反転波を拡散
-                const flipCell = document.querySelector(`[data-row="${pos.r}"][data-col="${pos.c}"]`);
+                const flipCell = boardCellElements[pos.r]?.[pos.c];
                 if (flipCell) {
                     let disc = flipCell.querySelector('.disc');
                     if (!disc) {
@@ -1337,9 +1351,7 @@
                         flipCell.appendChild(disc);
                     }
                     
-                    // アニメーションのトリガーと正確な完了同期
                     disc.classList.remove('flip-anim');
-                    // repaint同期
                     await new Promise(resolve => requestAnimationFrame(resolve));
                     disc.className = `disc ${targetColor} flip-anim`;
                     animPromises.push(waitForAnimationEnd(disc, 320));
