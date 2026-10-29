@@ -6,12 +6,12 @@
     <title>ローグライクリバーシ (Roguelike Reversi)</title>
     <style>
         :root {
-            --bg-color: #070a12;
-            --panel-bg: rgba(18, 26, 43, 0.85);
-            --panel-border: rgba(56, 189, 248, 0.3);
-            --panel-border-glow: rgba(56, 189, 248, 0.6);
+            --bg-color: #05070c;
+            --panel-bg: rgba(14, 20, 34, 0.9);
+            --panel-border: rgba(56, 189, 248, 0.4);
+            --panel-border-glow: rgba(56, 189, 248, 0.8);
             --primary: #38bdf8;
-            --primary-glow: rgba(56, 189, 248, 0.6);
+            --primary-glow: rgba(56, 189, 248, 0.8);
             --player-color: #38bdf8;
             --enemy-color: #f43f5e;
             --accent: #fbbf24;
@@ -20,6 +20,7 @@
             --board-bg: #0a1120;
             --cell-bg: #162238;
             --cell-hover: #1e293b;
+            --ambient-hue: 195deg;
         }
 
         * {
@@ -42,11 +43,19 @@
             overflow: hidden;
             touch-action: none;
             background-image: 
-                radial-gradient(circle at 50% -20%, rgba(56, 189, 248, 0.22) 0%, transparent 60%),
-                radial-gradient(circle at 50% 120%, rgba(244, 63, 94, 0.15) 0%, transparent 60%),
-                radial-gradient(circle at 10% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
+                radial-gradient(circle at 50% -20%, hsla(var(--ambient-hue), 80%, 60%, 0.28) 0%, transparent 65%),
+                radial-gradient(circle at 50% 120%, rgba(244, 63, 94, 0.18) 0%, transparent 65%),
+                radial-gradient(circle at 10% 50%, rgba(99, 102, 241, 0.12) 0%, transparent 55%);
+            background-size: 150% 150%;
+            animation: ambientLiquidShift 16s infinite alternate ease-in-out;
             padding-top: env(safe-area-inset-top, 0);
             padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+
+        @keyframes ambientLiquidShift {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 100%; }
         }
 
         #app {
@@ -121,26 +130,33 @@
             letter-spacing: 4px;
         }
 
-        /* ボタン */
+        /* ボタン（有機的スプリングフィードバック） */
         .btn {
             background: linear-gradient(135deg, #0284c7, #2563eb);
             color: #fff;
             border: none;
             padding: 16px 32px;
-            border-radius: 12px;
+            border-radius: 14px;
             font-size: 1.1rem;
             font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
-            transition: all 0.2s ease;
+            box-shadow: 0 6px 24px rgba(14, 165, 233, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, filter 0.2s ease;
             width: 80%;
             max-width: 280px;
             outline: none;
+            will-change: transform;
+        }
+
+        .btn:hover {
+            filter: brightness(1.15);
+            box-shadow: 0 8px 30px rgba(14, 165, 233, 0.7), 0 0 20px rgba(56, 189, 248, 0.4);
+            transform: translateY(-2px);
         }
 
         .btn:active {
-            transform: scale(0.95);
-            box-shadow: 0 2px 10px rgba(14, 165, 233, 0.3);
+            transform: scale(0.92) translateY(1px);
+            box-shadow: 0 2px 10px rgba(14, 165, 233, 0.4);
         }
 
         /* ゲーム画面 */
@@ -602,30 +618,40 @@
 
         .skill-card {
             flex: 1;
-            background: rgba(30, 41, 59, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 8px;
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             gap: 4px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s, box-shadow 0.2s, background 0.2s;
             position: relative;
             overflow: hidden;
+            will-change: transform;
+        }
+
+        .skill-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(56, 189, 248, 0.5);
+        }
+
+        .skill-card:active {
+            transform: scale(0.95);
         }
 
         .skill-card.active {
             border-color: var(--primary);
-            box-shadow: 0 0 12px var(--primary-glow);
+            box-shadow: 0 0 16px var(--primary-glow);
             animation: skillBreathe 2.5s infinite alternate ease-in-out;
         }
 
         .skill-card.selected {
             border-color: var(--accent);
-            background: rgba(245, 158, 11, 0.25);
-            box-shadow: 0 0 20px rgba(245, 158, 11, 0.7), inset 0 0 10px rgba(245, 158, 11, 0.3);
-            transform: translateY(-3px);
+            background: rgba(245, 158, 11, 0.28);
+            box-shadow: 0 0 24px rgba(245, 158, 11, 0.8), inset 0 0 12px rgba(245, 158, 11, 0.4);
+            transform: translateY(-4px) scale(1.02);
             animation: skillSelectedPulse 1.2s infinite alternate ease-in-out;
         }
 
@@ -966,22 +992,27 @@
         }
 
         function updateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 残像（モーショントレイル）を実現するため完全消去せず半透明クリア
+            ctx.fillStyle = 'rgba(7, 10, 18, 0.28)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             const len = particles.length;
             if (len === 0) {
+                // パーティクル終了時にも完全に背景をクリアして残像残りを防止
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 isParticleLoopRunning = false;
                 return;
             }
 
-            // 多層加算合成により圧倒的なネオン発光・立体感を表現
+            // 多層加算合成とブルーム発光効果
             ctx.globalCompositeOperation = 'lighter';
 
             for (let i = len - 1; i >= 0; i--) {
                 const p = particles[i];
                 p.x += p.vx;
                 p.y += p.vy;
-                p.vy += p.gravity; // 重力加速度
-                p.vx *= 0.92; // 空気抵抗
+                p.vy += p.gravity;
+                p.vx *= 0.92;
                 p.vy *= 0.92;
                 p.rotation += p.spin;
                 p.alpha -= p.life;
@@ -998,31 +1029,28 @@
                 ctx.translate(p.x, p.y);
                 ctx.rotate(p.rotation);
 
+                // ネオンブルーム（自己発光シャドウ）の付与
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 16;
+
                 if (p.type === 'spark') {
-                    // 鋭い十字火花
                     ctx.beginPath();
-                    ctx.moveTo(-p.size * 3, 0); ctx.lineTo(p.size * 3, 0);
-                    ctx.moveTo(0, -p.size * 3); ctx.lineTo(0, p.size * 3);
-                    ctx.lineWidth = 2.2;
+                    ctx.moveTo(-p.size * 3.5, 0); ctx.lineTo(p.size * 3.5, 0);
+                    ctx.moveTo(0, -p.size * 3.5); ctx.lineTo(0, p.size * 3.5);
+                    ctx.lineWidth = 2.4;
                     ctx.stroke();
                 } else if (p.type === 'ring') {
-                    // 拡散光輪
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 2.2, 0, Math.PI * 2);
-                    ctx.lineWidth = 1.4;
+                    ctx.arc(0, 0, p.size * 2.5, 0, Math.PI * 2);
+                    ctx.lineWidth = 1.6;
                     ctx.stroke();
                 } else if (p.type === 'glow') {
-                    // ソフトグロー光球
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 1.6, 0, Math.PI * 2);
-                    ctx.fillStyle = p.color;
-                    ctx.shadowColor = p.color;
-                    ctx.shadowBlur = 12;
+                    ctx.arc(0, 0, p.size * 1.8, 0, Math.PI * 2);
                     ctx.fill();
                 } else {
-                    // 標準ソリッド粒子
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+                    ctx.arc(0, 0, p.size * 1.2, 0, Math.PI * 2);
                     ctx.fill();
                 }
                 ctx.restore();
@@ -1031,6 +1059,7 @@
             if (particles.length > 0) {
                 requestAnimationFrame(updateParticles);
             } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 isParticleLoopRunning = false;
             }
         }
@@ -1082,6 +1111,11 @@
             prevPlayerPct = (gameState.playerHp / gameState.playerMaxHp) * 100;
             prevEnemyPct = 100;
             
+            // フロア進行に応じてアンビエントライティングの色調を動的に変化
+            const rootStyle = document.documentElement.style;
+            const newHue = (195 + gameState.stage * 18) % 360;
+            rootStyle.setProperty('--ambient-hue', `${newHue}deg`);
+
             initBoard();
             updateUI();
         }
