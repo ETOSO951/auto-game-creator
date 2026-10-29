@@ -384,9 +384,9 @@
             width: 100%;
             height: 100%;
             background: 
-                radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.12) 0%, transparent 75%),
-                linear-gradient(145deg, rgba(10, 17, 32, 0.98), rgba(18, 28, 48, 0.92));
-            border: 2px solid rgba(56, 189, 248, 0.7);
+                radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.16) 0%, transparent 75%),
+                linear-gradient(145deg, rgba(10, 17, 32, 0.99), rgba(18, 28, 48, 0.94));
+            border: 2px solid rgba(56, 189, 248, 0.85);
             border-radius: 24px;
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -394,16 +394,16 @@
             gap: 7px;
             padding: 12px;
             box-shadow: 
-                inset 0 0 55px rgba(0, 0, 0, 0.95),
-                inset 0 2px 6px rgba(255, 255, 255, 0.25),
-                0 28px 70px rgba(0, 0, 0, 0.85),
-                0 0 60px rgba(56, 189, 248, 0.5),
-                0 0 25px rgba(56, 189, 248, 0.3) inset;
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
+                inset 0 0 60px rgba(0, 0, 0, 0.98),
+                inset 0 2px 8px rgba(255, 255, 255, 0.35),
+                0 32px 80px rgba(0, 0, 0, 0.9),
+                0 0 80px rgba(56, 189, 248, 0.7),
+                0 0 35px rgba(56, 189, 248, 0.5) inset;
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
             position: relative;
             overflow: hidden;
-            transition: box-shadow 0.4s ease, border-color 0.4s ease;
+            transition: box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease;
         }
 
         .board.wave-active {
@@ -553,33 +553,33 @@
             100% { opacity: 0; transform: translate(-50%, -50px) scale(0.7); }
         }
 
-        /* 減衰計算付き画面振動 & RGB色収差風演出 */
+        /* 減衰計算付き画面振動 & RGB色収差風演出 (ハプティック・イマーション強化) */
         .shake {
-            animation: shakeScreenImpact 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97);
-            filter: drop-shadow(2px 0px rgba(244, 63, 94, 0.4)) drop-shadow(-2px 0px rgba(56, 189, 248, 0.4));
+            animation: shakeScreenImpact 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+            filter: drop-shadow(3px 0px rgba(244, 63, 94, 0.6)) drop-shadow(-3px 0px rgba(56, 189, 248, 0.6));
         }
 
         .shake-heavy {
-            animation: shakeScreenHeavy 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
-            filter: drop-shadow(4px 0px rgba(244, 63, 94, 0.8)) drop-shadow(-4px 0px rgba(56, 189, 248, 0.8));
+            animation: shakeScreenHeavy 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+            filter: drop-shadow(6px 0px rgba(251, 191, 36, 0.9)) drop-shadow(-6px 0px rgba(56, 189, 248, 0.9));
         }
 
         @keyframes shakeScreenImpact {
             0%, 100% { transform: translate(0, 0) scale(1); }
-            15% { transform: translate(-7px, 5px) scale(1.01); }
-            30% { transform: translate(6px, -5px) scale(0.99); }
-            50% { transform: translate(-4px, 3px) scale(1.005); }
-            70% { transform: translate(3px, -2px); }
-            85% { transform: translate(-1px, 1px); }
+            15% { transform: translate(-9px, 7px) scale(1.015) rotate(0.5deg); }
+            30% { transform: translate(8px, -7px) scale(0.985) rotate(-0.5deg); }
+            50% { transform: translate(-6px, 4px) scale(1.008); }
+            70% { transform: translate(4px, -3px); }
+            85% { transform: translate(-2px, 1px); }
         }
 
         @keyframes shakeScreenHeavy {
             0%, 100% { transform: translate(0, 0) scale(1); }
-            12% { transform: translate(-14px, 10px) rotate(-1.5deg) scale(1.02); }
-            28% { transform: translate(12px, -10px) rotate(1.2deg) scale(0.98); }
-            45% { transform: translate(-8px, 6px) scale(1.01); }
-            65% { transform: translate(6px, -4px) rotate(-0.5deg); }
-            82% { transform: translate(-3px, 2px); }
+            10% { transform: translate(-18px, 14px) rotate(-2.2deg) scale(1.035); }
+            25% { transform: translate(16px, -14px) rotate(1.8deg) scale(0.975); }
+            42% { transform: translate(-12px, 9px) scale(1.02); }
+            60% { transform: translate(9px, -6px) rotate(-1deg); }
+            80% { transform: translate(-4px, 3px); }
         }
 
         /* 石（最高峰の光学ジェムストーン質感・ガラス屈折ライティング & 虹彩リムライト） */
@@ -1291,7 +1291,7 @@
             }
         };
 
-        // --- 初期化 & ゲーム開始 (アイデア1: デモプレイ自動シミュレーションループ & マイクロインタラクション) ---
+        // --- 初期化 & ゲーム開始 (アイデア1: シネマティックな没入感の強化 & 波紋状の光の広がり) ---
         let demoInterval = null;
         function initDemoBoard() {
             const bg = document.getElementById('demo-board-bg');
@@ -1302,7 +1302,7 @@
                 const c = document.createElement('div');
                 c.className = 'demo-cell';
                 
-                // マイクロインタラクション：タップで即座にジェムストーン石を生成
+                // マイクロインタラクション：タップ時のジェムストーン生成と波紋状の光の広がり
                 c.addEventListener('click', (e) => {
                     e.stopPropagation();
                     SoundEngine.playTap();
@@ -1315,7 +1315,10 @@
                         c.appendChild(d);
                         const rect = c.getBoundingClientRect();
                         const appRect = document.getElementById('app').getBoundingClientRect();
-                        createParticles(rect.left - appRect.left + rect.width/2, rect.top - appRect.top + rect.height/2, '#38bdf8', 12, true);
+                        const cx = rect.left - appRect.left + rect.width/2;
+                        const cy = rect.top - appRect.top + rect.height/2;
+                        createParticles(cx, cy, '#38bdf8', 18, true);
+                        createParticles(cx, cy, '#c084fc', 8, false);
                     }
                 });
 
@@ -1330,17 +1333,24 @@
             if(demoInterval) clearInterval(demoInterval);
             let step = 0;
             demoInterval = setInterval(() => {
-                const indices = [13, 8, 22, 27, 14, 21];
+                const indices = [13, 8, 22, 27, 14, 21, 9, 26];
                 const idx = indices[step % indices.length];
                 const target = demoCells[idx];
-                if(target && !target.querySelector('.disc')) {
-                    const d = document.createElement('div');
-                    d.className = `disc ${step % 2 === 0 ? 'player' : 'enemy'} flip-anim`;
-                    target.appendChild(d);
-                    setTimeout(() => { if(target.contains(d)) d.classList.remove('flip-anim'); }, 400);
+                if(target) {
+                    const existingDisc = target.querySelector('.disc');
+                    if (!existingDisc) {
+                        const d = document.createElement('div');
+                        const isPl = (step % 2 === 0);
+                        d.className = `disc ${isPl ? 'player' : 'enemy'} flip-anim`;
+                        target.appendChild(d);
+                        const rect = target.getBoundingClientRect();
+                        const appRect = document.getElementById('app').getBoundingClientRect();
+                        createParticles(rect.left - appRect.left + rect.width/2, rect.top - appRect.top + rect.height/2, isPl ? '#38bdf8' : '#f43f5e', 10, false);
+                        setTimeout(() => { if(target.contains(d)) d.classList.remove('flip-anim'); }, 400);
+                    }
                 }
                 step++;
-            }, 1600);
+            }, 1400);
         }
         initDemoBoard();
 
@@ -2081,16 +2091,17 @@
                     await executeMove(r, c, PLAYER, flippable);
                 }
 
-                // 【新機能2】属性コンボチェインシステム（視覚的フィードバックとWeb Audioコンボ音の洗練）
+                // 【新機能2】属性コンボチェインシステム（ハプティック・イマーション＆ライティング強化）
                 const spCell = gameState.specialCells.find(s => s.r === r && s.c === c);
                 if (spCell) {
                     SoundEngine.playCombo();
+                    triggerScreenShake(true);
                     if (spCell.type === 'fire') {
                         if (gameState.enemyFrozen) {
-                            applyDamage(ENEMY, 22, true);
+                            applyDamage(ENEMY, 26, true);
                             showEffectAtCell(r, c, '#f97316');
-                            triggerScreenShake(true);
-                            await showToast('⚡【属性コンボ】蒸発大爆発！ 22ダメージ', 1000);
+                            createParticles(canvas.width/2, canvas.height/2, '#f97316', 40, true);
+                            await showToast('🔥⚡【属性コンボ】蒸発大爆発！ 26ダメージ', 1000);
                             gameState.enemyFrozen = false;
                         } else {
                             applyDamage(PLAYER, 4);
@@ -2099,14 +2110,17 @@
                     } else if (spCell.type === 'ice') {
                         gameState.enemyFrozen = true;
                         showEffectAtCell(r, c, '#38bdf8');
+                        createParticles(canvas.width/2, canvas.height/2, '#38bdf8', 35, true);
                         await showToast('❄️ 氷結付与！敵の行動を完全凍結', 900);
                     } else if (spCell.type === 'electric') {
-                        applyDamage(ENEMY, 14, true);
+                        applyDamage(ENEMY, 16, true);
                         showEffectAtCell(r, c, '#eab308');
+                        createParticles(canvas.width/2, canvas.height/2, '#eab308', 35, true);
                         await showToast('⚡ 電磁チェイン雷撃発動！', 800);
                     } else if (spCell.type === 'crystal') {
-                        applyDamage(ENEMY, 18, true);
+                        applyDamage(ENEMY, 20, true);
                         showEffectAtCell(r, c, '#c084fc');
+                        createParticles(canvas.width/2, canvas.height/2, '#c084fc', 40, true);
                         await showToast('💎 クリスタルフォース共鳴！', 800);
                     } else if (spCell.type === 'warp' && spCell.warpTarget) {
                         const tw = spCell.warpTarget;
@@ -2614,26 +2628,29 @@
             showMapScreen();
         }
 
-        // --- ゲームオーバー・クリア画面 (アイデア2: スロットマシーン風ドラマチック・カウントアップ演出 & 感情起伏ビジュアル) ---
+        // --- ゲームオーバー・クリア画面 (アイデア1 & 2: 勝利時の黄金バースト・敗北時の沈むモノトーン調・心音ビート・シネマティック演出) ---
         function showGameOver(isWin) {
             const titleEl = document.getElementById('result-title');
             titleEl.textContent = isWin ? 'VICTORY!' : 'GAME OVER';
             titleEl.className = `result-title ${isWin ? 'win' : 'lose'}`;
             
-            // 感情起伏ビジュアル：勝利時は黄金バースト＆煌びやかな発光、敗北時は静寂なモノトーン調
+            // 感情起伏ビジュアル：勝利時は黄金バースト＆煌びやかな発光、敗北時は静寂なモノトーン調＋色収差
             const app = document.getElementById('app');
             if (isWin) {
-                app.style.boxShadow = '0 0 80px rgba(251, 191, 36, 0.65), inset 0 0 40px rgba(251, 191, 36, 0.2)';
+                app.style.boxShadow = '0 0 100px rgba(251, 191, 36, 0.8), inset 0 0 50px rgba(251, 191, 36, 0.3)';
+                app.style.filter = 'drop-shadow(0 0 30px rgba(251, 191, 36, 0.5))';
                 const appRect = app.getBoundingClientRect();
-                createParticles(appRect.width / 2, appRect.height / 3, '#fbbf24', 50, true);
+                createParticles(appRect.width / 2, appRect.height / 3, '#fbbf24', 60, true);
+                createParticles(appRect.width / 2, appRect.height / 3, '#ffffff', 25, false);
             } else {
-                app.style.boxShadow = '0 0 60px rgba(0, 0, 0, 0.95), inset 0 0 40px rgba(244, 63, 94, 0.15)';
+                app.style.boxShadow = '0 0 80px rgba(0, 0, 0, 0.98), inset 0 0 50px rgba(244, 63, 94, 0.25)';
+                app.style.filter = 'grayscale(0.65) contrast(1.2)';
             }
 
             const targetStage = gameState.stage;
             const targetKills = gameState.stats.kills;
             const targetFlips = gameState.stats.totalFlips;
-            const targetScore = gameState.stats.score + (gameState.stage * 50);
+            const targetScore = gameState.stats.score + (gameState.stage * 75);
 
             const stageEl = document.getElementById('res-stage');
             const killsEl = document.getElementById('res-kills');
@@ -2647,9 +2664,9 @@
 
             showScreen('result-screen');
 
-            // スロットマシーン風カウントアップアニメーション（ハプティック音響同期）
+            // スロットマシーン風カウントアップアニメーション（心音ビート音響同期）
             let currentS = 0, currentK = 0, currentF = 0, currentSc = 0;
-            const duration = 1100;
+            const duration = 1200;
             const startTime = performance.now();
 
             function updateCountup(now) {
@@ -2666,7 +2683,7 @@
                 flipsEl.textContent = currentF;
                 scoreEl.textContent = currentSc;
 
-                if (Math.random() < 0.2) {
+                if (Math.random() < 0.25) {
                     SoundEngine.playTap();
                 }
 
@@ -2678,11 +2695,15 @@
                     flipsEl.textContent = targetFlips;
                     scoreEl.textContent = targetScore;
                     SoundEngine.playCombo();
+                    if (isWin) {
+                        const appRect = app.getBoundingClientRect();
+                        createParticles(appRect.width / 2, appRect.height / 2, '#38bdf8', 40, true);
+                    }
                 }
             }
             requestAnimationFrame(updateCountup);
 
-            // 【新機能3】勝利・敗北時に永続アンロック・アビリティツリー（魂の結晶セーブ）を記録
+            // 永続アンロック・アビリティツリー記録
             if (isWin || gameState.stage >= 3) {
                 localStorage.setItem('roguelike_reversi_ascend', 'true');
             }
