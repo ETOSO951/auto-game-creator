@@ -989,9 +989,11 @@
             playerHp: 30,
             enemyMaxHp: 20,
             enemyHp: 20,
+            enemyShield: 0,
+            enemyPhase: 1,
             board: [],
             specialCells: [], // {r, c, type: 'heal' | 'obstacle' | 'bomb'}
-            enemyType: 'normal', // 'normal' | 'aggressive' | 'thorn' | 'boss'
+            enemyType: 'normal', // 'normal' | 'aggressive' | 'thorn' | 'shield' | 'boss'
             currentTurn: PLAYER,
             isProcessing: false,
             stats: {
@@ -1004,13 +1006,18 @@
                 { id: 'double_strike', name: '重撃', desc: '次の1手でダメージ2倍', ready: true },
                 { id: 'snipe', name: 'スナイプ', desc: '任意の空マスに直接石を配置', ready: true }
             ],
-            selectedSkill: null
+            potions: [
+                { id: 'potion_heal', name: 'ハイポーション', desc: 'HPを20回復する', count: 1 }
+            ],
+            selectedSkill: null,
+            activeShield: false
         };
 
         // スキルプール
         const SKILL_POOL = [
             { id: 'bomb', name: 'ボム', desc: '着手したマスの周囲の敵石を消滅させる' },
-            { id: 'heal_skill', name: '治癒', desc: 'HPを12回復する（即座に発動）', instant: true }
+            { id: 'heal_skill', name: '治癒', desc: 'HPを12回復する（即座に発動）', instant: true },
+            { id: 'shield_bash', name: 'シールドバッシュ', desc: 'シールドを展開し、次ターンの被ダメージを半減する' }
         ];
 
         // 遺物プール
@@ -1018,7 +1025,14 @@
             { id: 'vampire', name: '吸血の牙', desc: '石を返した時、返した枚数分HPを回復する' },
             { id: 'corner_master', name: '角の支配者', desc: '四隅に石を置いた時、敵に10ダメージを与える' },
             { id: 'spikes', name: '棘の鎧', desc: '敵ターン終了時、相手に2ダメージを与える' },
-            { id: 'overgrowth', name: '巨人の加護', desc: '最大HPが15増加し、HPが回復する' }
+            { id: 'overgrowth', name: '巨人の加護', desc: '最大HPが15増加し、HPが回復する' },
+            { id: 'cursed_blade', name: '呪いの刃', desc: '与えるダメージが1.5倍になるが、毎ターン開始時HPが2減少する' }
+        ];
+
+        // ポーションプール
+        const POTION_POOL = [
+            { id: 'potion_heal', name: 'ハイポーション', desc: 'HPを20回復する', count: 1 },
+            { id: 'potion_power', name: '力の霊薬', desc: '次のプレイヤーの着手ダメージが3倍になる', count: 1 }
         ];
 
         // Canvas / パーティクル
