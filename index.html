@@ -337,10 +337,43 @@
             box-shadow: 0 0 10px var(--primary-glow);
         }
 
+        .skill-card.selected {
+            border-color: var(--accent);
+            background: rgba(245, 158, 11, 0.2);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
+            transform: translateY(-2px);
+        }
+
         .skill-card.disabled {
             opacity: 0.4;
             cursor: not-allowed;
             filter: grayscale(1);
+        }
+
+        /* ターン・パス通知バナー */
+        .toast-banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid var(--accent);
+            padding: 12px 28px;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(245, 158, 11, 0.5);
+            z-index: 18;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .toast-banner.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
         }
 
         .skill-name {
@@ -481,6 +514,7 @@
 
     <div id="app">
         <canvas id="fx-canvas"></canvas>
+        <div id="toast-banner" class="toast-banner">PASS</div>
 
         <!-- スタート画面 -->
         <div id="start-screen" class="screen active">
@@ -577,7 +611,7 @@
             },
             relics: [],
             skills: [
-                { id: 'double_strike', name: '重撃', desc: '次の1手で与えるダメージが2倍', cost: 'パッシブ', ready: true, type: 'passive_buff' }
+                { id: 'double_strike', name: '重撃', desc: '次の1手でダメージ2倍 (タップで構える)', ready: true }
             ],
             selectedSkill: null
         };
@@ -669,9 +703,24 @@
             gameState.enemyHp = gameState.enemyMaxHp;
             gameState.currentTurn = PLAYER;
             gameState.isProcessing = false;
+            gameState.selectedSkill = null;
+            gameState.skills.forEach(s => s.ready = true);
             
             initBoard();
             updateUI();
+        }
+
+        // --- 演出・トースト表示 ---
+        function showToast(text, duration = 800) {
+            return new Promise(resolve => {
+                const toast = document.getElementById('toast-banner');
+                toast.textContent = text;
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(resolve, 200);
+                }, duration);
+            });
         }
 
         // 盤面DOMのワンタイム構築 & イベント委譲によるパフォーマンス最適化
@@ -805,11 +854,22 @@
                 return;
             }
 
-            // 着手と反転アニメーション
+            // 着手と反転アニメーション（完了まで単一非同期実行）
             await executeMove(r, c, PLAYER, flippable);
 
-            // ダメージ計算
+            // ダメージ基礎計算
             let dmg = flippable.length * 3;
+
+            // スキル「重撃」適用
+            const isDoubleStrikeActive = (gameState.selectedSkill === 'double_strike');
+            if (isDoubleStrikeActive) {
+                dmg *= 2;
+                showEffectAtCell(r, c, '#f59e0b');
+                // スキル消費
+                const skill = gameState.skills.find(s => s.id === 'double_strike');
+                if (skill) skill.ready = false;
+                gameState.selectedSkill = null;
+            }
             
             // 角チェック (角の支配者)
             if (hasRelic('corner_master') && isCorner(r, c)) {
@@ -863,7 +923,7 @@
             const nextMoves = getValidMoves(gameState.board, nextTurnTarget);
             
             if (nextMoves.length > 0) {
-                // 通常通り次のプレイヤーへ
+                // 通常手番移行
                 gameState.currentTurn = nextTurnTarget;
                 gameState.isProcessing = (nextTurnTarget === ENEMY);
                 updateUI();
@@ -878,10 +938,16 @@
                 const oppositeMoves = getValidMoves(gameState.board, oppositeTurn);
 
                 if (oppositeMoves.length === 0) {
-                    // 両者ともに合法手なし -> 勝敗決着判定
+                    // 両者ともに合法手なし -> 全面決着
+                    gameState.isProcessing = true;
+                    await showToast('NO MOVES - FINISH', 1000);
                     resolveBoardFull();
                 } else {
-                    // 片方パスによりターン維持
+                    // パス通知を挟んで手番スキップ
+                    gameState.isProcessing = true;
+                    const passName = (nextTurnTarget === PLAYER) ? 'PLAYER PASS' : 'ENEMY PASS';
+                    await showToast(passName, 900);
+
                     gameState.currentTurn = oppositeTurn;
                     gameState.isProcessing = (oppositeTurn === ENEMY);
                     updateUI();
@@ -895,13 +961,24 @@
         }
 
         async function executeMove(r, c, turn, flippable) {
-            gameState.board[r][c] = turn;
-            renderBoard();
+            // 合法手ハイライトを即座に消去
+            document.querySelectorAll('.cell.valid').forEach(el => el.classList.remove('valid'));
 
-            // 着手エフェクト
-            const cellEl = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
-            if (cellEl) {
-                const rect = cellEl.getBoundingClientRect();
+            // 内部盤面に着手を反映
+            gameState.board[r][c] = turn;
+            
+            // 着手マスの石をDOM配置
+            const placedCell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+            if (placedCell) {
+                let disc = placedCell.querySelector('.disc');
+                if (!disc) {
+                    disc = document.createElement('div');
+                    placedCell.appendChild(disc);
+                }
+                disc.className = `disc ${turn === PLAYER ? 'player' : 'enemy'}`;
+
+                // 着手エフェクト
+                const rect = placedCell.getBoundingClientRect();
                 const appRect = document.getElementById('app').getBoundingClientRect();
                 createParticles(
                     rect.left - appRect.left + rect.width / 2,
@@ -910,23 +987,25 @@
                 );
             }
 
-            // 反転アニメーション（DOM差分を維持しながらクラス適用）
+            // 反転アニメーションを各セルに同期適用（renderBoardを挟まずDOMクラスを直接操作）
             for (let pos of flippable) {
-                await new Promise(res => setTimeout(res, 50));
+                await new Promise(res => setTimeout(res, 60));
                 gameState.board[pos.r][pos.c] = turn;
 
                 const flipCell = document.querySelector(`[data-row="${pos.r}"][data-col="${pos.c}"]`);
                 if (flipCell) {
-                    const disc = flipCell.querySelector('.disc');
+                    let disc = flipCell.querySelector('.disc');
                     if (disc) {
                         disc.classList.remove('flip-anim');
-                        void disc.offsetWidth; // リフロー発生でアニメーションリセット
-                        disc.classList.add('flip-anim');
+                        void disc.offsetWidth; // リフロー強制
+                        disc.className = `disc ${turn === PLAYER ? 'player' : 'enemy'} flip-anim`;
                     }
                 }
-                renderBoard();
             }
-            await new Promise(res => setTimeout(res, 150));
+            await new Promise(res => setTimeout(res, 250));
+
+            // 全反転完了後に全体再描画でDOM状態を確実に同期
+            renderBoard();
         }
 
         function isCorner(r, c) {
@@ -1086,12 +1165,21 @@
             const skillsContainer = document.getElementById('skills-container');
             skillsContainer.innerHTML = '';
             gameState.skills.forEach(s => {
+                const isSelected = gameState.selectedSkill === s.id;
                 const card = document.createElement('div');
-                card.className = `skill-card ${s.ready ? 'active' : 'disabled'}`;
+                card.className = `skill-card ${s.ready ? 'active' : 'disabled'} ${isSelected ? 'selected' : ''}`;
                 card.innerHTML = `
-                    <div class="skill-name">${s.name}</div>
+                    <div class="skill-name">${s.name}${isSelected ? ' [準備完了]' : ''}</div>
                     <div class="skill-cost">${s.desc}</div>
                 `;
+                
+                // スキルタップ時の発動待機トグル処理
+                if (s.ready && gameState.currentTurn === PLAYER && !gameState.isProcessing) {
+                    card.addEventListener('click', () => {
+                        gameState.selectedSkill = (gameState.selectedSkill === s.id) ? null : s.id;
+                        updateUI();
+                    });
+                }
                 skillsContainer.appendChild(card);
             });
         }
