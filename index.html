@@ -104,13 +104,43 @@
             z-index: 10;
         }
 
-        /* タイトル画面 */
+        /* タイトル画面 (アイデア1: バックグラウンドのデモプレイ用シネマティックコンテナ) */
         #start-screen {
             justify-content: center;
             align-items: center;
             text-align: center;
             gap: 24px;
             animation: cinematicFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-board-bg {
+            position: absolute;
+            width: 320px;
+            height: 320px;
+            opacity: 0.15;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 4px;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(2px);
+            animation: demoRotate 30s infinite linear;
+        }
+
+        @keyframes demoRotate {
+            0% { transform: scale(1.2) rotate(0deg); }
+            100% { transform: scale(1.2) rotate(360deg); }
+        }
+
+        .demo-cell {
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         @keyframes cinematicFadeIn {
@@ -858,13 +888,14 @@
         <canvas id="fx-canvas"></canvas>
         <div id="toast-banner" class="toast-banner">PASS</div>
 
-        <!-- スタート画面 -->
+        <!-- スタート画面 (アイデア1: 背景デモボード追加) -->
         <div id="start-screen" class="screen active">
-            <div class="logo-container">
+            <div class="demo-board-bg" id="demo-board-bg"></div>
+            <div class="logo-container" style="z-index: 2;">
                 <div class="logo-title">REVERSI<br>ROGUELIKE</div>
                 <div class="logo-sub">盤上の支配者</div>
             </div>
-            <button class="btn" id="start-btn">ゲーム開始</button>
+            <button class="btn" id="start-btn" style="z-index: 2;">ゲーム開始</button>
         </div>
 
         <!-- マップ選択画面 -->
@@ -1236,8 +1267,43 @@
             }
         };
 
-        // --- 初期化 & ゲーム開始 ---
+        // --- 初期化 & ゲーム開始 (アイデア1: デモプレイ自動シミュレーションループ) ---
+        let demoInterval = null;
+        function initDemoBoard() {
+            const bg = document.getElementById('demo-board-bg');
+            if (!bg) return;
+            bg.innerHTML = '';
+            let demoCells = [];
+            for(let i=0; i<36; i++) {
+                const c = document.createElement('div');
+                c.className = 'demo-cell';
+                if(i === 14 || i === 21) {
+                    const d = document.createElement('div'); d.className = 'disc player'; c.appendChild(d);
+                } else if(i === 15 || i === 20) {
+                    const d = document.createElement('div'); d.className = 'disc enemy'; c.appendChild(d);
+                }
+                bg.appendChild(c);
+                demoCells.push(c);
+            }
+            if(demoInterval) clearInterval(demoInterval);
+            let step = 0;
+            demoInterval = setInterval(() => {
+                const indices = [13, 8, 22, 27];
+                const idx = indices[step % indices.length];
+                const target = demoCells[idx];
+                if(target && !target.querySelector('.disc')) {
+                    const d = document.createElement('div');
+                    d.className = `disc ${step % 2 === 0 ? 'player' : 'enemy'} flip-anim`;
+                    target.appendChild(d);
+                    setTimeout(() => { if(target.contains(d)) d.classList.remove('flip-anim'); }, 400);
+                }
+                step++;
+            }, 1800);
+        }
+        initDemoBoard();
+
         document.getElementById('start-btn').addEventListener('click', () => {
+            if(demoInterval) clearInterval(demoInterval);
             SoundEngine.playCombo();
             initNewGame();
             showMapScreen();
@@ -2322,13 +2388,21 @@
             return gameState.curses.some(c => c.id === id);
         }
 
+        // --- 画面シェイク & 色収差・RGBシフト演出 (アイデア3: ハプティック・イマーション) ---
         function triggerScreenShake(isHeavy = false) {
             const app = document.getElementById('app');
             app.classList.remove('shake', 'shake-heavy');
             void app.offsetWidth;
             const cls = isHeavy ? 'shake-heavy' : 'shake';
             app.classList.add(cls);
-            setTimeout(() => app.classList.remove(cls), isHeavy ? 400 : 300);
+            
+            // 色収差・RGBシフト効果の動的トグル
+            document.body.style.filter = isHeavy ? 'hue-rotate(15deg) contrast(1.15)' : 'none';
+            
+            setTimeout(() => {
+                app.classList.remove(cls);
+                document.body.style.filter = 'none';
+            }, isHeavy ? 450 : 320);
         }
 
         function spawnDamagePopup(target, amount, isCritical = false) {
@@ -2486,20 +2560,63 @@
             showMapScreen();
         }
 
+        // --- ゲームオーバー・クリア画面 (アイデア2: スロットマシーン風ドラマチック・カウントアップ演出) ---
         function showGameOver(isWin) {
             document.getElementById('result-title').textContent = isWin ? 'VICTORY!' : 'GAME OVER';
             document.getElementById('result-title').className = `result-title ${isWin ? 'win' : 'lose'}`;
-            document.getElementById('res-stage').textContent = gameState.stage;
-            document.getElementById('res-kills').textContent = gameState.stats.kills;
-            document.getElementById('res-flips').textContent = gameState.stats.totalFlips;
-            document.getElementById('res-score').textContent = gameState.stats.score + (gameState.stage * 50);
+            
+            const targetStage = gameState.stage;
+            const targetKills = gameState.stats.kills;
+            const targetFlips = gameState.stats.totalFlips;
+            const targetScore = gameState.stats.score + (gameState.stage * 50);
+
+            const stageEl = document.getElementById('res-stage');
+            const killsEl = document.getElementById('res-kills');
+            const flipsEl = document.getElementById('res-flips');
+            const scoreEl = document.getElementById('res-score');
+
+            stageEl.textContent = '0';
+            killsEl.textContent = '0';
+            flipsEl.textContent = '0';
+            scoreEl.textContent = '0';
+
+            showScreen('result-screen');
+
+            // スロットマシーン風カウントアップアニメーション
+            let currentS = 0, currentK = 0, currentF = 0, currentSc = 0;
+            const duration = 900;
+            const startTime = performance.now();
+
+            function updateCountup(now) {
+                const progress = Math.min(1, (now - startTime) / duration);
+                const ease = 1 - Math.pow(1 - progress, 3); //easeOutCubic
+
+                currentS = Math.floor(targetStage * ease);
+                currentK = Math.floor(targetKills * ease);
+                currentF = Math.floor(targetFlips * ease);
+                currentSc = Math.floor(targetScore * ease);
+
+                stageEl.textContent = currentS;
+                killsEl.textContent = currentK;
+                flipsEl.textContent = currentF;
+                scoreEl.textContent = currentSc;
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateCountup);
+                } else {
+                    stageEl.textContent = targetStage;
+                    killsEl.textContent = targetKills;
+                    flipsEl.textContent = targetFlips;
+                    scoreEl.textContent = targetScore;
+                    SoundEngine.playCombo();
+                }
+            }
+            requestAnimationFrame(updateCountup);
 
             // 【新機能3】勝利・敗北時に永続アンロック・アビリティツリー（魂の結晶セーブ）を記録
             if (isWin || gameState.stage >= 3) {
                 localStorage.setItem('roguelike_reversi_ascend', 'true');
             }
-
-            showScreen('result-screen');
         }
 
         // HP追従アニメーション用保持状態
