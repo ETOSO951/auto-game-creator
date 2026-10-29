@@ -536,7 +536,7 @@
             82% { transform: translate(-3px, 2px); }
         }
 
-        /* 石（最高峰の光学ジェムストーン質感・ガラス屈折ライティング & 動的スペキュラ） */
+        /* 石（最高峰の光学ジェムストーン質感・ガラス屈折ライティング & 虹彩リムライト） */
         .disc {
             width: 82%;
             height: 82%;
@@ -545,8 +545,8 @@
             transform-style: preserve-3d;
             will-change: transform, box-shadow, filter;
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-            backdrop-filter: blur(2px);
-            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
         }
 
         /* 内部シャドウと表層屈折レンズハイライト（動的光源追従感） */
@@ -555,53 +555,54 @@
             position: absolute;
             top: 4%;
             left: 8%;
-            width: 52%;
-            height: 38%;
-            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.5) 35%, rgba(255, 255, 255, 0) 80%);
+            width: 56%;
+            height: 40%;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.6) 35%, rgba(255, 255, 255, 0) 80%);
             border-radius: 50%;
-            filter: blur(0.4px);
+            filter: blur(0.5px);
             pointer-events: none;
-            z-index: 2;
+            z-index: 3;
             mix-blend-mode: overlay;
             animation: discSpecularShift 6s infinite alternate ease-in-out;
         }
 
         @keyframes discSpecularShift {
-            0% { transform: translate(0, 0) scale(1); opacity: 0.85; }
-            50% { transform: translate(2px, 2px) scale(1.05); opacity: 1; }
-            100% { transform: translate(-1px, 1px) scale(0.95); opacity: 0.9; }
+            0% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+            50% { transform: translate(2.5px, 2px) scale(1.06); opacity: 1; }
+            100% { transform: translate(-1.5px, 1.5px) scale(0.96); opacity: 0.95; }
         }
 
-        /* 石の下部内部光沢・エッジリムライト・光学屈折境界 */
+        /* 石のエッジ虹彩イリデッセンスリムライト */
         .disc::after {
             content: '';
             position: absolute;
-            bottom: 3%;
-            right: 6%;
-            width: 60%;
-            height: 42%;
-            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.55) 0%, transparent 75%);
+            inset: -1px;
             border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), transparent 50%, rgba(56, 189, 248, 0.3));
             pointer-events: none;
             z-index: 1;
+            opacity: 0.8;
+            mix-blend-mode: screen;
         }
 
         .disc.player {
-            background: radial-gradient(circle at 30% 20%, #f0f9ff 0%, #38bdf8 30%, #0284c7 68%, #0369a1 95%, #0c4a6e 100%);
+            background: radial-gradient(circle at 30% 20%, #f0f9ff 0%, #38bdf8 28%, #0284c7 65%, #0369a1 90%, #0c4a6e 100%);
             box-shadow: 
-                0 12px 26px rgba(0, 0, 0, 0.8),
-                inset 0 -7px 14px rgba(2, 132, 199, 0.95),
-                inset 0 4px 8px rgba(255, 255, 255, 0.7),
-                0 0 35px rgba(56, 189, 248, 0.9);
+                0 14px 30px rgba(0, 0, 0, 0.85),
+                inset 0 -8px 16px rgba(2, 132, 199, 0.95),
+                inset 0 5px 10px rgba(255, 255, 255, 0.8),
+                0 0 40px rgba(56, 189, 248, 0.95),
+                0 0 15px rgba(255, 255, 255, 0.4) inset;
         }
 
         .disc.enemy {
-            background: radial-gradient(circle at 30% 20%, #fff1f2 0%, #fb7185 30%, #e11d48 68%, #be123c 95%, #881337 100%);
+            background: radial-gradient(circle at 30% 20%, #fff1f2 0%, #fb7185 28%, #e11d48 65%, #be123c 90%, #881337 100%);
             box-shadow: 
-                0 12px 26px rgba(0, 0, 0, 0.8),
-                inset 0 -7px 14px rgba(190, 18, 60, 0.95),
-                inset 0 4px 8px rgba(255, 255, 255, 0.7),
-                0 0 35px rgba(244, 63, 94, 0.9);
+                0 14px 30px rgba(0, 0, 0, 0.85),
+                inset 0 -8px 16px rgba(190, 18, 60, 0.95),
+                inset 0 5px 10px rgba(255, 255, 255, 0.8),
+                0 0 40px rgba(244, 63, 94, 0.95),
+                0 0 15px rgba(255, 255, 255, 0.4) inset;
         }
 
         .disc.flip-anim {
@@ -1047,6 +1048,8 @@
 
             for (let i = len - 1; i >= 0; i--) {
                 const p = particles[i];
+                const prevX = p.x;
+                const prevY = p.y;
                 p.x += p.vx;
                 p.y += p.vy;
                 p.vy += p.gravity;
@@ -1069,36 +1072,47 @@
 
                 // ネオンブルーム（高輝度シャドウ＆微細RGBシフト）
                 ctx.shadowColor = p.color;
-                ctx.shadowBlur = 28;
+                ctx.shadowBlur = 32;
+
+                // モーションブラー（速度ベクトルに応じた残像引き延ばし）
+                const speedSq = p.vx * p.vx + p.vy * p.vy;
+                if (speedSq > 1.5 && p.type !== 'ring') {
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(-p.vx * 2.2, -p.vy * 2.2);
+                    ctx.lineWidth = p.size * 1.2;
+                    ctx.strokeStyle = p.color;
+                    ctx.stroke();
+                }
 
                 if (p.type === 'spark') {
                     // RGB色収差風の多重ストローク
                     ctx.beginPath();
-                    ctx.moveTo(-p.size * 4.5, 0); ctx.lineTo(p.size * 4.5, 0);
-                    ctx.moveTo(0, -p.size * 4.5); ctx.lineTo(0, p.size * 4.5);
-                    ctx.lineWidth = 3.2;
+                    ctx.moveTo(-p.size * 5.0, 0); ctx.lineTo(p.size * 5.0, 0);
+                    ctx.moveTo(0, -p.size * 5.0); ctx.lineTo(0, p.size * 5.0);
+                    ctx.lineWidth = 3.6;
                     ctx.stroke();
                     
-                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
-                    ctx.lineWidth = 1.6;
-                    ctx.stroke(new Path2D());
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+                    ctx.lineWidth = 1.8;
+                    ctx.stroke();
 
                     // コアの白い鋭い輝き
                     ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 1.0;
+                    ctx.lineWidth = 1.1;
                     ctx.stroke();
                 } else if (p.type === 'ring') {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 3.4, 0, Math.PI * 2);
-                    ctx.lineWidth = 2.2;
+                    ctx.arc(0, 0, p.size * 4.0, 0, Math.PI * 2);
+                    ctx.lineWidth = 2.6;
                     ctx.stroke();
                 } else if (p.type === 'glow') {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 2.5, 0, Math.PI * 2);
+                    ctx.arc(0, 0, p.size * 2.8, 0, Math.PI * 2);
                     ctx.fill();
                 } else {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 1.6, 0, Math.PI * 2);
+                    ctx.arc(0, 0, p.size * 1.8, 0, Math.PI * 2);
                     ctx.fill();
                 }
                 ctx.restore();
