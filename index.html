@@ -203,8 +203,24 @@
         .hp-bar-fill {
             height: 100%;
             width: 100%;
-            transition: width 0.3s ease;
+            transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: 5px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+
+        .hp-bar-delay {
+            height: 100%;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s;
+            border-radius: 5px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
         }
 
         .player .hp-bar-fill { background: linear-gradient(90deg, #38bdf8, #818cf8); }
@@ -251,16 +267,83 @@
         }
 
         .cell.valid {
-            background: var(--cell-hover);
+            background: rgba(56, 189, 248, 0.15);
+            box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.3);
         }
 
         .cell.valid::after {
             content: '';
-            width: 12px;
-            height: 12px;
-            background: rgba(56, 189, 248, 0.4);
+            width: 16px;
+            height: 16px;
+            background: rgba(56, 189, 248, 0.7);
             border-radius: 50%;
-            box-shadow: 0 0 8px var(--primary-glow);
+            box-shadow: 0 0 12px var(--primary);
+            animation: pulseValid 1.2s infinite alternate ease-in-out;
+        }
+
+        @keyframes pulseValid {
+            0% { transform: scale(0.8); opacity: 0.6; }
+            100% { transform: scale(1.15); opacity: 1; }
+        }
+
+        /* ひっくり返しプレビュー */
+        .cell.preview-flip .disc {
+            opacity: 0.5;
+            filter: brightness(1.5);
+            transform: scale(0.9);
+        }
+
+        /* 敵のターゲットフォーカス */
+        .cell.enemy-target::before {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            border: 2px solid var(--enemy-color);
+            border-radius: 6px;
+            box-shadow: 0 0 12px var(--enemy-color);
+            z-index: 5;
+            animation: focusTarget 0.4s ease-out;
+        }
+
+        @keyframes focusTarget {
+            0% { transform: scale(1.4); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* フローティングダメージテキスト */
+        .damage-popup {
+            position: absolute;
+            font-weight: 900;
+            font-size: 1.5rem;
+            pointer-events: none;
+            z-index: 30;
+            animation: floatDamage 0.8s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        }
+
+        .damage-popup.player-dmg { color: #f43f5e; }
+        .damage-popup.enemy-dmg { color: #38bdf8; }
+        .damage-popup.critical { color: #f59e0b; font-size: 1.8rem; }
+
+        @keyframes floatDamage {
+            0% { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -15px) scale(1.2); }
+            80% { opacity: 1; transform: translate(-50%, -30px) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -45px) scale(0.8); }
+        }
+
+        /* 画面振動 */
+        .shake {
+            animation: shakeScreen 0.25s ease-in-out;
+        }
+
+        @keyframes shakeScreen {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-4px, 2px); }
+            40% { transform: translate(4px, -2px); }
+            60% { transform: translate(-2px, 4px); }
+            80% { transform: translate(2px, -1px); }
         }
 
         /* 石 */
@@ -534,16 +617,18 @@
                     <span id="turn-text">あなたのターン</span>
                 </div>
                 <div class="fighters">
-                    <div class="fighter player">
+                    <div class="fighter player" id="fighter-player">
                         <div class="fighter-name">PLAYER</div>
                         <div class="hp-bar-bg">
+                            <div class="hp-bar-delay" id="player-hp-delay"></div>
                             <div class="hp-bar-fill" id="player-hp-bar"></div>
                         </div>
                         <div class="hp-text" id="player-hp-text">HP: 30/30</div>
                     </div>
-                    <div class="fighter enemy">
+                    <div class="fighter enemy" id="fighter-enemy">
                         <div class="fighter-name" id="enemy-name">ENEMY</div>
                         <div class="hp-bar-bg">
+                            <div class="hp-bar-delay" id="enemy-hp-delay"></div>
                             <div class="hp-bar-fill" id="enemy-hp-bar"></div>
                         </div>
                         <div class="hp-text" id="enemy-hp-text">HP: 20/20</div>
@@ -738,8 +823,44 @@
                     boardEl.appendChild(cell);
                 }
             }
+
+            // ひっくり返るマスのプレビュー解除クリア処理
+            const clearPreview = () => {
+                document.querySelectorAll('.cell.preview-flip').forEach(c => c.classList.remove('preview-flip'));
+            };
+
+            // ホバー/タッチ時のプレビュー表示処理
+            const showPreview = (cell) => {
+                clearPreview();
+                if (!cell || gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
+                if (!cell.classList.contains('valid')) return;
+
+                const r = parseInt(cell.dataset.row, 10);
+                const c = parseInt(cell.dataset.col, 10);
+                const flippable = getFlippable(gameState.board, r, c, PLAYER);
+                
+                flippable.forEach(pos => {
+                    const flipCell = document.querySelector(`[data-row="${pos.r}"][data-col="${pos.c}"]`);
+                    if (flipCell) flipCell.classList.add('preview-flip');
+                });
+            };
+
+            boardEl.addEventListener('mouseover', (e) => {
+                const cell = e.target.closest('.cell');
+                showPreview(cell);
+            });
+
+            boardEl.addEventListener('mouseleave', clearPreview);
+
+            // タッチデバイス対応
+            boardEl.addEventListener('touchstart', (e) => {
+                const cell = e.target.closest('.cell');
+                showPreview(cell);
+            }, { passive: true });
+
             // イベント委譲（Event Delegation）によるタップ制御の一括管理
             boardEl.addEventListener('click', (e) => {
+                clearPreview();
                 const cell = e.target.closest('.cell');
                 if (!cell || gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
                 const r = parseInt(cell.dataset.row, 10);
@@ -859,13 +980,12 @@
 
             // ダメージ基礎計算
             let dmg = flippable.length * 3;
+            const isDoubleStrikeActive = (gameState.selectedSkill === 'double_strike');
 
             // スキル「重撃」適用
-            const isDoubleStrikeActive = (gameState.selectedSkill === 'double_strike');
             if (isDoubleStrikeActive) {
                 dmg *= 2;
                 showEffectAtCell(r, c, '#f59e0b');
-                // スキル消費
                 const skill = gameState.skills.find(s => s.id === 'double_strike');
                 if (skill) skill.ready = false;
                 gameState.selectedSkill = null;
@@ -884,7 +1004,7 @@
             }
 
             // ダメージ適用
-            applyDamage(ENEMY, dmg);
+            applyDamage(ENEMY, dmg, isDoubleStrikeActive);
             gameState.stats.totalFlips += flippable.length;
 
             if (checkBattleEnd()) return;
@@ -903,6 +1023,15 @@
                 });
 
                 const bestMove = moves[0];
+
+                // 敵のフォーカス演出（着手マスの事前予告）
+                const targetCell = document.querySelector(`[data-row="${bestMove.r}"][data-col="${bestMove.c}"]`);
+                if (targetCell) {
+                    targetCell.classList.add('enemy-target');
+                    await new Promise(res => setTimeout(res, 400));
+                    targetCell.classList.remove('enemy-target');
+                }
+
                 await executeMove(bestMove.r, bestMove.c, ENEMY, bestMove.flippable);
 
                 let dmg = bestMove.flippable.length * 2;
@@ -918,7 +1047,7 @@
             await advanceNextTurn(PLAYER);
         }
 
-        // ターン制御・パス判定・終了判定の堅牢な一元化関数
+        // ターン制御・パス判定・終了判定の完全Promise化
         async function advanceNextTurn(nextTurnTarget) {
             const nextMoves = getValidMoves(gameState.board, nextTurnTarget);
             
@@ -930,7 +1059,8 @@
                 renderBoard();
 
                 if (nextTurnTarget === ENEMY) {
-                    setTimeout(enemyTurn, 600);
+                    await new Promise(res => setTimeout(res, 300));
+                    await enemyTurn();
                 }
             } else {
                 // パス発生：もう片方のプレイヤーの手を確認
@@ -954,7 +1084,8 @@
                     renderBoard();
 
                     if (oppositeTurn === ENEMY) {
-                        setTimeout(enemyTurn, 600);
+                        await new Promise(res => setTimeout(res, 300));
+                        await enemyTurn();
                     }
                 }
             }
@@ -1016,12 +1147,41 @@
             return gameState.relics.some(r => r.id === id);
         }
 
-        function applyDamage(target, amount) {
+        function triggerScreenShake() {
+            const app = document.getElementById('app');
+            app.classList.remove('shake');
+            void app.offsetWidth;
+            app.classList.add('shake');
+            setTimeout(() => app.classList.remove('shake'), 250);
+        }
+
+        function spawnDamagePopup(target, amount, isCritical = false) {
+            const targetEl = document.getElementById(target === ENEMY ? 'fighter-enemy' : 'fighter-player');
+            if (!targetEl) return;
+            const rect = targetEl.getBoundingClientRect();
+            const appRect = document.getElementById('app').getBoundingClientRect();
+
+            const popup = document.createElement('div');
+            popup.className = `damage-popup ${target === ENEMY ? 'enemy-dmg' : 'player-dmg'} ${isCritical ? 'critical' : ''}`;
+            popup.textContent = `-${amount}`;
+            popup.style.left = `${rect.left - appRect.left + rect.width / 2}px`;
+            popup.style.top = `${rect.top - appRect.top + rect.height / 2}px`;
+
+            document.getElementById('app').appendChild(popup);
+            setTimeout(() => popup.remove(), 800);
+        }
+
+        function applyDamage(target, amount, isCritical = false) {
+            if (amount <= 0) return;
+            
             if (target === ENEMY) {
                 gameState.enemyHp = Math.max(0, gameState.enemyHp - amount);
             } else {
                 gameState.playerHp = Math.max(0, gameState.playerHp - amount);
             }
+
+            spawnDamagePopup(target, amount, isCritical);
+            triggerScreenShake();
             updateUI();
         }
 
@@ -1130,57 +1290,74 @@
             showScreen('result-screen');
         }
 
-        // --- UI更新 ---
+        // --- UI更新 (差分適用による最適化) ---
         function updateUI() {
             // ステージ・ターン
             document.getElementById('stage-text').textContent = `FLOOR ${gameState.stage}`;
             document.getElementById('turn-text').textContent = gameState.currentTurn === PLAYER ? 'あなたのターン' : '相手のターン';
 
-            // HPバー
+            // HPバー & 遅延バー
             const pPct = Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100);
             const ePct = Math.max(0, (gameState.enemyHp / gameState.enemyMaxHp) * 100);
             
             document.getElementById('player-hp-bar').style.width = `${pPct}%`;
             document.getElementById('enemy-hp-bar').style.width = `${ePct}%`;
+            document.getElementById('player-hp-delay').style.width = `${pPct}%`;
+            document.getElementById('enemy-hp-delay').style.width = `${ePct}%`;
             
             document.getElementById('player-hp-text').textContent = `HP: ${gameState.playerHp}/${gameState.playerMaxHp}`;
             document.getElementById('enemy-hp-text').textContent = `HP: ${gameState.enemyHp}/${gameState.enemyMaxHp}`;
 
-            // 遺物表示
+            // 遺物表示の差分更新
             const relicsContainer = document.getElementById('relics-container');
-            relicsContainer.innerHTML = '';
+            const relicBadges = relicsContainer.querySelectorAll('.relic-badge');
             if (gameState.relics.length === 0) {
-                relicsContainer.innerHTML = '<span class="relic-badge">なし</span>';
+                if (relicBadges.length !== 1 || relicBadges[0].textContent !== 'なし') {
+                    relicsContainer.innerHTML = '<span class="relic-badge">なし</span>';
+                }
             } else {
-                gameState.relics.forEach(r => {
-                    const badge = document.createElement('span');
-                    badge.className = 'relic-badge';
-                    badge.textContent = r.name;
-                    badge.title = r.desc;
-                    relicsContainer.appendChild(badge);
-                });
+                if (relicBadges.length !== gameState.relics.length || relicBadges[0]?.textContent === 'なし') {
+                    relicsContainer.innerHTML = '';
+                    gameState.relics.forEach(r => {
+                        const badge = document.createElement('span');
+                        badge.className = 'relic-badge';
+                        badge.textContent = r.name;
+                        badge.title = r.desc;
+                        relicsContainer.appendChild(badge);
+                    });
+                }
             }
 
-            // スキル表示
+            // スキル表示の差分更新
             const skillsContainer = document.getElementById('skills-container');
-            skillsContainer.innerHTML = '';
-            gameState.skills.forEach(s => {
-                const isSelected = gameState.selectedSkill === s.id;
-                const card = document.createElement('div');
-                card.className = `skill-card ${s.ready ? 'active' : 'disabled'} ${isSelected ? 'selected' : ''}`;
-                card.innerHTML = `
-                    <div class="skill-name">${s.name}${isSelected ? ' [準備完了]' : ''}</div>
-                    <div class="skill-cost">${s.desc}</div>
-                `;
-                
-                // スキルタップ時の発動待機トグル処理
-                if (s.ready && gameState.currentTurn === PLAYER && !gameState.isProcessing) {
+            if (skillsContainer.children.length !== gameState.skills.length) {
+                skillsContainer.innerHTML = '';
+                gameState.skills.forEach(s => {
+                    const card = document.createElement('div');
+                    card.dataset.skillId = s.id;
+                    card.innerHTML = `
+                        <div class="skill-name"></div>
+                        <div class="skill-cost">${s.desc}</div>
+                    `;
                     card.addEventListener('click', () => {
+                        if (!s.ready || gameState.currentTurn !== PLAYER || gameState.isProcessing) return;
                         gameState.selectedSkill = (gameState.selectedSkill === s.id) ? null : s.id;
                         updateUI();
                     });
+                    skillsContainer.appendChild(card);
+                });
+            }
+
+            // 各スキルカードの状態クラス・テキスト差分適用
+            gameState.skills.forEach((s, idx) => {
+                const card = skillsContainer.children[idx];
+                if (!card) return;
+                const isSelected = gameState.selectedSkill === s.id;
+                card.className = `skill-card ${s.ready ? 'active' : 'disabled'} ${isSelected ? 'selected' : ''}`;
+                const nameEl = card.querySelector('.skill-name');
+                if (nameEl) {
+                    nameEl.textContent = `${s.name}${isSelected ? ' [準備完了]' : ''}`;
                 }
-                skillsContainer.appendChild(card);
             });
         }
     </script>
