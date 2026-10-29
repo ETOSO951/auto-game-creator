@@ -39,6 +39,7 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            touch-action: none;
             background-image: 
                 radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.15) 0%, transparent 70%),
                 radial-gradient(circle at 50% 100%, rgba(244, 63, 94, 0.1) 0%, transparent 70%);
@@ -948,6 +949,7 @@
 
             boardEl.addEventListener('pointerdown', (e) => {
                 if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
+                if (e.cancelable) e.preventDefault();
                 activePointerId = e.pointerId;
                 currentPointerCell = getCellFromPoint(e);
                 showPreview(currentPointerCell);
@@ -959,6 +961,7 @@
 
             boardEl.addEventListener('pointermove', (e) => {
                 if (activePointerId !== null && e.pointerId !== activePointerId) return;
+                if (e.cancelable) e.preventDefault();
                 if (gameState.isProcessing || gameState.currentTurn !== PLAYER) {
                     clearPreview();
                     return;
@@ -972,6 +975,7 @@
 
             const handlePointerUpOrCancel = (e) => {
                 if (activePointerId !== null && e.pointerId === activePointerId) {
+                    if (e.cancelable) e.preventDefault();
                     const cellToTrigger = getCellFromPoint(e);
                     
                     try {
@@ -980,13 +984,14 @@
                         }
                     } catch (_) {}
 
+                    const targetCell = cellToTrigger;
                     activePointerId = null;
                     currentPointerCell = null;
                     clearPreview();
 
-                    if (e.type === 'pointerup' && !gameState.isProcessing && gameState.currentTurn === PLAYER && cellToTrigger && cellToTrigger.classList.contains('valid')) {
-                        const r = parseInt(cellToTrigger.dataset.row, 10);
-                        const c = parseInt(cellToTrigger.dataset.col, 10);
+                    if (e.type === 'pointerup' && !gameState.isProcessing && gameState.currentTurn === PLAYER && targetCell && targetCell.classList.contains('valid')) {
+                        const r = parseInt(targetCell.dataset.row, 10);
+                        const c = parseInt(targetCell.dataset.col, 10);
                         handlePlayerMove(r, c);
                     }
                 }
@@ -994,7 +999,7 @@
 
             boardEl.addEventListener('pointerup', handlePointerUpOrCancel);
             boardEl.addEventListener('pointercancel', handlePointerUpOrCancel);
-            boardEl.addEventListener('pointerleave', (e) => {
+            boardEl.addEventListener('pointerleave', () => {
                 if (activePointerId === null) {
                     clearPreview();
                 }
@@ -1299,7 +1304,8 @@
             // 1. 【State】純粋エンジンによるイミュータブルな状態更新
             gameState.board = ReversiEngine.getNextBoardState(gameState.board, r, c, turn, flippable);
 
-            // 2. 【View】演出パイプライン（60fps同期付きアニメーション）
+            // 2. 【View】着手マスアニメーション＆パーティクル発生
+            const targetColor = (turn === PLAYER) ? 'player' : 'enemy';
             const placedCell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
             if (placedCell) {
                 let disc = placedCell.querySelector('.disc');
@@ -1307,7 +1313,7 @@
                     disc = document.createElement('div');
                     placedCell.appendChild(disc);
                 }
-                disc.className = `disc ${turn === PLAYER ? 'player' : 'enemy'}`;
+                disc.className = `disc ${targetColor}`;
 
                 const rect = placedCell.getBoundingClientRect();
                 const appRect = document.getElementById('app').getBoundingClientRect();
@@ -1318,11 +1324,11 @@
                 );
             }
 
-            // 2b. 反転タイムラインのウェーブ再生とリフロー負荷の最適化
+            // 3. 【View】ウェーブ状の反転アニメーション処理（DOM最適化＆アニメーション同期）
             const animPromises = [];
             for (let i = 0; i < flippable.length; i++) {
                 const pos = flippable[i];
-                await wait(40); // テンポよく反転波を広げる
+                if (i > 0) await wait(35); // 時間差で反転波を拡散
                 const flipCell = document.querySelector(`[data-row="${pos.r}"][data-col="${pos.c}"]`);
                 if (flipCell) {
                     let disc = flipCell.querySelector('.disc');
@@ -1331,19 +1337,20 @@
                         flipCell.appendChild(disc);
                     }
                     
-                    await new Promise(res => requestAnimationFrame(res));
+                    // アニメーションのトリガーと正確な完了同期
                     disc.classList.remove('flip-anim');
-                    void disc.offsetWidth; // 強制リフロー
-                    disc.className = `disc ${turn === PLAYER ? 'player' : 'enemy'} flip-anim`;
+                    // repaint同期
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    disc.className = `disc ${targetColor} flip-anim`;
                     animPromises.push(waitForAnimationEnd(disc, 320));
                 }
             }
 
-            // 3. 全アニメーションの完全完了待機とDOMの整合性保証同期
+            // 4. 全反転完了の完全同期待機
             if (animPromises.length > 0) {
                 await Promise.all(animPromises);
             } else {
-                await wait(150);
+                await wait(120);
             }
             renderBoard();
         }
@@ -1414,13 +1421,13 @@
                 gameState.isProcessing = true;
                 gameState.stats.kills++;
                 gameState.stats.score += gameState.stage * 100;
-                await new Promise(res => setTimeout(res, 500));
+                await wait(400);
                 showRewardModal();
                 return true;
             }
             if (gameState.playerHp <= 0) {
                 gameState.isProcessing = true;
-                await new Promise(res => setTimeout(res, 500));
+                await wait(400);
                 showGameOver(false);
                 return true;
             }
@@ -1433,7 +1440,6 @@
 
             await showToast(`${pCount} vs ${eCount}`, 1000);
 
-            // 999ダメージハックを廃止し、正規の判定理由に基づき画面遷移を制御
             let playerWins = false;
             if (pCount > eCount) {
                 playerWins = true;
