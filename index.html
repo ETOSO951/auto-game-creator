@@ -6,19 +6,20 @@
     <title>ローグライクリバーシ (Roguelike Reversi)</title>
     <style>
         :root {
-            --bg-color: #0b0f19;
-            --panel-bg: rgba(22, 31, 49, 0.8);
-            --panel-border: rgba(56, 189, 248, 0.2);
+            --bg-color: #070a12;
+            --panel-bg: rgba(18, 26, 43, 0.85);
+            --panel-border: rgba(56, 189, 248, 0.3);
+            --panel-border-glow: rgba(56, 189, 248, 0.6);
             --primary: #38bdf8;
-            --primary-glow: rgba(56, 189, 248, 0.4);
+            --primary-glow: rgba(56, 189, 248, 0.6);
             --player-color: #38bdf8;
             --enemy-color: #f43f5e;
-            --accent: #f59e0b;
+            --accent: #fbbf24;
             --text-main: #f8fafc;
             --text-sub: #94a3b8;
-            --board-bg: #0f172a;
-            --cell-bg: #1e293b;
-            --cell-hover: #334155;
+            --board-bg: #0a1120;
+            --cell-bg: #162238;
+            --cell-hover: #1e293b;
         }
 
         * {
@@ -41,8 +42,9 @@
             overflow: hidden;
             touch-action: none;
             background-image: 
-                radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.15) 0%, transparent 70%),
-                radial-gradient(circle at 50% 100%, rgba(244, 63, 94, 0.1) 0%, transparent 70%);
+                radial-gradient(circle at 50% -20%, rgba(56, 189, 248, 0.22) 0%, transparent 60%),
+                radial-gradient(circle at 50% 120%, rgba(244, 63, 94, 0.15) 0%, transparent 60%),
+                radial-gradient(circle at 10% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
             padding-top: env(safe-area-inset-top, 0);
             padding-bottom: env(safe-area-inset-bottom, 0);
         }
@@ -56,12 +58,14 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            background: rgba(11, 15, 25, 0.5);
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            background: rgba(11, 15, 25, 0.65);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.85), inset 0 0 30px rgba(56, 189, 248, 0.05);
             border-left: 1px solid var(--panel-border);
             border-right: 1px solid var(--panel-border);
             padding-top: max(8px, env(safe-area-inset-top, 8px));
             padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
         }
 
         /* スクリーン管理 */
@@ -151,10 +155,12 @@
             border: 1px solid var(--panel-border);
             border-radius: 16px;
             padding: 12px 16px;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             display: flex;
             flex-direction: column;
             gap: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
         }
 
         .stage-info {
@@ -273,27 +279,29 @@
             position: relative;
             touch-action: none;
             -webkit-tap-highlight-color: transparent;
-            perspective: 1000px;
+            perspective: 1200px;
         }
 
         .board {
             width: 100%;
             height: 100%;
             background: 
-                linear-gradient(180deg, rgba(56, 189, 248, 0.03) 0%, transparent 100%),
-                linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(22, 33, 54, 0.9));
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            border-radius: 20px;
+                radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.06) 0%, transparent 70%),
+                linear-gradient(145deg, rgba(10, 17, 32, 0.98), rgba(18, 28, 48, 0.92));
+            border: 1.5px solid rgba(56, 189, 248, 0.45);
+            border-radius: 22px;
             display: grid;
             grid-template-columns: repeat(6, 1fr);
             grid-template-rows: repeat(6, 1fr);
-            gap: 6px;
-            padding: 10px;
+            gap: 7px;
+            padding: 12px;
             box-shadow: 
-                inset 0 0 35px rgba(0, 0, 0, 0.85),
-                0 20px 50px rgba(0, 0, 0, 0.7),
-                0 0 30px rgba(56, 189, 248, 0.15);
-            backdrop-filter: blur(16px);
+                inset 0 0 40px rgba(0, 0, 0, 0.9),
+                inset 0 1px 2px rgba(255, 255, 255, 0.15),
+                0 24px 60px rgba(0, 0, 0, 0.75),
+                0 0 35px rgba(56, 189, 248, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             position: relative;
             overflow: hidden;
         }
@@ -336,19 +344,19 @@
         }
 
         .cell {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.85));
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(28, 39, 58, 0.8), rgba(12, 19, 34, 0.9));
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
             position: relative;
-            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08), inset 0 -3px 6px rgba(0, 0, 0, 0.6);
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.12), inset 0 -4px 8px rgba(0, 0, 0, 0.7);
             transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
             touch-action: none;
             will-change: background, transform;
-            perspective: 500px;
+            perspective: 600px;
             z-index: 2;
         }
 
@@ -570,10 +578,13 @@
             background: var(--panel-bg);
             border: 1px solid var(--panel-border);
             border-radius: 16px;
-            padding: 12px;
+            padding: 14px;
             display: flex;
             flex-direction: column;
             gap: 8px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
         }
 
         .panel-title {
@@ -924,21 +935,27 @@
 
         let isParticleLoopRunning = false;
 
-        function createParticles(x, y, color, count = 18, isBurst = false) {
-            const types = ['circle', 'spark', 'ring'];
+        function createParticles(x, y, color, count = 22, isBurst = false) {
+            const types = ['circle', 'spark', 'ring', 'glow'];
+            // 3層構造（遠景・中景・近景）のパララックス効果を付与
+            const layers = [0.6, 1.0, 1.4];
+            
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = (Math.random() * (isBurst ? 8 : 5) + 1.5);
+                const speed = (Math.random() * (isBurst ? 9 : 5.5) + 1.2);
+                const layer = layers[Math.floor(Math.random() * layers.length)];
+                
                 particles.push({
                     x, y,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    size: Math.random() * (isBurst ? 5 : 3.5) + 1.5,
+                    vx: Math.cos(angle) * speed * layer,
+                    vy: Math.sin(angle) * speed * layer - (isBurst ? 0.4 : 0), // 微小な上方向への浮力
+                    gravity: isBurst ? 0.12 : 0.04,
+                    size: (Math.random() * (isBurst ? 5.5 : 3.5) + 1.2) * layer,
                     color,
                     alpha: 1,
                     type: types[Math.floor(Math.random() * types.length)],
-                    life: 0.02 + Math.random() * 0.025,
-                    spin: (Math.random() - 0.5) * 0.2,
+                    life: 0.015 + Math.random() * 0.022,
+                    spin: (Math.random() - 0.5) * 0.25,
                     rotation: Math.random() * Math.PI
                 });
             }
@@ -956,15 +973,16 @@
                 return;
             }
 
-            // 加算合成により発光・ネオン質感を極限まで向上
+            // 多層加算合成により圧倒的なネオン発光・立体感を表現
             ctx.globalCompositeOperation = 'lighter';
 
             for (let i = len - 1; i >= 0; i--) {
                 const p = particles[i];
                 p.x += p.vx;
                 p.y += p.vy;
-                p.vx *= 0.93; // 摩擦減衰
-                p.vy *= 0.93;
+                p.vy += p.gravity; // 重力加速度
+                p.vx *= 0.92; // 空気抵抗
+                p.vy *= 0.92;
                 p.rotation += p.spin;
                 p.alpha -= p.life;
 
@@ -981,20 +999,28 @@
                 ctx.rotate(p.rotation);
 
                 if (p.type === 'spark') {
-                    // 火花・十字キラキラ
+                    // 鋭い十字火花
                     ctx.beginPath();
-                    ctx.moveTo(-p.size * 2.5, 0); ctx.lineTo(p.size * 2.5, 0);
-                    ctx.moveTo(0, -p.size * 2.5); ctx.lineTo(0, p.size * 2.5);
-                    ctx.lineWidth = 2;
+                    ctx.moveTo(-p.size * 3, 0); ctx.lineTo(p.size * 3, 0);
+                    ctx.moveTo(0, -p.size * 3); ctx.lineTo(0, p.size * 3);
+                    ctx.lineWidth = 2.2;
                     ctx.stroke();
                 } else if (p.type === 'ring') {
-                    // 光輪
+                    // 拡散光輪
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 1.8, 0, Math.PI * 2);
-                    ctx.lineWidth = 1.2;
+                    ctx.arc(0, 0, p.size * 2.2, 0, Math.PI * 2);
+                    ctx.lineWidth = 1.4;
                     ctx.stroke();
+                } else if (p.type === 'glow') {
+                    // ソフトグロー光球
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.size * 1.6, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.shadowColor = p.color;
+                    ctx.shadowBlur = 12;
+                    ctx.fill();
                 } else {
-                    // 円形グロー粒
+                    // 標準ソリッド粒子
                     ctx.beginPath();
                     ctx.arc(0, 0, p.size, 0, Math.PI * 2);
                     ctx.fill();
