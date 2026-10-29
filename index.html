@@ -887,6 +887,29 @@
             <button class="btn" id="start-btn">ゲーム開始</button>
         </div>
 
+        <!-- マップ選択画面 -->
+        <div id="map-screen" class="screen">
+            <div class="logo-container" style="margin-bottom: 10px;">
+                <div class="logo-title" style="font-size: 1.6rem;">ルート選択</div>
+                <div class="logo-sub" id="map-subtitle">FLOOR 1 - 進行ルート</div>
+            </div>
+            <div class="cards-container" id="map-nodes-container" style="margin-top: 10px;">
+                <!-- ルート選択カード -->
+            </div>
+        </div>
+
+        <!-- 商人画面 -->
+        <div id="shop-screen" class="screen">
+            <div class="logo-container" style="margin-bottom: 10px;">
+                <div class="logo-title" style="font-size: 1.6rem;">神秘の商人</div>
+                <div class="logo-sub">スキルや癒やしを手に入れろ</div>
+            </div>
+            <div class="cards-container" id="shop-cards-container" style="margin-top: 10px;">
+                <!-- ショップアイテム -->
+            </div>
+            <button class="btn" id="leave-shop-btn" style="margin-top: auto; align-self: center;">進む</button>
+        </div>
+
         <!-- ゲーム画面 -->
         <div id="game-screen" class="screen">
             <!-- 上部ステータス -->
@@ -961,11 +984,14 @@
 
         let gameState = {
             stage: 1,
+            mapNode: 1,
             playerMaxHp: 30,
             playerHp: 30,
             enemyMaxHp: 20,
             enemyHp: 20,
             board: [],
+            specialCells: [], // {r, c, type: 'heal' | 'obstacle' | 'bomb'}
+            enemyType: 'normal', // 'normal' | 'aggressive' | 'thorn' | 'boss'
             currentTurn: PLAYER,
             isProcessing: false,
             stats: {
@@ -1151,25 +1177,114 @@
         // --- 初期化 & ゲーム開始 ---
         document.getElementById('start-btn').addEventListener('click', () => {
             initNewGame();
-            showScreen('game-screen');
+            showMapScreen();
         });
 
         document.getElementById('restart-btn').addEventListener('click', () => {
             showScreen('start-screen');
         });
 
+        document.getElementById('leave-shop-btn').addEventListener('click', () => {
+            startStage();
+        });
+
         function initNewGame() {
             gameState.stage = 1;
+            gameState.mapNode = 1;
             gameState.playerMaxHp = 30;
             gameState.playerHp = 30;
             gameState.relics = [];
             gameState.stats = { kills: 0, totalFlips: 0, score: 0 };
-            startStage();
+        }
+
+        function showMapScreen() {
+            document.getElementById('map-subtitle').textContent = `FLOOR ${gameState.stage} - 進行ルート`;
+            const container = document.getElementById('map-nodes-container');
+            container.innerHTML = '';
+
+            const routes = [
+                { type: 'battle', title: '⚔️ 通常戦闘', desc: '敵を討伐し、遺物やスキルを獲得する。' },
+                { type: 'elite', title: '🔥 強敵・ボス戦', desc: '強力なエネミーとの死闘。報酬が豪華。' },
+                { type: 'shop', title: '💰 神秘の商人', desc: '所持スコアを使って体力やスキルを補給。' }
+            ];
+
+            // ステージが進むにつれて選択肢をシャッフル・限定
+            routes.forEach(r => {
+                const card = document.createElement('div');
+                card.className = 'reward-card';
+                card.innerHTML = `
+                    <div class="reward-card-title">${r.title}</div>
+                    <div class="reward-card-desc">${r.desc}</div>
+                `;
+                card.addEventListener('click', () => {
+                    if (r.type === 'shop') {
+                        showShopScreen();
+                    } else {
+                        gameState.enemyType = (r.type === 'elite' || gameState.stage % 3 === 0) ? 'boss' : (Math.random() > 0.5 ? 'aggressive' : 'normal');
+                        startStage();
+                    }
+                });
+                container.appendChild(card);
+            });
+
+            showScreen('map-screen');
+        }
+
+        function showShopScreen() {
+            const container = document.getElementById('shop-cards-container');
+            container.innerHTML = '';
+
+            const items = [
+                { id: 'hp', title: '応急手当 (100スコア)', desc: 'HPを15回復する。', cost: 100 },
+                { id: 'maxhp', title: '肉体強化 (150スコア)', desc: '最大HPが10増加する。', cost: 150 },
+                { id: 'heal_skill', title: 'スキル：治癒 (200スコア)', desc: '即座にHPを回復するアクティブスキルを習得。', cost: 200 }
+            ];
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'reward-card';
+                card.innerHTML = `
+                    <div class="reward-card-title">${item.title}</div>
+                    <div class="reward-card-desc">${item.desc}</div>
+                `;
+                card.addEventListener('click', () => {
+                    if (gameState.stats.score >= item.cost) {
+                        gameState.stats.score -= item.cost;
+                        if (item.id === 'hp') {
+                            gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + 15);
+                        } else if (item.id === 'maxhp') {
+                            gameState.playerMaxHp += 10;
+                            gameState.playerHp += 10;
+                        } else if (item.id === 'heal_skill') {
+                            if (!gameState.skills.some(s => s.id === 'heal_skill')) {
+                                gameState.skills.push({ id: 'heal_skill', name: '治癒', desc: 'HPを12回復する', instant: true, ready: true });
+                            }
+                        }
+                        card.style.opacity = '0.5';
+                        card.style.pointerEvents = 'none';
+                    } else {
+                        showToast('スコアが足りません', 600);
+                    }
+                });
+                container.appendChild(card);
+            });
+
+            showScreen('shop-screen');
         }
 
         function startStage() {
             sequencer.reset();
-            gameState.enemyMaxHp = 15 + gameState.stage * 8;
+            
+            // エネミータイプの調整
+            const enemyNames = {
+                normal: 'ENEMY',
+                aggressive: 'アグレッシブ・アイ',
+                thorn: 'ソーン・ゴーレム',
+                boss: 'フロアガーディアン'
+            };
+            document.getElementById('enemy-name').textContent = enemyNames[gameState.enemyType] || 'ENEMY';
+
+            gameState.enemyMaxHp = 15 + gameState.stage * 10 + (gameState.enemyType === 'boss' ? 25 : 0);
             gameState.enemyHp = gameState.enemyMaxHp;
             gameState.currentTurn = PLAYER;
             gameState.isProcessing = false;
@@ -1179,12 +1294,12 @@
             prevPlayerPct = (gameState.playerHp / gameState.playerMaxHp) * 100;
             prevEnemyPct = 100;
             
-            // フロア進行に応じてアンビエントライティングの色調を動的に変化
             const rootStyle = document.documentElement.style;
             const newHue = (195 + gameState.stage * 18) % 360;
             rootStyle.setProperty('--ambient-hue', `${newHue}deg`);
 
             initBoard();
+            showScreen('game-screen');
             updateUI();
         }
 
@@ -1349,12 +1464,31 @@
                 setupBoardDOM();
             }
             gameState.board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(EMPTY));
+            gameState.specialCells = [];
+
             // 中央4マス配置
             const mid = BOARD_SIZE / 2;
             gameState.board[mid-1][mid-1] = ENEMY;
             gameState.board[mid][mid] = ENEMY;
             gameState.board[mid-1][mid] = PLAYER;
             gameState.board[mid][mid-1] = PLAYER;
+
+            // ボードギミック（ランダム回復マス or 障害物マスを少数配置）
+            if (gameState.stage >= 2) {
+                const hr = Math.floor(Math.random() * BOARD_SIZE);
+                const hc = Math.floor(Math.random() * BOARD_SIZE);
+                if (gameState.board[hr][hc] === EMPTY) {
+                    gameState.specialCells.push({ r: hr, c: hc, type: 'heal' });
+                }
+            }
+            if (gameState.stage >= 3) {
+                const or = Math.floor(Math.random() * BOARD_SIZE);
+                const oc = Math.floor(Math.random() * BOARD_SIZE);
+                if (gameState.board[or][oc] === EMPTY && !(or === mid-1 && oc === mid-1)) {
+                    gameState.specialCells.push({ r: or, c: oc, type: 'obstacle' });
+                }
+            }
+
             renderBoard();
         }
 
@@ -1369,11 +1503,19 @@
                     const cell = boardCellElements[r]?.[c];
                     if (!cell) continue;
 
+                    // 特殊セルのクラス適用
+                    cell.classList.remove('heal-cell', 'obstacle-cell');
+                    const sp = gameState.specialCells.find(s => s.r === r && s.c === c);
+                    if (sp) {
+                        if (sp.type === 'heal') cell.classList.add('heal-cell');
+                        if (sp.type === 'obstacle') cell.classList.add('obstacle-cell');
+                    }
+
                     const val = gameState.board[r][c];
                     let disc = cell.querySelector('.disc');
 
-                    // 合法手ハイライトの更新
-                    const isValid = validMoves.some(m => m.r === r && m.c === c);
+                    // 合法手ハイライトの更新（障害物マスは除外）
+                    const isValid = validMoves.some(m => m.r === r && m.c === c) && (!sp || sp.type !== 'obstacle');
                     cell.classList.toggle('valid', isValid);
 
                     // 石の更新
@@ -1443,6 +1585,9 @@
                 if (!board || r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return [];
                 if (board[r][c] !== EMPTY) return [];
                 
+                // 障害物マスには配置不可
+                if (gameState.specialCells.some(s => s.r === r && s.c === c && s.type === 'obstacle')) return [];
+
                 const opponent = turn === PLAYER ? ENEMY : PLAYER;
                 const totalFlippable = [];
 
@@ -1606,15 +1751,23 @@
             const moves = ReversiEngine.getValidMoves(gameState.board, ENEMY);
             if (moves.length === 0) return;
 
-            moves.sort((a, b) => {
-                let scoreA = a.flippable.length + (isCorner(a.r, a.c) ? 5 : 0);
-                let scoreB = b.flippable.length + (isCorner(b.r, b.c) ? 5 : 0);
-                return scoreB - scoreA;
-            });
+            // エネミーの個性・AIルーチン
+            if (gameState.enemyType === 'aggressive') {
+                moves.sort((a, b) => {
+                    let scoreA = (isCorner(a.r, a.c) ? 20 : 0) + a.flippable.length;
+                    let scoreB = (isCorner(b.r, b.c) ? 20 : 0) + b.flippable.length;
+                    return scoreB - scoreA;
+                });
+            } else {
+                moves.sort((a, b) => {
+                    let scoreA = a.flippable.length + (isCorner(a.r, a.c) ? 5 : 0);
+                    let scoreB = b.flippable.length + (isCorner(b.r, b.c) ? 5 : 0);
+                    return scoreB - scoreA;
+                });
+            }
 
             const bestMove = moves[0];
 
-            // 敵のフォーカス演出
             const targetCell = boardCellElements[bestMove.r]?.[bestMove.c];
             if (targetCell) {
                 targetCell.classList.add('enemy-target');
@@ -1625,11 +1778,17 @@
             await executeMove(bestMove.r, bestMove.c, ENEMY, bestMove.flippable);
 
             let dmg = bestMove.flippable.length * 2;
+            if (gameState.enemyType === 'boss') dmg += 3;
             applyDamage(PLAYER, dmg);
 
             if (hasRelic('spikes')) {
                 applyDamage(ENEMY, 2);
             }
+            // エネミー「ソーン」の反撃能力
+            if (gameState.enemyType === 'thorn' && bestMove.flippable.length > 0) {
+                applyDamage(PLAYER, 3);
+            }
+
             await wait(350);
 
             if (await checkBattleEnd()) return;
@@ -1933,7 +2092,7 @@
 
         function nextStage() {
             gameState.stage++;
-            startStage();
+            showMapScreen();
         }
 
         function showGameOver(isWin) {
