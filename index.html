@@ -104,7 +104,7 @@
             z-index: 10;
         }
 
-        /* タイトル画面 (アイデア1: バックグラウンドのデモプレイ用シネマティックコンテナ & マイクロインタラクション) */
+        /* タイトル画面 (アイデア1: アンビエント・オーロライフェクト & シネマティックコンテナ) */
         #start-screen {
             justify-content: center;
             align-items: center;
@@ -114,6 +114,24 @@
             position: relative;
             overflow: hidden;
             transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* アイデア1: アンビエント・オーロラライフェクト（背景の息吹） */
+        #start-screen::before {
+            content: '';
+            position: absolute;
+            inset: -50%;
+            background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.18) 0%, rgba(192, 132, 252, 0.12) 40%, transparent 70%);
+            animation: auroraBreathing 10s infinite alternate ease-in-out;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(40px);
+        }
+
+        @keyframes auroraBreathing {
+            0% { transform: scale(1) translate(-10px, -10px); opacity: 0.6; }
+            50% { transform: scale(1.15) translate(15px, 10px); opacity: 1; }
+            100% { transform: scale(1) translate(-10px, -10px); opacity: 0.6; }
         }
 
         #start-screen.transitioning {
@@ -798,15 +816,16 @@
             font-weight: 600;
         }
 
-        /* 報酬選択オーバーレイ */
+        /* 報酬選択オーバーレイ (アイデア3: スプリング物理挙動 & ナラティブ・ツールチップ) */
         .overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(11, 15, 25, 0.9);
-            backdrop-filter: blur(8px);
+            background: rgba(11, 15, 25, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             z-index: 20;
             display: flex;
             flex-direction: column;
@@ -815,13 +834,48 @@
             padding: 24px;
             gap: 16px;
             opacity: 0;
+            transform: scale(0.92);
             pointer-events: none;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .overlay.active {
             opacity: 1;
+            transform: scale(1);
             pointer-events: all;
+        }
+
+        .reward-card {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--panel-border);
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            will-change: transform;
+        }
+
+        .reward-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 12px 30px rgba(56, 189, 248, 0.25);
+        }
+
+        /* フレーバーテキスト用ナラティブインジケーター */
+        .reward-card::after {
+            content: '✦ 伝承・シナジー';
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 0.55rem;
+            color: var(--accent);
+            opacity: 0.7;
+            letter-spacing: 0.5px;
         }
 
         .reward-title {
@@ -1245,7 +1299,7 @@
             document.getElementById(screenId).classList.add('active');
         }
 
-        // --- シネマティックWeb Audio APIサウンドエンジン ---
+        // --- アイデア2: シネマティックWeb Audio APIサウンドエンジン（重厚な低音打撃音・きらめく残響・心音パルス） ---
         const SoundEngine = {
             ctx: null,
             init() {
@@ -1276,17 +1330,63 @@
                 this.init();
                 if (!this.ctx) return;
                 const now = this.ctx.currentTime;
-                [440, 660, 880].forEach((freq, idx) => {
+                [440, 660, 880, 1320].forEach((freq, idx) => {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(freq, now + idx * 0.06);
-                    gain.gain.setValueAtTime(0.15, now + idx * 0.06);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.15);
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+                    gain.gain.setValueAtTime(0.18, now + idx * 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.2);
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
-                    osc.start(now + idx * 0.06);
-                    osc.stop(now + idx * 0.06 + 0.15);
+                    osc.start(now + idx * 0.05);
+                    osc.stop(now + idx * 0.05 + 0.2);
+                });
+            },
+            playHeavyImpact() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                // 重厚なローパス打撃音
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(35, now + 0.35);
+
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(450, now);
+
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.35);
+            },
+            playHeartbeat() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [0, 0.18].forEach((delay, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(65 - i * 10, now + delay);
+                    osc.frequency.exponentialRampToValueAtTime(25, now + delay + 0.12);
+
+                    gain.gain.setValueAtTime(0.3, now + delay);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.12);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + delay);
+                    osc.stop(now + delay + 0.12);
                 });
             }
         };
@@ -2456,7 +2556,7 @@
             return gameState.curses.some(c => c.id === id);
         }
 
-        // --- 画面シェイク & 色収差・RGBシフト演出 (アイデア3: ハプティック・イマーション) ---
+        // --- アイデア2: ハプティック・フィードバック連動のカメラ＆サウンド演出 ---
         function triggerScreenShake(isHeavy = false) {
             const app = document.getElementById('app');
             app.classList.remove('shake', 'shake-heavy');
@@ -2464,8 +2564,15 @@
             const cls = isHeavy ? 'shake-heavy' : 'shake';
             app.classList.add(cls);
             
+            // サウンド連動
+            if (isHeavy) {
+                SoundEngine.playHeavyImpact();
+            } else {
+                SoundEngine.playTap();
+            }
+
             // 色収差・RGBシフト効果の動的トグル
-            document.body.style.filter = isHeavy ? 'hue-rotate(15deg) contrast(1.15)' : 'none';
+            document.body.style.filter = isHeavy ? 'hue-rotate(25deg) contrast(1.25) saturate(1.3)' : 'none';
             
             setTimeout(() => {
                 app.classList.remove(cls);
@@ -2628,12 +2735,20 @@
             showMapScreen();
         }
 
-        // --- ゲームオーバー・クリア画面 (アイデア1 & 2: 勝利時の黄金バースト・敗北時の沈むモノトーン調・心音ビート・シネマティック演出) ---
+        // --- アイデア2 & 3: リザルト画面における心音パルスビート & シネマティック演出 ---
         function showGameOver(isWin) {
             const titleEl = document.getElementById('result-title');
             titleEl.textContent = isWin ? 'VICTORY!' : 'GAME OVER';
             titleEl.className = `result-title ${isWin ? 'win' : 'lose'}`;
             
+            // 敗北時は心音パルスビート音響を再生
+            if (!isWin) {
+                SoundEngine.playHeartbeat();
+                setTimeout(() => SoundEngine.playHeartbeat(), 700);
+            } else {
+                SoundEngine.playCombo();
+            }
+
             // 感情起伏ビジュアル：勝利時は黄金バースト＆煌びやかな発光、敗北時は静寂なモノトーン調＋色収差
             const app = document.getElementById('app');
             if (isWin) {
@@ -2644,7 +2759,7 @@
                 createParticles(appRect.width / 2, appRect.height / 3, '#ffffff', 25, false);
             } else {
                 app.style.boxShadow = '0 0 80px rgba(0, 0, 0, 0.98), inset 0 0 50px rgba(244, 63, 94, 0.25)';
-                app.style.filter = 'grayscale(0.65) contrast(1.2)';
+                app.style.filter = 'grayscale(0.7) contrast(1.25) hue-rotate(-15deg)';
             }
 
             const targetStage = gameState.stage;
