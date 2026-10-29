@@ -866,11 +866,20 @@
 
             // Pointer Events統合: タッチ操作時に指の遮蔽を考慮したYオフセット適用と高精度判定
             const getCellFromPoint = (e) => {
-                const isTouch = e.pointerType === 'touch';
-                // タッチ時は指による遮蔽を防ぐため上方向に24pxオフセット適用
-                const clientY = isTouch ? e.clientY - 24 : e.clientY;
-                const el = document.elementFromPoint(e.clientX, clientY);
-                return el ? el.closest('#board .cell') : null;
+                let x = e.clientX;
+                let y = e.clientY;
+
+                if (e.pointerType === 'touch') {
+                    // セルの縦幅に応じた動的な指遮蔽オフセット（セル高さの60%上方向）
+                    const sampleCell = boardEl.querySelector('.cell');
+                    const offset = sampleCell ? sampleCell.getBoundingClientRect().height * 0.6 : 24;
+                    y -= offset;
+                }
+
+                const el = document.elementFromPoint(x, y);
+                if (!el) return null;
+                const cell = el.closest('#board .cell');
+                return (cell && boardEl.contains(cell)) ? cell : null;
             };
 
             const showPreview = (cell) => {
@@ -997,22 +1006,30 @@
             }
         }
 
-        // --- ルールロジック ---
+        // --- ルールロジック（純粋関数 & イミュータブル設計） ---
         const DIRS = [
             [-1, -1], [-1, 0], [-1, 1],
             [0, -1],           [0, 1],
             [1, -1],  [1, 0],  [1, 1]
         ];
 
-        function getFlippable(board, r, c, turn) {
-            if (board[r][c] !== EMPTY) return [];
-            const opponent = turn === PLAYER ? ENEMY : PLAYER;
-            let totalFlippable = [];
+        // 盤面配列のディープコピー（副作用遮断）
+        function cloneBoard(board) {
+            return board.map(row => [...row]);
+        }
 
-            for (let [dr, dc] of DIRS) {
+        function getFlippable(board, r, c, turn) {
+            if (!board || r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return [];
+            if (board[r][c] !== EMPTY) return [];
+            
+            const opponent = turn === PLAYER ? ENEMY : PLAYER;
+            const totalFlippable = [];
+
+            for (let i = 0; i < DIRS.length; i++) {
+                const [dr, dc] = DIRS[i];
                 let nr = r + dr;
                 let nc = c + dc;
-                let path = [];
+                const path = [];
 
                 while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === opponent) {
                     path.push({ r: nr, c: nc });
@@ -1021,14 +1038,16 @@
                 }
 
                 if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === turn) {
-                    totalFlippable.push(...path);
+                    for (let j = 0; j < path.length; j++) {
+                        totalFlippable.push(path[j]);
+                    }
                 }
             }
             return totalFlippable;
         }
 
         function getValidMoves(board, turn) {
-            let moves = [];
+            const moves = [];
             for (let r = 0; r < BOARD_SIZE; r++) {
                 for (let c = 0; c < BOARD_SIZE; c++) {
                     const flippable = getFlippable(board, r, c, turn);
@@ -1038,6 +1057,17 @@
                 }
             }
             return moves;
+        }
+
+        // 純粋関数: 盤面に手を適用した新しい盤面状態を生成
+        function getNextBoardState(board, r, c, turn, flippable) {
+            const newBoard = cloneBoard(board);
+            newBoard[r][c] = turn;
+            for (let i = 0; i < flippable.length; i++) {
+                const pos = flippable[i];
+                newBoard[pos.r][pos.c] = turn;
+            }
+            return newBoard;
         }
 
         // --- ターン進行 & 統一状態管理（直列シーケンサー） ---
@@ -1167,14 +1197,13 @@
         }
 
         async function executeMove(r, c, turn, flippable) {
-            // UI上の有効手ハイライト消去
-            document.querySelectorAll('.cell.valid').forEach(el => el.classList.remove('valid'));
+            // UI上の有効手・プレビューハイライトを確実に全消去
+            document.querySelectorAll('.cell.valid, .cell.preview-flip').forEach(el => {
+                el.classList.remove('valid', 'preview-flip');
+            });
 
-            // 1. 【State】純粋な状態更新（データ層）
-            gameState.board[r][c] = turn;
-            for (let pos of flippable) {
-                gameState.board[pos.r][pos.c] = turn;
-            }
+            // 1. 【State】純粋関数によるイミュータブルな状態更新
+            gameState.board = getNextBoardState(gameState.board, r, c, turn, flippable);
 
             // 2. 【View】演出パイプライン（アニメーション再生）
             // 2a. 着手石の生成と粒子演出
@@ -1198,7 +1227,8 @@
 
             // 2b. 反転タイムラインの順次再生とCSSアニメーションイベント同期
             const animPromises = [];
-            for (let pos of flippable) {
+            for (let i = 0; i < flippable.length; i++) {
+                const pos = flippable[i];
                 await wait(50);
                 const flipCell = document.querySelector(`[data-row="${pos.r}"][data-col="${pos.c}"]`);
                 if (flipCell) {
@@ -1207,6 +1237,9 @@
                         disc = document.createElement('div');
                         flipCell.appendChild(disc);
                     }
+                    // アニメーションのリセットと確実な発火のためのリフロー適用
+                    disc.classList.remove('flip-anim');
+                    void disc.offsetWidth;
                     disc.className = `disc ${turn === PLAYER ? 'player' : 'enemy'} flip-anim`;
                     animPromises.push(waitForAnimationEnd(disc, 350));
                 }
