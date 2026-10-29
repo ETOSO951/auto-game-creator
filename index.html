@@ -43,13 +43,24 @@
             overflow: hidden;
             touch-action: none;
             background-image: 
-                radial-gradient(circle at 50% -20%, hsla(var(--ambient-hue), 80%, 60%, 0.28) 0%, transparent 65%),
-                radial-gradient(circle at 50% 120%, rgba(244, 63, 94, 0.18) 0%, transparent 65%),
-                radial-gradient(circle at 10% 50%, rgba(99, 102, 241, 0.12) 0%, transparent 55%);
-            background-size: 150% 150%;
-            animation: ambientLiquidShift 16s infinite alternate ease-in-out;
+                radial-gradient(circle at 50% -20%, hsla(var(--ambient-hue), 85%, 65%, 0.35) 0%, transparent 65%),
+                radial-gradient(circle at 50% 120%, rgba(244, 63, 94, 0.22) 0%, transparent 65%),
+                radial-gradient(circle at 10% 50%, rgba(99, 102, 241, 0.16) 0%, transparent 55%),
+                radial-gradient(circle at 90% 30%, rgba(56, 189, 248, 0.12) 0%, transparent 50%);
+            background-size: 180% 180%;
+            animation: ambientLiquidShift 14s infinite alternate ease-in-out;
             padding-top: env(safe-area-inset-top, 0);
             padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+
+        /* 画面全体へのRGBシフト / ホログラフィック・ブルームオーラ */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            box-shadow: inset 0 0 80px rgba(56, 189, 248, 0.08), inset 0 0 120px rgba(0, 0, 0, 0.6);
+            pointer-events: none;
+            z-index: 100;
         }
 
         @keyframes ambientLiquidShift {
@@ -302,9 +313,9 @@
             width: 100%;
             height: 100%;
             background: 
-                radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.06) 0%, transparent 70%),
+                radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08) 0%, transparent 70%),
                 linear-gradient(145deg, rgba(10, 17, 32, 0.98), rgba(18, 28, 48, 0.92));
-            border: 1.5px solid rgba(56, 189, 248, 0.45);
+            border: 1.5px solid rgba(56, 189, 248, 0.55);
             border-radius: 22px;
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -312,14 +323,25 @@
             gap: 7px;
             padding: 12px;
             box-shadow: 
-                inset 0 0 40px rgba(0, 0, 0, 0.9),
-                inset 0 1px 2px rgba(255, 255, 255, 0.15),
+                inset 0 0 45px rgba(0, 0, 0, 0.92),
+                inset 0 1px 3px rgba(255, 255, 255, 0.2),
                 0 24px 60px rgba(0, 0, 0, 0.75),
-                0 0 35px rgba(56, 189, 248, 0.2);
+                0 0 45px rgba(56, 189, 248, 0.35),
+                0 0 15px rgba(56, 189, 248, 0.2) inset;
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             position: relative;
             overflow: hidden;
+            transition: box-shadow 0.4s ease, border-color 0.4s ease;
+        }
+
+        .board.wave-active {
+            border-color: rgba(56, 189, 248, 0.9);
+            box-shadow: 
+                inset 0 0 50px rgba(0, 0, 0, 0.95),
+                0 24px 70px rgba(0, 0, 0, 0.8),
+                0 0 60px rgba(56, 189, 248, 0.65),
+                0 0 25px rgba(56, 189, 248, 0.4) inset;
         }
 
         /* 走査光（スキャンライン）ライン */
@@ -485,31 +507,33 @@
             100% { opacity: 0; transform: translate(-50%, -50px) scale(0.7); }
         }
 
-        /* 減衰計算付き画面振動 */
+        /* 減衰計算付き画面振動 & RGB色収差風演出 */
         .shake {
-            animation: shakeScreenImpact 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+            animation: shakeScreenImpact 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+            filter: drop-shadow(2px 0px rgba(244, 63, 94, 0.4)) drop-shadow(-2px 0px rgba(56, 189, 248, 0.4));
         }
 
         .shake-heavy {
-            animation: shakeScreenHeavy 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+            animation: shakeScreenHeavy 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+            filter: drop-shadow(4px 0px rgba(244, 63, 94, 0.8)) drop-shadow(-4px 0px rgba(56, 189, 248, 0.8));
         }
 
         @keyframes shakeScreenImpact {
-            0%, 100% { transform: translate(0, 0); }
-            15% { transform: translate(-6px, 4px); }
-            30% { transform: translate(5px, -4px); }
-            50% { transform: translate(-3px, 2px); }
-            70% { transform: translate(2px, -1px); }
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            15% { transform: translate(-7px, 5px) scale(1.01); }
+            30% { transform: translate(6px, -5px) scale(0.99); }
+            50% { transform: translate(-4px, 3px) scale(1.005); }
+            70% { transform: translate(3px, -2px); }
             85% { transform: translate(-1px, 1px); }
         }
 
         @keyframes shakeScreenHeavy {
-            0%, 100% { transform: translate(0, 0); }
-            15% { transform: translate(-12px, 8px) rotate(-1deg); }
-            30% { transform: translate(10px, -8px) rotate(1deg); }
-            50% { transform: translate(-6px, 4px); }
-            70% { transform: translate(4px, -2px); }
-            85% { transform: translate(-2px, 1px); }
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            12% { transform: translate(-14px, 10px) rotate(-1.5deg) scale(1.02); }
+            28% { transform: translate(12px, -10px) rotate(1.2deg) scale(0.98); }
+            45% { transform: translate(-8px, 6px) scale(1.01); }
+            65% { transform: translate(6px, -4px) rotate(-0.5deg); }
+            82% { transform: translate(-3px, 2px); }
         }
 
         /* 石（クリスタル・光学立体質感） */
@@ -571,7 +595,7 @@
         }
 
         .disc.flip-anim {
-            animation: flipDisc3D 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: flipDisc3D 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         @keyframes flipDisc3D {
@@ -579,9 +603,13 @@
                 transform: scale(1) translateZ(0) rotateY(0deg) rotateX(0deg); 
                 filter: brightness(1);
             }
-            50% { 
-                transform: scale(1.42) translateZ(55px) rotateY(90deg) rotateX(15deg); 
-                filter: brightness(2.4) drop-shadow(0 0 22px rgba(255, 255, 255, 0.95));
+            45% { 
+                transform: scale(1.52) translateZ(70px) rotateY(85deg) rotateX(20deg); 
+                filter: brightness(2.8) drop-shadow(0 0 28px rgba(255, 255, 255, 1));
+            }
+            55% {
+                transform: scale(1.52) translateZ(70px) rotateY(95deg) rotateX(20deg); 
+                filter: brightness(2.8) drop-shadow(0 0 28px rgba(255, 255, 255, 1));
             }
             100% { 
                 transform: scale(1) translateZ(0) rotateY(180deg) rotateX(0deg); 
@@ -968,20 +996,21 @@
             
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = (Math.random() * (isBurst ? 9 : 5.5) + 1.2);
+                // コンボ数やバーストの勢いに応じて速度と広がりをダイナミックに増加
+                const speed = (Math.random() * (isBurst ? 11 : 6.0) + 1.5);
                 const layer = layers[Math.floor(Math.random() * layers.length)];
                 
                 particles.push({
                     x, y,
                     vx: Math.cos(angle) * speed * layer,
-                    vy: Math.sin(angle) * speed * layer - (isBurst ? 0.4 : 0), // 微小な上方向への浮力
-                    gravity: isBurst ? 0.12 : 0.04,
-                    size: (Math.random() * (isBurst ? 5.5 : 3.5) + 1.2) * layer,
+                    vy: Math.sin(angle) * speed * layer - (isBurst ? 0.6 : 0),
+                    gravity: isBurst ? 0.14 : 0.05,
+                    size: (Math.random() * (isBurst ? 6.5 : 4.0) + 1.5) * layer,
                     color,
                     alpha: 1,
                     type: types[Math.floor(Math.random() * types.length)],
-                    life: 0.015 + Math.random() * 0.022,
-                    spin: (Math.random() - 0.5) * 0.25,
+                    life: 0.012 + Math.random() * 0.02,
+                    spin: (Math.random() - 0.5) * 0.3,
                     rotation: Math.random() * Math.PI
                 });
             }
