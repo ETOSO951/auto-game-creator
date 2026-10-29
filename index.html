@@ -110,27 +110,41 @@
             align-items: center;
             text-align: center;
             gap: 24px;
+            animation: cinematicFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes cinematicFadeIn {
+            0% { opacity: 0; transform: scale(0.94) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         .logo-container {
             margin-bottom: 20px;
+            position: relative;
         }
 
         .logo-title {
-            font-size: 2.2rem;
-            font-weight: 800;
-            letter-spacing: 2px;
+            font-size: 2.4rem;
+            font-weight: 900;
+            letter-spacing: 3px;
             background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
+            text-shadow: 0 0 45px rgba(56, 189, 248, 0.45);
+            animation: titlePulse 4s infinite alternate ease-in-out;
+        }
+
+        @keyframes titlePulse {
+            0% { filter: drop-shadow(0 0 15px rgba(56,189,248,0.3)); }
+            100% { filter: drop-shadow(0 0 30px rgba(192,132,252,0.6)); }
         }
 
         .logo-sub {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: var(--text-sub);
-            margin-top: 8px;
-            letter-spacing: 4px;
+            margin-top: 10px;
+            letter-spacing: 6px;
+            opacity: 0.9;
         }
 
         /* ボタン（有機的スプリングフィードバック） */
@@ -1176,8 +1190,55 @@
             document.getElementById(screenId).classList.add('active');
         }
 
+        // --- シネマティックWeb Audio APIサウンドエンジン ---
+        const SoundEngine = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playTap() {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(580, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            },
+            playCombo() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [440, 660, 880].forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+                    gain.gain.setValueAtTime(0.15, now + idx * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.06);
+                    osc.stop(now + idx * 0.06 + 0.15);
+                });
+            }
+        };
+
         // --- 初期化 & ゲーム開始 ---
         document.getElementById('start-btn').addEventListener('click', () => {
+            SoundEngine.playCombo();
             initNewGame();
             showMapScreen();
         });
@@ -1900,14 +1961,16 @@
                     await executeMove(r, c, PLAYER, flippable);
                 }
 
-                // 【新機能2】属性コンボチェインシステム（氷で固めた後に炎で蒸発、雷で感電など）
+                // 【新機能2】属性コンボチェインシステム（視覚的フィードバックとWeb Audioコンボ音の洗練）
                 const spCell = gameState.specialCells.find(s => s.r === r && s.c === c);
                 if (spCell) {
+                    SoundEngine.playCombo();
                     if (spCell.type === 'fire') {
                         if (gameState.enemyFrozen) {
-                            applyDamage(ENEMY, 18, true);
+                            applyDamage(ENEMY, 22, true);
                             showEffectAtCell(r, c, '#f97316');
-                            await showToast('【属性コンボ】蒸発爆発！ 18ダメージ', 900);
+                            triggerScreenShake(true);
+                            await showToast('⚡【属性コンボ】蒸発大爆発！ 22ダメージ', 1000);
                             gameState.enemyFrozen = false;
                         } else {
                             applyDamage(PLAYER, 4);
@@ -1916,20 +1979,21 @@
                     } else if (spCell.type === 'ice') {
                         gameState.enemyFrozen = true;
                         showEffectAtCell(r, c, '#38bdf8');
-                        await showToast('氷結付与！次ターンの敵行動凍結', 800);
+                        await showToast('❄️ 氷結付与！敵の行動を完全凍結', 900);
                     } else if (spCell.type === 'electric') {
-                        applyDamage(ENEMY, 12, true);
+                        applyDamage(ENEMY, 14, true);
                         showEffectAtCell(r, c, '#eab308');
-                        await showToast('電磁チェイン発動！追加ダメージ', 700);
+                        await showToast('⚡ 電磁チェイン雷撃発動！', 800);
                     } else if (spCell.type === 'crystal') {
-                        applyDamage(ENEMY, 15, true);
+                        applyDamage(ENEMY, 18, true);
                         showEffectAtCell(r, c, '#c084fc');
-                        await showToast('クリスタル共鳴！', 800);
+                        await showToast('💎 クリスタルフォース共鳴！', 800);
                     } else if (spCell.type === 'warp' && spCell.warpTarget) {
                         const tw = spCell.warpTarget;
                         if (gameState.board[tw.r][tw.c] === EMPTY) {
                             gameState.board[tw.r][tw.c] = PLAYER;
                             showEffectAtCell(tw.r, tw.c, '#38bdf8');
+                            await showToast('🌀 次元ワープ跳躍！', 700);
                         }
                     }
                 }
