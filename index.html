@@ -992,8 +992,10 @@
             enemyShield: 0,
             enemyPhase: 1,
             board: [],
-            specialCells: [], // {r, c, type: 'heal' | 'obstacle' | 'bomb' | 'bomb_timer' | 'warp' | 'fire' | 'ice', timer: number, warpTarget: {r, c}}
+            specialCells: [], // {r, c, type: 'heal' | 'obstacle' | 'bomb' | 'bomb_timer' | 'warp' | 'fire' | 'ice' | 'electric' | 'poison', timer: number, warpTarget: {r, c}}
             enemyType: 'normal', // 'normal' | 'aggressive' | 'thorn' | 'shield' | 'poison' | 'boss'
+            enemyTalent: null, // 'corner_guard' | 'shield_generator' | 'cooldown_curse'
+            floorRule: null, // 'max_3_flips' | 'crumbling_edge'
             currentTurn: PLAYER,
             isProcessing: false,
             stats: {
@@ -1004,8 +1006,8 @@
             relics: [],
             curses: [],
             skills: [
-                { id: 'double_strike', name: '重撃', desc: '次の1手でダメージ2倍', ready: true },
-                { id: 'snipe', name: 'スナイプ', desc: '任意の空マスに直接石を配置', ready: true }
+                { id: 'double_strike', name: '重撃 Lv.1', desc: '次の1手でダメージ2倍', level: 1, ready: true },
+                { id: 'snipe', name: 'スナイプ Lv.1', desc: '任意の空マスに直接石を配置', level: 1, ready: true }
             ],
             potions: [
                 { id: 'potion_heal', name: 'ハイポーション', desc: 'HPを20回復する', count: 1 },
@@ -1028,9 +1030,9 @@
             { id: 'shield_bash', name: 'シールドバッシュ', desc: 'シールドを展開し、次ターンの被ダメージを半減する' }
         ];
 
-        // 遺物プール
+        // 遺物プール（シナジー効果対応）
         const RELIC_POOL = [
-            { id: 'vampire', name: '吸血の牙', desc: '石を返した時、返した枚数分HPを回復する' },
+            { id: 'vampire', name: '吸血の牙', desc: '石を返した時、返した枚数分HPを回復する（棘の鎧共鳴で反撃時もHP吸収）' },
             { id: 'corner_master', name: '角の支配者', desc: '四隅に石を置いた時、敵に10ダメージを与える' },
             { id: 'spikes', name: '棘の鎧', desc: '敵ターン終了時、相手に2ダメージを与える' },
             { id: 'overgrowth', name: '巨人の加護', desc: '最大HPが15増加し、HPが回復する' },
@@ -1544,7 +1546,7 @@
             gameState.board[mid-1][mid] = PLAYER;
             gameState.board[mid][mid-1] = PLAYER;
 
-            // ボードギミック（ランダム回復マス、障害物、火炎マス、ワープゲート配置）
+            // ボードギミック（ランダム回復、障害物、火炎、氷結、電磁、劇毒マス配置）
             if (gameState.stage >= 2) {
                 const hr = Math.floor(Math.random() * BOARD_SIZE);
                 const hc = Math.floor(Math.random() * BOARD_SIZE);
@@ -1565,6 +1567,38 @@
                 if (gameState.board[fr][fc] === EMPTY) {
                     gameState.specialCells.push({ r: fr, c: fc, type: 'fire' });
                 }
+                const ir = Math.floor(Math.random() * BOARD_SIZE);
+                const ic = Math.floor(Math.random() * BOARD_SIZE);
+                if (gameState.board[ir][ic] === EMPTY) {
+                    gameState.specialCells.push({ r: ir, c: ic, type: 'ice' });
+                }
+            }
+            if (gameState.stage >= 5) {
+                const er = Math.floor(Math.random() * BOARD_SIZE);
+                const ec = Math.floor(Math.random() * BOARD_SIZE);
+                if (gameState.board[er][ec] === EMPTY) {
+                    gameState.specialCells.push({ r: er, c: ec, type: 'electric' });
+                }
+            }
+
+            // フロア特殊ルールのランダム適用 (Stage 3以降)
+            if (gameState.stage >= 3 && Math.random() > 0.4) {
+                gameState.floorRule = Math.random() > 0.5 ? 'max_3_flips' : 'crumbling_edge';
+                if (gameState.floorRule === 'max_3_flips') {
+                    showToast('環境ルール: 最大反転枚数が3枚に制限', 1200);
+                } else {
+                    showToast('環境ルール: 毎ターンランダムマス崩壊', 1200);
+                }
+            } else {
+                gameState.floorRule = null;
+            }
+
+            // エネミータレントの付与 (Stage 2以降)
+            if (gameState.stage >= 2) {
+                const talents = ['corner_guard', 'shield_generator', 'cooldown_curse'];
+                gameState.enemyTalent = talents[Math.floor(Math.random() * talents.length)];
+            } else {
+                gameState.enemyTalent = null;
             }
 
             renderBoard();
@@ -1581,13 +1615,16 @@
                     const cell = boardCellElements[r]?.[c];
                     if (!cell) continue;
 
-                    // 特殊セルのクラス適用
-                    cell.classList.remove('heal-cell', 'obstacle-cell', 'bomb-timer-cell', 'warp-cell', 'fire-cell');
+                    // 特殊セルのクラス適用（氷結・電磁・毒ギミック追加）
+                    cell.classList.remove('heal-cell', 'obstacle-cell', 'bomb-timer-cell', 'warp-cell', 'fire-cell', 'ice-cell', 'electric-cell', 'poison-cell');
                     const sp = gameState.specialCells.find(s => s.r === r && s.c === c);
                     if (sp) {
                         if (sp.type === 'heal') cell.classList.add('heal-cell');
                         if (sp.type === 'obstacle') cell.classList.add('obstacle-cell');
                         if (sp.type === 'fire') cell.classList.add('fire-cell');
+                        if (sp.type === 'ice') cell.classList.add('ice-cell');
+                        if (sp.type === 'electric') cell.classList.add('electric-cell');
+                        if (sp.type === 'poison') cell.classList.add('poison-cell');
                         if (sp.type === 'bomb_timer') {
                             cell.classList.add('bomb-timer-cell');
                             cell.setAttribute('data-preview-count', `💣${sp.timer}`);
@@ -1801,12 +1838,23 @@
                     await executeMove(r, c, PLAYER, flippable);
                 }
 
-                // 特殊セルギミック発動（時限爆弾・ワープゲート・火炎マス）
+                // 特殊セルギミック発動（火炎・氷結・電磁・劇毒属性石ギミック）
                 const spCell = gameState.specialCells.find(s => s.r === r && s.c === c);
                 if (spCell) {
                     if (spCell.type === 'fire') {
                         applyDamage(PLAYER, 4);
                         showEffectAtCell(r, c, '#f97316');
+                    } else if (spCell.type === 'ice') {
+                        // 氷結効果：敵の次の反転力を鈍らせる or 一時停止エフェクト
+                        showEffectAtCell(r, c, '#38bdf8');
+                        await showToast('氷結発動！敵の動きが鈍る', 600);
+                    } else if (spCell.type === 'electric') {
+                        // 電磁効果：反転連鎖が倍増（フリップ数+2ボーナス）
+                        flippable.push(...flippable.slice(0, 2));
+                        showEffectAtCell(r, c, '#fbbf24');
+                    } else if (spCell.type === 'poison') {
+                        applyDamage(ENEMY, 6);
+                        showEffectAtCell(r, c, '#10b981');
                     } else if (spCell.type === 'warp' && spCell.warpTarget) {
                         const tw = spCell.warpTarget;
                         if (gameState.board[tw.r][tw.c] === EMPTY) {
@@ -1817,15 +1865,19 @@
                 }
 
                 let effectiveFlips = flippable.length;
+                if (gameState.floorRule === 'max_3_flips') {
+                    effectiveFlips = Math.min(3, effectiveFlips);
+                }
                 if (hasCurse('heavy_stone')) {
                     effectiveFlips = Math.max(1, effectiveFlips - 1);
                 }
 
-                let dmg = isSnipeActive ? 8 : (effectiveFlips * 3);
+                let dmg = isSnipeActive ? (8 * (gameState.skills.find(s=>s.id==='snipe')?.level || 1)) : (effectiveFlips * 3);
                 const isDoubleStrikeActive = (activeSkillId === 'double_strike');
+                const dsLevel = gameState.skills.find(s => s.id === 'double_strike')?.level || 1;
 
                 if (isDoubleStrikeActive) {
-                    dmg *= 2;
+                    dmg *= (1 + dsLevel); // Lv1なら2倍、Lv2なら3倍
                     showEffectAtCell(r, c, '#f59e0b');
                     const skill = gameState.skills.find(s => s.id === 'double_strike');
                     if (skill) skill.ready = false;
@@ -1842,8 +1894,15 @@
                 }
 
                 if (hasRelic('vampire') && !isSnipeActive) {
-                    const heal = effectiveFlips;
+                    let heal = effectiveFlips;
+                    // シナジー効果：吸血の牙 ＋ 棘の鎧所持時、反撃時もHP吸収
+                    if (hasRelic('spikes')) heal *= 2;
                     gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + heal);
+                }
+
+                if (hasRelic('auto_shield') && effectiveFlips >= 4) {
+                    gameState.activeShield = true;
+                    showToast('エーテルバリア展開！被ダメ半減', 600);
                 }
 
                 applyDamage(ENEMY, dmg, isDoubleStrikeActive || isSnipeActive);
@@ -1856,11 +1915,29 @@
         }
 
         async function enemyTurn() {
+            // エネミータレント「シールドジェネレーター」発動
+            if (gameState.enemyTalent === 'shield_generator' && gameState.enemyShield < 10) {
+                gameState.enemyShield += 3;
+            }
+            // 環境ルール「崩壊する角」：毎ターンランダムな空マスが消滅
+            if (gameState.floorRule === 'crumbling_edge') {
+                const emptyList = [];
+                for (let r=0; r<BOARD_SIZE; r++) {
+                    for (let c=0; c<BOARD_SIZE; c++) {
+                        if (gameState.board[r][c] === EMPTY) emptyList.push({r, c});
+                    }
+                }
+                if (emptyList.length > 4) {
+                    const rc = emptyList[Math.floor(Math.random() * emptyList.length)];
+                    gameState.specialCells.push({r: rc.r, c: rc.c, type: 'obstacle'});
+                    showEffectAtCell(rc.r, rc.c, '#ef4444');
+                }
+            }
+
             // ボスフェーズのチェック (HP 50%以下でフェーズ2に移行し特殊行動)
             if (gameState.enemyType === 'boss' && gameState.enemyHp <= gameState.enemyMaxHp / 2 && gameState.enemyPhase === 1) {
                 gameState.enemyPhase = 2;
                 await showToast('BOSS PHASE 2!', 800);
-                // 毎ターンランダムな1マスを鉄格子（障害物）や火炎マスに変更
                 const emptyCells = [];
                 for (let r=0; r<BOARD_SIZE; r++) {
                     for (let c=0; c<BOARD_SIZE; c++) {
@@ -1924,10 +2001,22 @@
 
             let dmg = bestMove.flippable.length * 2;
             if (gameState.enemyType === 'boss') dmg += 3;
+            if (gameState.enemyShield > 0) {
+                // シールド展開中は被ダメ軽減
+                dmg = Math.max(1, dmg - gameState.enemyShield);
+            }
+            if (gameState.activeShield) {
+                dmg = Math.floor(dmg / 2);
+                gameState.activeShield = false;
+            }
             applyDamage(PLAYER, dmg);
 
             if (hasRelic('spikes')) {
-                applyDamage(ENEMY, 2);
+                let spikeDmg = 2;
+                if (hasRelic('vampire')) {
+                    gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + 2);
+                }
+                applyDamage(ENEMY, spikeDmg);
             }
             // エネミー「ソーン」の反撃能力
             if (gameState.enemyType === 'thorn' && bestMove.flippable.length > 0) {
