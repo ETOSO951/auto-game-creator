@@ -43,10 +43,10 @@
             overflow: hidden;
             touch-action: none;
             background-image: 
-                radial-gradient(circle at 50% -20%, hsla(var(--ambient-hue), 85%, 65%, 0.35) 0%, transparent 65%),
-                radial-gradient(circle at 50% 120%, rgba(244, 63, 94, 0.22) 0%, transparent 65%),
-                radial-gradient(circle at 10% 50%, rgba(99, 102, 241, 0.16) 0%, transparent 55%),
-                radial-gradient(circle at 90% 30%, rgba(56, 189, 248, 0.12) 0%, transparent 50%);
+                radial-gradient(circle at 50% -20%, hsla(var(--ambient-hue), 90%, 70%, 0.42) 0%, transparent 65%),
+                radial-gradient(circle at 50% 120%, rgba(244, 63, 94, 0.28) 0%, transparent 65%),
+                radial-gradient(circle at 10% 50%, rgba(99, 102, 241, 0.22) 0%, transparent 55%),
+                radial-gradient(circle at 90% 30%, rgba(56, 189, 248, 0.18) 0%, transparent 50%);
             background-size: 180% 180%;
             animation: ambientLiquidShift 14s infinite alternate ease-in-out;
             padding-top: env(safe-area-inset-top, 0);
@@ -536,7 +536,7 @@
             82% { transform: translate(-3px, 2px); }
         }
 
-        /* 石（クリスタル・光学立体質感） */
+        /* 石（最高峰の光学ジェムストーン質感・ガラス屈折ライティング） */
         .disc {
             width: 82%;
             height: 82%;
@@ -545,53 +545,56 @@
             transform-style: preserve-3d;
             will-change: transform, box-shadow, filter;
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
         }
 
-        /* 内部シャドウと表層屈折ハイライト */
+        /* 内部シャドウと表層屈折レンズハイライト */
         .disc::before {
             content: '';
             position: absolute;
-            top: 6%;
-            left: 12%;
-            width: 44%;
-            height: 32%;
-            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 75%);
+            top: 5%;
+            left: 10%;
+            width: 48%;
+            height: 35%;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.4) 40%, rgba(255, 255, 255, 0) 80%);
             border-radius: 50%;
-            filter: blur(0.4px);
+            filter: blur(0.5px);
             pointer-events: none;
             z-index: 2;
+            mix-blend-mode: overlay;
         }
 
-        /* 石の下部内部光沢とリムライト */
+        /* 石の下部内部光沢・エッジリムライト・光学屈折境界 */
         .disc::after {
             content: '';
             position: absolute;
-            bottom: 6%;
-            right: 10%;
-            width: 50%;
-            height: 34%;
-            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.35) 0%, transparent 70%);
+            bottom: 4%;
+            right: 8%;
+            width: 55%;
+            height: 38%;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.45) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
             z-index: 1;
         }
 
         .disc.player {
-            background: radial-gradient(circle at 32% 22%, #e0f2fe 0%, #38bdf8 35%, #0284c7 72%, #0369a1 100%);
+            background: radial-gradient(circle at 30% 20%, #f0f9ff 0%, #38bdf8 30%, #0284c7 68%, #0369a1 95%, #0c4a6e 100%);
             box-shadow: 
-                0 8px 18px rgba(0, 0, 0, 0.65),
-                inset 0 -5px 9px rgba(2, 132, 199, 0.85),
-                inset 0 2px 4px rgba(255, 255, 255, 0.4),
-                0 0 24px rgba(56, 189, 248, 0.75);
+                0 10px 22px rgba(0, 0, 0, 0.75),
+                inset 0 -6px 12px rgba(2, 132, 199, 0.95),
+                inset 0 3px 6px rgba(255, 255, 255, 0.6),
+                0 0 30px rgba(56, 189, 248, 0.85);
         }
 
         .disc.enemy {
-            background: radial-gradient(circle at 32% 22%, #ffe4e6 0%, #fb7185 35%, #e11d48 72%, #881337 100%);
+            background: radial-gradient(circle at 30% 20%, #fff1f2 0%, #fb7185 30%, #e11d48 68%, #be123c 95%, #881337 100%);
             box-shadow: 
-                0 8px 18px rgba(0, 0, 0, 0.65),
-                inset 0 -5px 9px rgba(190, 18, 60, 0.85),
-                inset 0 2px 4px rgba(255, 255, 255, 0.4),
-                0 0 24px rgba(244, 63, 94, 0.75);
+                0 10px 22px rgba(0, 0, 0, 0.75),
+                inset 0 -6px 12px rgba(190, 18, 60, 0.95),
+                inset 0 3px 6px rgba(255, 255, 255, 0.6),
+                0 0 30px rgba(244, 63, 94, 0.85);
         }
 
         .disc.flip-anim {
@@ -601,19 +604,19 @@
         @keyframes flipDisc3D {
             0% { 
                 transform: scale(1) translateZ(0) rotateY(0deg) rotateX(0deg); 
-                filter: brightness(1);
+                filter: brightness(1) drop-shadow(0 0 0px rgba(255,255,255,0));
             }
             45% { 
-                transform: scale(1.52) translateZ(70px) rotateY(85deg) rotateX(20deg); 
-                filter: brightness(2.8) drop-shadow(0 0 28px rgba(255, 255, 255, 1));
+                transform: scale(1.6) translateZ(90px) rotateY(85deg) rotateX(25deg); 
+                filter: brightness(3.2) drop-shadow(0 0 36px rgba(255, 255, 255, 0.95));
             }
             55% {
-                transform: scale(1.52) translateZ(70px) rotateY(95deg) rotateX(20deg); 
-                filter: brightness(2.8) drop-shadow(0 0 28px rgba(255, 255, 255, 1));
+                transform: scale(1.6) translateZ(90px) rotateY(95deg) rotateX(25deg); 
+                filter: brightness(3.2) drop-shadow(0 0 36px rgba(255, 255, 255, 0.95));
             }
             100% { 
                 transform: scale(1) translateZ(0) rotateY(180deg) rotateX(0deg); 
-                filter: brightness(1);
+                filter: brightness(1) drop-shadow(0 0 0px rgba(255,255,255,0));
             }
         }
 
@@ -1021,19 +1024,18 @@
         }
 
         function updateParticles() {
-            // 残像（モーショントレイル）を実現するため完全消去せず半透明クリア
-            ctx.fillStyle = 'rgba(7, 10, 18, 0.28)';
+            // モーショントレイルとネオンブルームの残像表現
+            ctx.fillStyle = 'rgba(5, 7, 12, 0.22)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const len = particles.length;
             if (len === 0) {
-                // パーティクル終了時にも完全に背景をクリアして残像残りを防止
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 isParticleLoopRunning = false;
                 return;
             }
 
-            // 多層加算合成とブルーム発光効果
+            // 加算合成による最高峰のブルーム発光
             ctx.globalCompositeOperation = 'lighter';
 
             for (let i = len - 1; i >= 0; i--) {
@@ -1041,8 +1043,8 @@
                 p.x += p.vx;
                 p.y += p.vy;
                 p.vy += p.gravity;
-                p.vx *= 0.92;
-                p.vy *= 0.92;
+                p.vx *= 0.94;
+                p.vy *= 0.94;
                 p.rotation += p.spin;
                 p.alpha -= p.life;
 
@@ -1058,28 +1060,32 @@
                 ctx.translate(p.x, p.y);
                 ctx.rotate(p.rotation);
 
-                // ネオンブルーム（自己発光シャドウ）の付与
+                // 2層ネオンブルーム（外側高輝度シャドウ＆コア発光）
                 ctx.shadowColor = p.color;
-                ctx.shadowBlur = 16;
+                ctx.shadowBlur = 24;
 
                 if (p.type === 'spark') {
                     ctx.beginPath();
-                    ctx.moveTo(-p.size * 3.5, 0); ctx.lineTo(p.size * 3.5, 0);
-                    ctx.moveTo(0, -p.size * 3.5); ctx.lineTo(0, p.size * 3.5);
-                    ctx.lineWidth = 2.4;
+                    ctx.moveTo(-p.size * 4, 0); ctx.lineTo(p.size * 4, 0);
+                    ctx.moveTo(0, -p.size * 4); ctx.lineTo(0, p.size * 4);
+                    ctx.lineWidth = 2.8;
+                    ctx.stroke();
+                    // コアの白い鋭い輝き
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.0;
                     ctx.stroke();
                 } else if (p.type === 'ring') {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 2.5, 0, Math.PI * 2);
-                    ctx.lineWidth = 1.6;
+                    ctx.arc(0, 0, p.size * 3.0, 0, Math.PI * 2);
+                    ctx.lineWidth = 2.0;
                     ctx.stroke();
                 } else if (p.type === 'glow') {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 1.8, 0, Math.PI * 2);
+                    ctx.arc(0, 0, p.size * 2.2, 0, Math.PI * 2);
                     ctx.fill();
                 } else {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 1.2, 0, Math.PI * 2);
+                    ctx.arc(0, 0, p.size * 1.4, 0, Math.PI * 2);
                     ctx.fill();
                 }
                 ctx.restore();
