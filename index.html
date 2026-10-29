@@ -992,7 +992,7 @@
             enemyShield: 0,
             enemyPhase: 1,
             board: [],
-            specialCells: [], // {r, c, type: 'heal' | 'obstacle' | 'bomb'}
+            specialCells: [], // {r, c, type: 'heal' | 'obstacle' | 'bomb' | 'bomb_timer' | 'warp', timer: number, warpTarget: {r, c}}
             enemyType: 'normal', // 'normal' | 'aggressive' | 'thorn' | 'shield' | 'boss'
             currentTurn: PLAYER,
             isProcessing: false,
@@ -1002,6 +1002,7 @@
                 score: 0
             },
             relics: [],
+            curses: [],
             skills: [
                 { id: 'double_strike', name: '重撃', desc: '次の1手でダメージ2倍', ready: true },
                 { id: 'snipe', name: 'スナイプ', desc: '任意の空マスに直接石を配置', ready: true }
@@ -1012,6 +1013,12 @@
             selectedSkill: null,
             activeShield: false
         };
+
+        // 呪物プール
+        const CURSE_POOL = [
+            { id: 'blood_debt', name: '血の負債', desc: '毎ターン開始時、HPが3減少するが与ダメージが1.3倍になる' },
+            { id: 'heavy_stone', name: '重圧の呪い', desc: 'ひっくり返せる枚数が常に1枚減少する（最低1枚）' }
+        ];
 
         // スキルプール
         const SKILL_POOL = [
@@ -1219,6 +1226,7 @@
             const routes = [
                 { type: 'battle', title: '⚔️ 通常戦闘', desc: '敵を討伐し、遺物やスキルを獲得する。' },
                 { type: 'elite', title: '🔥 強敵・ボス戦', desc: '強力なエネミーとの死闘。報酬が豪華。' },
+                { type: 'event', title: '🔮 謎の祭壇（イベント）', desc: 'リスクと引き換えに強力な力を得る。' },
                 { type: 'shop', title: '💰 神秘の商人', desc: '所持スコアを使って体力やスキルを補給。' }
             ];
 
@@ -1233,6 +1241,8 @@
                 card.addEventListener('click', () => {
                     if (r.type === 'shop') {
                         showShopScreen();
+                    } else if (r.type === 'event') {
+                        showEventModal();
                     } else {
                         gameState.enemyType = (r.type === 'elite' || gameState.stage % 3 === 0) ? 'boss' : (Math.random() > 0.5 ? 'aggressive' : 'normal');
                         startStage();
@@ -1242,6 +1252,44 @@
             });
 
             showScreen('map-screen');
+        }
+
+        function showEventModal() {
+            const modal = document.getElementById('reward-modal');
+            const container = document.getElementById('reward-cards');
+            container.innerHTML = '';
+
+            const card1 = document.createElement('div');
+            card1.className = 'reward-card';
+            card1.innerHTML = `
+                <div class="reward-card-title">祭壇に祈りを捧げる</div>
+                <div class="reward-card-desc">最大HPが10増加するが、ランダムな呪物を受け取る。</div>
+            `;
+            card1.addEventListener('click', () => {
+                gameState.playerMaxHp += 10;
+                gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + 10);
+                const randomCurse = CURSE_POOL[Math.floor(Math.random() * CURSE_POOL.length)];
+                if (!gameState.curses.some(c => c.id === randomCurse.id)) {
+                    gameState.curses.push(randomCurse);
+                }
+                modal.classList.remove('active');
+                showMapScreen();
+            });
+
+            const card2 = document.createElement('div');
+            card2.className = 'reward-card';
+            card2.innerHTML = `
+                <div class="reward-card-title">立ち去る</div>
+                <div class="reward-card-desc">何もせず安全にルート選択に戻る。</div>
+            `;
+            card2.addEventListener('click', () => {
+                modal.classList.remove('active');
+                showMapScreen();
+            });
+
+            container.appendChild(card1);
+            container.appendChild(card2);
+            modal.classList.add('active');
         }
 
         function showShopScreen() {
@@ -1289,6 +1337,11 @@
         function startStage() {
             sequencer.reset();
             
+            // 呪物「血の負債」によるターン開始時ペナルティ
+            if (hasCurse('blood_debt')) {
+                gameState.playerHp = Math.max(1, gameState.playerHp - 3);
+            }
+
             // エネミータイプの調整
             const enemyNames = {
                 normal: 'ENEMY',
@@ -1300,6 +1353,7 @@
 
             gameState.enemyMaxHp = 15 + gameState.stage * 10 + (gameState.enemyType === 'boss' ? 25 : 0);
             gameState.enemyHp = gameState.enemyMaxHp;
+            gameState.enemyPhase = 1;
             gameState.currentTurn = PLAYER;
             gameState.isProcessing = false;
             gameState.selectedSkill = null;
@@ -1518,11 +1572,16 @@
                     if (!cell) continue;
 
                     // 特殊セルのクラス適用
-                    cell.classList.remove('heal-cell', 'obstacle-cell');
+                    cell.classList.remove('heal-cell', 'obstacle-cell', 'bomb-timer-cell', 'warp-cell');
                     const sp = gameState.specialCells.find(s => s.r === r && s.c === c);
                     if (sp) {
                         if (sp.type === 'heal') cell.classList.add('heal-cell');
                         if (sp.type === 'obstacle') cell.classList.add('obstacle-cell');
+                        if (sp.type === 'bomb_timer') {
+                            cell.classList.add('bomb-timer-cell');
+                            cell.setAttribute('data-preview-count', `💣${sp.timer}`);
+                        }
+                        if (sp.type === 'warp') cell.classList.add('warp-cell');
                     }
 
                     const val = gameState.board[r][c];
@@ -1731,7 +1790,22 @@
                     await executeMove(r, c, PLAYER, flippable);
                 }
 
-                let dmg = isSnipeActive ? 8 : (flippable.length * 3);
+                // 特殊セルギミック発動（時限爆弾・ワープゲート）
+                const spCell = gameState.specialCells.find(s => s.r === r && s.c === c);
+                if (spCell && spCell.type === 'warp' && spCell.warpTarget) {
+                    const tw = spCell.warpTarget;
+                    if (gameState.board[tw.r][tw.c] === EMPTY) {
+                        gameState.board[tw.r][tw.c] = PLAYER;
+                        showEffectAtCell(tw.r, tw.c, '#38bdf8');
+                    }
+                }
+
+                let effectiveFlips = flippable.length;
+                if (hasCurse('heavy_stone')) {
+                    effectiveFlips = Math.max(1, effectiveFlips - 1);
+                }
+
+                let dmg = isSnipeActive ? 8 : (effectiveFlips * 3);
                 const isDoubleStrikeActive = (activeSkillId === 'double_strike');
 
                 if (isDoubleStrikeActive) {
@@ -1742,13 +1816,17 @@
                     gameState.selectedSkill = null;
                 }
 
+                if (hasCurse('blood_debt')) {
+                    dmg = Math.floor(dmg * 1.3);
+                }
+
                 if (hasRelic('corner_master') && isCorner(r, c)) {
                     dmg += 10;
                     showEffectAtCell(r, c, '#f59e0b');
                 }
 
                 if (hasRelic('vampire') && !isSnipeActive) {
-                    const heal = flippable.length;
+                    const heal = effectiveFlips;
                     gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + heal);
                 }
 
@@ -1762,14 +1840,51 @@
         }
 
         async function enemyTurn() {
+            // ボスフェーズのチェック (HP 50%以下でフェーズ2に移行し特殊行動)
+            if (gameState.enemyType === 'boss' && gameState.enemyHp <= gameState.enemyMaxHp / 2 && gameState.enemyPhase === 1) {
+                gameState.enemyPhase = 2;
+                await showToast('BOSS PHASE 2!', 800);
+                // 毎ターンランダムな1マスを鉄格子（障害物）に変更
+                const emptyCells = [];
+                for (let r=0; r<BOARD_SIZE; r++) {
+                    for (let c=0; c<BOARD_SIZE; c++) {
+                        if (gameState.board[r][c] === EMPTY) emptyCells.push({r, c});
+                    }
+                }
+                if (emptyCells.length > 0) {
+                    const ec = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    gameState.specialCells.push({r: ec.r, c: ec.c, type: 'obstacle'});
+                    showEffectAtCell(ec.r, ec.c, '#ef4444');
+                }
+            }
+
+            // 時限爆弾のタイマー減少処理
+            gameState.specialCells.forEach(sp => {
+                if (sp.type === 'bomb_timer') {
+                    sp.timer--;
+                    if (sp.timer <= 0) {
+                        // 爆発して周囲の石を敵の色に染める
+                        for (let dr = -1; dr <= 1; dr++) {
+                            for (let dc = -1; dc <= 1; dc++) {
+                                const nr = sp.r + dr, nc = sp.c + dc;
+                                if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                                    gameState.board[nr][nc] = ENEMY;
+                                    showEffectAtCell(nr, nc, '#ef4444');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
             const moves = ReversiEngine.getValidMoves(gameState.board, ENEMY);
             if (moves.length === 0) return;
 
             // エネミーの個性・AIルーチン
-            if (gameState.enemyType === 'aggressive') {
+            if (gameState.enemyType === 'aggressive' || gameState.enemyPhase === 2) {
                 moves.sort((a, b) => {
-                    let scoreA = (isCorner(a.r, a.c) ? 20 : 0) + a.flippable.length;
-                    let scoreB = (isCorner(b.r, b.c) ? 20 : 0) + b.flippable.length;
+                    let scoreA = (isCorner(a.r, a.c) ? 25 : 0) + a.flippable.length;
+                    let scoreB = (isCorner(b.r, b.c) ? 25 : 0) + b.flippable.length;
                     return scoreB - scoreA;
                 });
             } else {
@@ -1943,6 +2058,10 @@
 
         function hasRelic(id) {
             return gameState.relics.some(r => r.id === id);
+        }
+
+        function hasCurse(id) {
+            return gameState.curses.some(c => c.id === id);
         }
 
         function triggerScreenShake(isHeavy = false) {
