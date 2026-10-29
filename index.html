@@ -172,55 +172,58 @@
             box-shadow: 0 2px 10px rgba(14, 165, 233, 0.4);
         }
 
-        /* ゲーム画面 */
+        /* ゲーム画面（引き算の美学による余白とスリム化） */
         #game-screen {
             justify-content: space-between;
-            gap: 12px;
+            gap: 8px;
+            padding: 12px 16px;
         }
 
-        /* ステータスヘッダー */
+        /* ステータスヘッダー：上下の情報を洗練された1行デザインに統合 */
         .header-panel {
             background: var(--panel-bg);
             border: 1px solid var(--panel-border);
-            border-radius: 16px;
-            padding: 12px 16px;
+            border-radius: 12px;
+            padding: 8px 12px;
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            gap: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.08);
         }
 
         .stage-info {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             color: var(--text-sub);
             font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         .stage-badge {
-            background: rgba(56, 189, 248, 0.15);
+            background: rgba(56, 189, 248, 0.12);
             color: var(--primary);
-            padding: 4px 10px;
-            border-radius: 20px;
-            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            font-size: 0.72rem;
         }
 
         .fighters {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .fighter {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
         }
 
         .fighter.enemy {
@@ -228,16 +231,17 @@
         }
 
         .fighter-name {
-            font-size: 0.8rem;
+            font-size: 0.72rem;
             font-weight: 700;
             color: var(--text-sub);
+            letter-spacing: 0.5px;
         }
 
         .hp-bar-bg {
             width: 100%;
-            height: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
+            height: 7px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3.5px;
             overflow: hidden;
             position: relative;
         }
@@ -246,7 +250,7 @@
             height: 100%;
             width: 100%;
             transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 5px;
+            border-radius: 3.5px;
             position: absolute;
             top: 0;
             left: 0;
@@ -254,26 +258,12 @@
             overflow: hidden;
         }
 
-        /* HPバー流体光沢エフェクト */
-        .hp-bar-fill::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            animation: hpFluidFlow 2s infinite linear;
-        }
-
-        @keyframes hpFluidFlow {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
         .hp-bar-delay {
             height: 100%;
             width: 100%;
-            background: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.7);
             transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s;
-            border-radius: 5px;
+            border-radius: 3.5px;
             position: absolute;
             top: 0;
             left: 0;
@@ -283,19 +273,19 @@
         .player .hp-bar-fill { background: linear-gradient(90deg, #38bdf8, #6366f1); }
         .enemy .hp-bar-fill { background: linear-gradient(90deg, #f43f5e, #e11d48); }
 
-        /* ピンチ時の脈動警告 */
         .fighter.low-hp .hp-bar-bg {
             animation: hpWarningPulse 0.8s infinite alternate ease-in-out;
         }
 
         @keyframes hpWarningPulse {
-            0% { box-shadow: 0 0 4px rgba(244, 63, 94, 0.4); }
-            100% { box-shadow: 0 0 16px rgba(244, 63, 94, 0.9); }
+            0% { box-shadow: 0 0 3px rgba(244, 63, 94, 0.3); }
+            100% { box-shadow: 0 0 12px rgba(244, 63, 94, 0.8); }
         }
 
         .hp-text {
-            font-size: 0.75rem;
+            font-size: 0.68rem;
             font-weight: 700;
+            color: var(--text-main);
         }
 
         /* 盤面 */
