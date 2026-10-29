@@ -43,24 +43,26 @@
             overflow: hidden;
             touch-action: none;
             background-image: 
-                radial-gradient(circle at 50% -20%, hsla(var(--ambient-hue), 90%, 70%, 0.42) 0%, transparent 65%),
-                radial-gradient(circle at 50% 120%, rgba(244, 63, 94, 0.28) 0%, transparent 65%),
-                radial-gradient(circle at 10% 50%, rgba(99, 102, 241, 0.22) 0%, transparent 55%),
-                radial-gradient(circle at 90% 30%, rgba(56, 189, 248, 0.18) 0%, transparent 50%);
-            background-size: 180% 180%;
-            animation: ambientLiquidShift 14s infinite alternate ease-in-out;
+                radial-gradient(circle at 50% -20%, hsla(var(--ambient-hue), 95%, 72%, 0.5) 0%, transparent 65%),
+                radial-gradient(circle at 50% 120%, rgba(244, 63, 94, 0.35) 0%, transparent 65%),
+                radial-gradient(circle at 10% 50%, rgba(99, 102, 241, 0.28) 0%, transparent 55%),
+                radial-gradient(circle at 90% 30%, rgba(56, 189, 248, 0.22) 0%, transparent 50%);
+            background-size: 200% 200%;
+            animation: ambientLiquidShift 12s infinite alternate ease-in-out;
             padding-top: env(safe-area-inset-top, 0);
             padding-bottom: env(safe-area-inset-bottom, 0);
         }
 
-        /* 画面全体へのRGBシフト / ホログラフィック・ブルームオーラ */
+        /* 次世代ガラスモフィズムとホログラフィック・ブルームオーラ */
         body::after {
             content: '';
             position: fixed;
             inset: 0;
-            box-shadow: inset 0 0 80px rgba(56, 189, 248, 0.08), inset 0 0 120px rgba(0, 0, 0, 0.6);
+            box-shadow: inset 0 0 100px rgba(56, 189, 248, 0.12), inset 0 0 180px rgba(0, 0, 0, 0.75);
             pointer-events: none;
             z-index: 100;
+            backdrop-filter: blur(1px);
+            -webkit-backdrop-filter: blur(1px);
         }
 
         @keyframes ambientLiquidShift {
@@ -313,23 +315,23 @@
             width: 100%;
             height: 100%;
             background: 
-                radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08) 0%, transparent 70%),
+                radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.12) 0%, transparent 75%),
                 linear-gradient(145deg, rgba(10, 17, 32, 0.98), rgba(18, 28, 48, 0.92));
-            border: 1.5px solid rgba(56, 189, 248, 0.55);
-            border-radius: 22px;
+            border: 2px solid rgba(56, 189, 248, 0.7);
+            border-radius: 24px;
             display: grid;
             grid-template-columns: repeat(6, 1fr);
             grid-template-rows: repeat(6, 1fr);
             gap: 7px;
             padding: 12px;
             box-shadow: 
-                inset 0 0 45px rgba(0, 0, 0, 0.92),
-                inset 0 1px 3px rgba(255, 255, 255, 0.2),
-                0 24px 60px rgba(0, 0, 0, 0.75),
-                0 0 45px rgba(56, 189, 248, 0.35),
-                0 0 15px rgba(56, 189, 248, 0.2) inset;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+                inset 0 0 55px rgba(0, 0, 0, 0.95),
+                inset 0 2px 6px rgba(255, 255, 255, 0.25),
+                0 28px 70px rgba(0, 0, 0, 0.85),
+                0 0 60px rgba(56, 189, 248, 0.5),
+                0 0 25px rgba(56, 189, 248, 0.3) inset;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             position: relative;
             overflow: hidden;
             transition: box-shadow 0.4s ease, border-color 0.4s ease;
@@ -586,23 +588,23 @@
         }
 
         .disc.player {
-            background: radial-gradient(circle at 30% 20%, #f0f9ff 0%, #38bdf8 28%, #0284c7 65%, #0369a1 90%, #0c4a6e 100%);
+            background: radial-gradient(circle at 30% 20%, #ffffff 0%, #7dd3fc 22%, #0284c7 60%, #0369a1 88%, #082f49 100%);
             box-shadow: 
-                0 14px 30px rgba(0, 0, 0, 0.85),
-                inset 0 -8px 16px rgba(2, 132, 199, 0.95),
-                inset 0 5px 10px rgba(255, 255, 255, 0.8),
-                0 0 40px rgba(56, 189, 248, 0.95),
-                0 0 15px rgba(255, 255, 255, 0.4) inset;
+                0 16px 35px rgba(0, 0, 0, 0.9),
+                inset 0 -10px 18px rgba(2, 132, 199, 0.98),
+                inset 0 6px 12px rgba(255, 255, 255, 0.95),
+                0 0 50px rgba(56, 189, 248, 1),
+                0 0 20px rgba(255, 255, 255, 0.6) inset;
         }
 
         .disc.enemy {
-            background: radial-gradient(circle at 30% 20%, #fff1f2 0%, #fb7185 28%, #e11d48 65%, #be123c 90%, #881337 100%);
+            background: radial-gradient(circle at 30% 20%, #ffffff 0%, #fda4af 22%, #e11d48 60%, #be123c 88%, #4c0519 100%);
             box-shadow: 
-                0 14px 30px rgba(0, 0, 0, 0.85),
-                inset 0 -8px 16px rgba(190, 18, 60, 0.95),
-                inset 0 5px 10px rgba(255, 255, 255, 0.8),
-                0 0 40px rgba(244, 63, 94, 0.95),
-                0 0 15px rgba(255, 255, 255, 0.4) inset;
+                0 16px 35px rgba(0, 0, 0, 0.9),
+                inset 0 -10px 18px rgba(190, 18, 60, 0.98),
+                inset 0 6px 12px rgba(255, 255, 255, 0.95),
+                0 0 50px rgba(244, 63, 94, 1),
+                0 0 20px rgba(255, 255, 255, 0.6) inset;
         }
 
         .disc.flip-anim {
@@ -1000,28 +1002,27 @@
 
         let isParticleLoopRunning = false;
 
-        function createParticles(x, y, color, count = 22, isBurst = false) {
+        function createParticles(x, y, color, count = 24, isBurst = false) {
             const types = ['circle', 'spark', 'ring', 'glow'];
-            // 3層構造（遠景・中景・近景）のパララックス効果を付与
-            const layers = [0.6, 1.0, 1.4];
+            // 3層のパララックス効果（遠景・中景・近景）
+            const layers = [0.55, 1.0, 1.5];
             
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                // コンボ数やバーストの勢いに応じて速度と広がりをダイナミックに増加
-                const speed = (Math.random() * (isBurst ? 11 : 6.0) + 1.5);
+                const speed = (Math.random() * (isBurst ? 13 : 7.0) + 2.0);
                 const layer = layers[Math.floor(Math.random() * layers.length)];
                 
                 particles.push({
                     x, y,
                     vx: Math.cos(angle) * speed * layer,
-                    vy: Math.sin(angle) * speed * layer - (isBurst ? 0.6 : 0),
-                    gravity: isBurst ? 0.14 : 0.05,
-                    size: (Math.random() * (isBurst ? 6.5 : 4.0) + 1.5) * layer,
+                    vy: Math.sin(angle) * speed * layer - (isBurst ? 0.8 : 0),
+                    gravity: isBurst ? 0.16 : 0.06,
+                    size: (Math.random() * (isBurst ? 7.5 : 4.5) + 1.8) * layer,
                     color,
                     alpha: 1,
                     type: types[Math.floor(Math.random() * types.length)],
-                    life: 0.012 + Math.random() * 0.02,
-                    spin: (Math.random() - 0.5) * 0.3,
+                    life: 0.010 + Math.random() * 0.018,
+                    spin: (Math.random() - 0.5) * 0.35,
                     rotation: Math.random() * Math.PI
                 });
             }
@@ -1032,8 +1033,8 @@
         }
 
         function updateParticles() {
-            // モーショントレイルとネオンブルームの残像表現（色収差・光学ブレンド最適化）
-            ctx.fillStyle = 'rgba(5, 7, 12, 0.18)';
+            // ネオンブルーム＆オーロラ残像トレイル表現
+            ctx.fillStyle = 'rgba(5, 7, 12, 0.16)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const len = particles.length;
@@ -1048,13 +1049,11 @@
 
             for (let i = len - 1; i >= 0; i--) {
                 const p = particles[i];
-                const prevX = p.x;
-                const prevY = p.y;
                 p.x += p.vx;
                 p.y += p.vy;
                 p.vy += p.gravity;
-                p.vx *= 0.95;
-                p.vy *= 0.95;
+                p.vx *= 0.94;
+                p.vy *= 0.94;
                 p.rotation += p.spin;
                 p.alpha -= p.life;
 
@@ -1070,49 +1069,49 @@
                 ctx.translate(p.x, p.y);
                 ctx.rotate(p.rotation);
 
-                // ネオンブルーム（高輝度シャドウ＆微細RGBシフト）
+                // ネオンブルーム（高輝度シャドウ＆RGB色収差レイヤー）
                 ctx.shadowColor = p.color;
-                ctx.shadowBlur = 32;
+                ctx.shadowBlur = 36;
 
-                // モーションブラー（速度ベクトルに応じた残像引き延ばし）
+                // 速度ベクトルに連動したモーションブラー引き延ばし
                 const speedSq = p.vx * p.vx + p.vy * p.vy;
-                if (speedSq > 1.5 && p.type !== 'ring') {
+                if (speedSq > 2.0 && p.type !== 'ring') {
                     ctx.beginPath();
                     ctx.moveTo(0, 0);
-                    ctx.lineTo(-p.vx * 2.2, -p.vy * 2.2);
-                    ctx.lineWidth = p.size * 1.2;
+                    ctx.lineTo(-p.vx * 2.5, -p.vy * 2.5);
+                    ctx.lineWidth = p.size * 1.4;
                     ctx.strokeStyle = p.color;
                     ctx.stroke();
                 }
 
                 if (p.type === 'spark') {
-                    // RGB色収差風の多重ストローク
+                    // RGB色収差風のマルチストローク発光
                     ctx.beginPath();
-                    ctx.moveTo(-p.size * 5.0, 0); ctx.lineTo(p.size * 5.0, 0);
-                    ctx.moveTo(0, -p.size * 5.0); ctx.lineTo(0, p.size * 5.0);
-                    ctx.lineWidth = 3.6;
+                    ctx.moveTo(-p.size * 5.5, 0); ctx.lineTo(p.size * 5.5, 0);
+                    ctx.moveTo(0, -p.size * 5.5); ctx.lineTo(0, p.size * 5.5);
+                    ctx.lineWidth = 4.0;
                     ctx.stroke();
                     
-                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
-                    ctx.lineWidth = 1.8;
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.9)';
+                    ctx.lineWidth = 2.0;
                     ctx.stroke();
 
-                    // コアの白い鋭い輝き
+                    // コアの純白スパーク
                     ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 1.1;
+                    ctx.lineWidth = 1.2;
                     ctx.stroke();
                 } else if (p.type === 'ring') {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 4.0, 0, Math.PI * 2);
-                    ctx.lineWidth = 2.6;
+                    ctx.arc(0, 0, p.size * 4.5, 0, Math.PI * 2);
+                    ctx.lineWidth = 2.8;
                     ctx.stroke();
                 } else if (p.type === 'glow') {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 2.8, 0, Math.PI * 2);
+                    ctx.arc(0, 0, p.size * 3.2, 0, Math.PI * 2);
                     ctx.fill();
                 } else {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 1.8, 0, Math.PI * 2);
+                    ctx.arc(0, 0, p.size * 2.0, 0, Math.PI * 2);
                     ctx.fill();
                 }
                 ctx.restore();
