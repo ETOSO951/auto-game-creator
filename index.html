@@ -975,10 +975,17 @@
             },
             relics: [],
             skills: [
-                { id: 'double_strike', name: '重撃', desc: '次の1手でダメージ2倍 (タップで構える)', ready: true }
+                { id: 'double_strike', name: '重撃', desc: '次の1手でダメージ2倍', ready: true },
+                { id: 'snipe', name: 'スナイプ', desc: '任意の空マスに直接石を配置', ready: true }
             ],
             selectedSkill: null
         };
+
+        // スキルプール
+        const SKILL_POOL = [
+            { id: 'bomb', name: 'ボム', desc: '着手したマスの周囲の敵石を消滅させる' },
+            { id: 'heal_skill', name: '治癒', desc: 'HPを12回復する（即座に発動）', instant: true }
+        ];
 
         // 遺物プール
         const RELIC_POOL = [
@@ -1500,22 +1507,73 @@
             if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
             gameState.isProcessing = true;
 
-            const flippable = ReversiEngine.getFlippable(gameState.board, r, c, PLAYER);
-            if (flippable.length === 0) {
-                gameState.isProcessing = false;
-                return;
+            const activeSkillId = gameState.selectedSkill;
+            const isSnipeActive = (activeSkillId === 'snipe');
+            const isBombActive = (activeSkillId === 'bomb');
+
+            let flippable = [];
+            if (isSnipeActive) {
+                if (gameState.board[r][c] !== EMPTY) {
+                    gameState.isProcessing = false;
+                    return;
+                }
+                flippable = [];
+            } else {
+                flippable = ReversiEngine.getFlippable(gameState.board, r, c, PLAYER);
+                if (flippable.length === 0) {
+                    gameState.isProcessing = false;
+                    return;
+                }
             }
 
             sequencer.enqueue(async () => {
-                // 即座に全プレビュー状態を消去
                 document.querySelectorAll('.cell.preview-flip, .cell.hover-target').forEach(el => el.classList.remove('preview-flip', 'hover-target'));
 
-                // 1. 着手・反転アニメーション実行
-                await executeMove(r, c, PLAYER, flippable);
+                if (isSnipeActive) {
+                    gameState.board[r][c] = PLAYER;
+                    showEffectAtCell(r, c, '#38bdf8');
+                    const snipeCell = boardCellElements[r]?.[c];
+                    if (snipeCell) {
+                        let disc = snipeCell.querySelector('.disc');
+                        if (!disc) {
+                            disc = document.createElement('div');
+                            snipeCell.appendChild(disc);
+                        }
+                        disc.className = 'disc player';
+                    }
+                    const skill = gameState.skills.find(s => s.id === 'snipe');
+                    if (skill) skill.ready = false;
+                    gameState.selectedSkill = null;
+                    renderBoard();
+                    await wait(300);
+                } else if (isBombActive) {
+                    await executeMove(r, c, PLAYER, flippable);
+                    // 周囲の敵石を消滅
+                    let destroyed = 0;
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            const nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                                if (gameState.board[nr][nc] === ENEMY) {
+                                    gameState.board[nr][nc] = EMPTY;
+                                    destroyed++;
+                                    showEffectAtCell(nr, nc, '#ef4444');
+                                }
+                            }
+                        }
+                    }
+                    renderBoard();
+                    const skill = gameState.skills.find(s => s.id === 'bomb');
+                    if (skill) skill.ready = false;
+                    gameState.selectedSkill = null;
+                    if (destroyed > 0) applyDamage(ENEMY, destroyed * 4, true);
+                    await wait(300);
+                } else {
+                    await executeMove(r, c, PLAYER, flippable);
+                }
 
-                // 2. スキル・遺物の計算（状態更新）
-                let dmg = flippable.length * 3;
-                const isDoubleStrikeActive = (gameState.selectedSkill === 'double_strike');
+                let dmg = isSnipeActive ? 8 : (flippable.length * 3);
+                const isDoubleStrikeActive = (activeSkillId === 'double_strike');
 
                 if (isDoubleStrikeActive) {
                     dmg *= 2;
@@ -1530,17 +1588,15 @@
                     showEffectAtCell(r, c, '#f59e0b');
                 }
 
-                if (hasRelic('vampire')) {
+                if (hasRelic('vampire') && !isSnipeActive) {
                     const heal = flippable.length;
                     gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + heal);
                 }
 
-                // 3. ダメージ適用と描画同期
-                applyDamage(ENEMY, dmg, isDoubleStrikeActive);
+                applyDamage(ENEMY, dmg, isDoubleStrikeActive || isSnipeActive);
                 gameState.stats.totalFlips += flippable.length;
                 await wait(350);
 
-                // 4. 終局判定または手番進行
                 if (await checkBattleEnd()) return;
                 await advanceNextTurn(ENEMY);
             });
@@ -1821,25 +1877,43 @@
             const container = document.getElementById('reward-cards');
             container.innerHTML = '';
 
-            // ランダムに3つの遺物を抽出
-            const available = RELIC_POOL.filter(r => !hasRelic(r.id));
-            const choices = available.sort(() => 0.5 - Math.random()).slice(0, 3);
+            // ランダムに遺物、新スキル、あるいは回復イベントの選択肢を構築
+            const rewardOptions = [];
 
-            if (choices.length === 0) {
-                // 取得可能な遺物がない場合
-                nextStage();
-                return;
+            const availableRelics = RELIC_POOL.filter(r => !hasRelic(r.id));
+            if (availableRelics.length > 0) {
+                const r = availableRelics[Math.floor(Math.random() * availableRelics.length)];
+                rewardOptions.push({ type: 'relic', data: r, title: `[遺物] ${r.name}`, desc: r.desc });
             }
 
-            choices.forEach(relic => {
+            const availableSkills = SKILL_POOL.filter(s => !gameState.skills.some(gs => gs.id === s.id));
+            if (availableSkills.length > 0) {
+                const s = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+                rewardOptions.push({ type: 'skill', data: s, title: `[新スキル] ${s.name}`, desc: s.desc });
+            }
+
+            rewardOptions.push({
+                type: 'heal',
+                title: '[休息の泉] HP完全回復',
+                desc: '体力を最大値まで全快し、さらに最大HPが5増加する。'
+            });
+
+            rewardOptions.slice(0, 3).forEach(opt => {
                 const card = document.createElement('div');
                 card.className = 'reward-card';
                 card.innerHTML = `
-                    <div class="reward-card-title">${relic.name}</div>
-                    <div class="reward-card-desc">${relic.desc}</div>
+                    <div class="reward-card-title">${opt.title}</div>
+                    <div class="reward-card-desc">${opt.desc}</div>
                 `;
                 card.addEventListener('click', () => {
-                    acquireRelic(relic);
+                    if (opt.type === 'relic') {
+                        acquireRelic(opt.data);
+                    } else if (opt.type === 'skill') {
+                        gameState.skills.push({ ...opt.data, ready: true });
+                    } else if (opt.type === 'heal') {
+                        gameState.playerMaxHp += 5;
+                        gameState.playerHp = gameState.playerMaxHp;
+                    }
                     modal.classList.remove('active');
                     nextStage();
                 });
@@ -1962,6 +2036,14 @@
                     `;
                     card.addEventListener('click', () => {
                         if (!s.ready || gameState.currentTurn !== PLAYER || gameState.isProcessing) return;
+                        if (s.instant) {
+                            // 即時発動スキル
+                            s.ready = false;
+                            gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + 12);
+                            showEffectAtCell(0, 0, '#10b981');
+                            updateUI();
+                            return;
+                        }
                         gameState.selectedSkill = (gameState.selectedSkill === s.id) ? null : s.id;
                         updateUI();
                     });
