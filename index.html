@@ -598,15 +598,15 @@
             100% { opacity: 0; transform: translate(-50%, -50px) scale(0.7); }
         }
 
-        /* 減衰計算付き画面振動 & RGB色収差風演出 (ハプティック・イマーション強化) */
+        /* 減衰計算付き画面振動 & RGB色収差風演出 (ハプティック・イマーション多層化強化) */
         .shake {
             animation: shakeScreenImpact 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97);
-            filter: drop-shadow(3px 0px rgba(244, 63, 94, 0.6)) drop-shadow(-3px 0px rgba(56, 189, 248, 0.6));
+            filter: drop-shadow(4px 0px rgba(244, 63, 94, 0.8)) drop-shadow(-4px 0px rgba(56, 189, 248, 0.8)) contrast(1.15);
         }
 
         .shake-heavy {
             animation: shakeScreenHeavy 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
-            filter: drop-shadow(6px 0px rgba(251, 191, 36, 0.9)) drop-shadow(-6px 0px rgba(56, 189, 248, 0.9));
+            filter: drop-shadow(8px 0px rgba(251, 191, 36, 0.95)) drop-shadow(-8px 0px rgba(56, 189, 248, 0.95)) contrast(1.3) saturate(1.4);
         }
 
         @keyframes shakeScreenImpact {
@@ -1403,17 +1403,43 @@
                 [0, 0.18].forEach((delay, i) => {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(65 - i * 10, now + delay);
-                    osc.frequency.exponentialRampToValueAtTime(25, now + delay + 0.12);
+                    const filter = this.ctx.createBiquadFilter();
 
-                    gain.gain.setValueAtTime(0.3, now + delay);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.12);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(70 - i * 12, now + delay);
+                    osc.frequency.exponentialRampToValueAtTime(22, now + delay + 0.15);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(180, now + delay);
+
+                    gain.gain.setValueAtTime(0.4, now + delay);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.15);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + delay);
+                    osc.stop(now + delay + 0.15);
+                });
+            },
+            playCinematicDrone() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [110, 164.81, 220].forEach((freq) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+                    
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.04, now + 0.5);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 1.2);
 
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
-                    osc.start(now + delay);
-                    osc.stop(now + delay + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 1.2);
                 });
             }
         };
@@ -1484,20 +1510,22 @@
         document.getElementById('start-btn').addEventListener('click', () => {
             if(demoInterval) clearInterval(demoInterval);
             SoundEngine.playCombo();
+            SoundEngine.playCinematicDrone();
             
-            // シネマティック・スタート画面トランジション演出
+            // シネマティック・スタート画面トランジション演出（オーロラ拡大・ブラー＆スケール昇華）
             const startScreen = document.getElementById('start-screen');
             startScreen.classList.add('transitioning');
             
             const btnRect = document.getElementById('start-btn').getBoundingClientRect();
             const appRect = document.getElementById('app').getBoundingClientRect();
-            createParticles(btnRect.left - appRect.left + btnRect.width/2, btnRect.top - appRect.top + btnRect.height/2, '#c084fc', 40, true);
+            createParticles(btnRect.left - appRect.left + btnRect.width/2, btnRect.top - appRect.top + btnRect.height/2, '#38bdf8', 50, true);
+            createParticles(btnRect.left - appRect.left + btnRect.width/2, btnRect.top - appRect.top + btnRect.height/2, '#c084fc', 30, true);
 
             setTimeout(() => {
                 initNewGame();
                 showMapScreen();
                 startScreen.classList.remove('transitioning');
-            }, 550);
+            }, 600);
         });
 
         document.getElementById('restart-btn').addEventListener('click', () => {
@@ -2768,25 +2796,30 @@
             titleEl.textContent = isWin ? 'VICTORY!' : 'GAME OVER';
             titleEl.className = `result-title ${isWin ? 'win' : 'lose'}`;
             
-            // 敗北時は心音パルスビート音響を再生
+            // 敗北時は重厚な心音パルスビート音響を多層再生
             if (!isWin) {
                 SoundEngine.playHeartbeat();
-                setTimeout(() => SoundEngine.playHeartbeat(), 700);
+                setTimeout(() => SoundEngine.playHeartbeat(), 750);
+                setTimeout(() => SoundEngine.playHeartbeat(), 1500);
             } else {
                 SoundEngine.playCombo();
+                SoundEngine.playCinematicDrone();
             }
 
-            // 感情起伏ビジュアル：勝利時は黄金バースト＆煌びやかな発光、敗北時は静寂なモノトーン調＋色収差
+            // 感情起伏ビジュアル：勝利時は黄金バースト＆煌びやかな発光、敗北時はドラマチックな静寂モノトーン調＋色収差
             const app = document.getElementById('app');
             if (isWin) {
-                app.style.boxShadow = '0 0 100px rgba(251, 191, 36, 0.8), inset 0 0 50px rgba(251, 191, 36, 0.3)';
-                app.style.filter = 'drop-shadow(0 0 30px rgba(251, 191, 36, 0.5))';
+                app.style.boxShadow = '0 0 120px rgba(251, 191, 36, 0.85), inset 0 0 60px rgba(251, 191, 36, 0.35)';
+                app.style.filter = 'drop-shadow(0 0 40px rgba(251, 191, 36, 0.6)) contrast(1.25)';
                 const appRect = app.getBoundingClientRect();
-                createParticles(appRect.width / 2, appRect.height / 3, '#fbbf24', 60, true);
-                createParticles(appRect.width / 2, appRect.height / 3, '#ffffff', 25, false);
+                createParticles(appRect.width / 2, appRect.height / 3, '#fbbf24', 70, true);
+                createParticles(appRect.width / 2, appRect.height / 3, '#38bdf8', 40, true);
+                createParticles(appRect.width / 2, appRect.height / 3, '#ffffff', 30, false);
             } else {
-                app.style.boxShadow = '0 0 80px rgba(0, 0, 0, 0.98), inset 0 0 50px rgba(244, 63, 94, 0.25)';
-                app.style.filter = 'grayscale(0.7) contrast(1.25) hue-rotate(-15deg)';
+                app.style.boxShadow = '0 0 90px rgba(0, 0, 0, 0.99), inset 0 0 60px rgba(244, 63, 94, 0.3)';
+                app.style.filter = 'grayscale(0.85) contrast(1.35) hue-rotate(-20deg)';
+                const appRect = app.getBoundingClientRect();
+                createParticles(appRect.width / 2, appRect.height / 3, '#f43f5e', 25, false);
             }
 
             const targetStage = gameState.stage;
