@@ -421,6 +421,12 @@
             pointer-events: none;
         }
 
+        /* 【新機能】属性エレメンタルセルのハイライト演出 */
+        .cell.fire-cell { background: radial-gradient(circle, rgba(249, 115, 22, 0.35) 0%, rgba(28, 39, 58, 0.8) 70%); border-color: rgba(249, 115, 22, 0.6); }
+        .cell.ice-cell { background: radial-gradient(circle, rgba(56, 189, 248, 0.35) 0%, rgba(28, 39, 58, 0.8) 70%); border-color: rgba(56, 189, 248, 0.6); }
+        .cell.electric-cell { background: radial-gradient(circle, rgba(234, 179, 8, 0.35) 0%, rgba(28, 39, 58, 0.8) 70%); border-color: rgba(234, 179, 8, 0.6); }
+        .cell.poison-cell { background: radial-gradient(circle, rgba(168, 85, 247, 0.35) 0%, rgba(28, 39, 58, 0.8) 70%); border-color: rgba(168, 85, 247, 0.6); }
+
         @keyframes pulseValid {
             0% { transform: scale(0.8); opacity: 0.5; }
             100% { transform: scale(1.2); opacity: 0.9; }
@@ -992,10 +998,10 @@
             enemyShield: 0,
             enemyPhase: 1,
             board: [],
-            specialCells: [], // {r, c, type: 'heal' | 'obstacle' | 'bomb' | 'bomb_timer' | 'warp' | 'fire' | 'ice' | 'electric' | 'poison' | 'crystal', timer: number, warpTarget: {r, c}}
-            enemyType: 'normal', // 'normal' | 'aggressive' | 'thorn' | 'shield' | 'poison' | 'boss'
-            enemyTalent: null, // 'corner_guard' | 'shield_generator' | 'cooldown_curse' | 'shield_shift'
-            floorRule: null, // 'max_3_flips' | 'crumbling_edge' | 'magnetic_storm'
+            specialCells: [],
+            enemyType: 'normal',
+            enemyTalent: null,
+            floorRule: null,
             currentTurn: PLAYER,
             isProcessing: false,
             stats: {
@@ -1014,7 +1020,11 @@
                 { id: 'potion_power', name: '力の霊薬', desc: '次のプレイヤーの着手ダメージが3倍になる', count: 1 }
             ],
             selectedSkill: null,
-            activeShield: false
+            activeShield: false,
+            // 【新機能】属性システム・エレメンタルストック
+            elementalAffinity: 'fire', // 'fire' | 'ice' | 'thunder' | 'poison'
+            enemyFrozen: false,
+            materials: 3 // 遺物分解・クラフト用素材
         };
 
         // 呪物プール
@@ -1225,18 +1235,17 @@
         }
 
         function showMapScreen() {
-            document.getElementById('map-subtitle').textContent = `FLOOR ${gameState.stage} - 進行ルート`;
+            document.getElementById('map-subtitle').textContent = `FLOOR ${gameState.stage} - 進行ルート（素材: ${gameState.materials}）`;
             const container = document.getElementById('map-nodes-container');
             container.innerHTML = '';
 
             const routes = [
-                { type: 'battle', title: '⚔️ 通常戦闘', desc: '敵を討伐し、遺物やスキルを獲得する。' },
-                { type: 'elite', title: '🔥 強敵・ボス戦', desc: '強力なエネミーとの死闘。報酬が豪華。' },
-                { type: 'event', title: '🔮 謎の祭壇（イベント）', desc: 'リスクと引き換えに強力な力を得る。' },
-                { type: 'shop', title: '💰 神秘の商人', desc: '所持スコアを使って体力やスキルを補給。' }
+                { type: 'battle', title: '⚔️ 属性戦闘エリア', desc: '炎・氷・雷の属性石を操り敵を撃破する。' },
+                { type: 'elite', title: '🔥 マルチボス討伐', desc: '特殊アビリティを持つ強敵との死闘。' },
+                { type: 'event', title: '🔮 エレメンタル祭壇', desc: '属性の祝福を受け、新たな力に目覚める。' },
+                { type: 'shop', title: '💰 商人・クラフト工房', desc: '遺物の分解・合成・融合および補給。' }
             ];
 
-            // ステージが進むにつれて選択肢をシャッフル・限定
             routes.forEach(r => {
                 const card = document.createElement('div');
                 card.className = 'reward-card';
@@ -1250,7 +1259,7 @@
                     } else if (r.type === 'event') {
                         showEventModal();
                     } else {
-                        gameState.enemyType = (r.type === 'elite' || gameState.stage % 3 === 0) ? 'boss' : (Math.random() > 0.5 ? 'aggressive' : 'normal');
+                        gameState.enemyType = (r.type === 'elite' || gameState.stage % 3 === 0) ? 'boss' : (Math.random() > 0.5 ? 'thorn' : 'aggressive');
                         startStage();
                     }
                 });
@@ -1300,14 +1309,15 @@
 
         function showShopScreen() {
             const container = document.getElementById('shop-cards-container');
-            container.innerHTML = '';
+            container.innerHTML = `
+                <div style="font-size:0.85rem; color:var(--primary); margin-bottom:4px;">所持クラフト素材: ${gameState.materials} 個</div>
+            `;
 
             const items = [
                 { id: 'hp', title: '応急手当 (100スコア)', desc: 'HPを15回復する。', cost: 100 },
-                { id: 'maxhp', title: '肉体強化 (150スコア)', desc: '最大HPが10増加する。', cost: 150 },
-                { id: 'heal_skill', title: 'スキル：治癒 (200スコア)', desc: '即座にHPを回復するアクティブスキルを習得。', cost: 200 },
-                { id: 'craft_relic', title: '遺物合成・融合 (250スコア)', desc: '吸血の牙と棘の鎧を「真祖の牙」に融合進化させる。', cost: 250 },
-                { id: 'cleanse_curse', title: '呪物浄化 (180スコア)', desc: '現在受けている呪いを1つ消去する。', cost: 180 }
+                { id: 'craft_decompose', title: '遺物分解 (素材+2個)', desc: '保持している不要な遺物を分解しクラフト素材を獲得する。', cost: 0, materialCost: 0 },
+                { id: 'craft_upgrade_skill', title: 'スキル覚醒・強化 (素材3個)', desc: '重撃やスナイプの威力を大幅に強化する。', cost: 0, materialCost: 3 },
+                { id: 'craft_relic', title: '上位遺物融合 (250スコア or 素材5個)', desc: '吸血の牙と棘の鎧を「真祖の牙」に融合進化。', cost: 250 }
             ];
 
             items.forEach(item => {
@@ -1318,37 +1328,42 @@
                     <div class="reward-card-desc">${item.desc}</div>
                 `;
                 card.addEventListener('click', () => {
-                    if (gameState.stats.score >= item.cost) {
-                        gameState.stats.score -= item.cost;
-                        if (item.id === 'hp') {
-                            gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + 15);
-                        } else if (item.id === 'maxhp') {
-                            gameState.playerMaxHp += 10;
-                            gameState.playerHp += 10;
-                        } else if (item.id === 'heal_skill') {
-                            if (!gameState.skills.some(s => s.id === 'heal_skill')) {
-                                gameState.skills.push({ id: 'heal_skill', name: '治癒', desc: 'HPを12回復する', instant: true, ready: true });
-                            }
-                        } else if (item.id === 'craft_relic') {
-                            if (hasRelic('vampire') && hasRelic('spikes') && !hasRelic('blood_vampire')) {
-                                gameState.relics = gameState.relics.filter(r => r.id !== 'vampire' && r.id !== 'spikes');
-                                gameState.relics.push(RELIC_POOL.find(r => r.id === 'blood_vampire'));
-                                showToast('真祖の牙へ融合進化！', 1000);
-                            } else {
-                                showToast('条件を満たしていません（吸血＆棘の鎧が必要）', 800);
-                            }
-                        } else if (item.id === 'cleanse_curse') {
-                            if (gameState.curses.length > 0) {
-                                gameState.curses.pop();
-                                showToast('呪いを浄化しました', 800);
-                            } else {
-                                showToast('現在受けている呪いはありません', 800);
-                            }
+                    if (item.id === 'craft_decompose') {
+                        if (gameState.relics.length > 0) {
+                            gameState.relics.pop();
+                            gameState.materials += 2;
+                            showToast('遺物を分解し素材を獲得', 800);
+                            showShopScreen();
+                        } else {
+                            showToast('分解できる遺物がありません', 600);
                         }
-                        card.style.opacity = '0.5';
-                        card.style.pointerEvents = 'none';
+                    } else if (item.id === 'craft_upgrade_skill') {
+                        if (gameState.materials >= 3) {
+                            gameState.materials -= 3;
+                            gameState.skills.forEach(s => s.level = (s.level || 1) + 1);
+                            showToast('全アクティブスキルが強化されました！', 1000);
+                        } else {
+                            showToast('クラフト素材が足りません (必要: 3個)', 600);
+                        }
                     } else {
-                        showToast('スコアが足りません', 600);
+                        if (gameState.stats.score >= item.cost) {
+                            gameState.stats.score -= item.cost;
+                            if (item.id === 'hp') {
+                                gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + 15);
+                            } else if (item.id === 'craft_relic') {
+                                if (hasRelic('vampire') && hasRelic('spikes') && !hasRelic('blood_vampire')) {
+                                    gameState.relics = gameState.relics.filter(r => r.id !== 'vampire' && r.id !== 'spikes');
+                                    gameState.relics.push(RELIC_POOL.find(r => r.id === 'blood_vampire'));
+                                    showToast('真祖の牙へ融合進化！', 1000);
+                                } else {
+                                    showToast('条件を満たしていません（吸血＆棘の鎧が必要）', 800);
+                                }
+                            }
+                            card.style.opacity = '0.5';
+                            card.style.pointerEvents = 'none';
+                        } else {
+                            showToast('スコアが足りません', 600);
+                        }
                     }
                 });
                 container.appendChild(card);
@@ -1571,12 +1586,22 @@
                 if (gameState.board[hr][hc] === EMPTY) {
                     gameState.specialCells.push({ r: hr, c: hc, type: 'heal' });
                 }
+                const ic = Math.floor(Math.random() * BOARD_SIZE);
+                const ir = Math.floor(Math.random() * BOARD_SIZE);
+                if (gameState.board[ir][ic] === EMPTY) {
+                    gameState.specialCells.push({ r: ir, c: ic, type: 'ice' });
+                }
             }
             if (gameState.stage >= 3) {
                 const or = Math.floor(Math.random() * BOARD_SIZE);
                 const oc = Math.floor(Math.random() * BOARD_SIZE);
                 if (gameState.board[or][oc] === EMPTY && !(or === mid-1 && oc === mid-1)) {
                     gameState.specialCells.push({ r: or, c: oc, type: 'obstacle' });
+                }
+                const er = Math.floor(Math.random() * BOARD_SIZE);
+                const ec = Math.floor(Math.random() * BOARD_SIZE);
+                if (gameState.board[er][ec] === EMPTY) {
+                    gameState.specialCells.push({ r: er, c: ec, type: 'electric' });
                 }
             }
             if (gameState.stage >= 4) {
@@ -1869,6 +1894,14 @@
                     if (spCell.type === 'fire') {
                         applyDamage(PLAYER, 4);
                         showEffectAtCell(r, c, '#f97316');
+                    } else if (spCell.type === 'ice') {
+                        gameState.enemyFrozen = true;
+                        showEffectAtCell(r, c, '#38bdf8');
+                        await showToast('氷結効果！次ターンの敵行動遅延', 800);
+                    } else if (spCell.type === 'electric') {
+                        applyDamage(ENEMY, 8, true);
+                        showEffectAtCell(r, c, '#eab308');
+                        await showToast('電磁チェイン発動！', 600);
                     } else if (spCell.type === 'crystal') {
                         applyDamage(ENEMY, 12);
                         showEffectAtCell(r, c, '#c084fc');
@@ -1933,7 +1966,13 @@
         }
 
         async function enemyTurn() {
-            // エネミータレント「シールドジェネレーター」＆「シールドシフト」
+            if (gameState.enemyFrozen) {
+                gameState.enemyFrozen = false;
+                await showToast('敵は氷結により行動不能！', 800);
+                await advanceNextTurn(PLAYER);
+                return;
+            }
+
             if (gameState.enemyTalent === 'shield_generator' && gameState.enemyShield < 10) {
                 gameState.enemyShield += 3;
             }
