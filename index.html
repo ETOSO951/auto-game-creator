@@ -165,56 +165,56 @@
         /* ゲーム画面（引き算の美学による余白と極限のスリム化） */
         #game-screen {
             justify-content: space-between;
-            gap: 6px;
-            padding: 8px 14px;
+            gap: 4px;
+            padding: 6px 12px;
         }
 
         /* ステータスヘッダー：1行に完全に溶け込むミニマル・インフォバー */
         .header-panel {
-            background: rgba(14, 20, 34, 0.6);
-            border: 1px solid rgba(56, 189, 248, 0.15);
-            border-radius: 12px;
-            padding: 4px 10px;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(14, 20, 34, 0.5);
+            border: 1px solid rgba(56, 189, 248, 0.12);
+            border-radius: 10px;
+            padding: 4px 8px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 6px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+            gap: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .stage-info {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 0.7rem;
+            gap: 4px;
+            font-size: 0.65rem;
             color: var(--text-sub);
             font-weight: 600;
         }
 
-        /* 遺物ドロワーボタン（アイコン化による美観向上） */
+        /* 遺物ドロワーボタン（洗練されたミニマルアイコン） */
         .relic-toggle-btn {
-            background: rgba(56, 189, 248, 0.1);
-            border: 1px solid rgba(56, 189, 248, 0.3);
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.25);
             color: var(--primary);
-            font-size: 0.65rem;
-            padding: 2px 6px;
-            border-radius: 6px;
+            font-size: 0.6rem;
+            padding: 2px 5px;
+            border-radius: 5px;
             cursor: pointer;
             font-weight: 700;
             transition: all 0.2s ease;
         }
         .relic-toggle-btn:hover {
-            background: rgba(56, 189, 248, 0.25);
+            background: rgba(56, 189, 248, 0.2);
         }
 
         /* 遺物スライド式ドロワー */
         .relic-drawer {
             position: absolute;
-            top: 55px;
-            left: 14px;
-            right: 14px;
+            top: 50px;
+            left: 12px;
+            right: 12px;
             background: rgba(14, 20, 34, 0.95);
             border: 1px solid var(--panel-border);
             border-radius: 12px;
@@ -878,11 +878,17 @@
 
         <!-- ゲーム画面 -->
         <div id="game-screen" class="screen">
-            <!-- 上部ステータス（スリム1行統合版：遺物ボタンを排除し視覚ノイズを徹底排除） -->
+            <!-- 上部ステータス（スリム1行統合版：遺物確認ボタンを洗練配置してノイズを抑制） -->
             <div class="header-panel">
                 <div class="stage-info">
                     <span class="stage-badge" id="stage-text">F1</span>
-                    <span id="turn-text" style="font-size:0.7rem; color:var(--primary);">あなたのターン</span>
+                    <span id="turn-text" style="font-size:0.65rem; color:var(--primary);">あなた</span>
+                    <button class="relic-toggle-btn" id="relic-toggle-btn" title="遺物確認">遺物</button>
+                </div>
+                <!-- 遺物スライド式ドロワー -->
+                <div class="relic-drawer" id="relic-drawer">
+                    <div style="font-size:0.7rem; font-weight:700; color:var(--accent);">所持遺物・呪物一覧</div>
+                    <div class="relics-list" id="relics-list-container"></div>
                 </div>
                 <div class="fighters">
                     <div class="fighter player" id="fighter-player">
@@ -1182,6 +1188,34 @@
 
         document.getElementById('leave-shop-btn').addEventListener('click', () => {
             startStage();
+        });
+
+        // 遺物ドロワーのトグル動作
+        document.getElementById('relic-toggle-btn').addEventListener('click', () => {
+            const drawer = document.getElementById('relic-drawer');
+            drawer.classList.toggle('open');
+            if (drawer.classList.contains('open')) {
+                const listContainer = document.getElementById('relics-list-container');
+                listContainer.innerHTML = '';
+                if (gameState.relics.length === 0 && gameState.curses.length === 0) {
+                    listContainer.innerHTML = '<span style="font-size:0.65rem; color:var(--text-sub);">なし</span>';
+                } else {
+                    gameState.relics.forEach(r => {
+                        const badge = document.createElement('div');
+                        badge.className = 'relic-badge';
+                        badge.textContent = r.name;
+                        listContainer.appendChild(badge);
+                    });
+                    gameState.curses.forEach(c => {
+                        const badge = document.createElement('div');
+                        badge.className = 'relic-badge';
+                        badge.style.borderColor = 'rgba(244,63,94,0.4)';
+                        badge.style.color = '#f43f5e';
+                        badge.textContent = `[呪] ${c.name}`;
+                        listContainer.appendChild(badge);
+                    });
+                }
+            }
         });
 
         function initNewGame() {
