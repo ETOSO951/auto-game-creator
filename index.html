@@ -239,7 +239,7 @@
             justify-content: center;
             align-items: center;
             position: relative;
-            touch-action: manipulation;
+            touch-action: none;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -867,31 +867,64 @@
 
             boardEl.addEventListener('mouseleave', clearPreview);
 
-            // タッチデバイス対応：タッチ開始・離脱・キャンセルの厳密な追従
+            // --- タッチ追従＆ドラッグ＆リリース着手（操作性の向上） ---
+            let activeTouchCell = null;
+            let lastTouchEndTime = 0;
+
+            const getCellFromTouch = (touch) => {
+                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                return target ? target.closest('.cell') : null;
+            };
+
             boardEl.addEventListener('touchstart', (e) => {
-                const cell = e.target.closest('.cell');
-                showPreview(cell);
+                if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
+                if (e.touches.length > 0) {
+                    activeTouchCell = getCellFromTouch(e.touches[0]);
+                    showPreview(activeTouchCell);
+                }
             }, { passive: true });
 
-            boardEl.addEventListener('touchend', () => {
+            boardEl.addEventListener('touchmove', (e) => {
+                if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
+                if (e.touches.length > 0) {
+                    const currentCell = getCellFromTouch(e.touches[0]);
+                    if (currentCell !== activeTouchCell) {
+                        activeTouchCell = currentCell;
+                        showPreview(activeTouchCell);
+                    }
+                }
+            }, { passive: true });
+
+            boardEl.addEventListener('touchend', (e) => {
+                lastTouchEndTime = Date.now();
+                const cellToTrigger = activeTouchCell;
+                activeTouchCell = null;
                 clearPreview();
+
+                if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
+                if (cellToTrigger && cellToTrigger.classList.contains('valid')) {
+                    const r = parseInt(cellToTrigger.dataset.row, 10);
+                    const c = parseInt(cellToTrigger.dataset.col, 10);
+                    handlePlayerMove(r, c);
+                }
             }, { passive: true });
 
             boardEl.addEventListener('touchcancel', () => {
+                activeTouchCell = null;
                 clearPreview();
             }, { passive: true });
 
-            // イベント委譲（Event Delegation）によるタップ制御の一括管理
+            // PCマウスクリック（タッチ直後の二重実行はミリ秒判定で遮断）
             boardEl.addEventListener('click', (e) => {
+                if (Date.now() - lastTouchEndTime < 450) return;
                 clearPreview();
                 if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
                 const cell = e.target.closest('.cell');
-                if (!cell) return;
+                if (!cell || !cell.classList.contains('valid')) return;
+
                 const r = parseInt(cell.dataset.row, 10);
                 const c = parseInt(cell.dataset.col, 10);
-                if (cell.classList.contains('valid')) {
-                    handlePlayerMove(r, c);
-                }
+                handlePlayerMove(r, c);
             });
             isBoardDomInitialized = true;
         }
@@ -988,7 +1021,7 @@
             return moves;
         }
 
-        // --- ターン進行 & 統一状態管理 ---
+        // --- ターン進行 & 統一状態管理（直列シーケンサー） ---
         async function handlePlayerMove(r, c) {
             if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
             gameState.isProcessing = true;
@@ -999,14 +1032,13 @@
                 return;
             }
 
-            // 着手と反転アニメーション（完了まで単一非同期実行）
+            // 1. 着手・反転アニメーション完了待機
             await executeMove(r, c, PLAYER, flippable);
 
-            // ダメージ基礎計算
+            // 2. スキル・遺物計算
             let dmg = flippable.length * 3;
             const isDoubleStrikeActive = (gameState.selectedSkill === 'double_strike');
 
-            // スキル「重撃」適用
             if (isDoubleStrikeActive) {
                 dmg *= 2;
                 showEffectAtCell(r, c, '#f59e0b');
@@ -1014,101 +1046,99 @@
                 if (skill) skill.ready = false;
                 gameState.selectedSkill = null;
             }
-            
-            // 角チェック (角の支配者)
+
             if (hasRelic('corner_master') && isCorner(r, c)) {
                 dmg += 10;
                 showEffectAtCell(r, c, '#f59e0b');
             }
 
-            // 吸血チェック
             if (hasRelic('vampire')) {
                 const heal = flippable.length;
                 gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + heal);
             }
 
-            // ダメージ適用
+            // 3. ダメージ適用と描画
             applyDamage(ENEMY, dmg, isDoubleStrikeActive);
             gameState.stats.totalFlips += flippable.length;
+            await new Promise(res => setTimeout(res, 300));
 
-            if (checkBattleEnd()) return;
-
+            // 4. 終局判定または手番進行
+            if (await checkBattleEnd()) return;
             await advanceNextTurn(ENEMY);
         }
 
         async function enemyTurn() {
             const moves = getValidMoves(gameState.board, ENEMY);
-            
-            if (moves.length > 0) {
-                moves.sort((a, b) => {
-                    let scoreA = a.flippable.length + (isCorner(a.r, a.c) ? 5 : 0);
-                    let scoreB = b.flippable.length + (isCorner(b.r, b.c) ? 5 : 0);
-                    return scoreB - scoreA;
-                });
+            if (moves.length === 0) return;
 
-                const bestMove = moves[0];
+            moves.sort((a, b) => {
+                let scoreA = a.flippable.length + (isCorner(a.r, a.c) ? 5 : 0);
+                let scoreB = b.flippable.length + (isCorner(b.r, b.c) ? 5 : 0);
+                return scoreB - scoreA;
+            });
 
-                // 敵のフォーカス演出（着手マスの事前予告）
-                const targetCell = document.querySelector(`[data-row="${bestMove.r}"][data-col="${bestMove.c}"]`);
-                if (targetCell) {
-                    targetCell.classList.add('enemy-target');
-                    await new Promise(res => setTimeout(res, 400));
-                    targetCell.classList.remove('enemy-target');
-                }
+            const bestMove = moves[0];
 
-                await executeMove(bestMove.r, bestMove.c, ENEMY, bestMove.flippable);
-
-                let dmg = bestMove.flippable.length * 2;
-                applyDamage(PLAYER, dmg);
-
-                if (hasRelic('spikes')) {
-                    applyDamage(ENEMY, 2);
-                }
+            // 敵のフォーカス演出
+            const targetCell = document.querySelector(`[data-row="${bestMove.r}"][data-col="${bestMove.c}"]`);
+            if (targetCell) {
+                targetCell.classList.add('enemy-target');
+                await new Promise(res => setTimeout(res, 400));
+                targetCell.classList.remove('enemy-target');
             }
 
-            if (checkBattleEnd()) return;
+            await executeMove(bestMove.r, bestMove.c, ENEMY, bestMove.flippable);
 
+            let dmg = bestMove.flippable.length * 2;
+            applyDamage(PLAYER, dmg);
+
+            if (hasRelic('spikes')) {
+                applyDamage(ENEMY, 2);
+            }
+            await new Promise(res => setTimeout(res, 300));
+
+            if (await checkBattleEnd()) return;
             await advanceNextTurn(PLAYER);
         }
 
-        // ターン制御・パス判定・終了判定の完全Promise化
-        async function advanceNextTurn(nextTurnTarget) {
-            const nextMoves = getValidMoves(gameState.board, nextTurnTarget);
-            
+        // 手番交代・パス・終局判定の一元統合エンジン
+        async function advanceNextTurn(nextTarget) {
+            const nextMoves = getValidMoves(gameState.board, nextTarget);
+
             if (nextMoves.length > 0) {
-                // 通常手番移行
-                gameState.currentTurn = nextTurnTarget;
-                gameState.isProcessing = (nextTurnTarget === ENEMY);
+                // 有効手が存在する通常遷移
+                gameState.currentTurn = nextTarget;
+                gameState.isProcessing = (nextTarget === ENEMY);
                 updateUI();
                 renderBoard();
 
-                if (nextTurnTarget === ENEMY) {
-                    await new Promise(res => setTimeout(res, 300));
+                if (nextTarget === ENEMY) {
+                    await new Promise(res => setTimeout(res, 350));
                     await enemyTurn();
                 }
             } else {
-                // パス発生：もう片方のプレイヤーの手を確認
-                const oppositeTurn = nextTurnTarget === PLAYER ? ENEMY : PLAYER;
-                const oppositeMoves = getValidMoves(gameState.board, oppositeTurn);
+                // パスまたは終局の判定
+                const oppositeTarget = (nextTarget === PLAYER) ? ENEMY : PLAYER;
+                const oppositeMoves = getValidMoves(gameState.board, oppositeTarget);
 
                 if (oppositeMoves.length === 0) {
-                    // 両者ともに合法手なし -> 全面決着
+                    // 両者合法手なし -> 盤面決着
                     gameState.isProcessing = true;
-                    await showToast('NO MOVES - FINISH', 1000);
-                    resolveBoardFull();
+                    await showToast('NO MOVES - FINISH', 900);
+                    await resolveBoardFull();
                 } else {
-                    // パス通知を挟んで手番スキップ
+                    // 片方のみパス
                     gameState.isProcessing = true;
-                    const passName = (nextTurnTarget === PLAYER) ? 'PLAYER PASS' : 'ENEMY PASS';
-                    await showToast(passName, 900);
+                    const passText = (nextTarget === PLAYER) ? 'PLAYER PASS' : 'ENEMY PASS';
+                    await showToast(passText, 850);
 
-                    gameState.currentTurn = oppositeTurn;
-                    gameState.isProcessing = (oppositeTurn === ENEMY);
+                    gameState.currentTurn = oppositeTarget;
+                    gameState.isProcessing = (oppositeTarget === ENEMY);
                     updateUI();
                     renderBoard();
 
-                    if (oppositeTurn === ENEMY) {
-                        await new Promise(res => setTimeout(res, 300));
+                    if (oppositeTarget === ENEMY) {
+                        await new Promise(res => setTimeout(res, 350));
                         await enemyTurn();
                     }
                 }
@@ -1223,37 +1253,50 @@
             }
         }
 
-        // --- 勝敗判定 & リザルト ---
-        function checkBattleEnd() {
+        // --- 勝敗判定 & リザルト（完全論理統合） ---
+        async function checkBattleEnd() {
             if (gameState.enemyHp <= 0) {
+                gameState.isProcessing = true;
                 gameState.stats.kills++;
                 gameState.stats.score += gameState.stage * 100;
-                gameState.isProcessing = true;
-                setTimeout(showRewardModal, 600);
+                await new Promise(res => setTimeout(res, 500));
+                showRewardModal();
                 return true;
             }
             if (gameState.playerHp <= 0) {
+                gameState.isProcessing = true;
+                await new Promise(res => setTimeout(res, 500));
                 showGameOver(false);
                 return true;
             }
             return false;
         }
 
-        function resolveBoardFull() {
-            // 盤面埋まり時の判定（石の数に応じた判定）
+        async function resolveBoardFull() {
+            // 盤面満杯・双方手詰まり時の正確な石数判定
             let pCount = 0, eCount = 0;
             for (let r = 0; r < BOARD_SIZE; r++) {
                 for (let c = 0; c < BOARD_SIZE; c++) {
                     if (gameState.board[r][c] === PLAYER) pCount++;
-                    if (gameState.board[r][c] === ENEMY) eCount++;
+                    else if (gameState.board[r][c] === ENEMY) eCount++;
                 }
             }
-            if (pCount >= eCount) {
+
+            await showToast(`${pCount} vs ${eCount}`, 900);
+
+            if (pCount > eCount) {
                 applyDamage(ENEMY, 999);
-            } else {
+            } else if (eCount > pCount) {
                 applyDamage(PLAYER, 999);
+            } else {
+                // 完全同数の場合は残りHPの多い方が勝利、HPも同数ならプレイヤー勝利
+                if (gameState.playerHp >= gameState.enemyHp) {
+                    applyDamage(ENEMY, 999);
+                } else {
+                    applyDamage(PLAYER, 999);
+                }
             }
-            checkBattleEnd();
+            await checkBattleEnd();
         }
 
         // --- 報酬システム ---
