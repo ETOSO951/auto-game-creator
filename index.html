@@ -239,6 +239,8 @@
             justify-content: center;
             align-items: center;
             position: relative;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .board {
@@ -721,6 +723,8 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
+        let isParticleLoopRunning = false;
+
         function createParticles(x, y, color, count = 15) {
             for (let i = 0; i < count; i++) {
                 particles.push({
@@ -732,6 +736,10 @@
                     alpha: 1,
                     life: 0.03 + Math.random() * 0.03
                 });
+            }
+            if (!isParticleLoopRunning) {
+                isParticleLoopRunning = true;
+                requestAnimationFrame(updateParticles);
             }
         }
 
@@ -754,9 +762,13 @@
                 ctx.fill();
                 ctx.restore();
             }
-            requestAnimationFrame(updateParticles);
+
+            if (particles.length > 0) {
+                requestAnimationFrame(updateParticles);
+            } else {
+                isParticleLoopRunning = false;
+            }
         }
-        requestAnimationFrame(updateParticles);
 
         // --- 画面遷移 ---
         function showScreen(screenId) {
@@ -790,6 +802,9 @@
             gameState.isProcessing = false;
             gameState.selectedSkill = null;
             gameState.skills.forEach(s => s.ready = true);
+
+            prevPlayerPct = (gameState.playerHp / gameState.playerMaxHp) * 100;
+            prevEnemyPct = 100;
             
             initBoard();
             updateUI();
@@ -852,17 +867,26 @@
 
             boardEl.addEventListener('mouseleave', clearPreview);
 
-            // タッチデバイス対応
+            // タッチデバイス対応：タッチ開始・離脱・キャンセルの厳密な追従
             boardEl.addEventListener('touchstart', (e) => {
                 const cell = e.target.closest('.cell');
                 showPreview(cell);
             }, { passive: true });
 
+            boardEl.addEventListener('touchend', () => {
+                clearPreview();
+            }, { passive: true });
+
+            boardEl.addEventListener('touchcancel', () => {
+                clearPreview();
+            }, { passive: true });
+
             // イベント委譲（Event Delegation）によるタップ制御の一括管理
             boardEl.addEventListener('click', (e) => {
                 clearPreview();
+                if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
                 const cell = e.target.closest('.cell');
-                if (!cell || gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
+                if (!cell) return;
                 const r = parseInt(cell.dataset.row, 10);
                 const c = parseInt(cell.dataset.col, 10);
                 if (cell.classList.contains('valid')) {
@@ -1290,23 +1314,55 @@
             showScreen('result-screen');
         }
 
+        // HP追従アニメーション用保持状態
+        let prevPlayerPct = 100;
+        let prevEnemyPct = 100;
+
+        function updateHPBars() {
+            const pPct = Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100);
+            const ePct = Math.max(0, (gameState.enemyHp / gameState.enemyMaxHp) * 100);
+
+            const pFill = document.getElementById('player-hp-bar');
+            const pDelay = document.getElementById('player-hp-delay');
+            const eFill = document.getElementById('enemy-hp-bar');
+            const eDelay = document.getElementById('enemy-hp-delay');
+
+            // プレイヤーHPバー：ダメージ時は白バーが遅延、回復時は両方即時拡張
+            if (pPct >= prevPlayerPct) {
+                pDelay.style.transition = 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                pFill.style.transition = 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            } else {
+                pFill.style.transition = 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+                pDelay.style.transition = 'width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s';
+            }
+            pFill.style.width = `${pPct}%`;
+            pDelay.style.width = `${pPct}%`;
+            prevPlayerPct = pPct;
+
+            // 敵HPバー
+            if (ePct >= prevEnemyPct) {
+                eDelay.style.transition = 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                eFill.style.transition = 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            } else {
+                eFill.style.transition = 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+                eDelay.style.transition = 'width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s';
+            }
+            eFill.style.width = `${ePct}%`;
+            eDelay.style.width = `${ePct}%`;
+            prevEnemyPct = ePct;
+
+            document.getElementById('player-hp-text').textContent = `HP: ${gameState.playerHp}/${gameState.playerMaxHp}`;
+            document.getElementById('enemy-hp-text').textContent = `HP: ${gameState.enemyHp}/${gameState.enemyMaxHp}`;
+        }
+
         // --- UI更新 (差分適用による最適化) ---
         function updateUI() {
             // ステージ・ターン
             document.getElementById('stage-text').textContent = `FLOOR ${gameState.stage}`;
             document.getElementById('turn-text').textContent = gameState.currentTurn === PLAYER ? 'あなたのターン' : '相手のターン';
 
-            // HPバー & 遅延バー
-            const pPct = Math.max(0, (gameState.playerHp / gameState.playerMaxHp) * 100);
-            const ePct = Math.max(0, (gameState.enemyHp / gameState.enemyMaxHp) * 100);
-            
-            document.getElementById('player-hp-bar').style.width = `${pPct}%`;
-            document.getElementById('enemy-hp-bar').style.width = `${ePct}%`;
-            document.getElementById('player-hp-delay').style.width = `${pPct}%`;
-            document.getElementById('enemy-hp-delay').style.width = `${ePct}%`;
-            
-            document.getElementById('player-hp-text').textContent = `HP: ${gameState.playerHp}/${gameState.playerMaxHp}`;
-            document.getElementById('enemy-hp-text').textContent = `HP: ${gameState.enemyHp}/${gameState.enemyMaxHp}`;
+            // HPバー更新
+            updateHPBars();
 
             // 遺物表示の差分更新
             const relicsContainer = document.getElementById('relics-container');
