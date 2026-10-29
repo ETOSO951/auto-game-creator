@@ -503,62 +503,64 @@
         .disc::before {
             content: '';
             position: absolute;
-            top: 8%;
-            left: 14%;
-            width: 40%;
-            height: 28%;
-            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 80%);
+            top: 6%;
+            left: 12%;
+            width: 44%;
+            height: 32%;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 75%);
             border-radius: 50%;
-            filter: blur(0.5px);
+            filter: blur(0.4px);
             pointer-events: none;
             z-index: 2;
         }
 
-        /* 石の下部内部光沢 */
+        /* 石の下部内部光沢とリムライト */
         .disc::after {
             content: '';
             position: absolute;
-            bottom: 8%;
-            right: 12%;
-            width: 45%;
-            height: 30%;
-            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+            bottom: 6%;
+            right: 10%;
+            width: 50%;
+            height: 34%;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.35) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
             z-index: 1;
         }
 
         .disc.player {
-            background: radial-gradient(circle at 35% 25%, #e0f2fe 0%, #38bdf8 38%, #0284c7 75%, #0369a1 100%);
+            background: radial-gradient(circle at 32% 22%, #e0f2fe 0%, #38bdf8 35%, #0284c7 72%, #0369a1 100%);
             box-shadow: 
-                0 6px 14px rgba(0, 0, 0, 0.6),
-                inset 0 -4px 7px rgba(2, 132, 199, 0.8),
-                0 0 20px rgba(56, 189, 248, 0.7);
+                0 8px 18px rgba(0, 0, 0, 0.65),
+                inset 0 -5px 9px rgba(2, 132, 199, 0.85),
+                inset 0 2px 4px rgba(255, 255, 255, 0.4),
+                0 0 24px rgba(56, 189, 248, 0.75);
         }
 
         .disc.enemy {
-            background: radial-gradient(circle at 35% 25%, #ffe4e6 0%, #fb7185 38%, #e11d48 75%, #881337 100%);
+            background: radial-gradient(circle at 32% 22%, #ffe4e6 0%, #fb7185 35%, #e11d48 72%, #881337 100%);
             box-shadow: 
-                0 6px 14px rgba(0, 0, 0, 0.6),
-                inset 0 -4px 7px rgba(190, 18, 60, 0.8),
-                0 0 20px rgba(244, 63, 94, 0.7);
+                0 8px 18px rgba(0, 0, 0, 0.65),
+                inset 0 -5px 9px rgba(190, 18, 60, 0.85),
+                inset 0 2px 4px rgba(255, 255, 255, 0.4),
+                0 0 24px rgba(244, 63, 94, 0.75);
         }
 
         .disc.flip-anim {
-            animation: flipDisc3D 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            animation: flipDisc3D 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         @keyframes flipDisc3D {
             0% { 
-                transform: scale(1) translateZ(0) rotateY(0deg); 
+                transform: scale(1) translateZ(0) rotateY(0deg) rotateX(0deg); 
                 filter: brightness(1);
             }
             50% { 
-                transform: scale(1.35) translateZ(40px) rotateY(90deg); 
-                filter: brightness(2.2) drop-shadow(0 0 15px rgba(255, 255, 255, 0.9));
+                transform: scale(1.42) translateZ(55px) rotateY(90deg) rotateX(15deg); 
+                filter: brightness(2.4) drop-shadow(0 0 22px rgba(255, 255, 255, 0.95));
             }
             100% { 
-                transform: scale(1) translateZ(0) rotateY(180deg); 
+                transform: scale(1) translateZ(0) rotateY(180deg) rotateX(0deg); 
                 filter: brightness(1);
             }
         }
