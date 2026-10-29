@@ -992,8 +992,8 @@
             enemyShield: 0,
             enemyPhase: 1,
             board: [],
-            specialCells: [], // {r, c, type: 'heal' | 'obstacle' | 'bomb' | 'bomb_timer' | 'warp', timer: number, warpTarget: {r, c}}
-            enemyType: 'normal', // 'normal' | 'aggressive' | 'thorn' | 'shield' | 'boss'
+            specialCells: [], // {r, c, type: 'heal' | 'obstacle' | 'bomb' | 'bomb_timer' | 'warp' | 'fire' | 'ice', timer: number, warpTarget: {r, c}}
+            enemyType: 'normal', // 'normal' | 'aggressive' | 'thorn' | 'shield' | 'poison' | 'boss'
             currentTurn: PLAYER,
             isProcessing: false,
             stats: {
@@ -1008,7 +1008,8 @@
                 { id: 'snipe', name: 'スナイプ', desc: '任意の空マスに直接石を配置', ready: true }
             ],
             potions: [
-                { id: 'potion_heal', name: 'ハイポーション', desc: 'HPを20回復する', count: 1 }
+                { id: 'potion_heal', name: 'ハイポーション', desc: 'HPを20回復する', count: 1 },
+                { id: 'potion_power', name: '力の霊薬', desc: '次のプレイヤーの着手ダメージが3倍になる', count: 1 }
             ],
             selectedSkill: null,
             activeShield: false
@@ -1033,7 +1034,9 @@
             { id: 'corner_master', name: '角の支配者', desc: '四隅に石を置いた時、敵に10ダメージを与える' },
             { id: 'spikes', name: '棘の鎧', desc: '敵ターン終了時、相手に2ダメージを与える' },
             { id: 'overgrowth', name: '巨人の加護', desc: '最大HPが15増加し、HPが回復する' },
-            { id: 'cursed_blade', name: '呪いの刃', desc: '与えるダメージが1.5倍になるが、毎ターン開始時HPが2減少する' }
+            { id: 'cursed_blade', name: '呪いの刃', desc: '与えるダメージが1.5倍になるが、毎ターン開始時HPが2減少する' },
+            { id: 'auto_shield', name: 'エーテルバリア', desc: '石を4枚以上反転させた時、自動でシールドを展開し被弾を半減する' },
+            { id: 'gem_resonance', name: '宝石の共鳴', desc: '毎ターン開始時、生存している石の数に応じて追加スコアを獲得する' }
         ];
 
         // ポーションプール
@@ -1541,7 +1544,7 @@
             gameState.board[mid-1][mid] = PLAYER;
             gameState.board[mid][mid-1] = PLAYER;
 
-            // ボードギミック（ランダム回復マス or 障害物マスを少数配置）
+            // ボードギミック（ランダム回復マス、障害物、火炎マス、ワープゲート配置）
             if (gameState.stage >= 2) {
                 const hr = Math.floor(Math.random() * BOARD_SIZE);
                 const hc = Math.floor(Math.random() * BOARD_SIZE);
@@ -1554,6 +1557,13 @@
                 const oc = Math.floor(Math.random() * BOARD_SIZE);
                 if (gameState.board[or][oc] === EMPTY && !(or === mid-1 && oc === mid-1)) {
                     gameState.specialCells.push({ r: or, c: oc, type: 'obstacle' });
+                }
+            }
+            if (gameState.stage >= 4) {
+                const fr = Math.floor(Math.random() * BOARD_SIZE);
+                const fc = Math.floor(Math.random() * BOARD_SIZE);
+                if (gameState.board[fr][fc] === EMPTY) {
+                    gameState.specialCells.push({ r: fr, c: fc, type: 'fire' });
                 }
             }
 
@@ -1572,11 +1582,12 @@
                     if (!cell) continue;
 
                     // 特殊セルのクラス適用
-                    cell.classList.remove('heal-cell', 'obstacle-cell', 'bomb-timer-cell', 'warp-cell');
+                    cell.classList.remove('heal-cell', 'obstacle-cell', 'bomb-timer-cell', 'warp-cell', 'fire-cell');
                     const sp = gameState.specialCells.find(s => s.r === r && s.c === c);
                     if (sp) {
                         if (sp.type === 'heal') cell.classList.add('heal-cell');
                         if (sp.type === 'obstacle') cell.classList.add('obstacle-cell');
+                        if (sp.type === 'fire') cell.classList.add('fire-cell');
                         if (sp.type === 'bomb_timer') {
                             cell.classList.add('bomb-timer-cell');
                             cell.setAttribute('data-preview-count', `💣${sp.timer}`);
@@ -1790,13 +1801,18 @@
                     await executeMove(r, c, PLAYER, flippable);
                 }
 
-                // 特殊セルギミック発動（時限爆弾・ワープゲート）
+                // 特殊セルギミック発動（時限爆弾・ワープゲート・火炎マス）
                 const spCell = gameState.specialCells.find(s => s.r === r && s.c === c);
-                if (spCell && spCell.type === 'warp' && spCell.warpTarget) {
-                    const tw = spCell.warpTarget;
-                    if (gameState.board[tw.r][tw.c] === EMPTY) {
-                        gameState.board[tw.r][tw.c] = PLAYER;
-                        showEffectAtCell(tw.r, tw.c, '#38bdf8');
+                if (spCell) {
+                    if (spCell.type === 'fire') {
+                        applyDamage(PLAYER, 4);
+                        showEffectAtCell(r, c, '#f97316');
+                    } else if (spCell.type === 'warp' && spCell.warpTarget) {
+                        const tw = spCell.warpTarget;
+                        if (gameState.board[tw.r][tw.c] === EMPTY) {
+                            gameState.board[tw.r][tw.c] = PLAYER;
+                            showEffectAtCell(tw.r, tw.c, '#38bdf8');
+                        }
                     }
                 }
 
@@ -1844,7 +1860,7 @@
             if (gameState.enemyType === 'boss' && gameState.enemyHp <= gameState.enemyMaxHp / 2 && gameState.enemyPhase === 1) {
                 gameState.enemyPhase = 2;
                 await showToast('BOSS PHASE 2!', 800);
-                // 毎ターンランダムな1マスを鉄格子（障害物）に変更
+                // 毎ターンランダムな1マスを鉄格子（障害物）や火炎マスに変更
                 const emptyCells = [];
                 for (let r=0; r<BOARD_SIZE; r++) {
                     for (let c=0; c<BOARD_SIZE; c++) {
@@ -1853,7 +1869,7 @@
                 }
                 if (emptyCells.length > 0) {
                     const ec = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-                    gameState.specialCells.push({r: ec.r, c: ec.c, type: 'obstacle'});
+                    gameState.specialCells.push({r: ec.r, c: ec.c, type: Math.random() > 0.5 ? 'obstacle' : 'fire'});
                     showEffectAtCell(ec.r, ec.c, '#ef4444');
                 }
             }
