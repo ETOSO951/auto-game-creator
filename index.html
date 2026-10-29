@@ -829,6 +829,24 @@
         // --- ユーティリティ: Promiseベースの制御機構 ---
         const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+        // CSSアニメーション / トランジションの完了を正確にイベント検知する同期ユーティリティ
+        function waitForAnimationEnd(el, fallbackMs = 400) {
+            return new Promise(resolve => {
+                if (!el) { resolve(); return; }
+                let called = false;
+                const finish = () => {
+                    if (called) return;
+                    called = true;
+                    el.removeEventListener('animationend', finish);
+                    el.removeEventListener('transitionend', finish);
+                    resolve();
+                };
+                el.addEventListener('animationend', finish, { once: true });
+                el.addEventListener('transitionend', finish, { once: true });
+                setTimeout(finish, fallbackMs);
+            });
+        }
+
         function setupBoardDOM() {
             const boardEl = document.getElementById('board');
             boardEl.innerHTML = '';
@@ -846,9 +864,12 @@
                 document.querySelectorAll('.cell.preview-flip').forEach(c => c.classList.remove('preview-flip'));
             };
 
-            // Pointer Events統合: 座標下の最前面要素からセル要素を直接検索し、完璧な当たり判定精度を実現
-            const getCellFromPoint = (clientX, clientY) => {
-                const el = document.elementFromPoint(clientX, clientY);
+            // Pointer Events統合: タッチ操作時に指の遮蔽を考慮したYオフセット適用と高精度判定
+            const getCellFromPoint = (e) => {
+                const isTouch = e.pointerType === 'touch';
+                // タッチ時は指による遮蔽を防ぐため上方向に24pxオフセット適用
+                const clientY = isTouch ? e.clientY - 24 : e.clientY;
+                const el = document.elementFromPoint(e.clientX, clientY);
                 return el ? el.closest('#board .cell') : null;
             };
 
@@ -870,48 +891,59 @@
             let activePointerId = null;
             let currentPointerCell = null;
 
+            boardEl.addEventListener('pointerdown', (e) => {
+                if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
+                activePointerId = e.pointerId;
+                currentPointerCell = getCellFromPoint(e);
+                showPreview(currentPointerCell);
+                
+                try {
+                    boardEl.setPointerCapture(e.pointerId);
+                } catch (_) {}
+            });
+
             boardEl.addEventListener('pointermove', (e) => {
+                if (activePointerId !== null && e.pointerId !== activePointerId) return;
                 if (gameState.isProcessing || gameState.currentTurn !== PLAYER) {
                     clearPreview();
                     return;
                 }
-                const cell = getCellFromPoint(e.clientX, e.clientY);
+                const cell = getCellFromPoint(e);
                 if (cell !== currentPointerCell) {
                     currentPointerCell = cell;
                     showPreview(currentPointerCell);
                 }
             });
 
-            boardEl.addEventListener('pointerdown', (e) => {
-                if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
-                activePointerId = e.pointerId;
-                currentPointerCell = getCellFromPoint(e.clientX, e.clientY);
-                showPreview(currentPointerCell);
-            });
-
-            boardEl.addEventListener('pointerup', (e) => {
+            const handlePointerUpOrCancel = (e) => {
                 if (activePointerId !== null && e.pointerId === activePointerId) {
-                    const cellToTrigger = getCellFromPoint(e.clientX, e.clientY);
+                    const cellToTrigger = getCellFromPoint(e);
+                    
+                    try {
+                        if (boardEl.hasPointerCapture(e.pointerId)) {
+                            boardEl.releasePointerCapture(e.pointerId);
+                        }
+                    } catch (_) {}
+
                     activePointerId = null;
                     currentPointerCell = null;
                     clearPreview();
 
-                    if (!gameState.isProcessing && gameState.currentTurn === PLAYER && cellToTrigger && cellToTrigger.classList.contains('valid')) {
+                    if (e.type === 'pointerup' && !gameState.isProcessing && gameState.currentTurn === PLAYER && cellToTrigger && cellToTrigger.classList.contains('valid')) {
                         const r = parseInt(cellToTrigger.dataset.row, 10);
                         const c = parseInt(cellToTrigger.dataset.col, 10);
                         handlePlayerMove(r, c);
                     }
                 }
-            });
-
-            const resetPointerState = () => {
-                activePointerId = null;
-                currentPointerCell = null;
-                clearPreview();
             };
 
-            boardEl.addEventListener('pointercancel', resetPointerState);
-            boardEl.addEventListener('pointerleave', resetPointerState);
+            boardEl.addEventListener('pointerup', handlePointerUpOrCancel);
+            boardEl.addEventListener('pointercancel', handlePointerUpOrCancel);
+            boardEl.addEventListener('pointerleave', (e) => {
+                if (activePointerId === null) {
+                    clearPreview();
+                }
+            });
 
             isBoardDomInitialized = true;
         }
@@ -1012,6 +1044,8 @@
         async function handlePlayerMove(r, c) {
             if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
             gameState.isProcessing = true;
+            // 連打・非同期競合防止のため即座に全プレビュー状態を消去
+            document.querySelectorAll('.cell.preview-flip').forEach(el => el.classList.remove('preview-flip'));
 
             const flippable = getFlippable(gameState.board, r, c, PLAYER);
             if (flippable.length === 0) {
@@ -1162,9 +1196,10 @@
                 );
             }
 
-            // 2b. 反転タイムラインの順次再生
+            // 2b. 反転タイムラインの順次再生とCSSアニメーションイベント同期
+            const animPromises = [];
             for (let pos of flippable) {
-                await wait(60);
+                await wait(50);
                 const flipCell = document.querySelector(`[data-row="${pos.r}"][data-col="${pos.c}"]`);
                 if (flipCell) {
                     let disc = flipCell.querySelector('.disc');
@@ -1173,11 +1208,16 @@
                         flipCell.appendChild(disc);
                     }
                     disc.className = `disc ${turn === PLAYER ? 'player' : 'enemy'} flip-anim`;
+                    animPromises.push(waitForAnimationEnd(disc, 350));
                 }
             }
 
-            // 3. タイムライン完了待機とDOMの整合性保証同期
-            await wait(280);
+            // 3. 全アニメーションの完全完了待機とDOMの整合性保証同期
+            if (animPromises.length > 0) {
+                await Promise.all(animPromises);
+            } else {
+                await wait(200);
+            }
             renderBoard();
         }
 
