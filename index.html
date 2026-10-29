@@ -536,7 +536,7 @@
             82% { transform: translate(-3px, 2px); }
         }
 
-        /* 石（最高峰の光学ジェムストーン質感・ガラス屈折ライティング） */
+        /* 石（最高峰の光学ジェムストーン質感・ガラス屈折ライティング & 動的スペキュラ） */
         .disc {
             width: 82%;
             height: 82%;
@@ -549,31 +549,38 @@
             -webkit-backdrop-filter: blur(2px);
         }
 
-        /* 内部シャドウと表層屈折レンズハイライト */
+        /* 内部シャドウと表層屈折レンズハイライト（動的光源追従感） */
         .disc::before {
             content: '';
             position: absolute;
-            top: 5%;
-            left: 10%;
-            width: 48%;
-            height: 35%;
-            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.4) 40%, rgba(255, 255, 255, 0) 80%);
+            top: 4%;
+            left: 8%;
+            width: 52%;
+            height: 38%;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.5) 35%, rgba(255, 255, 255, 0) 80%);
             border-radius: 50%;
-            filter: blur(0.5px);
+            filter: blur(0.4px);
             pointer-events: none;
             z-index: 2;
             mix-blend-mode: overlay;
+            animation: discSpecularShift 6s infinite alternate ease-in-out;
+        }
+
+        @keyframes discSpecularShift {
+            0% { transform: translate(0, 0) scale(1); opacity: 0.85; }
+            50% { transform: translate(2px, 2px) scale(1.05); opacity: 1; }
+            100% { transform: translate(-1px, 1px) scale(0.95); opacity: 0.9; }
         }
 
         /* 石の下部内部光沢・エッジリムライト・光学屈折境界 */
         .disc::after {
             content: '';
             position: absolute;
-            bottom: 4%;
-            right: 8%;
-            width: 55%;
-            height: 38%;
-            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.45) 0%, transparent 70%);
+            bottom: 3%;
+            right: 6%;
+            width: 60%;
+            height: 42%;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.55) 0%, transparent 75%);
             border-radius: 50%;
             pointer-events: none;
             z-index: 1;
@@ -582,23 +589,23 @@
         .disc.player {
             background: radial-gradient(circle at 30% 20%, #f0f9ff 0%, #38bdf8 30%, #0284c7 68%, #0369a1 95%, #0c4a6e 100%);
             box-shadow: 
-                0 10px 22px rgba(0, 0, 0, 0.75),
-                inset 0 -6px 12px rgba(2, 132, 199, 0.95),
-                inset 0 3px 6px rgba(255, 255, 255, 0.6),
-                0 0 30px rgba(56, 189, 248, 0.85);
+                0 12px 26px rgba(0, 0, 0, 0.8),
+                inset 0 -7px 14px rgba(2, 132, 199, 0.95),
+                inset 0 4px 8px rgba(255, 255, 255, 0.7),
+                0 0 35px rgba(56, 189, 248, 0.9);
         }
 
         .disc.enemy {
             background: radial-gradient(circle at 30% 20%, #fff1f2 0%, #fb7185 30%, #e11d48 68%, #be123c 95%, #881337 100%);
             box-shadow: 
-                0 10px 22px rgba(0, 0, 0, 0.75),
-                inset 0 -6px 12px rgba(190, 18, 60, 0.95),
-                inset 0 3px 6px rgba(255, 255, 255, 0.6),
-                0 0 30px rgba(244, 63, 94, 0.85);
+                0 12px 26px rgba(0, 0, 0, 0.8),
+                inset 0 -7px 14px rgba(190, 18, 60, 0.95),
+                inset 0 4px 8px rgba(255, 255, 255, 0.7),
+                0 0 35px rgba(244, 63, 94, 0.9);
         }
 
         .disc.flip-anim {
-            animation: flipDisc3D 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: flipDisc3D 0.42s cubic-bezier(0.34, 1.6, 0.64, 1);
         }
 
         @keyframes flipDisc3D {
@@ -606,13 +613,13 @@
                 transform: scale(1) translateZ(0) rotateY(0deg) rotateX(0deg); 
                 filter: brightness(1) drop-shadow(0 0 0px rgba(255,255,255,0));
             }
-            45% { 
-                transform: scale(1.6) translateZ(90px) rotateY(85deg) rotateX(25deg); 
-                filter: brightness(3.2) drop-shadow(0 0 36px rgba(255, 255, 255, 0.95));
+            42% { 
+                transform: scale(1.7) translateZ(110px) rotateY(84deg) rotateX(28deg); 
+                filter: brightness(3.5) drop-shadow(0 0 42px rgba(255, 255, 255, 1));
             }
-            55% {
-                transform: scale(1.6) translateZ(90px) rotateY(95deg) rotateX(25deg); 
-                filter: brightness(3.2) drop-shadow(0 0 36px rgba(255, 255, 255, 0.95));
+            58% {
+                transform: scale(1.7) translateZ(110px) rotateY(96deg) rotateX(28deg); 
+                filter: brightness(3.5) drop-shadow(0 0 42px rgba(255, 255, 255, 1));
             }
             100% { 
                 transform: scale(1) translateZ(0) rotateY(180deg) rotateX(0deg); 
@@ -1024,8 +1031,8 @@
         }
 
         function updateParticles() {
-            // モーショントレイルとネオンブルームの残像表現
-            ctx.fillStyle = 'rgba(5, 7, 12, 0.22)';
+            // モーショントレイルとネオンブルームの残像表現（色収差・光学ブレンド最適化）
+            ctx.fillStyle = 'rgba(5, 7, 12, 0.18)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const len = particles.length;
@@ -1043,8 +1050,8 @@
                 p.x += p.vx;
                 p.y += p.vy;
                 p.vy += p.gravity;
-                p.vx *= 0.94;
-                p.vy *= 0.94;
+                p.vx *= 0.95;
+                p.vy *= 0.95;
                 p.rotation += p.spin;
                 p.alpha -= p.life;
 
@@ -1060,32 +1067,38 @@
                 ctx.translate(p.x, p.y);
                 ctx.rotate(p.rotation);
 
-                // 2層ネオンブルーム（外側高輝度シャドウ＆コア発光）
+                // ネオンブルーム（高輝度シャドウ＆微細RGBシフト）
                 ctx.shadowColor = p.color;
-                ctx.shadowBlur = 24;
+                ctx.shadowBlur = 28;
 
                 if (p.type === 'spark') {
+                    // RGB色収差風の多重ストローク
                     ctx.beginPath();
-                    ctx.moveTo(-p.size * 4, 0); ctx.lineTo(p.size * 4, 0);
-                    ctx.moveTo(0, -p.size * 4); ctx.lineTo(0, p.size * 4);
-                    ctx.lineWidth = 2.8;
+                    ctx.moveTo(-p.size * 4.5, 0); ctx.lineTo(p.size * 4.5, 0);
+                    ctx.moveTo(0, -p.size * 4.5); ctx.lineTo(0, p.size * 4.5);
+                    ctx.lineWidth = 3.2;
                     ctx.stroke();
+                    
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+                    ctx.lineWidth = 1.6;
+                    ctx.stroke(new Path2D());
+
                     // コアの白い鋭い輝き
                     ctx.strokeStyle = '#ffffff';
                     ctx.lineWidth = 1.0;
                     ctx.stroke();
                 } else if (p.type === 'ring') {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 3.0, 0, Math.PI * 2);
-                    ctx.lineWidth = 2.0;
+                    ctx.arc(0, 0, p.size * 3.4, 0, Math.PI * 2);
+                    ctx.lineWidth = 2.2;
                     ctx.stroke();
                 } else if (p.type === 'glow') {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 2.2, 0, Math.PI * 2);
+                    ctx.arc(0, 0, p.size * 2.5, 0, Math.PI * 2);
                     ctx.fill();
                 } else {
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size * 1.4, 0, Math.PI * 2);
+                    ctx.arc(0, 0, p.size * 1.6, 0, Math.PI * 2);
                     ctx.fill();
                 }
                 ctx.restore();
