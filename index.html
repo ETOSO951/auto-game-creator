@@ -909,11 +909,14 @@
                 <div class="board" id="board"></div>
             </div>
 
-            <!-- 下部パネル (アクティブスキル最適化版) -->
+            <!-- 下部パネル (ポーションとアクティブスキルをスマート統合したミニマルパネル) -->
             <div class="controls-panel">
-                <div class="panel-title">アクティブスキル</div>
+                <div class="panel-title">
+                    <span>戦術アビリティ</span>
+                    <span id="materials-badge" style="font-size:0.6rem; color:var(--accent);">素材: 3</span>
+                </div>
                 <div class="skills-list" id="skills-container">
-                    <!-- スキルカードが生成される -->
+                    <!-- スキルおよびポーションカードが生成される -->
                 </div>
             </div>
         </div>
@@ -2448,51 +2451,78 @@
             if (eFighter) eFighter.classList.toggle('low-hp', ePct <= 25);
         }
 
-        // --- UI更新 (差分適用による最適化) ---
+        // --- UI更新 (ポーションとアクティブスキルの統合・洗練版) ---
         function updateUI() {
             // ステージ・ターン
-            document.getElementById('stage-text').textContent = `FLOOR ${gameState.stage}`;
-            document.getElementById('turn-text').textContent = gameState.currentTurn === PLAYER ? 'あなたのターン' : '相手のターン';
+            document.getElementById('stage-text').textContent = `F${gameState.stage}`;
+            document.getElementById('turn-text').textContent = gameState.currentTurn === PLAYER ? 'あなた' : '敵';
+            const matBadge = document.getElementById('materials-badge');
+            if (matBadge) matBadge.textContent = `素材: ${gameState.materials}`;
 
             // HPバー更新
             updateHPBars();
 
-            // スキル表示の差分更新 (ミニマル・インライン統合)
+            // スキルおよびポーションの統合リスト生成
             const skillsContainer = document.getElementById('skills-container');
-            if (skillsContainer.children.length !== gameState.skills.length) {
+            const totalItems = [...gameState.skills, ...gameState.potions];
+            
+            if (skillsContainer.children.length !== totalItems.length) {
                 skillsContainer.innerHTML = '';
-                gameState.skills.forEach(s => {
+                totalItems.forEach(item => {
                     const card = document.createElement('div');
-                    card.dataset.skillId = s.id;
+                    card.className = 'skill-card';
                     card.innerHTML = `
                         <span class="skill-name"></span>
                         <span class="skill-cost"></span>
                     `;
                     card.addEventListener('click', () => {
-                        if (!s.ready || gameState.currentTurn !== PLAYER || gameState.isProcessing) return;
-                        if (s.instant) {
-                            s.ready = false;
+                        if (gameState.currentTurn !== PLAYER || gameState.isProcessing) return;
+                        
+                        // ポーションの場合
+                        if (item.count !== undefined) {
+                            if (item.count <= 0) return;
+                            item.count--;
+                            if (item.id === 'potion_heal') {
+                                gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + 20);
+                                showToast('ハイポーション使用 (+20 HP)', 700);
+                            } else if (item.id === 'potion_power') {
+                                gameState.skills.forEach(s => s.ready = true);
+                                showToast('力の霊薬使用 (全スキル即時リチャージ)', 700);
+                            }
+                            updateUI();
+                            return;
+                        }
+
+                        // スキルの場合
+                        if (!item.ready) return;
+                        if (item.instant) {
+                            item.ready = false;
                             gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + 12);
                             showEffectAtCell(0, 0, '#10b981');
                             updateUI();
                             return;
                         }
-                        gameState.selectedSkill = (gameState.selectedSkill === s.id) ? null : s.id;
+                        gameState.selectedSkill = (gameState.selectedSkill === item.id) ? null : item.id;
                         updateUI();
                     });
                     skillsContainer.appendChild(card);
                 });
             }
 
-            gameState.skills.forEach((s, idx) => {
+            totalItems.forEach((item, idx) => {
                 const card = skillsContainer.children[idx];
                 if (!card) return;
-                const isSelected = gameState.selectedSkill === s.id;
-                card.className = `skill-card ${s.ready ? 'active' : 'disabled'} ${isSelected ? 'selected' : ''}`;
+                const isPotion = item.count !== undefined;
+                const isReady = isPotion ? (item.count > 0) : item.ready;
+                const isSelected = gameState.selectedSkill === item.id;
+
+                card.className = `skill-card ${isReady ? 'active' : 'disabled'} ${isSelected ? 'selected' : ''}`;
                 const nameEl = card.querySelector('.skill-name');
                 const costEl = card.querySelector('.skill-cost');
-                if (nameEl) nameEl.textContent = s.name;
-                if (costEl) costEl.textContent = isSelected ? 'READY' : (s.ready ? 'ON' : 'OFF');
+                if (nameEl) nameEl.textContent = item.name;
+                if (costEl) {
+                    costEl.textContent = isPotion ? `x${item.count}` : (isSelected ? 'READY' : (isReady ? 'ON' : 'OFF'));
+                }
             });
         }
     </script>
