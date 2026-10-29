@@ -805,6 +805,7 @@
         }
 
         function startStage() {
+            sequencer.reset();
             gameState.enemyMaxHp = 15 + gameState.stage * 8;
             gameState.enemyHp = gameState.enemyMaxHp;
             gameState.currentTurn = PLAYER;
@@ -874,21 +875,10 @@
                 document.querySelectorAll('.cell.hover-target').forEach(c => c.classList.remove('hover-target'));
             };
 
-            // 動的ポインター判定: 画面サイズ・解像度・セル比率をリアルタイム計測して指の遮蔽を最適補正
+            // タッチ入力判定: 接触座標を正確にキャプチャし直感的なプレビュー・着手を実現
             const getCellFromPoint = (e) => {
-                let x = e.clientX;
-                let y = e.clientY;
-
-                if (e.pointerType === 'touch' || e.touches) {
-                    const sampleCell = boardEl.querySelector('.cell');
-                    if (sampleCell) {
-                        const cellRect = sampleCell.getBoundingClientRect();
-                        // 端末の縦横比およびセルサイズに応じた画面相対の動的Y軸オフセット補正（セル高の75%）
-                        const dynamicOffset = Math.min(cellRect.height * 0.75, 48);
-                        y -= dynamicOffset;
-                    }
-                }
-
+                const x = e.clientX;
+                const y = e.clientY;
                 const el = document.elementFromPoint(x, y);
                 if (!el) return null;
                 const cell = el.closest('#board .cell');
@@ -989,7 +979,7 @@
         // --- ボード描画（DOM破棄を行わない差分更新） ---
         function renderBoard() {
             const validMoves = (gameState.currentTurn === PLAYER && !gameState.isProcessing) 
-                ? getValidMoves(gameState.board, PLAYER) 
+                ? ReversiEngine.getValidMoves(gameState.board, PLAYER) 
                 : [];
 
             for (let r = 0; r < BOARD_SIZE; r++) {
@@ -1021,120 +1011,168 @@
             }
         }
 
-        // --- ルールロジック（純粋関数 & イミュータブル設計） ---
-        const DIRS = [
-            [-1, -1], [-1, 0], [-1, 1],
-            [0, -1],           [0, 1],
-            [1, -1],  [1, 0],  [1, 1]
-        ];
+        // --- 演出・アクションシーケンサー (キュー管理による完全同期) ---
+        class ActionSequencer {
+            constructor() {
+                this.queue = [];
+                this.isBusy = false;
+            }
 
-        // 盤面配列のディープコピー（副作用遮断）
-        function cloneBoard(board) {
-            return board.map(row => [...row]);
+            enqueue(task) {
+                this.queue.push(task);
+                this.process();
+            }
+
+            async process() {
+                if (this.isBusy || this.queue.length === 0) return;
+                this.isBusy = true;
+                const task = this.queue.shift();
+                try {
+                    await task();
+                } catch (e) {
+                    console.error("Sequence error:", e);
+                } finally {
+                    this.isBusy = false;
+                    this.process();
+                }
+            }
+
+            reset() {
+                this.queue = [];
+                this.isBusy = false;
+            }
         }
 
-        function getFlippable(board, r, c, turn) {
-            if (!board || r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return [];
-            if (board[r][c] !== EMPTY) return [];
-            
-            const opponent = turn === PLAYER ? ENEMY : PLAYER;
-            const totalFlippable = [];
+        const sequencer = new ActionSequencer();
 
-            for (let i = 0; i < DIRS.length; i++) {
-                const [dr, dc] = DIRS[i];
-                let nr = r + dr;
-                let nc = c + dc;
-                const path = [];
+        // --- コアロジック層 (純粋リバーシエンジン) ---
+        const ReversiEngine = {
+            DIRS: [
+                [-1, -1], [-1, 0], [-1, 1],
+                [0, -1],           [0, 1],
+                [1, -1],  [1, 0],  [1, 1]
+            ],
 
-                while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === opponent) {
-                    path.push({ r: nr, c: nc });
-                    nr += dr;
-                    nc += dc;
-                }
+            cloneBoard(board) {
+                return board.map(row => [...row]);
+            },
 
-                if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === turn) {
-                    for (let j = 0; j < path.length; j++) {
-                        totalFlippable.push(path[j]);
+            getFlippable(board, r, c, turn) {
+                if (!board || r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return [];
+                if (board[r][c] !== EMPTY) return [];
+                
+                const opponent = turn === PLAYER ? ENEMY : PLAYER;
+                const totalFlippable = [];
+
+                for (let i = 0; i < ReversiEngine.DIRS.length; i++) {
+                    const [dr, dc] = ReversiEngine.DIRS[i];
+                    let nr = r + dr;
+                    let nc = c + dc;
+                    const path = [];
+
+                    while (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === opponent) {
+                        path.push({ r: nr, c: nc });
+                        nr += dr;
+                        nc += dc;
+                    }
+
+                    if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === turn) {
+                        for (let j = 0; j < path.length; j++) {
+                            totalFlippable.push(path[j]);
+                        }
                     }
                 }
-            }
-            return totalFlippable;
-        }
+                return totalFlippable;
+            },
 
-        function getValidMoves(board, turn) {
-            const moves = [];
-            for (let r = 0; r < BOARD_SIZE; r++) {
-                for (let c = 0; c < BOARD_SIZE; c++) {
-                    const flippable = getFlippable(board, r, c, turn);
-                    if (flippable.length > 0) {
-                        moves.push({ r, c, flippable });
+            getValidMoves(board, turn) {
+                const moves = [];
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    for (let c = 0; c < BOARD_SIZE; c++) {
+                        const flippable = ReversiEngine.getFlippable(board, r, c, turn);
+                        if (flippable.length > 0) {
+                            moves.push({ r, c, flippable });
+                        }
                     }
                 }
-            }
-            return moves;
-        }
+                return moves;
+            },
 
-        // 純粋関数: 盤面に手を適用した新しい盤面状態を生成
-        function getNextBoardState(board, r, c, turn, flippable) {
-            const newBoard = cloneBoard(board);
-            newBoard[r][c] = turn;
-            for (let i = 0; i < flippable.length; i++) {
-                const pos = flippable[i];
-                newBoard[pos.r][pos.c] = turn;
-            }
-            return newBoard;
-        }
+            getNextBoardState(board, r, c, turn, flippable) {
+                const newBoard = ReversiEngine.cloneBoard(board);
+                newBoard[r][c] = turn;
+                for (let i = 0; i < flippable.length; i++) {
+                    const pos = flippable[i];
+                    newBoard[pos.r][pos.c] = turn;
+                }
+                return newBoard;
+            },
 
-        // --- ターン進行 & 統一状態管理（直列シーケンサー） ---
-        async function handlePlayerMove(r, c) {
+            countDiscs(board) {
+                let player = 0, enemy = 0;
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    for (let c = 0; c < BOARD_SIZE; c++) {
+                        if (board[r][c] === PLAYER) player++;
+                        else if (board[r][c] === ENEMY) enemy++;
+                    }
+                }
+                return { player, enemy };
+            }
+        };
+
+        // --- ターン進行 & 統一状態管理（シーケンサー直列実行） ---
+        function handlePlayerMove(r, c) {
             if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
             gameState.isProcessing = true;
-            // 連打・非同期競合防止のため即座に全プレビュー状態を消去
-            document.querySelectorAll('.cell.preview-flip').forEach(el => el.classList.remove('preview-flip'));
 
-            const flippable = getFlippable(gameState.board, r, c, PLAYER);
+            const flippable = ReversiEngine.getFlippable(gameState.board, r, c, PLAYER);
             if (flippable.length === 0) {
                 gameState.isProcessing = false;
                 return;
             }
 
-            // 1. 着手・反転アニメーション完了待機
-            await executeMove(r, c, PLAYER, flippable);
+            sequencer.enqueue(async () => {
+                // 即座に全プレビュー状態を消去
+                document.querySelectorAll('.cell.preview-flip, .cell.hover-target').forEach(el => el.classList.remove('preview-flip', 'hover-target'));
 
-            // 2. スキル・遺物の計算（状態更新）
-            let dmg = flippable.length * 3;
-            const isDoubleStrikeActive = (gameState.selectedSkill === 'double_strike');
+                // 1. 着手・反転アニメーション実行
+                await executeMove(r, c, PLAYER, flippable);
 
-            if (isDoubleStrikeActive) {
-                dmg *= 2;
-                showEffectAtCell(r, c, '#f59e0b');
-                const skill = gameState.skills.find(s => s.id === 'double_strike');
-                if (skill) skill.ready = false;
-                gameState.selectedSkill = null;
-            }
+                // 2. スキル・遺物の計算（状態更新）
+                let dmg = flippable.length * 3;
+                const isDoubleStrikeActive = (gameState.selectedSkill === 'double_strike');
 
-            if (hasRelic('corner_master') && isCorner(r, c)) {
-                dmg += 10;
-                showEffectAtCell(r, c, '#f59e0b');
-            }
+                if (isDoubleStrikeActive) {
+                    dmg *= 2;
+                    showEffectAtCell(r, c, '#f59e0b');
+                    const skill = gameState.skills.find(s => s.id === 'double_strike');
+                    if (skill) skill.ready = false;
+                    gameState.selectedSkill = null;
+                }
 
-            if (hasRelic('vampire')) {
-                const heal = flippable.length;
-                gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + heal);
-            }
+                if (hasRelic('corner_master') && isCorner(r, c)) {
+                    dmg += 10;
+                    showEffectAtCell(r, c, '#f59e0b');
+                }
 
-            // 3. ダメージ適用と描画同期
-            applyDamage(ENEMY, dmg, isDoubleStrikeActive);
-            gameState.stats.totalFlips += flippable.length;
-            await wait(350);
+                if (hasRelic('vampire')) {
+                    const heal = flippable.length;
+                    gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + heal);
+                }
 
-            // 4. 終局判定または手番進行
-            if (await checkBattleEnd()) return;
-            await advanceNextTurn(ENEMY);
+                // 3. ダメージ適用と描画同期
+                applyDamage(ENEMY, dmg, isDoubleStrikeActive);
+                gameState.stats.totalFlips += flippable.length;
+                await wait(350);
+
+                // 4. 終局判定または手番進行
+                if (await checkBattleEnd()) return;
+                await advanceNextTurn(ENEMY);
+            });
         }
 
         async function enemyTurn() {
-            const moves = getValidMoves(gameState.board, ENEMY);
+            const moves = ReversiEngine.getValidMoves(gameState.board, ENEMY);
             if (moves.length === 0) return;
 
             moves.sort((a, b) => {
@@ -1169,7 +1207,7 @@
 
         // 手番交代・パス・終局判定の一元統合エンジン
         async function advanceNextTurn(nextTarget) {
-            const nextMoves = getValidMoves(gameState.board, nextTarget);
+            const nextMoves = ReversiEngine.getValidMoves(gameState.board, nextTarget);
 
             if (nextMoves.length > 0) {
                 // 有効手が存在する通常遷移
@@ -1185,7 +1223,7 @@
             } else {
                 // パスまたは終局の判定
                 const oppositeTarget = (nextTarget === PLAYER) ? ENEMY : PLAYER;
-                const oppositeMoves = getValidMoves(gameState.board, oppositeTarget);
+                const oppositeMoves = ReversiEngine.getValidMoves(gameState.board, oppositeTarget);
 
                 if (oppositeMoves.length === 0) {
                     // 両者合法手なし -> 盤面決着
@@ -1217,8 +1255,8 @@
                 el.classList.remove('valid', 'preview-flip', 'hover-target');
             });
 
-            // 1. 【State】純粋関数によるイミュータブルな状態更新
-            gameState.board = getNextBoardState(gameState.board, r, c, turn, flippable);
+            // 1. 【State】純粋エンジンによるイミュータブルな状態更新
+            gameState.board = ReversiEngine.getNextBoardState(gameState.board, r, c, turn, flippable);
 
             // 2. 【View】演出パイプライン（60fps同期付きアニメーション）
             const placedCell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
@@ -1252,10 +1290,9 @@
                         flipCell.appendChild(disc);
                     }
                     
-                    // requestAnimationFrameを使用してDOMアニメーション描画をブラウザ描画サイクルに同調
                     await new Promise(res => requestAnimationFrame(res));
                     disc.classList.remove('flip-anim');
-                    void disc.offsetWidth; // 強制リフロー（アニメーションリセット）
+                    void disc.offsetWidth; // 強制リフロー
                     disc.className = `disc ${turn === PLAYER ? 'player' : 'enemy'} flip-anim`;
                     animPromises.push(waitForAnimationEnd(disc, 320));
                 }
@@ -1351,13 +1388,7 @@
 
         async function resolveBoardFull() {
             // 盤面満杯・双方手詰まり時の正確な石数判定
-            let pCount = 0, eCount = 0;
-            for (let r = 0; r < BOARD_SIZE; r++) {
-                for (let c = 0; c < BOARD_SIZE; c++) {
-                    if (gameState.board[r][c] === PLAYER) pCount++;
-                    else if (gameState.board[r][c] === ENEMY) eCount++;
-                }
-            }
+            const { player: pCount, enemy: eCount } = ReversiEngine.countDiscs(gameState.board);
 
             await showToast(`${pCount} vs ${eCount}`, 1000);
 
