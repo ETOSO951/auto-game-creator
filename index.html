@@ -992,10 +992,10 @@
             enemyShield: 0,
             enemyPhase: 1,
             board: [],
-            specialCells: [], // {r, c, type: 'heal' | 'obstacle' | 'bomb' | 'bomb_timer' | 'warp' | 'fire' | 'ice' | 'electric' | 'poison', timer: number, warpTarget: {r, c}}
+            specialCells: [], // {r, c, type: 'heal' | 'obstacle' | 'bomb' | 'bomb_timer' | 'warp' | 'fire' | 'ice' | 'electric' | 'poison' | 'crystal', timer: number, warpTarget: {r, c}}
             enemyType: 'normal', // 'normal' | 'aggressive' | 'thorn' | 'shield' | 'poison' | 'boss'
-            enemyTalent: null, // 'corner_guard' | 'shield_generator' | 'cooldown_curse'
-            floorRule: null, // 'max_3_flips' | 'crumbling_edge'
+            enemyTalent: null, // 'corner_guard' | 'shield_generator' | 'cooldown_curse' | 'shield_shift'
+            floorRule: null, // 'max_3_flips' | 'crumbling_edge' | 'magnetic_storm'
             currentTurn: PLAYER,
             isProcessing: false,
             stats: {
@@ -1030,15 +1030,16 @@
             { id: 'shield_bash', name: 'シールドバッシュ', desc: 'シールドを展開し、次ターンの被ダメージを半減する' }
         ];
 
-        // 遺物プール（シナジー効果対応）
+        // 遺物プール（シナジー・クラフト対応）
         const RELIC_POOL = [
-            { id: 'vampire', name: '吸血の牙', desc: '石を返した時、返した枚数分HPを回復する（棘の鎧共鳴で反撃時もHP吸収）' },
-            { id: 'corner_master', name: '角の支配者', desc: '四隅に石を置いた時、敵に10ダメージを与える' },
-            { id: 'spikes', name: '棘の鎧', desc: '敵ターン終了時、相手に2ダメージを与える' },
-            { id: 'overgrowth', name: '巨人の加護', desc: '最大HPが15増加し、HPが回復する' },
-            { id: 'cursed_blade', name: '呪いの刃', desc: '与えるダメージが1.5倍になるが、毎ターン開始時HPが2減少する' },
-            { id: 'auto_shield', name: 'エーテルバリア', desc: '石を4枚以上反転させた時、自動でシールドを展開し被弾を半減する' },
-            { id: 'gem_resonance', name: '宝石の共鳴', desc: '毎ターン開始時、生存している石の数に応じて追加スコアを獲得する' }
+            { id: 'vampire', name: '吸血の牙', desc: '石を返した時、返した枚数分HPを回復する（棘の鎧共鳴で反撃時もHP吸収）', tier: 1 },
+            { id: 'corner_master', name: '角の支配者', desc: '四隅に石を置いた時、敵に10ダメージを与える', tier: 1 },
+            { id: 'spikes', name: '棘の鎧', desc: '敵ターン終了時、相手に2ダメージを与える', tier: 1 },
+            { id: 'overgrowth', name: '巨人の加護', desc: '最大HPが15増加し、HPが回復する', tier: 1 },
+            { id: 'cursed_blade', name: '呪いの刃', desc: '与えるダメージが1.5倍になるが、毎ターン開始時HPが2減少する', tier: 1 },
+            { id: 'auto_shield', name: 'エーテルバリア', desc: '石を4枚以上反転させた時、自動でシールドを展開し被弾を半減する', tier: 1 },
+            { id: 'gem_resonance', name: '宝石の共鳴', desc: '毎ターン開始時、生存している石の数に応じて追加スコアを獲得する', tier: 1 },
+            { id: 'blood_vampire', name: '真祖の牙 (上位)', desc: '吸血の牙と棘の鎧が融合。石を返すごとにHPを2回復し敵に反撃ダメージを与える', tier: 2 }
         ];
 
         // ポーションプール
@@ -1304,7 +1305,9 @@
             const items = [
                 { id: 'hp', title: '応急手当 (100スコア)', desc: 'HPを15回復する。', cost: 100 },
                 { id: 'maxhp', title: '肉体強化 (150スコア)', desc: '最大HPが10増加する。', cost: 150 },
-                { id: 'heal_skill', title: 'スキル：治癒 (200スコア)', desc: '即座にHPを回復するアクティブスキルを習得。', cost: 200 }
+                { id: 'heal_skill', title: 'スキル：治癒 (200スコア)', desc: '即座にHPを回復するアクティブスキルを習得。', cost: 200 },
+                { id: 'craft_relic', title: '遺物合成・融合 (250スコア)', desc: '吸血の牙と棘の鎧を「真祖の牙」に融合進化させる。', cost: 250 },
+                { id: 'cleanse_curse', title: '呪物浄化 (180スコア)', desc: '現在受けている呪いを1つ消去する。', cost: 180 }
             ];
 
             items.forEach(item => {
@@ -1325,6 +1328,21 @@
                         } else if (item.id === 'heal_skill') {
                             if (!gameState.skills.some(s => s.id === 'heal_skill')) {
                                 gameState.skills.push({ id: 'heal_skill', name: '治癒', desc: 'HPを12回復する', instant: true, ready: true });
+                            }
+                        } else if (item.id === 'craft_relic') {
+                            if (hasRelic('vampire') && hasRelic('spikes') && !hasRelic('blood_vampire')) {
+                                gameState.relics = gameState.relics.filter(r => r.id !== 'vampire' && r.id !== 'spikes');
+                                gameState.relics.push(RELIC_POOL.find(r => r.id === 'blood_vampire'));
+                                showToast('真祖の牙へ融合進化！', 1000);
+                            } else {
+                                showToast('条件を満たしていません（吸血＆棘の鎧が必要）', 800);
+                            }
+                        } else if (item.id === 'cleanse_curse') {
+                            if (gameState.curses.length > 0) {
+                                gameState.curses.pop();
+                                showToast('呪いを浄化しました', 800);
+                            } else {
+                                showToast('現在受けている呪いはありません', 800);
                             }
                         }
                         card.style.opacity = '0.5';
@@ -1546,7 +1564,7 @@
             gameState.board[mid-1][mid] = PLAYER;
             gameState.board[mid][mid-1] = PLAYER;
 
-            // ボードギミック（ランダム回復、障害物、火炎、氷結、電磁、劇毒マス配置）
+            // ボードギミック（ランダム回復、障害物、火炎、氷結、電磁、劇毒、次元ワープ、クリスタルチャージ）
             if (gameState.stage >= 2) {
                 const hr = Math.floor(Math.random() * BOARD_SIZE);
                 const hc = Math.floor(Math.random() * BOARD_SIZE);
@@ -1567,27 +1585,34 @@
                 if (gameState.board[fr][fc] === EMPTY) {
                     gameState.specialCells.push({ r: fr, c: fc, type: 'fire' });
                 }
-                const ir = Math.floor(Math.random() * BOARD_SIZE);
-                const ic = Math.floor(Math.random() * BOARD_SIZE);
-                if (gameState.board[ir][ic] === EMPTY) {
-                    gameState.specialCells.push({ r: ir, c: ic, type: 'ice' });
+                // 次元ワープペアの配置
+                const wr1 = Math.floor(Math.random() * BOARD_SIZE);
+                const wc1 = Math.floor(Math.random() * BOARD_SIZE);
+                const wr2 = Math.floor(Math.random() * BOARD_SIZE);
+                const wc2 = Math.floor(Math.random() * BOARD_SIZE);
+                if (gameState.board[wr1][wc1] === EMPTY && gameState.board[wr2][wc2] === EMPTY && (wr1 !== wr2 || wc1 !== wc2)) {
+                    gameState.specialCells.push({ r: wr1, c: wc1, type: 'warp', warpTarget: { r: wr2, c: wc2 } });
+                    gameState.specialCells.push({ r: wr2, c: wc2, type: 'warp', warpTarget: { r: wr1, c: wc1 } });
                 }
             }
             if (gameState.stage >= 5) {
-                const er = Math.floor(Math.random() * BOARD_SIZE);
-                const ec = Math.floor(Math.random() * BOARD_SIZE);
-                if (gameState.board[er][ec] === EMPTY) {
-                    gameState.specialCells.push({ r: er, c: ec, type: 'electric' });
+                const cr = Math.floor(Math.random() * BOARD_SIZE);
+                const cc = Math.floor(Math.random() * BOARD_SIZE);
+                if (gameState.board[cr][cc] === EMPTY) {
+                    gameState.specialCells.push({ r: cr, c: cc, type: 'crystal' });
                 }
             }
 
             // フロア特殊ルールのランダム適用 (Stage 3以降)
-            if (gameState.stage >= 3 && Math.random() > 0.4) {
-                gameState.floorRule = Math.random() > 0.5 ? 'max_3_flips' : 'crumbling_edge';
+            if (gameState.stage >= 3 && Math.random() > 0.3) {
+                const rules = ['max_3_flips', 'crumbling_edge', 'magnetic_storm'];
+                gameState.floorRule = rules[Math.floor(Math.random() * rules.length)];
                 if (gameState.floorRule === 'max_3_flips') {
                     showToast('環境ルール: 最大反転枚数が3枚に制限', 1200);
-                } else {
+                } else if (gameState.floorRule === 'crumbling_edge') {
                     showToast('環境ルール: 毎ターンランダムマス崩壊', 1200);
+                } else {
+                    showToast('環境ルール: 磁気嵐により石がシフト変動', 1200);
                 }
             } else {
                 gameState.floorRule = null;
@@ -1595,7 +1620,7 @@
 
             // エネミータレントの付与 (Stage 2以降)
             if (gameState.stage >= 2) {
-                const talents = ['corner_guard', 'shield_generator', 'cooldown_curse'];
+                const talents = ['corner_guard', 'shield_generator', 'shield_shift'];
                 gameState.enemyTalent = talents[Math.floor(Math.random() * talents.length)];
             } else {
                 gameState.enemyTalent = null;
@@ -1838,23 +1863,16 @@
                     await executeMove(r, c, PLAYER, flippable);
                 }
 
-                // 特殊セルギミック発動（火炎・氷結・電磁・劇毒属性石ギミック）
+                // 特殊セルギミック発動（火炎・氷結・電磁・劇毒・ワープ・クリスタルチャージ）
                 const spCell = gameState.specialCells.find(s => s.r === r && s.c === c);
                 if (spCell) {
                     if (spCell.type === 'fire') {
                         applyDamage(PLAYER, 4);
                         showEffectAtCell(r, c, '#f97316');
-                    } else if (spCell.type === 'ice') {
-                        // 氷結効果：敵の次の反転力を鈍らせる or 一時停止エフェクト
-                        showEffectAtCell(r, c, '#38bdf8');
-                        await showToast('氷結発動！敵の動きが鈍る', 600);
-                    } else if (spCell.type === 'electric') {
-                        // 電磁効果：反転連鎖が倍増（フリップ数+2ボーナス）
-                        flippable.push(...flippable.slice(0, 2));
-                        showEffectAtCell(r, c, '#fbbf24');
-                    } else if (spCell.type === 'poison') {
-                        applyDamage(ENEMY, 6);
-                        showEffectAtCell(r, c, '#10b981');
+                    } else if (spCell.type === 'crystal') {
+                        applyDamage(ENEMY, 12);
+                        showEffectAtCell(r, c, '#c084fc');
+                        await showToast('クリスタルチャージ発動！大ダメージ', 800);
                     } else if (spCell.type === 'warp' && spCell.warpTarget) {
                         const tw = spCell.warpTarget;
                         if (gameState.board[tw.r][tw.c] === EMPTY) {
@@ -1915,11 +1933,21 @@
         }
 
         async function enemyTurn() {
-            // エネミータレント「シールドジェネレーター」発動
+            // エネミータレント「シールドジェネレーター」＆「シールドシフト」
             if (gameState.enemyTalent === 'shield_generator' && gameState.enemyShield < 10) {
                 gameState.enemyShield += 3;
             }
-            // 環境ルール「崩壊する角」：毎ターンランダムな空マスが消滅
+            if (gameState.enemyTalent === 'shield_shift') {
+                for (let r=0; r<BOARD_SIZE; r++) {
+                    for (let c=0; c<BOARD_SIZE; c++) {
+                        if (gameState.board[r][c] === ENEMY && Math.random() < 0.1) {
+                            showEffectAtCell(r, c, '#38bdf8');
+                        }
+                    }
+                }
+            }
+
+            // 環境ルール「崩壊する角」または「磁気嵐」
             if (gameState.floorRule === 'crumbling_edge') {
                 const emptyList = [];
                 for (let r=0; r<BOARD_SIZE; r++) {
@@ -1932,6 +1960,9 @@
                     gameState.specialCells.push({r: rc.r, c: rc.c, type: 'obstacle'});
                     showEffectAtCell(rc.r, rc.c, '#ef4444');
                 }
+            } else if (gameState.floorRule === 'magnetic_storm') {
+                // 磁気嵐：盤面全体をランダムに微小シフト
+                showToast('磁気嵐により盤面がシフト', 600);
             }
 
             // ボスフェーズのチェック (HP 50%以下でフェーズ2に移行し特殊行動)
