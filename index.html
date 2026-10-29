@@ -842,28 +842,16 @@
                 }
             }
 
-            // ひっくり返るマスのプレビュー解除
             const clearPreview = () => {
                 document.querySelectorAll('.cell.preview-flip').forEach(c => c.classList.remove('preview-flip'));
             };
 
-            // マス目の正確な検出 (相対座標計算方式)
-            const getCellFromCoords = (clientX, clientY) => {
-                const rect = boardEl.getBoundingClientRect();
-                if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
-                    return null;
-                }
-                const x = clientX - rect.left;
-                const y = clientY - rect.top;
-                const col = Math.floor((x / rect.width) * BOARD_SIZE);
-                const row = Math.floor((y / rect.height) * BOARD_SIZE);
-                if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
-                    return document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
-                }
-                return null;
+            // Pointer Events統合: 座標下の最前面要素からセル要素を直接検索し、完璧な当たり判定精度を実現
+            const getCellFromPoint = (clientX, clientY) => {
+                const el = document.elementFromPoint(clientX, clientY);
+                return el ? el.closest('#board .cell') : null;
             };
 
-            // ホバー/タッチ時のプレビュー表示処理
             const showPreview = (cell) => {
                 clearPreview();
                 if (!cell || gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
@@ -879,68 +867,52 @@
                 });
             };
 
-            // マウス操作
-            boardEl.addEventListener('mousemove', (e) => {
-                const cell = getCellFromCoords(e.clientX, e.clientY);
-                showPreview(cell);
+            let activePointerId = null;
+            let currentPointerCell = null;
+
+            boardEl.addEventListener('pointermove', (e) => {
+                if (gameState.isProcessing || gameState.currentTurn !== PLAYER) {
+                    clearPreview();
+                    return;
+                }
+                const cell = getCellFromPoint(e.clientX, e.clientY);
+                if (cell !== currentPointerCell) {
+                    currentPointerCell = cell;
+                    showPreview(currentPointerCell);
+                }
             });
 
-            boardEl.addEventListener('mouseleave', clearPreview);
-
-            // タッチ操作（相対座標から正確にマスを算出）
-            let activeTouchCell = null;
-            let lastTouchEndTime = 0;
-
-            boardEl.addEventListener('touchstart', (e) => {
+            boardEl.addEventListener('pointerdown', (e) => {
                 if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
-                if (e.touches.length > 0) {
-                    activeTouchCell = getCellFromCoords(e.touches[0].clientX, e.touches[0].clientY);
-                    showPreview(activeTouchCell);
-                }
-            }, { passive: true });
+                activePointerId = e.pointerId;
+                currentPointerCell = getCellFromPoint(e.clientX, e.clientY);
+                showPreview(currentPointerCell);
+            });
 
-            boardEl.addEventListener('touchmove', (e) => {
-                if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
-                if (e.touches.length > 0) {
-                    const currentCell = getCellFromCoords(e.touches[0].clientX, e.touches[0].clientY);
-                    if (currentCell !== activeTouchCell) {
-                        activeTouchCell = currentCell;
-                        showPreview(activeTouchCell);
+            boardEl.addEventListener('pointerup', (e) => {
+                if (activePointerId !== null && e.pointerId === activePointerId) {
+                    const cellToTrigger = getCellFromPoint(e.clientX, e.clientY);
+                    activePointerId = null;
+                    currentPointerCell = null;
+                    clearPreview();
+
+                    if (!gameState.isProcessing && gameState.currentTurn === PLAYER && cellToTrigger && cellToTrigger.classList.contains('valid')) {
+                        const r = parseInt(cellToTrigger.dataset.row, 10);
+                        const c = parseInt(cellToTrigger.dataset.col, 10);
+                        handlePlayerMove(r, c);
                     }
                 }
-            }, { passive: true });
-
-            boardEl.addEventListener('touchend', (e) => {
-                lastTouchEndTime = Date.now();
-                const cellToTrigger = activeTouchCell;
-                activeTouchCell = null;
-                clearPreview();
-
-                if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
-                if (cellToTrigger && cellToTrigger.classList.contains('valid')) {
-                    const r = parseInt(cellToTrigger.dataset.row, 10);
-                    const c = parseInt(cellToTrigger.dataset.col, 10);
-                    handlePlayerMove(r, c);
-                }
-            }, { passive: true });
-
-            boardEl.addEventListener('touchcancel', () => {
-                activeTouchCell = null;
-                clearPreview();
-            }, { passive: true });
-
-            // PCマウスクリック（タッチ直後の二重実行を防ぐ）
-            boardEl.addEventListener('click', (e) => {
-                if (Date.now() - lastTouchEndTime < 450) return;
-                clearPreview();
-                if (gameState.isProcessing || gameState.currentTurn !== PLAYER) return;
-                const cell = getCellFromCoords(e.clientX, e.clientY);
-                if (!cell || !cell.classList.contains('valid')) return;
-
-                const r = parseInt(cell.dataset.row, 10);
-                const c = parseInt(cell.dataset.col, 10);
-                handlePlayerMove(r, c);
             });
+
+            const resetPointerState = () => {
+                activePointerId = null;
+                currentPointerCell = null;
+                clearPreview();
+            };
+
+            boardEl.addEventListener('pointercancel', resetPointerState);
+            boardEl.addEventListener('pointerleave', resetPointerState);
+
             isBoardDomInitialized = true;
         }
 
@@ -1164,10 +1136,14 @@
             // UI上の有効手ハイライト消去
             document.querySelectorAll('.cell.valid').forEach(el => el.classList.remove('valid'));
 
-            // 1. データ層の更新 (着手)
+            // 1. 【State】純粋な状態更新（データ層）
             gameState.board[r][c] = turn;
-            
-            // 2. 描画層: 着手マスの石を配置＆エフェクト
+            for (let pos of flippable) {
+                gameState.board[pos.r][pos.c] = turn;
+            }
+
+            // 2. 【View】演出パイプライン（アニメーション再生）
+            // 2a. 着手石の生成と粒子演出
             const placedCell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
             if (placedCell) {
                 let disc = placedCell.querySelector('.disc');
@@ -1186,28 +1162,22 @@
                 );
             }
 
-            // 3. 反転アニメーションの完全同期制御（データ更新と連動したアニメーション保証）
+            // 2b. 反転タイムラインの順次再生
             for (let pos of flippable) {
                 await wait(60);
-                // データ更新
-                gameState.board[pos.r][pos.c] = turn;
-
-                // レンダリング更新
                 const flipCell = document.querySelector(`[data-row="${pos.r}"][data-col="${pos.c}"]`);
                 if (flipCell) {
                     let disc = flipCell.querySelector('.disc');
-                    if (disc) {
-                        disc.classList.remove('flip-anim');
-                        void disc.offsetWidth; // リフロー強制
-                        disc.className = `disc ${turn === PLAYER ? 'player' : 'enemy'} flip-anim`;
+                    if (!disc) {
+                        disc = document.createElement('div');
+                        flipCell.appendChild(disc);
                     }
+                    disc.className = `disc ${turn === PLAYER ? 'player' : 'enemy'} flip-anim`;
                 }
             }
 
-            // 4. アニメーション完了保証待機
+            // 3. タイムライン完了待機とDOMの整合性保証同期
             await wait(280);
-
-            // 5. 最終盤面状態のDOM一元同期
             renderBoard();
         }
 
@@ -1300,21 +1270,28 @@
                 }
             }
 
-            await showToast(`${pCount} vs ${eCount}`, 900);
+            await showToast(`${pCount} vs ${eCount}`, 1000);
 
+            // 999ダメージハックを廃止し、正規の判定理由に基づき画面遷移を制御
+            let playerWins = false;
             if (pCount > eCount) {
-                applyDamage(ENEMY, 999);
+                playerWins = true;
             } else if (eCount > pCount) {
-                applyDamage(PLAYER, 999);
+                playerWins = false;
             } else {
                 // 完全同数の場合は残りHPの多い方が勝利、HPも同数ならプレイヤー勝利
-                if (gameState.playerHp >= gameState.enemyHp) {
-                    applyDamage(ENEMY, 999);
-                } else {
-                    applyDamage(PLAYER, 999);
-                }
+                playerWins = (gameState.playerHp >= gameState.enemyHp);
             }
-            await checkBattleEnd();
+
+            if (playerWins) {
+                gameState.stats.kills++;
+                gameState.stats.score += gameState.stage * 100;
+                await wait(400);
+                showRewardModal();
+            } else {
+                await wait(400);
+                showGameOver(false);
+            }
         }
 
         // --- 報酬システム ---
