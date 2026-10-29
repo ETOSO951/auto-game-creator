@@ -1232,6 +1232,13 @@
             gameState.playerHp = 30;
             gameState.relics = [];
             gameState.stats = { kills: 0, totalFlips: 0, score: 0 };
+            // 【新機能3】永続アビリティ・称号ツリーによる初期バフ適用
+            gameState.materials = 5;
+            if (localStorage.getItem('roguelike_reversi_ascend')) {
+                gameState.playerMaxHp += 10;
+                gameState.playerHp = gameState.playerMaxHp;
+                gameState.materials += 3;
+            }
         }
 
         function showMapScreen() {
@@ -1246,12 +1253,24 @@
                 { type: 'shop', title: '💰 商人・クラフト工房', desc: '遺物の分解・合成・融合および補給。' }
             ];
 
+            // 【新機能1】マルチレイヤー分岐マップ拡張＆属性共鳴ポイント
+            const currentFloorData = [
+                [
+                    { id: 1, type: 'battle', title: '⚔️ 属性戦闘エリア', desc: '炎・氷の属性石を操る通常ステージ。', next: [2, 3] },
+                    { id: 2, type: 'event', title: '🔮 エレメンタル祭壇', desc: '属性の祝福を受け、最大HPや素材を獲得。', next: [4, 5] },
+                    { id: 3, type: 'elite', title: '🔥 エリート戦', desc: '強力なアビリティを持つ強敵との死闘。', next: [4, 5] },
+                    { id: 4, type: 'shop', title: '💰 商人・クラフト工房', desc: '遺物の分解・合成・覚醒スキル強化。', next: [6] },
+                    { id: 5, type: 'battle', title: '⚡ 磁気嵐ステージ', desc: '危険な特殊ルールが適用される激戦区。', next: [6] },
+                    { id: 6, type: 'boss', title: '👑 フロアガーディアン', desc: '第1階層の最終ボス。', next: [] }
+                ]
+            ];
+
             routes.forEach(r => {
                 const card = document.createElement('div');
                 card.className = 'reward-card';
                 card.innerHTML = `
                     <div class="reward-card-title">${r.title}</div>
-                    <div class="reward-card-desc">${r.desc}</div>
+                    <div class="reward-card-desc">${r.desc} (共鳴蓄積: ${gameState.elementalAffinity})</div>
                 `;
                 card.addEventListener('click', () => {
                     if (r.type === 'shop') {
@@ -1888,24 +1907,31 @@
                     await executeMove(r, c, PLAYER, flippable);
                 }
 
-                // 特殊セルギミック発動（火炎・氷結・電磁・劇毒・ワープ・クリスタルチャージ）
+                // 【新機能2】属性コンボチェインシステム（氷で固めた後に炎で蒸発、雷で感電など）
                 const spCell = gameState.specialCells.find(s => s.r === r && s.c === c);
                 if (spCell) {
                     if (spCell.type === 'fire') {
-                        applyDamage(PLAYER, 4);
-                        showEffectAtCell(r, c, '#f97316');
+                        if (gameState.enemyFrozen) {
+                            applyDamage(ENEMY, 18, true);
+                            showEffectAtCell(r, c, '#f97316');
+                            await showToast('【属性コンボ】蒸発爆発！ 18ダメージ', 900);
+                            gameState.enemyFrozen = false;
+                        } else {
+                            applyDamage(PLAYER, 4);
+                            showEffectAtCell(r, c, '#f97316');
+                        }
                     } else if (spCell.type === 'ice') {
                         gameState.enemyFrozen = true;
                         showEffectAtCell(r, c, '#38bdf8');
-                        await showToast('氷結効果！次ターンの敵行動遅延', 800);
+                        await showToast('氷結付与！次ターンの敵行動凍結', 800);
                     } else if (spCell.type === 'electric') {
-                        applyDamage(ENEMY, 8, true);
+                        applyDamage(ENEMY, 12, true);
                         showEffectAtCell(r, c, '#eab308');
-                        await showToast('電磁チェイン発動！', 600);
+                        await showToast('電磁チェイン発動！追加ダメージ', 700);
                     } else if (spCell.type === 'crystal') {
-                        applyDamage(ENEMY, 12);
+                        applyDamage(ENEMY, 15, true);
                         showEffectAtCell(r, c, '#c084fc');
-                        await showToast('クリスタルチャージ発動！大ダメージ', 800);
+                        await showToast('クリスタル共鳴！', 800);
                     } else if (spCell.type === 'warp' && spCell.warpTarget) {
                         const tw = spCell.warpTarget;
                         if (gameState.board[tw.r][tw.c] === EMPTY) {
@@ -2410,6 +2436,11 @@
             document.getElementById('res-kills').textContent = gameState.stats.kills;
             document.getElementById('res-flips').textContent = gameState.stats.totalFlips;
             document.getElementById('res-score').textContent = gameState.stats.score + (gameState.stage * 50);
+
+            // 【新機能3】勝利・敗北時に永続アンロック・アビリティツリー（魂の結晶セーブ）を記録
+            if (isWin || gameState.stage >= 3) {
+                localStorage.setItem('roguelike_reversi_ascend', 'true');
+            }
 
             showScreen('result-screen');
         }
