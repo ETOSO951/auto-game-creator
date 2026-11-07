@@ -903,17 +903,19 @@
         <div class="ui-layer">
             <!-- HUD TOP BAR -->
             <div class="hud-top-bar">
-                <div class="hud-row">
-                    <div class="stage-badge" id="stage-badge">STAGE 1: CYBER CITY</div>
-                    <button class="btn-dex" id="btn-dex">DEX / UPGRADE</button>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <div class="stage-badge" id="stage-badge">STAGE 1: FIREWALL</div>
+                    <button class="btn-dex" id="btn-dex">ARCHIVE & MODS</button>
                 </div>
-                <div class="hud-row">
-                    <span id="boss-name" style="font-size: 9px; color: var(--primary-neon);">BOSS: CORRUPT_CORE</span>
-                    <div class="boss-hp-container">
-                        <div class="boss-hp-fill" id="boss-hp-bar"></div>
-                    </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span id="boss-name" style="font-size: 9px; color: var(--primary-neon);">BOSS: VULCAN_CORE</span>
+                    <span class="boss-shield-badge" id="boss-shield-badge">SHIELD: ON</span>
                     <span id="fragment-display" style="font-size: 9px; color: var(--accent-gold);">FRAG: 0</span>
                 </div>
+            </div>
+            <!-- BOSS HP BAR -->
+            <div class="fever-container" style="height: 6px; margin-bottom: 6px; background: rgba(255,0,85,0.15);">
+                <div class="fever-bar" id="boss-hp-bar" style="width: 100%; background: linear-gradient(90deg, var(--primary-neon), var(--accent-gold));"></div>
             </div>
 
             <!-- SKILL PANEL -->
@@ -1000,11 +1002,34 @@
     <!-- DEX & UPGRADE MODAL -->
     <div class="modal-overlay" id="dex-modal">
         <div class="modal-header">
-            <div class="modal-title">ARCHIVE & UPGRADES</div>
+            <div class="modal-title">MODULES & ARCHIVE</div>
             <button class="btn-close-modal" id="btn-close-dex">CLOSE</button>
         </div>
         <div class="modal-body" id="dex-modal-body">
-            <!-- Dynamically populated -->
+            <div class="upgrade-section-title">HACK-AND-SLASH MODULE UPGRADES</div>
+            <div class="dex-item">
+                <div class="dex-info">
+                    <h4>TURBO INDUCTOR</h4>
+                    <p>Increases Fever Gauge charge efficiency (+10%/lvl).</p>
+                </div>
+                <button class="btn-upgrade-action" id="upg-fever">UPGRADE (FRAG: 50)</button>
+            </div>
+            <div class="dex-item">
+                <div class="dex-info">
+                    <h4>CHRONO DRIVE</h4>
+                    <p>Extends initial time limit (+5.0s/lvl).</p>
+                </div>
+                <button class="btn-upgrade-action" id="upg-time">UPGRADE (FRAG: 50)</button>
+            </div>
+            <div class="dex-item">
+                <div class="dex-info">
+                    <h4>PRISM AMPLIFIER</h4>
+                    <p>Boosts Prism & Critical symbol multiplier (+1x/lvl).</p>
+                </div>
+                <button class="btn-upgrade-action" id="upg-prism">UPGRADE (FRAG: 75)</button>
+            </div>
+            <div class="upgrade-section-title">SYMBOL ARCHIVE</div>
+            <div id="dex-items-container"></div>
         </div>
     </div>
 
@@ -1265,7 +1290,7 @@
 
         // ハクスラ・プログレッション＆モジュール拡張スロットシステム用データ
         const GAME_PROGRESSION = {
-            fragments: 0,
+            fragments: 150,
             upgrades: {
                 feverEfficiency: 0, // レベル0〜3
                 timeBonus: 0,       // レベル0〜3
@@ -1276,7 +1301,7 @@
                 'BAR': { name: 'GOLD BAR', desc: 'Classic medium-value symbol.', unlocked: true },
                 'GEM': { name: 'CYBER GEM', desc: 'Energetic star symbol.', unlocked: true },
                 'PRISM': { name: 'PRISM DIAMOND', desc: 'Ultimate multiplier symbol.', unlocked: true },
-                'BOMB': { name: 'CLUSTER BOMB', desc: 'Explodes adjacent symbols for huge damage.', unlocked: false, cost: 50 },
+                'BOMB': { name: 'CLUSTER BOMB', desc: 'Explodes adjacent symbols for huge damage.', unlocked: true },
                 'BELL': { name: 'NEON BELL', desc: 'Ringing reward symbol.', unlocked: true },
                 'CHERRY': { name: 'SYNTH CHERRY', desc: 'Sweet small win symbol.', unlocked: true },
                 'LEMON': { name: 'DIGITAL LEMON', desc: 'Basic fruit symbol.', unlocked: true }
@@ -1634,6 +1659,9 @@
                 // 図鑑・アップグレードモーダルリスナー
                 addFastListener(document.getElementById('btn-dex'), () => this.openDexModal());
                 addFastListener(document.getElementById('btn-close-dex'), () => this.closeDexModal());
+                addFastListener(document.getElementById('upg-fever'), () => this.buyUpgrade('feverEfficiency', 50));
+                addFastListener(document.getElementById('upg-time'), () => this.buyUpgrade('timeBonus', 50));
+                addFastListener(document.getElementById('upg-prism'), () => this.buyUpgrade('prismBoost', 75));
 
                 window.addEventListener('keydown', (e) => {
                     if (this.gameState !== 'PLAYING' || e.repeat) return;
@@ -1677,14 +1705,17 @@
                 sound.init();
                 this.score = 0;
                 this.multiplier = 1;
-                this.timeRemaining = 45.0 + (GAME_PROGRESSION.upgrades.timeBonus * 5);
+                this.timeRemaining = 45.0 + (GAME_PROGRESSION.upgrades.timeBonus * 5.0);
                 this.stage = 1;
                 this.bossMaxHp = 1000;
                 this.bossHp = this.bossMaxHp;
+                this.bossShieldActive = true;
                 this.comboChain = 0;
                 this.isOverdrive = false;
                 this.feverGauge = 0;
                 this.isFever = false;
+                this.anomalyTimer = 25.0;
+                this.isAnomalyActive = false;
                 this.isEvaluating = false;
                 this.skills.forEach(s => s.charge = s.maxCharge);
                 this.clearAutoTimers();
@@ -1692,8 +1723,9 @@
 
                 document.getElementById('start-screen').classList.add('hidden');
                 document.getElementById('gameover-screen').classList.add('hidden');
-                document.getElementById('stage-badge').innerText = 'STAGE 1: CYBER CITY';
-                document.getElementById('boss-name').innerText = 'BOSS: CORRUPT_CORE';
+                document.getElementById('stage-badge').innerText = 'STAGE 1: FIREWALL';
+                document.getElementById('boss-name').innerText = 'BOSS: VULCAN_CORE';
+                document.getElementById('boss-shield-badge').style.display = 'inline-block';
 
                 this.updateUI(true);
                 this.triggerSpin();
@@ -1916,11 +1948,196 @@
 
             addFever(amount) {
                 if (this.isFever) return;
-                this.feverGauge += amount;
+                const efficiencyBonus = 1.0 + (GAME_PROGRESSION.upgrades.feverEfficiency * 0.1);
+                this.feverGauge += amount * efficiencyBonus;
                 if (this.feverGauge >= 100) {
                     this.triggerFeverMode();
                 }
             }
+====
+
+<<<<<<<
+            damageBoss(dmg) {
+                this.bossHp -= dmg;
+                GAME_PROGRESSION.fragments += Math.floor(dmg * 0.1);
+                if (this.bossHp <= 0) {
+                    this.bossHp = 0;
+                    this.nextStage();
+                }
+                const hpPct = `${Math.max(0, (this.bossHp / this.bossMaxHp) * 100)}%`;
+                document.getElementById('boss-hp-bar').style.width = hpPct;
+                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments}`;
+            }
+
+            nextStage() {
+                this.stage++;
+                this.bossMaxHp = Math.round(this.bossMaxHp * 1.5);
+                this.bossHp = this.bossMaxHp;
+                this.timeRemaining += 15.0;
+                
+                const stageNames = ['STAGE 1: CYBER CITY', 'STAGE 2: NET CORE', 'STAGE 3: MATRIX OVERLOAD'];
+                const bossNames = ['BOSS: CORRUPT_CORE', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_GLITCH'];
+                
+                document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-name').innerText = bossNames[Math.min(this.stage - 1, 2)];
+                
+                this.showComboText(`STAGE CLEAR! +15.0s`);
+                this.triggerFlash('#00f3ff');
+                sound.playFever();
+            }
+====
+            damageBoss(dmg) {
+                if (this.bossShieldActive && dmg < 400) {
+                    this.showComboText("SHIELD ACTIVE! DMG REDUCED");
+                    dmg *= 0.35;
+                }
+                this.bossHp -= dmg;
+                GAME_PROGRESSION.fragments += Math.max(1, Math.floor(dmg * 0.15));
+                if (this.bossHp <= 0) {
+                    this.bossHp = 0;
+                    this.nextStage();
+                }
+                const hpPct = `${Math.max(0, (this.bossHp / this.bossMaxHp) * 100)}%`;
+                document.getElementById('boss-hp-bar').style.width = hpPct;
+                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments}`;
+            }
+
+            nextStage() {
+                this.stage++;
+                this.bossMaxHp = Math.round(this.bossMaxHp * 1.6);
+                this.bossHp = this.bossMaxHp;
+                this.bossShieldActive = true;
+                this.timeRemaining += 18.0;
+                
+                const stageNames = ['STAGE 1: FIREWALL', 'STAGE 2: FROST_NET', 'STAGE 3: EMP_CORE'];
+                const bossNames = ['BOSS: VULCAN_CORE', 'BOSS: FROST_DEFENDER', 'BOSS: OMEGA_EMP'];
+                
+                document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-name').innerText = bossNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-shield-badge').style.display = 'inline-block';
+                
+                this.showComboText(`STAGE CLEAR! +18.0s`);
+                this.triggerFlash('#00f3ff');
+                sound.playFever();
+            }
+====
+
+<<<<<<<
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            // プレイヤーが素早くスピンまたはストップボタンを押すことでバグ撃破ボーナス
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5; // 追加タイムボーナス
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+====
+        // モーダル操作・ハクスラ強化システムの実装
+        Game.prototype.openDexModal = function() {
+            const container = document.getElementById('dex-items-container');
+            container.innerHTML = '';
+            for (const [key, val] of Object.entries(GAME_PROGRESSION.dex)) {
+                const item = document.createElement('div');
+                item.className = 'dex-item unlocked';
+                item.innerHTML = `
+                    <div class="dex-info">
+                        <h4>${val.name}</h4>
+                        <p>${val.desc}</p>
+                    </div>
+                    <div class="dex-status">UNLOCKED</div>
+                `;
+                container.appendChild(item);
+            }
+            document.getElementById('dex-modal').classList.add('active');
+        };
+
+        Game.prototype.closeDexModal = function() {
+            document.getElementById('dex-modal').classList.remove('active');
+        };
+
+        Game.prototype.buyUpgrade = function(type, cost) {
+            if (GAME_PROGRESSION.fragments >= cost) {
+                GAME_PROGRESSION.fragments -= cost;
+                GAME_PROGRESSION.upgrades[type]++;
+                sound.playWin();
+                this.updateUI(true);
+                this.openDexModal();
+            } else {
+                sound.playStop(0.5);
+            }
+        };
+
+        Game.prototype.triggerCyberAnomaly = function() {
+            this.isAnomalyActive = true;
+            this.multiplier *= 3;
+            this.showComboText("CYBER ANOMALY: TRIPLE MULTIPLIER!");
+            this.triggerFlash('#ffe600');
+            sound.playFever();
+            setTimeout(() => {
+                this.isAnomalyActive = false;
+                this.multiplier = Math.max(1, Math.floor(this.multiplier / 3));
+            }, 7000);
+        };
+
+        Game.prototype.useSkill = function(idx) {
+            const skill = this.skills[idx];
+            if (skill.charge >= skill.maxCharge) {
+                skill.charge = 0;
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                if (idx === 0) {
+                    this.timeRemaining += 10.0;
+                    this.showComboText("TIME FREEZE: +10.0s");
+                } else if (idx === 1) {
+                    this.triggerOverdriveMode();
+                } else if (idx === 2) {
+                    this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.3);
+                    this.showComboText("RECONFIG: BOSS SHIELD BROKEN!");
+                    this.bossShieldActive = false;
+                    document.getElementById('boss-shield-badge').style.display = 'none';
+                }
+            }
+        };
+
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5;
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
 
             triggerFeverMode() {
                 this.isFever = true;
