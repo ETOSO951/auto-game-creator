@@ -772,7 +772,7 @@
 
             if (isHighlighted) {
                 const glowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, h * 0.45);
-                glowGrad.addColorStop(0, 'rgba(255, 230, 0, 0.4)');
+                glowGrad.addColorStop(0, 'rgba(255, 230, 0, 0.5)');
                 glowGrad.addColorStop(1, 'rgba(255, 230, 0, 0)');
                 ctx.fillStyle = glowGrad;
                 ctx.beginPath();
@@ -785,7 +785,7 @@
             ctx.textBaseline = 'middle';
             ctx.fillStyle = symbol.color;
             ctx.shadowColor = isHighlighted ? '#ffffff' : symbol.color;
-            ctx.shadowBlur = isHighlighted ? 20 : (isSpinning ? 3 : 10);
+            ctx.shadowBlur = isHighlighted ? 18 : (isSpinning ? 2 : 8);
 
             ctx.fillText(symbol.label, 0, 0);
 
@@ -1019,6 +1019,9 @@
                     el.addEventListener('pointerup', triggerUp, { passive: false });
                     el.addEventListener('pointercancel', triggerUp, { passive: false });
                     el.addEventListener('pointerleave', triggerUp, { passive: false });
+                    el.addEventListener('click', (e) => {
+                        if (e.cancelable) e.preventDefault();
+                    }, { passive: false });
                 };
 
                 addFastListener(document.getElementById('btn-start'), () => this.startGame());
@@ -1168,15 +1171,17 @@
                 this.updateStopButtonsState();
                 this.checkReachCondition();
 
-                // アトミックなステートチェックにより二重発火を完全に抑止
+                // アトミックなステートチェックにより二重発火を完全に抑止し同期精度を最大化
                 if (this.gameState === 'PLAYING' && !this.isEvaluating && this.reels.every(r => r.isIdle)) {
-                    this.isEvaluating = true; // 即時に評価中ロックを適用
+                    this.isEvaluating = true;
                     this.isReach = false;
                     this.paylineEl.classList.remove('reach');
                     this.reels.forEach(r => r.canvas.parentElement.classList.remove('reach-target'));
                     
-                    // 次フレームで正確に同期評価を実行
-                    requestAnimationFrame(() => this.evaluateResult());
+                    // 次フレームで確実に描画と判定を同期
+                    requestAnimationFrame(() => {
+                        this.evaluateResult();
+                    });
                 }
             }
 
@@ -1273,7 +1278,6 @@
             triggerCameraShake(type) {
                 const className = type === 'heavy' ? 'shake-heavy' : 'shake-light';
                 this.viewport.classList.remove('shake-light', 'shake-heavy');
-                // 次フレームで正確にキーフレームアニメーションを再適用
                 requestAnimationFrame(() => {
                     this.viewport.classList.add(className);
                 });
