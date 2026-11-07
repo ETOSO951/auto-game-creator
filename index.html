@@ -32,57 +32,57 @@
             color: #fff;
         }
 
-        /* 新機能：ステージインジケーター & スキルパネル & 図鑑ボタン */
+        /* 【引き算の美学による洗練されたクリーンUI設計】 */
         .hud-top-bar {
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
-            font-size: 11px;
+            margin-bottom: 4px;
+            font-size: 10px;
             font-family: var(--font-family);
             letter-spacing: 1px;
             color: var(--secondary-neon);
+            opacity: 0.9;
         }
 
         .stage-badge {
-            background: rgba(0, 243, 255, 0.15);
-            border: 1px solid var(--secondary-neon);
-            padding: 3px 8px;
-            border-radius: 6px;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+            background: rgba(0, 243, 255, 0.08);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
         }
 
         .btn-dex {
-            background: rgba(255, 230, 0, 0.15);
-            border: 1px solid var(--accent-gold);
+            background: rgba(255, 230, 0, 0.08);
+            border: 1px solid rgba(255, 230, 0, 0.3);
             color: var(--accent-gold);
-            padding: 3px 8px;
-            border-radius: 6px;
+            padding: 2px 6px;
+            border-radius: 4px;
             cursor: pointer;
             font-family: var(--font-family);
-            font-size: 11px;
-            transition: all 0.2s;
+            font-size: 10px;
+            transition: all 0.15s;
         }
-        .btn-dex:active { transform: scale(0.95); background: rgba(255, 230, 0, 0.4); }
+        .btn-dex:active { transform: scale(0.96); background: rgba(255, 230, 0, 0.25); }
 
-        /* スキル発動パネル */
+        /* スマート・スキルパネル（発動可能時のみ存在感を示すミニマルデザイン） */
         .skill-panel {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             width: 100%;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .btn-skill {
             flex: 1;
-            height: 36px;
-            background: linear-gradient(135deg, rgba(30, 30, 50, 0.85), rgba(15, 15, 30, 0.95));
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #8a8aa0;
+            height: 28px;
+            background: rgba(20, 20, 32, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #6a6a80;
             font-family: var(--font-family);
-            font-size: 10px;
+            font-size: 9px;
             cursor: pointer;
             display: flex;
             flex-direction: column;
@@ -96,8 +96,8 @@
         .btn-skill.ready {
             border-color: var(--secondary-neon);
             color: #fff;
-            box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
-            background: linear-gradient(135deg, rgba(0, 100, 150, 0.8), rgba(0, 40, 80, 0.9));
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
+            background: rgba(0, 100, 150, 0.4);
         }
 
         .btn-skill.ready:active {
@@ -106,7 +106,7 @@
 
         .skill-gauge-fill {
             position: absolute;
-            bottom: 0; left: 0; height: 3px;
+            bottom: 0; left: 0; height: 2px;
             background: var(--secondary-neon);
             width: 0%;
             transition: width 0.1s;
@@ -726,57 +726,57 @@
             display: block;
         }
 
-        /* 新機能：ステージインジケーター & スキルパネル & 図鑑ボタン */
+        /* 【引き算の美学による洗練されたクリーンUI設計】 */
         .hud-top-bar {
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
-            font-size: 11px;
+            margin-bottom: 4px;
+            font-size: 10px;
             font-family: var(--font-family);
             letter-spacing: 1px;
             color: var(--secondary-neon);
+            opacity: 0.9;
         }
 
         .stage-badge {
-            background: rgba(0, 243, 255, 0.15);
-            border: 1px solid var(--secondary-neon);
-            padding: 3px 8px;
-            border-radius: 6px;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+            background: rgba(0, 243, 255, 0.08);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
         }
 
         .btn-dex {
-            background: rgba(255, 230, 0, 0.15);
-            border: 1px solid var(--accent-gold);
+            background: rgba(255, 230, 0, 0.08);
+            border: 1px solid rgba(255, 230, 0, 0.3);
             color: var(--accent-gold);
-            padding: 3px 8px;
-            border-radius: 6px;
+            padding: 2px 6px;
+            border-radius: 4px;
             cursor: pointer;
             font-family: var(--font-family);
-            font-size: 11px;
-            transition: all 0.2s;
+            font-size: 10px;
+            transition: all 0.15s;
         }
-        .btn-dex:active { transform: scale(0.95); background: rgba(255, 230, 0, 0.4); }
+        .btn-dex:active { transform: scale(0.96); background: rgba(255, 230, 0, 0.25); }
 
-        /* スキル発動パネル */
+        /* スマート・スキルパネル（発動可能時のみ存在感を示すミニマルデザイン） */
         .skill-panel {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             width: 100%;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .btn-skill {
             flex: 1;
-            height: 36px;
-            background: linear-gradient(135deg, rgba(30, 30, 50, 0.85), rgba(15, 15, 30, 0.95));
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #8a8aa0;
+            height: 28px;
+            background: rgba(20, 20, 32, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #6a6a80;
             font-family: var(--font-family);
-            font-size: 10px;
+            font-size: 9px;
             cursor: pointer;
             display: flex;
             flex-direction: column;
@@ -790,8 +790,8 @@
         .btn-skill.ready {
             border-color: var(--secondary-neon);
             color: #fff;
-            box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
-            background: linear-gradient(135deg, rgba(0, 100, 150, 0.8), rgba(0, 40, 80, 0.9));
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
+            background: rgba(0, 100, 150, 0.4);
         }
 
         .btn-skill.ready:active {
@@ -800,7 +800,7 @@
 
         .skill-gauge-fill {
             position: absolute;
-            bottom: 0; left: 0; height: 3px;
+            bottom: 0; left: 0; height: 2px;
             background: var(--secondary-neon);
             width: 0%;
             transition: width 0.1s;
