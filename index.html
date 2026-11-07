@@ -743,8 +743,12 @@
             filter: drop-shadow(0 0 35px rgba(255, 0, 85, 0.95)) drop-shadow(0 0 10px rgba(0, 243, 255, 0.6));
             transform: skewX(-8deg) scale(1);
             animation: title-float 2.8s ease-in-out infinite alternate, title-glow-pulse 1.6s infinite alternate;
-            transition: transform 0.1s ease-out;
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.3s ease;
             will-change: transform, filter;
+        }
+        .game-title:hover {
+            filter: drop-shadow(0 0 50px rgba(255, 230, 0, 1)) drop-shadow(0 0 20px rgba(0, 243, 255, 0.9));
+            transform: skewX(-8deg) scale(1.05);
         }
 
         @keyframes title-float {
@@ -774,17 +778,24 @@
             96% { opacity: 0.8; transform: translate(-1px, 2px); }
         }
 
-        /* CRTスキャンライン装飾（タイトル画面用・プレミアム多層化） */
+        /* CRTスキャンライン装飾（タイトル画面用・プレミアム多層化・動的パルス連携） */
         .overlay-screen::before {
             content: " ";
             display: block;
             position: absolute;
             top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.08), rgba(0, 255, 0, 0.03), rgba(0, 0, 255, 0.08));
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.08), rgba(0, 255, 0, 0.03), rgba(0, 0, 255, 0.08));
             z-index: 3;
             background-size: 100% 3px, 6px 100%;
             pointer-events: none;
-            opacity: 0.7;
+            opacity: 0.75;
+            animation: crt-flicker 4s infinite alternate;
+        }
+
+        @keyframes crt-flicker {
+            0% { opacity: 0.7; }
+            50% { opacity: 0.85; }
+            100% { opacity: 0.68; }
         }
 
         .overlay-screen > * {
