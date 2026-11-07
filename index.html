@@ -689,7 +689,7 @@
                 this.state = 'SPINNING';
                 this.isHighlighted = false;
                 this.stoppedSymbol = null;
-                this.speed = 0.85 + Math.random() * 0.1;
+                this.speed = 1.0 + Math.random() * 0.2;
             }
 
             stop() {
@@ -698,11 +698,10 @@
                 this.stopProgress = 0;
                 this.startStopPos = this.position;
                 
-                // 【目押し精度向上】現在位置から最小スベリ量（0.2コマ）を加算し、確実に次以降のコマ境界に吸着
-                const minSlip = 0.2;
+                // 確実に整数コマ（または半コマ）の美しい位置へ吸着する確定物理計算
+                const minSlip = 0.3;
                 this.targetPos = Math.ceil(this.position + minSlip);
 
-                // 中央判定ラインに位置する確定シンボルを先行算出（完全一元化・同期）
                 const finalPosition = ((Math.round(this.targetPos) % this.symbols.length) + this.symbols.length) % this.symbols.length;
                 const centerIdx = (finalPosition + 1) % this.symbols.length;
                 this.stoppedSymbol = this.symbols[centerIdx];
@@ -1043,9 +1042,11 @@
             }
 
             triggerCameraShake(type) {
+                // DOMリフロー（offsetWidth強制読み出し）を完全に排除し、クラスの付け替えのみでGPU負荷のないアニメーションを実現
                 this.viewport.classList.remove('shake-light', 'shake-heavy');
-                void this.viewport.offsetWidth; // reflow
-                this.viewport.classList.add(type === 'heavy' ? 'shake-heavy' : 'shake-light');
+                requestAnimationFrame(() => {
+                    this.viewport.classList.add(type === 'heavy' ? 'shake-heavy' : 'shake-light');
+                });
                 this.shakeTimer = 0.1; // 100ms
             }
 
