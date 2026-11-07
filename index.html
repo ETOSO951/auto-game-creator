@@ -291,9 +291,10 @@
         }
 
         .btn-stop:active, .btn-stop.pressed {
-            transform: translateY(4px);
-            box-shadow: 0 2px 0 #0d0d18, 0 4px 10px rgba(0,0,0,0.4);
-            background: linear-gradient(180deg, #3a3a58, #202035);
+            transform: translateY(4px) scale(0.97);
+            box-shadow: 0 2px 0 #0d0d18, 0 2px 10px rgba(0, 243, 255, 0.5);
+            background: linear-gradient(180deg, #4a4a70, #252545);
+            border-color: var(--secondary-neon);
         }
 
         .btn-stop.active-ready {
@@ -682,38 +683,41 @@
                 return symbolCacheStore.get(key);
             }
 
-            // キャッシュサイズ上限管理によるメモリリーク防止
             if (symbolCacheStore.size > MAX_CACHE_SIZE) {
                 const firstKey = symbolCacheStore.keys().next().value;
                 symbolCacheStore.delete(firstKey);
             }
 
             const offCanvas = document.createElement('canvas');
-            const padding = Math.ceil(h * 0.3);
-            offCanvas.width = h + padding * 2;
-            offCanvas.height = h + padding * 2;
+            const padding = Math.ceil(h * 0.25);
+            const size = h + padding * 2;
+            offCanvas.width = size;
+            offCanvas.height = size;
             const ctx = offCanvas.getContext('2d');
 
-            ctx.translate(offCanvas.width / 2, offCanvas.height / 2);
+            ctx.translate(size / 2, size / 2);
 
             if (isSpinning) {
-                ctx.scale(1, 1.2);
-                ctx.globalAlpha = 0.7;
+                ctx.scale(0.95, 1.18);
+                ctx.globalAlpha = 0.75;
             }
 
             if (isHighlighted) {
-                ctx.fillStyle = 'rgba(255, 230, 0, 0.25)';
+                const glowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, h * 0.45);
+                glowGrad.addColorStop(0, 'rgba(255, 230, 0, 0.4)');
+                glowGrad.addColorStop(1, 'rgba(255, 230, 0, 0)');
+                ctx.fillStyle = glowGrad;
                 ctx.beginPath();
-                ctx.arc(0, 0, h * 0.42, 0, Math.PI * 2);
+                ctx.arc(0, 0, h * 0.45, 0, Math.PI * 2);
                 ctx.fill();
             }
 
-            ctx.font = `900 ${h * 0.48}px 'Impact', sans-serif`;
+            ctx.font = `900 ${Math.floor(h * 0.45)}px 'Impact', 'Arial Black', sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = symbol.color;
             ctx.shadowColor = isHighlighted ? '#ffffff' : symbol.color;
-            ctx.shadowBlur = isHighlighted ? 22 : (isSpinning ? 4 : 12);
+            ctx.shadowBlur = isHighlighted ? 20 : (isSpinning ? 3 : 10);
 
             ctx.fillText(symbol.label, 0, 0);
 
@@ -764,11 +768,11 @@
                 this.stopProgress = 0;
                 this.startStopPos = this.position;
                 
-                // グリッド単位（整数位置）への着地を厳密化
-                const minSlip = 0.5;
-                this.targetPos = Math.ceil(this.position + minSlip);
+                // 完全なピクセル同期とビタ止まりを実現するグリッド吸着計算
+                const minSlip = 0.6;
+                this.targetPos = Math.round(this.position + minSlip);
 
-                // 中央ライン(i=1)の位置にあるシンボルを特定
+                // 中央ライン(i=1)に完全に吸着・確定するシンボルを計算
                 const finalGridPos = this.targetPos;
                 const centerIdx = (finalGridPos + 1) % this.symbols.length;
                 this.stoppedSymbol = this.symbols[centerIdx];
@@ -787,8 +791,8 @@
                     this.position = (this.position + this.speed * dt * 60) % this.symbols.length;
                     if (Math.random() < 0.08) sound.playSpin();
                 } else if (this.state === 'STOPPING') {
-                    // ディスプレイのリフレッシュレートに依存しない高精度イージング
-                    this.stopProgress += dt * 12.0;
+                    // 60FPSベースでリフレッシュレート非依存の高精度スナップイージング
+                    this.stopProgress += dt * 14.0;
                     if (this.stopProgress >= 1) {
                         this.stopProgress = 1;
                         this.position = this.targetPos % this.symbols.length;
@@ -798,10 +802,11 @@
                             this.onCompleteStop(this.index);
                         }
                     } else {
-                        // スナップ効果のある減速曲線
+                        // ビタ止まり感を出す弾性オーバーシュート付きイージング (easeOutBack)
                         const t = this.stopProgress;
-                        const easeOutSnap = 1 - Math.pow(1 - t, 4);
-                        this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutSnap;
+                        const back = 0.8;
+                        const easeOutBack = 1 + (back + 1) * Math.pow(t - 1, 3) + back * Math.pow(t - 1, 2);
+                        this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutBack;
                     }
                 }
             }
@@ -895,24 +900,26 @@
                     this.reels.forEach(r => r.resize());
                 });
 
-                let lastInputTime = 0;
+                const activePointers = new Set();
                 const addFastListener = (el, handler) => {
-                    const listener = (e) => {
-                        e.preventDefault();
+                    const trigger = (e) => {
+                        if (e) {
+                            if (e.cancelable) e.preventDefault();
+                            if (e.pointerId !== undefined && activePointers.has(e.pointerId)) return;
+                            if (e.pointerId !== undefined) activePointers.add(e.pointerId);
+                        }
                         sound.init();
-                        const now = performance.now();
-                        if (now - lastInputTime < 20) return; // 超低遅延デバウンス (20ms)
-                        lastInputTime = now;
 
-                        // 即座の視覚フィードバック
+                        // 視覚的即時フィードバック（ノーレイテンシ）
                         el.classList.add('pressed');
-                        requestAnimationFrame(() => {
-                            setTimeout(() => el.classList.remove('pressed'), 100);
-                        });
+                        setTimeout(() => el.classList.remove('pressed'), 120);
 
                         handler();
                     };
-                    el.addEventListener('pointerdown', listener, { passive: false });
+
+                    el.addEventListener('pointerdown', trigger, { passive: false });
+                    el.addEventListener('pointerup', (e) => activePointers.delete(e.pointerId));
+                    el.addEventListener('pointercancel', (e) => activePointers.delete(e.pointerId));
                 };
 
                 addFastListener(document.getElementById('btn-start'), () => this.startGame());
@@ -934,16 +941,23 @@
                     }
                 });
 
-                // キーボード操作
+                // キーボード操作の完全最適化（ミリ秒応答）
                 window.addEventListener('keydown', (e) => {
                     if (this.gameState !== 'PLAYING' || e.repeat) return;
                     sound.init();
                     if (e.code === 'Space') {
                         e.preventDefault();
+                        this.btnSpin.classList.add('pressed');
+                        setTimeout(() => this.btnSpin.classList.remove('pressed'), 120);
                         this.handleSpinAction();
-                    } else if (e.key === '1') this.stopReel(0);
-                    else if (e.key === '2') this.stopReel(1);
-                    else if (e.key === '3') this.stopReel(2);
+                    } else if (e.key === '1' || e.key === '2' || e.key === '3') {
+                        const idx = parseInt(e.key) - 1;
+                        if (this.stopBtns[idx]) {
+                            this.stopBtns[idx].classList.add('pressed');
+                            setTimeout(() => this.stopBtns[idx].classList.remove('pressed'), 120);
+                        }
+                        this.stopReel(idx);
+                    }
                 });
             }
 
