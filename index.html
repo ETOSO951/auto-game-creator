@@ -198,6 +198,41 @@
             color: var(--accent-gold);
         }
 
+        /* ハクスラ・モジュール & アップグレード追加スタイル */
+        .upgrade-section-title {
+            font-family: var(--font-family);
+            font-size: 14px;
+            color: var(--secondary-neon);
+            margin: 10px 0 5px 0;
+            border-left: 3px solid var(--secondary-neon);
+            padding-left: 6px;
+        }
+
+        .btn-upgrade-action {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.2), rgba(0, 100, 150, 0.4));
+            border: 1px solid var(--secondary-neon);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-family);
+            font-size: 11px;
+            transition: all 0.15s;
+        }
+        .btn-upgrade-action:active { transform: scale(0.95); background: rgba(0, 243, 255, 0.5); }
+        .btn-upgrade-action:disabled { opacity: 0.4; border-color: rgba(255,255,255,0.2); cursor: not-allowed; }
+
+        /* ボスシールドバリアバッジ */
+        .boss-shield-badge {
+            font-size: 8px;
+            background: rgba(255, 0, 85, 0.25);
+            border: 1px solid var(--primary-neon);
+            color: var(--primary-neon);
+            padding: 1px 5px;
+            border-radius: 4px;
+            margin-left: 4px;
+        }
+
         /* 画面全体揺れ・カメラワーク用コンテナ */
         #viewport {
             width: 100%;
