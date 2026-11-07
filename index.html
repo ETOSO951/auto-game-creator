@@ -153,6 +153,28 @@
             -webkit-text-fill-color: transparent;
         }
 
+        /* グリッチバグ・ボスアラート演出 */
+        .glitch-alert {
+            position: absolute;
+            top: 22%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: var(--font-family);
+            font-size: 20px;
+            color: #00f3ff;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid var(--secondary-neon);
+            padding: 6px 16px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+            z-index: 25;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            white-space: nowrap;
+            letter-spacing: 2px;
+        }
+
         /* フィーバーゲージ */
         .fever-container {
             width: 100%;
@@ -536,7 +558,8 @@
             <!-- SLOT MACHINE -->
             <div class="slot-machine-container">
                 <div id="combo-popup">GREAT!</div>
-                <div class="slot-frame">
+                <div class="glitch-alert" id="glitch-alert">⚡ GLITCH BUG DETECTED! ⚡</div>
+                <div class="slot-frame" id="slot-frame">
                     <div class="payline"></div>
                     <div class="reel-viewport"><canvas id="reel-0" class="reel-canvas"></canvas></div>
                     <div class="reel-viewport"><canvas id="reel-1" class="reel-canvas"></canvas></div>
@@ -824,6 +847,7 @@
             { id: '7', color: '#ff0055', score: 500, label: '7' },
             { id: 'BAR', color: '#ffe600', score: 300, label: 'BAR' },
             { id: 'GEM', color: '#00f3ff', score: 200, label: '★' },
+            { id: 'PRISM', color: '#ff00ff', score: 800, label: '💎' }, // ラッシュモード限定超高配当レアプリズムシンボル
             { id: 'BELL', color: '#ff9900', score: 150, label: '🔔' },
             { id: 'CHERRY', color: '#ff2244', score: 100, label: '🍒' },
             { id: 'LEMON', color: '#ccff00', score: 50, label: '🍋' }
@@ -1384,11 +1408,13 @@
             triggerFeverMode() {
                 this.isFever = true;
                 this.feverGauge = 100;
-                this.multiplier = 3;
-                this.feverTimer = 7.0; // 7秒間のフィーバー(dt管理)
+                this.multiplier = 4; // ラッシュモード中超倍率
+                this.feverTimer = 8.5; // 8.5秒間のHYPER RUSHステージ
                 sound.playFever();
-                this.showComboText("HYPER FEVER!!");
-                this.triggerFlash('#ff0055');
+                this.showComboText("HYPER RUSH STAGE!!");
+                this.triggerFlash('#ff00ff');
+                document.getElementById('slot-frame').style.borderColor = '#ff00ff';
+                document.getElementById('slot-frame').style.boxShadow = '0 0 35px rgba(255, 0, 255, 0.7), inset 0 0 30px rgba(255, 0, 255, 0.5)';
             }
 
             triggerCameraShake(type) {
@@ -1587,13 +1613,21 @@
                         }
                     }
 
-                    // 3. フィーバータイマー
+                    // 3. フィーバータイマー（HYPER RUSH & グリッチバグ攻防ギミック統合）
                     if (this.isFever && this.feverTimer > 0) {
                         this.feverTimer -= dt;
+                        
+                        // ラッシュモード中のグリッチバグ発生ギミック（リアルタイム攻防）
+                        if (Math.random() < 0.003 && this.gameState === 'PLAYING' && !this.isEvaluating) {
+                            this.triggerGlitchBug();
+                        }
+
                         if (this.feverTimer <= 0) {
                             this.isFever = false;
                             this.feverGauge = 0;
                             this.multiplier = 1;
+                            document.getElementById('slot-frame').style.borderColor = 'rgba(255, 255, 255, 0.18)';
+                            document.getElementById('slot-frame').style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.85), inset 0 2px 8px rgba(255, 255, 255, 0.12)';
                         }
                     }
 
@@ -1654,6 +1688,31 @@
                 requestAnimationFrame(this.loop.bind(this));
             }
         }
+
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            // プレイヤーが素早くスピンまたはストップボタンを押すことでバグ撃破ボーナス
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5; // 追加タイムボーナス
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
 
         // ゲーム起動
         window.addEventListener('load', () => {
