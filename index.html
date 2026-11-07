@@ -32,57 +32,58 @@
             color: #fff;
         }
 
-        /* 【引き算の美学による洗練されたクリーンUI設計】 */
+        /* 【引き算の美学による洗練されたクリーンUI設計：コンテキスト依存型HUD】 */
         .hud-top-bar {
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 4px;
-            font-size: 10px;
+            margin-bottom: 3px;
+            font-size: 9px;
             font-family: var(--font-family);
             letter-spacing: 1px;
             color: var(--secondary-neon);
-            opacity: 0.9;
+            opacity: 0.85;
+            transition: opacity 0.2s;
         }
 
         .stage-badge {
-            background: rgba(0, 243, 255, 0.08);
-            border: 1px solid rgba(0, 243, 255, 0.3);
-            padding: 2px 6px;
+            background: rgba(0, 243, 255, 0.05);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            padding: 2px 5px;
             border-radius: 4px;
         }
 
         .btn-dex {
-            background: rgba(255, 230, 0, 0.08);
-            border: 1px solid rgba(255, 230, 0, 0.3);
+            background: rgba(255, 230, 0, 0.05);
+            border: 1px solid rgba(255, 230, 0, 0.25);
             color: var(--accent-gold);
-            padding: 2px 6px;
+            padding: 2px 5px;
             border-radius: 4px;
             cursor: pointer;
             font-family: var(--font-family);
-            font-size: 10px;
+            font-size: 9px;
             transition: all 0.15s;
         }
-        .btn-dex:active { transform: scale(0.96); background: rgba(255, 230, 0, 0.25); }
+        .btn-dex:active { transform: scale(0.96); background: rgba(255, 230, 0, 0.2); }
 
-        /* スマート・スキルパネル（発動可能時のみ存在感を示すミニマルデザイン） */
+        /* スマート・スキルパネル（未チャージ時はミニマル透過、Ready時のみ鮮烈に発光） */
         .skill-panel {
             display: flex;
             gap: 4px;
             width: 100%;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .btn-skill {
             flex: 1;
-            height: 28px;
-            background: rgba(20, 20, 32, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: 24px;
+            background: rgba(15, 15, 25, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 6px;
-            color: #6a6a80;
+            color: #4a4a60;
             font-family: var(--font-family);
-            font-size: 9px;
+            font-size: 8px;
             cursor: pointer;
             display: flex;
             flex-direction: column;
@@ -90,18 +91,21 @@
             align-items: center;
             position: relative;
             overflow: hidden;
-            transition: all 0.15s;
+            opacity: 0.55;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .btn-skill.ready {
             border-color: var(--secondary-neon);
             color: #fff;
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
-            background: rgba(0, 100, 150, 0.4);
+            opacity: 1;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.35);
+            background: rgba(0, 80, 120, 0.55);
+            transform: translateY(-1px);
         }
 
         .btn-skill.ready:active {
-            transform: scale(0.95);
+            transform: scale(0.95) translateY(0);
         }
 
         .skill-gauge-fill {
@@ -726,57 +730,58 @@
             display: block;
         }
 
-        /* 【引き算の美学による洗練されたクリーンUI設計】 */
+        /* 【引き算の美学による洗練されたクリーンUI設計：コンテキスト依存型HUD】 */
         .hud-top-bar {
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 4px;
-            font-size: 10px;
+            margin-bottom: 3px;
+            font-size: 9px;
             font-family: var(--font-family);
             letter-spacing: 1px;
             color: var(--secondary-neon);
-            opacity: 0.9;
+            opacity: 0.85;
+            transition: opacity 0.2s;
         }
 
         .stage-badge {
-            background: rgba(0, 243, 255, 0.08);
-            border: 1px solid rgba(0, 243, 255, 0.3);
-            padding: 2px 6px;
+            background: rgba(0, 243, 255, 0.05);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            padding: 2px 5px;
             border-radius: 4px;
         }
 
         .btn-dex {
-            background: rgba(255, 230, 0, 0.08);
-            border: 1px solid rgba(255, 230, 0, 0.3);
+            background: rgba(255, 230, 0, 0.05);
+            border: 1px solid rgba(255, 230, 0, 0.25);
             color: var(--accent-gold);
-            padding: 2px 6px;
+            padding: 2px 5px;
             border-radius: 4px;
             cursor: pointer;
             font-family: var(--font-family);
-            font-size: 10px;
+            font-size: 9px;
             transition: all 0.15s;
         }
-        .btn-dex:active { transform: scale(0.96); background: rgba(255, 230, 0, 0.25); }
+        .btn-dex:active { transform: scale(0.96); background: rgba(255, 230, 0, 0.2); }
 
-        /* スマート・スキルパネル（発動可能時のみ存在感を示すミニマルデザイン） */
+        /* スマート・スキルパネル（未チャージ時はミニマル透過、Ready時のみ鮮烈に発光） */
         .skill-panel {
             display: flex;
             gap: 4px;
             width: 100%;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .btn-skill {
             flex: 1;
-            height: 28px;
-            background: rgba(20, 20, 32, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: 24px;
+            background: rgba(15, 15, 25, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 6px;
-            color: #6a6a80;
+            color: #4a4a60;
             font-family: var(--font-family);
-            font-size: 9px;
+            font-size: 8px;
             cursor: pointer;
             display: flex;
             flex-direction: column;
@@ -784,18 +789,21 @@
             align-items: center;
             position: relative;
             overflow: hidden;
-            transition: all 0.15s;
+            opacity: 0.55;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .btn-skill.ready {
             border-color: var(--secondary-neon);
             color: #fff;
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
-            background: rgba(0, 100, 150, 0.4);
+            opacity: 1;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.35);
+            background: rgba(0, 80, 120, 0.55);
+            transform: translateY(-1px);
         }
 
         .btn-skill.ready:active {
-            transform: scale(0.95);
+            transform: scale(0.95) translateY(0);
         }
 
         .skill-gauge-fill {
