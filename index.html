@@ -711,42 +711,48 @@
             pointer-events: none;
         }
 
-        /* パララックス装飾サイバーグリッド背景 */
+        /* パララックス装飾サイバーグリッド背景（多層フレネル反射とディープネオンの融合） */
         .overlay-screen::after {
             content: '';
             position: absolute;
             inset: -50%;
-            background-image: linear-gradient(rgba(0, 243, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.04) 1px, transparent 1px);
-            background-size: 40px 40px;
-            transform: perspective(500px) rotateX(60deg) translateY(0);
-            animation: cyber-grid-scroll 12s linear infinite;
+            background-image: linear-gradient(rgba(0, 243, 255, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 0, 85, 0.06) 1px, transparent 1px);
+            background-size: 45px 45px;
+            transform: perspective(550px) rotateX(55deg) translateY(0);
+            animation: cyber-grid-scroll 8s linear infinite;
             pointer-events: none;
             z-index: 1;
-            opacity: 0.4;
+            opacity: 0.65;
+            box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.9);
         }
 
         @keyframes cyber-grid-scroll {
-            0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
-            100% { transform: perspective(500px) rotateX(60deg) translateY(40px); }
+            0% { transform: perspective(550px) rotateX(55deg) translateY(0); }
+            100% { transform: perspective(550px) rotateX(55deg) translateY(45px); }
         }
 
         .game-title {
             font-family: var(--font-family);
-            font-size: 52px;
-            line-height: 0.95;
+            font-size: 56px;
+            line-height: 0.92;
             font-style: italic;
-            background: linear-gradient(180deg, #fff 15%, #ff0055 55%, #ffe600 95%);
+            background: linear-gradient(180deg, #fff 10%, #ff0055 48%, #ffe600 92%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 12px;
-            filter: drop-shadow(0 0 25px rgba(255, 0, 85, 0.85));
-            transform: skewX(-6deg);
-            animation: title-float 3s ease-in-out infinite alternate;
+            margin-bottom: 14px;
+            filter: drop-shadow(0 0 35px rgba(255, 0, 85, 0.95)) drop-shadow(0 0 10px rgba(0, 243, 255, 0.6));
+            transform: skewX(-8deg) scale(1);
+            animation: title-float 2.8s ease-in-out infinite alternate, title-glow-pulse 1.6s infinite alternate;
         }
 
         @keyframes title-float {
-            0% { transform: skewX(-6deg) translateY(0); }
-            100% { transform: skewX(-6deg) translateY(-6px); }
+            0% { transform: skewX(-8deg) translateY(0) scale(1); }
+            100% { transform: skewX(-8deg) translateY(-8px) scale(1.02); }
+        }
+
+        @keyframes title-glow-pulse {
+            0% { filter: drop-shadow(0 0 25px rgba(255, 0, 85, 0.75)); }
+            100% { filter: drop-shadow(0 0 45px rgba(255, 230, 0, 0.95)) drop-shadow(0 0 15px rgba(0, 243, 255, 0.8)); }
         }
 
         .subtitle {
@@ -2283,32 +2289,40 @@
                 rogueModal.classList.add('active');
                 
                 sound.playReach();
-                this.triggerCameraShake('light');
+                this.triggerCameraShake('medium');
 
-                // 選択肢のイベント設定（環境ライティング・リアクティブ・グロー連動）
-                const setupOpt = (id, type, glowColor) => {
+                // ハッカーターミナル：極上のハッキングフィードバックとライティング連動
+                const setupOpt = (id, type, glowColor, pitch) => {
                     const el = document.getElementById(id);
                     const newEl = el.cloneNode(true);
                     el.parentNode.replaceChild(newEl, el);
                     
-                    newEl.addEventListener('pointerenter', () => {
-                        rogueModal.style.boxShadow = `inset 0 0 80px ${glowColor}`;
-                        sound.playSynthWave(440, 'triangle', 0.08, 0.05);
-                    });
-                    newEl.addEventListener('pointerleave', () => {
+                    const handleHover = () => {
+                        rogueModal.style.boxShadow = `inset 0 0 100px ${glowColor}, 0 0 30px ${glowColor}`;
+                        sound.playSynthWave(pitch, 'sawtooth', 0.05, 0.06);
+                        newEl.style.transform = 'scale(1.02) translateY(-2px)';
+                    };
+                    const handleLeave = () => {
                         rogueModal.style.boxShadow = 'none';
-                    });
+                        newEl.style.transform = 'none';
+                    };
+
+                    newEl.addEventListener('pointerenter', handleHover, { passive: true });
+                    newEl.addEventListener('pointerleave', handleLeave, { passive: true });
+                    newEl.addEventListener('touchstart', handleHover, { passive: true });
 
                     newEl.addEventListener('click', () => {
                         rogueModal.style.boxShadow = 'none';
                         rogueModal.classList.remove('active');
+                        sound.playStop(1.5);
+                        this.triggerFlash('#00f3ff');
                         this.applyRogueChoice(type);
                     });
                 };
 
-                setupOpt('rogue-opt-0', 'contract', 'rgba(0, 243, 255, 0.35)');
-                setupOpt('rogue-opt-1', 'market', 'rgba(255, 230, 0, 0.35)');
-                setupOpt('rogue-opt-2', 'bay', 'rgba(255, 0, 85, 0.35)');
+                setupOpt('rogue-opt-0', 'contract', 'rgba(0, 243, 255, 0.45)', 587.33);
+                setupOpt('rogue-opt-1', 'market', 'rgba(255, 230, 0, 0.45)', 783.99);
+                setupOpt('rogue-opt-2', 'bay', 'rgba(255, 0, 85, 0.45)', 1046.50);
             }
 
             applyRogueChoice(type) {
