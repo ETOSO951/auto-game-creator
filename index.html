@@ -1232,11 +1232,11 @@
                 osc2.frequency.exponentialRampToValueAtTime(587.33, now + 0.4);
                 
                 filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(2000, now);
-                filter.frequency.exponentialRampToValueAtTime(6500, now + 0.4);
+                filter.frequency.setValueAtTime(1200, now);
+                filter.frequency.exponentialRampToValueAtTime(8500, now + 0.4); // 動的ローパスモジュレーションで空間的広がりを強化
 
                 gain.gain.setValueAtTime(0.0001, now);
-                gain.gain.linearRampToValueAtTime(0.35, now + 0.015);
+                gain.gain.linearRampToValueAtTime(0.4, now + 0.015);
                 gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
                 
                 osc.connect(filter);
