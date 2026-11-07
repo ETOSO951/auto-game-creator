@@ -32,20 +32,20 @@
             color: #fff;
         }
 
-        /* 【引き算の美学：統合コンテキストHUD設計】 */
+        /* 【引き算の美学：統合コンテキストHUD設計（極限ミニマルデザイン）】 */
         .hud-context-card {
             width: 100%;
-            background: rgba(12, 12, 24, 0.75);
-            border: 1px solid rgba(0, 243, 255, 0.2);
-            border-radius: 12px;
-            padding: 8px 12px;
-            margin-bottom: 6px;
+            background: rgba(8, 8, 16, 0.65);
+            border: 1px solid rgba(0, 243, 255, 0.12);
+            border-radius: 10px;
+            padding: 6px 10px;
+            margin-bottom: 4px;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.15);
+            gap: 4px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
         }
 
         .hud-top-bar {
@@ -53,31 +53,31 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 8.5px;
+            font-size: 8px;
             font-family: var(--font-family);
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             color: var(--secondary-neon);
         }
 
         .stage-badge {
-            background: rgba(0, 243, 255, 0.08);
-            border: 1px solid rgba(0, 243, 255, 0.25);
-            padding: 2px 6px;
-            border-radius: 4px;
+            background: rgba(0, 243, 255, 0.04);
+            border: 1px solid rgba(0, 243, 255, 0.15);
+            padding: 1px 5px;
+            border-radius: 3px;
         }
 
         .btn-dex {
-            background: rgba(255, 230, 0, 0.08);
-            border: 1px solid rgba(255, 230, 0, 0.3);
+            background: rgba(255, 230, 0, 0.05);
+            border: 1px solid rgba(255, 230, 0, 0.2);
             color: var(--accent-gold);
-            padding: 2px 6px;
-            border-radius: 4px;
+            padding: 1px 5px;
+            border-radius: 3px;
             cursor: pointer;
             font-family: var(--font-family);
-            font-size: 8.5px;
+            font-size: 8px;
             transition: all 0.15s;
         }
-        .btn-dex:active { transform: scale(0.96); background: rgba(255, 230, 0, 0.2); }
+        .btn-dex:active { transform: scale(0.96); background: rgba(255, 230, 0, 0.15); }
 
         /* スマート・スキルパネル（未チャージ時は完全にミニマル透過、Ready時のみ鮮烈発光） */
         .skill-panel {
@@ -841,20 +841,26 @@
             <!-- 【引き算の美学：統合コンテキストHUDカード】 -->
             <div class="hud-context-card">
                 <div class="hud-top-bar">
-                    <div style="display: flex; gap: 6px; align-items: center;">
-                        <div class="stage-badge" id="stage-badge">STAGE 1: FIREWALL</div>
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        <div class="stage-badge" id="stage-badge">STAGE 1</div>
                         <span id="boss-name" style="color: var(--primary-neon);">VULCAN_CORE</span>
                         <span class="boss-shield-badge" id="boss-shield-badge">SHIELD</span>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span id="fragment-display" style="font-size: 7.5px; color: var(--accent-gold); letter-spacing: 0.5px;">FRAG: 150</span>
                         <button class="btn-dex" id="btn-dex">ARCHIVE</button>
                     </div>
                 </div>
                 <!-- BOSS HP BAR -->
-                <div class="fever-container" style="height: 4px; margin: 0; background: rgba(255,0,85,0.12); border: none;">
+                <div class="fever-container" style="height: 3px; margin: 0; background: rgba(255,0,85,0.08); border: none;">
                     <div class="fever-bar" id="boss-hp-bar" style="width: 100%; background: linear-gradient(90deg, var(--primary-neon), var(--accent-gold));"></div>
                 </div>
-                <!-- SKILL PANEL (未チャージ時は完全ミニマル、Ready時のみ発光) -->
+                <!-- BOUNTY SUB-BAR (引き算の美学に基づき常時表示するクエストHUD) -->
+                <div id="bounty-bar" style="display: flex; justify-content: space-between; align-items: center; font-size: 7px; color: #8a8aa0; padding: 1px 2px;">
+                    <span id="bounty-text">QUEST: ACHIEVE 3 COMBO CHAIN</span>
+                    <span id="bounty-reward" style="color: var(--accent-gold);">REWARD: +250 FRAG</span>
+                </div>
+                <!-- SKILL PANEL (未チャージ時は完全ミニマル透過、Ready時のみ発光) -->
                 <div class="skill-panel">
                     <button class="btn-skill" id="btn-skill-0">
                         <span id="skill-name-0">FREEZE</span>
@@ -2418,17 +2424,16 @@
                 const h = this.bgCanvas.height;
 
                 if (!this.particles) {
-                    // 【引き算の美学】通常時の視認性を高めるため、パーティクル数と初期密度を最適化
-                    this.particles = Array.from({ length: 45 }, (_, i) => ({
+                    // 【引き算の美学：徹底したミニマル最適化】通常時の視覚的ノイズを極限まで排除
+                    this.particles = Array.from({ length: 25 }, (_, i) => ({
                         x: Math.random() * w,
                         y: Math.random() * h,
-                        vx: (Math.random() - 0.5) * 0.18,
-                        vy: (Math.random() - 0.5) * 0.18 - 0.1,
-                        size: Math.random() * 3.5 + 0.5,
-                        alpha: Math.random() * 0.5 + 0.1,
-                        layer: i % 3 + 1,
-                        blur: (i % 3 === 0) ? 10 : (i % 3 === 1) ? 4 : 0.8,
-                        trailLen: Math.random() * 6 + 2
+                        vx: (Math.random() - 0.5) * 0.1,
+                        vy: (Math.random() - 0.5) * 0.1 - 0.05,
+                        size: Math.random() * 2.5 + 0.5,
+                        alpha: Math.random() * 0.3 + 0.05,
+                        layer: i % 2 + 1,
+                        blur: (i % 2 === 0) ? 4 : 0.5
                     }));
                 }
 
@@ -2438,7 +2443,7 @@
                 const cy = h / 2;
                 const radius = Math.max(w, h) * 0.98;
 
-                // 通常時はコントラストと明度を抑え、リール（中央）を引き立てる「静かな空間」を形成
+                // 通常時は徹底して落ち着いた漆黒のグラデーションで「静」を演出
                 const bgGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, radius);
                 if (this.isFever) {
                     const pulse = Math.sin(now * 0.018) * 0.35 + 0.85;
@@ -2448,28 +2453,30 @@
                     bgGrad.addColorStop(0.68, '#18032d');
                     bgGrad.addColorStop(1, '#060115');
                 } else {
-                    bgGrad.addColorStop(0, '#11112b');
-                    bgGrad.addColorStop(0.5, '#070714');
-                    bgGrad.addColorStop(1, '#020206');
+                    bgGrad.addColorStop(0, '#0a0a14');
+                    bgGrad.addColorStop(0.6, '#04040a');
+                    bgGrad.addColorStop(1, '#010104');
                 }
                 ctx.fillStyle = bgGrad;
                 ctx.fillRect(0, 0, w, h);
 
-                // ゴッドレイ（光芒）：フィーバー時以外は極限まで透過度を落としカオス感を排除
-                ctx.save();
-                const godRayAlpha = this.isFever ? ((Math.sin(now * 0.003) * 0.25 + 0.5) * 2.3) : 0.12;
-                const rayGrad = ctx.createRadialGradient(cx, cy - 15, 10, cx, cy - 15, Math.max(w, h) * 0.9);
-                rayGrad.addColorStop(0, this.isFever ? `rgba(255, 0, 150, ${godRayAlpha * 0.8})` : `rgba(0, 243, 255, ${godRayAlpha * 0.2})`);
-                rayGrad.addColorStop(0.38, this.isFever ? `rgba(255, 230, 0, ${godRayAlpha * 0.35})` : `rgba(0, 150, 255, ${godRayAlpha * 0.1})`);
-                rayGrad.addColorStop(1, 'transparent');
-                ctx.fillStyle = rayGrad;
-                ctx.fillRect(0, 0, w, h);
-                ctx.restore();
+                // ゴッドレイ（光芒）：通常時は非表示、フィーバー時のみ鮮烈に展開
+                if (this.isFever) {
+                    ctx.save();
+                    const godRayAlpha = (Math.sin(now * 0.003) * 0.25 + 0.5) * 2.3;
+                    const rayGrad = ctx.createRadialGradient(cx, cy - 15, 10, cx, cy - 15, Math.max(w, h) * 0.9);
+                    rayGrad.addColorStop(0, `rgba(255, 0, 150, ${godRayAlpha * 0.8})`);
+                    rayGrad.addColorStop(0.38, `rgba(255, 230, 0, ${godRayAlpha * 0.35})`);
+                    rayGrad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = rayGrad;
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.restore();
+                }
 
-                // パララックスパーティクル描画（通常時は動的抑制）
+                // パララックスパーティクル描画（静と動のコントラストを最大化）
                 ctx.save();
                 this.particles.forEach(p => {
-                    const speedMultiplier = p.layer * (this.isFever ? 2.8 : 0.6);
+                    const speedMultiplier = p.layer * (this.isFever ? 3.2 : 0.4);
                     p.x += p.vx * speedMultiplier;
                     p.y += p.vy * speedMultiplier;
                     if (p.x < 0) p.x = w;
@@ -2477,34 +2484,15 @@
                     if (p.y < 0) p.y = h;
                     if (p.y > h) p.y = 0;
 
-                    const currentAlpha = p.alpha * (p.layer * 0.25 + 0.15) * (this.isFever ? 1.0 : 0.65);
+                    const currentAlpha = p.alpha * (this.isFever ? 1.0 : 0.4);
                     ctx.shadowColor = this.isFever ? '#ff0077' : '#00f3ff';
-                    ctx.shadowBlur = p.blur * (this.isFever ? 1.6 : 0.8);
+                    ctx.shadowBlur = p.blur * (this.isFever ? 1.5 : 0.5);
                     ctx.fillStyle = this.isFever ? `rgba(255, 60, 160, ${currentAlpha})` : `rgba(0, 243, 255, ${currentAlpha})`;
                     
-                    if (p.layer >= 2) {
-                        ctx.beginPath();
-                        ctx.ellipse(p.x, p.y, p.size * (p.layer * 0.4 + 0.3), p.size * p.layer + p.trailLen * 0.5, Math.PI / 4, 0, Math.PI * 2);
-                        ctx.fill();
-                    } else {
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, p.size * (p.layer * 0.4 + 0.4), 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                });
-                ctx.restore();
-
-                // 同心環（通常時は控えめに調整）
-                ctx.save();
-                const ringPulse = Math.sin(now * 0.0045) * 0.05 + 1.0;
-                
-                if (this.isFever) {
-                    ctx.strokeStyle = 'rgba(255, 0, 140, 0.4)';
-                    ctx.lineWidth = 2.5;
                     ctx.beginPath();
-                    ctx.arc(cx, cy, Math.min(w, h) * 0.44 * ringPulse, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
+                    ctx.arc(p.x, p.y, p.size * (p.layer * 0.3 + 0.3), 0, Math.PI * 2);
+                    ctx.fill();
+                });
                 ctx.restore();
             }
 
