@@ -20,6 +20,7 @@
             -webkit-user-select: none;
             margin: 0;
             padding: 0;
+            touch-action: manipulation;
         }
 
         body, html {
@@ -576,17 +577,66 @@
         ];
 
         /**
-         * リール管理クラス（物理イージング・高精度停止）
+         * Canvas描画キャッシュ管理（描画パフォーマンス極限最適化）
+         */
+        const symbolCacheStore = new Map();
+
+        function clearSymbolCache() {
+            symbolCacheStore.clear();
+        }
+
+        function getCachedSymbolCanvas(symbol, height, isHighlighted, isSpinning) {
+            const h = Math.round(height);
+            const key = `${symbol.id}_${h}_${isHighlighted}_${isSpinning}`;
+            if (symbolCacheStore.has(key)) {
+                return symbolCacheStore.get(key);
+            }
+
+            const offCanvas = document.createElement('canvas');
+            const padding = Math.ceil(h * 0.3);
+            offCanvas.width = h + padding * 2;
+            offCanvas.height = h + padding * 2;
+            const ctx = offCanvas.getContext('2d');
+
+            ctx.translate(offCanvas.width / 2, offCanvas.height / 2);
+
+            if (isSpinning) {
+                ctx.scale(1, 1.2);
+                ctx.globalAlpha = 0.7;
+            }
+
+            if (isHighlighted) {
+                ctx.fillStyle = 'rgba(255, 230, 0, 0.25)';
+                ctx.beginPath();
+                ctx.arc(0, 0, h * 0.42, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.font = `900 ${h * 0.48}px 'Impact', sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = symbol.color;
+            ctx.shadowColor = isHighlighted ? '#ffffff' : symbol.color;
+            ctx.shadowBlur = isHighlighted ? 22 : (isSpinning ? 4 : 12);
+
+            ctx.fillText(symbol.label, 0, 0);
+
+            symbolCacheStore.set(key, offCanvas);
+            return offCanvas;
+        }
+
+        /**
+         * リール管理クラス（高精度弾性イージング・判定完全同期・高速キャッシュ描画）
          */
         class Reel {
             constructor(canvasId, index, onCompleteStop) {
                 this.canvas = document.getElementById(canvasId);
                 this.ctx = this.canvas.getContext('2d');
                 this.index = index;
-                this.symbols = [...SYMBOLS, ...SYMBOLS]; // ループ用
+                this.symbols = [...SYMBOLS, ...SYMBOLS];
                 this.position = Math.floor(Math.random() * this.symbols.length);
                 this.speed = 0;
-                this.state = 'IDLE'; // 'IDLE', 'SPINNING', 'STOPPING'
+                this.state = 'IDLE';
                 this.targetPos = 0;
                 this.stopProgress = 0;
                 this.startStopPos = 0;
@@ -598,14 +648,16 @@
 
             resize() {
                 const rect = this.canvas.parentElement.getBoundingClientRect();
-                this.canvas.width = rect.width * window.devicePixelRatio;
-                this.canvas.height = rect.height * window.devicePixelRatio;
+                this.canvas.width = Math.floor(rect.width * window.devicePixelRatio);
+                this.canvas.height = Math.floor(rect.height * window.devicePixelRatio);
                 this.symbolHeight = this.canvas.height / 3;
+                clearSymbolCache();
             }
 
             spin() {
                 this.state = 'SPINNING';
                 this.isHighlighted = false;
+                this.stoppedSymbol = null;
                 this.speed = 0.75 + Math.random() * 0.15;
             }
 
@@ -614,8 +666,14 @@
                 this.state = 'STOPPING';
                 this.stopProgress = 0;
                 this.startStopPos = this.position;
-                // 自然な滑り（0.8〜1.2コマ）を加えて次の整数位置へ吸い付き
-                this.targetPos = Math.ceil(this.position + 0.8);
+                
+                // 次の吸い付きターゲット位置（絶対整数座標）を絶対値確定
+                this.targetPos = Math.ceil(this.position + 0.85);
+
+                // 中央判定ライン（インデックス1）に来るシンボルをこの時点で先行確定（100%同期）
+                const finalPosition = this.targetPos % this.symbols.length;
+                const centerIdx = (finalPosition + 1) % this.symbols.length;
+                this.stoppedSymbol = this.symbols[centerIdx];
             }
 
             get isSpinning() {
@@ -631,23 +689,19 @@
                     this.position += this.speed * dt * 60;
                     if (Math.random() < 0.1) sound.playSpin();
                 } else if (this.state === 'STOPPING') {
-                    this.stopProgress += dt * 7.5; // 約0.13秒で停止
+                    this.stopProgress += dt * 7.5;
                     if (this.stopProgress >= 1) {
                         this.stopProgress = 1;
                         this.position = this.targetPos % this.symbols.length;
                         this.state = 'IDLE';
-                        // 中央段（インデックス1）がペイライン対象
-                        const centerIdx = (Math.round(this.position) + 1) % this.symbols.length;
-                        this.stoppedSymbol = this.symbols[centerIdx];
                         sound.playStop(1 + this.index * 0.2);
                         if (this.onCompleteStop) {
                             this.onCompleteStop(this.index);
                         }
                     } else {
-                        // バックラッシュ（行き過ぎてから戻る物理スプリング効果）
+                        // 物理スプリング・バックラッシュ補間
                         const t = this.stopProgress;
-                        const c4 = (2 * Math.PI) / 3;
-                        const easeOutElastic = t === 1 ? 1 : Math.sin(t * Math.PI * 0.5) + Math.sin(t * Math.PI * 2) * (1 - t) * 0.12;
+                        const easeOutElastic = Math.sin(t * Math.PI * 0.5) + Math.sin(t * Math.PI * 2) * (1 - t) * 0.12;
                         this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutElastic;
                     }
                 }
@@ -669,38 +723,14 @@
                     const symbol = this.symbols[symIdx];
                     const y = (i * sh) - offset;
                     const isCenterLine = (i === 1);
+                    const isHigh = isCenterLine && this.isHighlighted && this.state === 'IDLE';
+                    const isSpinning = this.state === 'SPINNING';
 
-                    ctx.save();
-                    ctx.translate(w / 2, y + sh / 2);
+                    const cachedCanvas = getCachedSymbolCanvas(symbol, sh, isHigh, isSpinning);
+                    const drawX = (w - cachedCanvas.width) / 2;
+                    const drawY = y + (sh - cachedCanvas.height) / 2;
 
-                    // 回転中のブラー
-                    if (this.state === 'SPINNING') {
-                        ctx.scale(1, 1.25);
-                        ctx.globalAlpha = 0.65;
-                    }
-
-                    // 的確な当たりシンボルのハイライト
-                    if (isCenterLine && this.isHighlighted && this.state === 'IDLE') {
-                        ctx.save();
-                        const pulseScale = 1.08 + Math.sin(performance.now() * 0.015) * 0.05;
-                        ctx.scale(pulseScale, pulseScale);
-                        ctx.fillStyle = 'rgba(255, 230, 0, 0.2)';
-                        ctx.beginPath();
-                        ctx.arc(0, 0, sh * 0.45, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.restore();
-                    }
-
-                    // シンボル文字描画
-                    ctx.font = `900 ${sh * 0.48}px 'Impact', sans-serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillStyle = symbol.color;
-                    ctx.shadowColor = (isCenterLine && this.isHighlighted) ? '#ffffff' : symbol.color;
-                    ctx.shadowBlur = (isCenterLine && this.isHighlighted) ? 25 : (this.state === 'SPINNING' ? 6 : 14);
-
-                    ctx.fillText(symbol.label, 0, 0);
-                    ctx.restore();
+                    ctx.drawImage(cachedCanvas, drawX, drawY);
                 }
             }
         }
@@ -761,16 +791,23 @@
                     this.reels.forEach(r => r.resize());
                 });
 
-                document.getElementById('btn-start').addEventListener('click', () => this.startGame());
-                document.getElementById('btn-restart').addEventListener('click', () => this.startGame());
+                const addFastListener = (el, handler) => {
+                    const listener = (e) => {
+                        e.preventDefault();
+                        handler();
+                    };
+                    el.addEventListener('pointerdown', listener, { passive: false });
+                };
 
-                this.btnSpin.addEventListener('click', () => this.handleSpinAction());
-                
+                addFastListener(document.getElementById('btn-start'), () => this.startGame());
+                addFastListener(document.getElementById('btn-restart'), () => this.startGame());
+                addFastListener(this.btnSpin, () => this.handleSpinAction());
+
                 this.stopBtns.forEach((btn, idx) => {
-                    btn.addEventListener('click', () => this.stopReel(idx));
+                    addFastListener(btn, () => this.stopReel(idx));
                 });
 
-                this.btnAuto.addEventListener('click', () => {
+                addFastListener(this.btnAuto, () => {
                     this.autoMode = !this.autoMode;
                     this.btnAuto.classList.toggle('active', this.autoMode);
                     this.btnAuto.innerText = `AUTO: ${this.autoMode ? 'ON' : 'OFF'}`;
