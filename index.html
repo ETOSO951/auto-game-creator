@@ -165,9 +165,23 @@
         .fever-bar {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, var(--secondary-neon), var(--primary-neon));
-            box-shadow: 0 0 10px var(--primary-neon);
-            transition: width 0.1s linear;
+            background: linear-gradient(90deg, var(--secondary-neon), var(--primary-neon), var(--accent-gold));
+            box-shadow: 0 0 12px var(--primary-neon);
+            transition: width 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        .fever-bar::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.4), rgba(255,255,255,0));
+            animation: fever-shimmer 1.5s infinite linear;
+        }
+
+        @keyframes fever-shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
 
         /* スロットマシン表示エリア */
@@ -185,10 +199,10 @@
         .slot-frame {
             width: 100%;
             height: 100%;
-            background: rgba(10, 10, 20, 0.85);
+            background: linear-gradient(135deg, rgba(20, 20, 35, 0.9), rgba(10, 10, 18, 0.95));
             border-radius: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.05);
+            border: 3px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85), inset 0 2px 8px rgba(255, 255, 255, 0.12), inset 0 0 25px rgba(0, 0, 0, 0.9);
             display: flex;
             justify-content: space-around;
             align-items: center;
@@ -196,6 +210,22 @@
             gap: 8px;
             position: relative;
             overflow: hidden;
+        }
+
+        /* アクリルパネル反射エフェクト（引き算の美学に則った上質な光沢） */
+        .slot-frame::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+            pointer-events: none;
+            animation: panel-reflection 6s infinite ease-in-out;
+        }
+
+        @keyframes panel-reflection {
+            0% { left: -100%; }
+            20% { left: 100%; }
+            100% { left: 100%; }
         }
 
         /* リール線 */
@@ -755,24 +785,25 @@
             }
 
             const offCanvas = document.createElement('canvas');
-            const padding = Math.ceil(h * 0.25);
+            const padding = Math.ceil(h * 0.35);
             const size = Math.round(h + padding * 2);
             offCanvas.width = size;
-            offCanvas.height = size;
+            offCanvas.height = Math.round(size * (isSpinning ? 1.4 : 1.0));
             const ctx = offCanvas.getContext('2d');
 
-            // ピクセルフォーカス補正（サブピクセル描画によるボケを防止）
             const center = Math.round(size / 2);
-            ctx.translate(center, center);
+            const centerY = Math.round(offCanvas.height / 2);
+            ctx.translate(center, centerY);
 
             if (isSpinning) {
-                ctx.scale(0.95, 1.18);
-                ctx.globalAlpha = 0.75;
+                // 高度なモーションブラー＆ストレッチ表現
+                ctx.scale(0.9, 1.35);
+                ctx.globalAlpha = 0.65;
             }
 
             if (isHighlighted) {
                 const glowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, h * 0.45);
-                glowGrad.addColorStop(0, 'rgba(255, 230, 0, 0.5)');
+                glowGrad.addColorStop(0, 'rgba(255, 230, 0, 0.7)');
                 glowGrad.addColorStop(1, 'rgba(255, 230, 0, 0)');
                 ctx.fillStyle = glowGrad;
                 ctx.beginPath();
@@ -780,14 +811,31 @@
                 ctx.fill();
             }
 
+            // 立体的なシャドウ＆リッチグラデーションテキスト
             ctx.font = `900 ${Math.floor(h * 0.45)}px 'Impact', 'Arial Black', sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = symbol.color;
-            ctx.shadowColor = isHighlighted ? '#ffffff' : symbol.color;
-            ctx.shadowBlur = isHighlighted ? 18 : (isSpinning ? 2 : 8);
 
+            if (!isSpinning) {
+                ctx.shadowColor = isHighlighted ? '#ffffff' : 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = isHighlighted ? 20 : 10;
+                ctx.shadowOffsetY = 3;
+            } else {
+                ctx.shadowColor = symbol.color;
+                ctx.shadowBlur = 15;
+            }
+
+            ctx.fillStyle = symbol.color;
             ctx.fillText(symbol.label, 0, 0);
+
+            // インナーハイライト（非回転時）
+            if (!isSpinning && !isHighlighted) {
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.35);';
+                ctx.fillText(symbol.label, 0, -1);
+            }
 
             symbolCacheStore.set(key, offCanvas);
             return offCanvas;
@@ -1336,9 +1384,19 @@
                 const w = this.bgCanvas.width;
                 const h = this.bgCanvas.height;
 
+                if (!this.particles) {
+                    this.particles = Array.from({ length: 25 }, () => ({
+                        x: Math.random() * w,
+                        y: Math.random() * h,
+                        vx: (Math.random() - 0.5) * 0.6,
+                        vy: (Math.random() - 0.5) * 0.6 - 0.2,
+                        size: Math.random() * 2.5 + 1,
+                        alpha: Math.random() * 0.5 + 0.1
+                    }));
+                }
+
                 ctx.clearRect(0, 0, w, h);
 
-                // リールの視認性を最優先にした洗練されたミニマルグラデーション背景
                 const cx = w / 2;
                 const cy = h / 2;
                 const radius = Math.max(w, h) * 0.75;
@@ -1346,8 +1404,8 @@
                 const bgGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, radius);
                 if (this.isFever) {
                     const pulse = Math.sin(now * 0.008) * 0.15 + 0.85;
-                    bgGrad.addColorStop(0, `rgba(80, 0, 35, ${pulse * 0.9})`);
-                    bgGrad.addColorStop(0.6, '#15000a');
+                    bgGrad.addColorStop(0, `rgba(90, 0, 40, ${pulse * 0.95})`);
+                    bgGrad.addColorStop(0.6, '#18000d');
                     bgGrad.addColorStop(1, '#040206');
                 } else {
                     bgGrad.addColorStop(0, '#0d0d1e');
@@ -1357,9 +1415,26 @@
                 ctx.fillStyle = bgGrad;
                 ctx.fillRect(0, 0, w, h);
 
-                // ミニマルな光の環（引き算の視界デザイン）
+                // サイバー＆ネオンパーティクル描画（ハレの日の瞬間を上品に演出）
                 ctx.save();
-                ctx.strokeStyle = this.isFever ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 243, 255, 0.05)';
+                this.particles.forEach(p => {
+                    p.x += p.vx * (this.isFever ? 2.2 : 1.0);
+                    p.y += p.vy * (this.isFever ? 2.2 : 1.0);
+                    if (p.x < 0) p.x = w;
+                    if (p.x > w) p.x = 0;
+                    if (p.y < 0) p.y = h;
+                    if (p.y > h) p.y = 0;
+
+                    ctx.fillStyle = this.isFever ? `rgba(255, 0, 85, ${p.alpha * 1.2})` : `rgba(0, 243, 255, ${p.alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.restore();
+
+                // ミニマルな光の環
+                ctx.save();
+                ctx.strokeStyle = this.isFever ? 'rgba(255, 0, 85, 0.18)' : 'rgba(0, 243, 255, 0.06)';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.arc(cx, cy, Math.min(w, h) * 0.38, 0, Math.PI * 2);
