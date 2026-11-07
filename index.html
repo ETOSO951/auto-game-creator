@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HTMLスマホ用スロットゲーム - HYPER RUSH SLOT</title>
+    <style>
+        :root {
+            --bg-color: #05050a;
+            --primary-neon: #ff0055;
+            --secondary-neon: #00f3ff;
+            --accent-gold: #ffe600;
+            --card-bg: rgba(20, 20, 35, 0.75);
+            --font-family: 'Impact', 'Arial Black', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #fff;
+        }
+
+        /* 画面全体揺れ・カメラワーク用コンテナ */
+        #viewport {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            transform-origin: center center;
+            transition: transform 0.05s ease-out;
+            will-change: transform, filter;
+        }
+
+        /* カメラズーム・シェイク用クラス */
+        .shake-light { transform: translate(calc(Math.random() * 4px - 2px), calc(Math.random() * 4px - 2px)) scale(1.01); }
+        .shake-heavy { transform: translate(calc(Math.random() * 16px - 8px), calc(Math.random() * 16px - 8px)) scale(1.05) rotate(calc(Math.random() * 2deg - 1deg)); }
+        .pulse-beat { transform: scale(1.03); }
+
+        /* フラッシュオーバーレイ */
+        #flash-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            background: white;
+            transition: opacity 0.05s ease-out;
+        }
+
+        /* 背景Canvas */
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* UIコンテナ */
+        .ui-layer {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 500px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px;
+        }
+
+        /* ヘッダー情報 */
+        .header-ui {
+            background: var(--card-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 243, 255, 0.2);
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8a8aa0;
+            font-weight: 800;
+        }
+
+        .stat-value {
+            font-family: var(--font-family);
+            font-size: 24px;
+            background: linear-gradient(180deg, #fff, #a0a0a0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 10px rgba(255,255,255,0.2);
+        }
+
+        .stat-value.score {
+            background: linear-gradient(180deg, #ffe600, #ff8000);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* フィーバーゲージ */
+        .fever-container {
+            width: 100%;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 6px;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .fever-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--secondary-neon), var(--primary-neon));
+            box-shadow: 0 0 10px var(--primary-neon);
+            transition: width 0.1s linear;
+        }
+
+        /* スロットマシン表示エリア */
+        .slot-machine-container {
+            position: relative;
+            width: 100%;
+            height: 240px;
+            margin: auto 0;
+            perspective: 1000px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slot-frame {
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 20, 0.85);
+            border-radius: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10px;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* リール線 */
+        .payline {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 0, 85, 0.6);
+            box-shadow: 0 0 10px var(--primary-neon);
+            transform: translateY(-50%);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* 各リール */
+        .reel-viewport {
+            flex: 1;
+            height: 100%;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+        }
+
+        .reel-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* メッセージポップアップ */
+        #combo-popup {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            font-family: var(--font-family);
+            font-size: 42px;
+            font-style: italic;
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 0 20px var(--primary-neon), 0 0 40px var(--accent-gold);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 20;
+            white-space: nowrap;
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.1s ease-out;
+        }
+
+        /* コントロールエリア */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .stop-buttons {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            height: 75px;
+        }
+
+        .btn-stop {
+            flex: 1;
+            background: linear-gradient(180deg, #2a2a40, #151525);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 14px;
+            color: #fff;
+            font-family: var(--font-family);
+            font-size: 22px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 6px 0 #0d0d18, 0 10px 20px rgba(0,0,0,0.4);
+            transition: all 0.05s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-stop:active, .btn-stop.pressed {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #0d0d18, 0 4px 10px rgba(0,0,0,0.4);
+            background: linear-gradient(180deg, #3a3a58, #202035);
+        }
+
+        .btn-stop.active-ready {
+            border-color: var(--secondary-neon);
+            box-shadow: 0 6px 0 #008891, 0 0 15px rgba(0, 243, 255, 0.4);
+        }
+
+        .btn-stop.disabled {
+            opacity: 0.4;
+            filter: grayscale(1);
+            pointer-events: none;
+        }
+
+        .main-actions {
+            display: flex;
+            gap: 8px;
+            height: 65px;
+        }
+
+        .btn-spin {
+            flex: 2;
+            background: linear-gradient(180deg, #ff0055, #990033);
+            border: none;
+            border-radius: 14px;
+            color: #fff;
+            font-family: var(--font-family);
+            font-size: 28px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #660022, 0 8px 25px rgba(255, 0, 85, 0.5);
+            transition: all 0.05s ease;
+            text-transform: uppercase;
+        }
+
+        .btn-spin:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #660022, 0 4px 10px rgba(255, 0, 85, 0.5);
+        }
+
+        .btn-auto {
+            flex: 1;
+            background: linear-gradient(180deg, #444466, #222233);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 14px;
+            color: #aaa;
+            font-family: var(--font-family);
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #11111a;
+            transition: all 0.05s ease;
+        }
+
+        .btn-auto.active {
+            background: linear-gradient(180deg, #00f3ff, #008891);
+            color: #000;
+            font-weight: bold;
+            box-shadow: 0 6px 0 #005560, 0 0 15px rgba(0, 243, 255, 0.6);
+        }
+
+        /* オーバーレイ画面 (START / GAMEOVER) */
+        .overlay-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 5, 12, 0.9);
+            backdrop-filter: blur(15px);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+            transition: opacity 0.2s ease;
+        }
+
+        .overlay-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .game-title {
+            font-family: var(--font-family);
+            font-size: 48px;
+            line-height: 0.95;
+            font-style: italic;
+            background: linear-gradient(180deg, #fff 20%, #ff0055 60%, #ffe600 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 0 15px rgba(255, 0, 85, 0.8));
+            transform: skewX(-5deg);
+        }
+
+        .subtitle {
+            font-size: 14px;
+            letter-spacing: 3px;
+            color: var(--secondary-neon);
+            margin-bottom: 40px;
+            font-weight: bold;
+        }
+
+        .btn-start {
+            width: 80%;
+            max-width: 280px;
+            height: 70px;
+            background: linear-gradient(90deg, var(--primary-neon), var(--accent-gold));
+            border: none;
+            border-radius: 35px;
+            color: #000;
+            font-family: var(--font-family);
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.6);
+            animation: pulse-btn 1s infinite alternate;
+        }
+
+        @keyframes pulse-btn {
+            0% { transform: scale(0.98); box-shadow: 0 0 20px rgba(255, 0, 85, 0.6); }
+            100% { transform: scale(1.05); box-shadow: 0 0 40px rgba(255, 230, 0, 0.9); }
+        }
+
+        .score-summary {
+            font-size: 18px;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .score-summary span {
+            font-family: var(--font-family);
+            font-size: 36px;
+            color: var(--accent-gold);
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="flash-overlay"></div>
+
+    <div id="viewport">
+        <canvas id="bg-canvas"></canvas>
+
+        <div class="ui-layer">
+            <!-- HEADER -->
+            <div class="header-ui">
+                <div class="stat-box">
+                    <span class="stat-label">TIME</span>
+                    <span class="stat-value" id="time-display">45.0</span>
+                </div>
+                <div class="stat-box" style="align-items: center;">
+                    <span class="stat-label">MULT</span>
+                    <span class="stat-value" id="multiplier-display">x1</span>
+                </div>
+                <div class="stat-box" style="align-items: flex-end;">
+                    <span class="stat-label">SCORE</span>
+                    <span class="stat-value score" id="score-display">0</span>
+                </div>
+            </div>
+
+            <!-- FEVER GAUGE -->
+            <div class="fever-container">
+                <div class="fever-bar" id="fever-bar"></div>
+            </div>
+
+            <!-- SLOT MACHINE -->
+            <div class="slot-machine-container">
+                <div id="combo-popup">GREAT!</div>
+                <div class="slot-frame">
+                    <div class="payline"></div>
+                    <div class="reel-viewport"><canvas id="reel-0" class="reel-canvas"></canvas></div>
+                    <div class="reel-viewport"><canvas id="reel-1" class="reel-canvas"></canvas></div>
+                    <div class="reel-viewport"><canvas id="reel-2" class="reel-canvas"></canvas></div>
+                </div>
+            </div>
+
+            <!-- CONTROLS -->
+            <div class="control-panel">
+                <div class="stop-buttons">
+                    <button class="btn-stop disabled" id="stop-0">STOP 1</button>
+                    <button class="btn-stop disabled" id="stop-1">STOP 2</button>
+                    <button class="btn-stop disabled" id="stop-2">STOP 3</button>
+                </div>
+                <div class="main-actions">
+                    <button class="btn-auto" id="btn-auto">AUTO: OFF</button>
+                    <button class="btn-spin" id="btn-spin">SPIN!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- START SCREEN -->
+    <div class="overlay-screen" id="start-screen">
+        <div class="game-title">HYPER RUSH<br>SLOT X</div>
+        <div class="subtitle">ULTRA FAST ACTION SLOT</div>
+        <button class="btn-start" id="btn-start">PLAY NOW</button>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div class="overlay-screen hidden" id="gameover-screen">
+        <div class="game-title">TIME UP!</div>
+        <div class="score-summary">
+            FINAL SCORE
+            <span id="final-score">0</span>
+        </div>
+        <button class="btn-start" id="btn-restart">RETRY</button>
+    </div>
+
+    <script>
+        /**
+         * Web Audio API Synthesizer & Sound FX Engine
+         */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.isMuted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playSynthWave(freq, type, duration, vol = 0.1) {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+
+            playSpin() {
+                this.playSynthWave(150, 'sawtooth', 0.05, 0.03);
+            }
+
+            playStop(pitchMultiplier = 1) {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(120 * pitchMultiplier, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+
+            playWin() {
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        this.playSynthWave(freq, 'sine', 0.2, 0.15);
+                    }, idx * 50);
+                });
+            }
+
+            playFever() {
+                if (!this.ctx) return;
+                this.playSynthWave(880, 'square', 0.3, 0.2);
+            }
+
+            playBeat() {
+                if (!this.ctx) return;
+                // Kick sound
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.frequency.setValueAtTime(130, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.1);
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        /**
+         * シンボルデータ定義
+         */
+        const SYMBOLS = [
+            { id: '7', color: '#ff0055', score: 500, label: '7' },
+            { id: 'BAR', color: '#ffe600', score: 300, label: 'BAR' },
+            { id: 'GEM', color: '#00f3ff', score: 200, label: '★' },
+            { id: 'BELL', color: '#ff9900', score: 150, label: '🔔' },
+            { id: 'CHERRY', color: '#ff2244', score: 100, label: '🍒' },
+            { id: 'LEMON', color: '#ccff00', score: 50, label: '🍋' }
+        ];
+
+        /**
+         * リール管理クラス
+         */
+        class Reel {
+            constructor(canvasId, index) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.index = index;
+                this.symbols = [...SYMBOLS, ...SYMBOLS]; // ループ用
+                this.position = Math.floor(Math.random() * this.symbols.length);
+                this.speed = 0;
+                this.isSpinning = false;
+                this.stoppedSymbol = null;
+                this.resize();
+            }
+
+            resize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = rect.width * window.devicePixelRatio;
+                this.canvas.height = rect.height * window.devicePixelRatio;
+                this.symbolHeight = this.canvas.height / 3;
+            }
+
+            spin() {
+                this.isSpinning = true;
+                this.speed = 0.8 + Math.random() * 0.2; // 超高速
+            }
+
+            stop() {
+                if (!this.isSpinning) return;
+                this.isSpinning = false;
+                // ピタッと目押し風に合わせる
+                this.position = Math.round(this.position) % this.symbols.length;
+                this.stoppedSymbol = this.symbols[(this.position + 1) % this.symbols.length];
+                sound.playStop(1 + this.index * 0.2);
+            }
+
+            update(dt) {
+                if (this.isSpinning) {
+                    this.position += this.speed * dt * 60;
+                    if (Math.random() < 0.1) sound.playSpin();
+                }
+            }
+
+            draw() {
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                const sh = this.symbolHeight;
+
+                ctx.clearRect(0, 0, w, h);
+
+                const offset = (this.position % 1) * sh;
+                const baseIdx = Math.floor(this.position);
+
+                for (let i = -1; i <= 3; i++) {
+                    const symIdx = (baseIdx + i + this.symbols.length * 10) % this.symbols.length;
+                    const symbol = this.symbols[symIdx];
+                    const y = (i * sh) - offset;
+
+                    ctx.save();
+                    ctx.translate(w / 2, y + sh / 2);
+
+                    // 高速回転中の残像・モーションブラー効果
+                    if (this.isSpinning) {
+                        ctx.scale(1, 1.2);
+                        ctx.globalAlpha = 0.7;
+                    }
+
+                    // シンボル背景グラデーション
+                    const grad = ctx.createRadialGradient(0, 0, 5, 0, 0, sh / 2);
+                    grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(-w/2, -sh/2, w, sh);
+
+                    // シンボル文字
+                    ctx.font = `900 ${sh * 0.45}px 'Impact', sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = symbol.color;
+                    ctx.shadowColor = symbol.color;
+                    ctx.shadowBlur = this.isSpinning ? 5 : 15;
+
+                    ctx.fillText(symbol.label, 0, 0);
+                    ctx.restore();
+                }
+            }
+        }
+
+        /**
+         * メインゲーム管理
+         */
+        class Game {
+            constructor() {
+                this.viewport = document.getElementById('viewport');
+                this.flashOverlay = document.getElementById('flash-overlay');
+                this.bgCanvas = document.getElementById('bg-canvas');
+                this.bgCtx = this.bgCanvas.getContext('2d');
+
+                this.reels = [
+                    new Reel('reel-0', 0),
+                    new Reel('reel-1', 1),
+                    new Reel('reel-2', 2)
+                ];
+
+                this.score = 0;
+                this.multiplier = 1;
+                this.timeRemaining = 45.0;
+                this.feverGauge = 0;
+                this.isFever = false;
+                this.gameState = 'START'; // START, PLAYING, GAMEOVER
+                this.autoMode = false;
+                this.lastTime = performance.now();
+                this.beatTimer = 0;
+
+                // UI Elements
+                this.scoreEl = document.getElementById('score-display');
+                this.timeEl = document.getElementById('time-display');
+                this.multEl = document.getElementById('multiplier-display');
+                this.feverBar = document.getElementById('fever-bar');
+                this.comboPopup = document.getElementById('combo-popup');
+
+                this.btnSpin = document.getElementById('btn-spin');
+                this.btnAuto = document.getElementById('btn-auto');
+                this.stopBtns = [
+                    document.getElementById('stop-0'),
+                    document.getElementById('stop-1'),
+                    document.getElementById('stop-2')
+                ];
+
+                this.initEvents();
+                this.resizeBg();
+                requestAnimationFrame(this.loop.bind(this));
+            }
+
+            initEvents() {
+                window.addEventListener('resize', () => {
+                    this.resizeBg();
+                    this.reels.forEach(r => r.resize());
+                });
+
+                document.getElementById('btn-start').addEventListener('click', () => this.startGame());
+                document.getElementById('btn-restart').addEventListener('click', () => this.startGame());
+
+                this.btnSpin.addEventListener('click', () => this.handleSpinAction());
+                
+                this.stopBtns.forEach((btn, idx) => {
+                    btn.addEventListener('click', () => this.stopReel(idx));
+                });
+
+                this.btnAuto.addEventListener('click', () => {
+                    this.autoMode = !this.autoMode;
+                    this.btnAuto.classList.toggle('active', this.autoMode);
+                    this.btnAuto.innerText = `AUTO: ${this.autoMode ? 'ON' : 'OFF'}`;
+                    if (this.autoMode && this.gameState === 'PLAYING') {
+                        this.handleSpinAction();
+                    }
+                });
+
+                // キーボード操作（1, 2, 3キー または Spaceキー）
+                window.addEventListener('keydown', (e) => {
+                    if (this.gameState !== 'PLAYING') return;
+                    if (e.code === 'Space') {
+                        this.handleSpinAction();
+                    } else if (e.key === '1') this.stopReel(0);
+                    else if (e.key === '2') this.stopReel(1);
+                    else if (e.key === '3') this.stopReel(2);
+                });
+            }
+
+            resizeBg() {
+                this.bgCanvas.width = window.innerWidth * window.devicePixelRatio;
+                this.bgCanvas.height = window.innerHeight * window.devicePixelRatio;
+            }
+
+            startGame() {
+                sound.init();
+                this.score = 0;
+                this.multiplier = 1;
+                this.timeRemaining = 45.0;
+                this.feverGauge = 0;
+                this.isFever = false;
+                this.gameState = 'PLAYING';
+
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('gameover-screen').classList.add('hidden');
+
+                this.updateUI();
+                this.triggerSpin();
+            }
+
+            handleSpinAction() {
+                const allSpinning = this.reels.every(r => r.isSpinning);
+                const allStopped = this.reels.every(r => !r.isSpinning);
+
+                if (allStopped) {
+                    this.triggerSpin();
+                } else {
+                    // まだ回っているリールを順番に止める
+                    const nextToStop = this.reels.findIndex(r => r.isSpinning);
+                    if (nextToStop !== -1) {
+                        this.stopReel(nextToStop);
+                    }
+                }
+            }
+
+            triggerSpin() {
+                if (this.gameState !== 'PLAYING') return;
+                this.reels.forEach(r => r.spin());
+                this.updateStopButtonsState();
+                this.triggerCameraShake('light');
+            }
+
+            stopReel(index) {
+                if (this.gameState !== 'PLAYING') return;
+                if (this.reels[index].isSpinning) {
+                    this.reels[index].stop();
+                    this.triggerCameraShake('light');
+                    this.updateStopButtonsState();
+
+                    // 全て止まったか判定
+                    if (this.reels.every(r => !r.isSpinning)) {
+                        this.evaluateResult();
+                    }
+                }
+            }
+
+            updateStopButtonsState() {
+                this.reels.forEach((reel, idx) => {
+                    const btn = this.stopBtns[idx];
+                    if (reel.isSpinning) {
+                        btn.classList.remove('disabled');
+                        btn.classList.add('active-ready');
+                    } else {
+                        btn.classList.add('disabled');
+                        btn.classList.remove('active-ready');
+                    }
+                });
+            }
+
+            evaluateResult() {
+                const s0 = this.reels[0].stoppedSymbol;
+                const s1 = this.reels[1].stoppedSymbol;
+                const s2 = this.reels[2].stoppedSymbol;
+
+                if (!s0 || !s1 || !s2) return;
+
+                let winAmount = 0;
+                let comboText = '';
+
+                // 3つのシンボル一致
+                if (s0.id === s1.id && s1.id === s2.id) {
+                    winAmount = s0.score * 3 * this.multiplier;
+                    comboText = `JACKPOT! +${winAmount}`;
+                    this.triggerFlash('#ffe600');
+                    this.triggerCameraShake('heavy');
+                    sound.playWin();
+                    this.addFever(35);
+                } 
+                // 2つ一致（テンパイヒット）
+                else if (s0.id === s1.id || s1.id === s2.id || s0.id === s2.id) {
+                    const matched = (s0.id === s1.id) ? s0 : s2;
+                    winAmount = matched.score * this.multiplier;
+                    comboText = `GREAT! +${winAmount}`;
+                    sound.playWin();
+                    this.addFever(15);
+                }
+
+                if (winAmount > 0) {
+                    this.score += winAmount;
+                    this.showComboText(comboText);
+                } else {
+                    this.addFever(5); // 外れても少しゲージが溜まる（超高速テンポ維持のため）
+                }
+
+                this.updateUI();
+
+                // AUTOモードの場合、超高速で次のスピンへ
+                if (this.autoMode && this.gameState === 'PLAYING') {
+                    setTimeout(() => {
+                        if (this.autoMode && this.reels.every(r => !r.isSpinning)) {
+                            this.triggerSpin();
+                            // オートストップのタイムラインも高速展開
+                            setTimeout(() => this.stopReel(0), 120);
+                            setTimeout(() => this.stopReel(1), 240);
+                            setTimeout(() => this.stopReel(2), 360);
+                        }
+                    }, 150);
+                }
+            }
+
+            addFever(amount) {
+                if (this.isFever) return;
+                this.feverGauge += amount;
+                if (this.feverGauge >= 100) {
+                    this.triggerFeverMode();
+                }
+            }
+
+            triggerFeverMode() {
+                this.isFever = true;
+                this.feverGauge = 100;
+                this.multiplier = 3;
+                sound.playFever();
+                this.showComboText("HYPER FEVER!!");
+                this.triggerFlash('#ff0055');
+
+                setTimeout(() => {
+                    this.isFever = false;
+                    this.feverGauge = 0;
+                    this.multiplier = 1;
+                    this.updateUI();
+                }, 7000); // 7秒間のフィーバー
+            }
+
+            triggerCameraShake(type) {
+                this.viewport.classList.remove('shake-light', 'shake-heavy');
+                void this.viewport.offsetWidth; // reflow
+                this.viewport.classList.add(type === 'heavy' ? 'shake-heavy' : 'shake-light');
+                setTimeout(() => {
+                    this.viewport.classList.remove('shake-light', 'shake-heavy');
+                }, 100);
+            }
+
+            triggerFlash(color = '#ffffff') {
+                this.flashOverlay.style.background = color;
+                this.flashOverlay.style.opacity = '0.8';
+                setTimeout(() => {
+                    this.flashOverlay.style.opacity = '0';
+                }, 60);
+            }
+
+            showComboText(text) {
+                this.comboPopup.innerText = text;
+                this.comboPopup.style.opacity = '1';
+                this.comboPopup.style.transform = 'translate(-50%, -50%) scale(1.2) rotate(-3deg)';
+                setTimeout(() => {
+                    this.comboPopup.style.opacity = '0';
+                    this.comboPopup.style.transform = 'translate(-50%, -50%) scale(0.5)';
+                }, 400);
+            }
+
+            updateUI() {
+                this.scoreEl.innerText = this.score.toLocaleString();
+                this.timeEl.innerText = Math.max(0, this.timeRemaining).toFixed(1);
+                this.multEl.innerText = `x${this.multiplier}`;
+                this.feverBar.style.width = `${Math.min(100, this.feverGauge)}%`;
+            }
+
+            gameOver() {
+                this.gameState = 'GAMEOVER';
+                document.getElementById('final-score').innerText = this.score.toLocaleString();
+                document.getElementById('gameover-screen').classList.remove('hidden');
+            }
+
+            drawBackground(now) {
+                const ctx = this.bgCtx;
+                const w = this.bgCanvas.width;
+                const h = this.bgCanvas.height;
+
+                ctx.clearRect(0, 0, w, h);
+
+                // 音ハメ・ビート感のある背景アニメーション
+                const speed = this.isFever ? 0.005 : 0.002;
+                const time = now * speed;
+
+                // スピードグラデーション背景
+                const bgGrad = ctx.createRadialGradient(w/2, h/2, 10, w/2, h/2, Math.max(w, h)/1.2);
+                bgGrad.addColorStop(0, this.isFever ? '#33001b' : '#0a0a1a');
+                bgGrad.addColorStop(1, '#020205');
+                ctx.fillStyle = bgGrad;
+                ctx.fillRect(0, 0, w, h);
+
+                // 集中線 / 放射状グラフィック（常に回転・伸縮）
+                ctx.save();
+                ctx.translate(w / 2, h / 2);
+                ctx.rotate(time);
+                const numLines = 16;
+                for (let i = 0; i < numLines; i++) {
+                    ctx.rotate((Math.PI * 2) / numLines);
+                    ctx.fillStyle = (i % 2 === 0) ? (this.isFever ? 'rgba(255, 0, 85, 0.08)' : 'rgba(0, 243, 255, 0.03)') : 'transparent';
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(w, -50);
+                    ctx.lineTo(w, 50);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            loop(now) {
+                const dt = (now - this.lastTime) / 1000;
+                this.lastTime = now;
+
+                if (this.gameState === 'PLAYING') {
+                    this.timeRemaining -= dt;
+                    if (this.timeRemaining <= 0) {
+                        this.timeRemaining = 0;
+                        this.gameOver();
+                    }
+                    this.updateUI();
+
+                    // 超高速ビート同期演出 (140 BPM)
+                    this.beatTimer += dt;
+                    if (this.beatTimer >= (60 / 140)) {
+                        this.beatTimer = 0;
+                        sound.playBeat();
+                        this.viewport.classList.add('pulse-beat');
+                        setTimeout(() => this.viewport.classList.remove('pulse-beat'), 50);
+                    }
+                }
+
+                // BG & リールの描画
+                this.drawBackground(now);
+                this.reels.forEach(reel => {
+                    reel.update(dt);
+                    reel.draw();
+                });
+
+                requestAnimationFrame(this.loop.bind(this));
+            }
+        }
+
+        // ゲーム起動
+        window.addEventListener('load', () => {
+            new Game();
+        });
+    </script>
+</body>
+</html>
