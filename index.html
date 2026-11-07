@@ -2220,6 +2220,7 @@
                 this.bossMaxHp = Math.round(this.bossMaxHp * 1.65);
                 this.bossHp = this.bossMaxHp;
                 this.bossShieldActive = true;
+                this.bossOverloaded = false;
                 
                 const stageWeaknesses = ['7', 'BAR', 'PRISM'];
                 this.bossWeakness = stageWeaknesses[(this.stage - 1) % stageWeaknesses.length];
@@ -2230,13 +2231,21 @@
                     this.showComboText("CONTRACT: MULTIPLIER x2!");
                 } else if (type === 'market') {
                     GAME_PROGRESSION.fragments += 300;
+                    GAME_PROGRESSION.exoticMaterials += 3;
                     this.skills.forEach(s => s.charge = s.maxCharge);
                     this.timeRemaining += 15.0;
-                    this.showComboText("MARKET: +300 FRAGS & SKILLS READY!");
+                    this.showComboText("MARKET: +300 FRAGS & EXOTICS ACQUIRED!");
                 } else if (type === 'bay') {
                     GAME_PROGRESSION.upgrades.timeBonus += 2;
                     this.timeRemaining += 25.0;
                     this.showComboText("MAINTENANCE: TIME EXTENDED!");
+                }
+
+                // ステージごとの動的ギミック演出適応
+                if (this.stage === 2) {
+                    this.showComboText("STAGE 2: DATASTREAM ANOMALY ACTIVE!");
+                } else if (this.stage >= 3) {
+                    this.showComboText("STAGE 3: OMEGA OVERCLOCK HAZARD!");
                 }
 
                 const stageNames = [`STAGE ${this.stage}: NET CORE (WEAK: ${this.bossWeakness})`, `STAGE ${this.stage}: MATRIX CORE`, `STAGE ${this.stage}: OMEGA GRID`];
