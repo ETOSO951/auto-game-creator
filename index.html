@@ -215,16 +215,18 @@
             overflow: hidden;
         }
 
-        /* アクリルパネル反射エフェクト（プリズム色収差・物理的な高級ガラスの多層光沢の追求） */
+        /* アクリルパネル反射エフェクト（物理的な屈折ライティング・多層フレネル反射の極致） */
         .slot-frame::after {
             content: '';
             position: absolute;
-            top: 0; left: -200%; width: 200%; height: 100%;
-            background: linear-gradient(115deg, transparent 25%, rgba(255, 0, 85, 0.25) 38%, rgba(255, 255, 255, 0.65) 46%, rgba(0, 243, 255, 0.55) 50%, rgba(255, 230, 0, 0.4) 54%, rgba(255, 255, 255, 0.25) 60%, transparent 75%);
+            top: 0; left: -220%; width: 220%; height: 100%;
+            background: linear-gradient(115deg, transparent 22%, rgba(255, 0, 85, 0.32) 36%, rgba(255, 255, 255, 0.85) 45%, rgba(0, 243, 255, 0.75) 49%, rgba(255, 230, 0, 0.55) 53%, rgba(255, 255, 255, 0.4) 58%, transparent 78%);
             pointer-events: none;
             mix-blend-mode: screen;
-            box-shadow: inset 0 0 90px rgba(0, 243, 255, 0.35), inset 0 3px 6px rgba(255, 255, 255, 0.8), inset 0 -3px 8px rgba(255, 0, 85, 0.25);
-            animation: panel-reflection 3.5s infinite cubic-bezier(0.25, 1, 0.5, 1);
+            backdrop-filter: blur(1.5px);
+            -webkit-backdrop-filter: blur(1.5px);
+            box-shadow: inset 0 0 110px rgba(0, 243, 255, 0.45), inset 0 4px 8px rgba(255, 255, 255, 0.95), inset 0 -4px 12px rgba(255, 0, 85, 0.35);
+            animation: panel-reflection 3.8s infinite cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .slot-frame::before {
@@ -232,16 +234,16 @@
             position: absolute;
             inset: 0;
             border-radius: inherit;
-            box-shadow: inset 0 0 45px rgba(0, 0, 0, 0.85), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+            box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.92), inset 0 1px 3px rgba(255, 255, 255, 0.6), inset 0 0 20px rgba(0, 243, 255, 0.15);
             pointer-events: none;
             z-index: 6;
         }
 
         @keyframes panel-reflection {
-            0% { left: -180%; opacity: 0; transform: skewX(-15deg); }
-            12% { opacity: 1; }
-            35% { left: 180%; opacity: 0; transform: skewX(-15deg); }
-            100% { left: 180%; opacity: 0; transform: skewX(-15deg); }
+            0% { left: -190%; opacity: 0; transform: skewX(-18deg) scaleY(1.02); }
+            10% { opacity: 1; }
+            38% { left: 190%; opacity: 0; transform: skewX(-18deg) scaleY(1.02); }
+            100% { left: 190%; opacity: 0; transform: skewX(-18deg) scaleY(1.02); }
         }
 
         /* リール線 */
@@ -600,14 +602,14 @@
                     this.compressor.attack.setValueAtTime(0.001, this.ctx.currentTime);
                     this.compressor.release.setValueAtTime(0.08, this.ctx.currentTime);
 
-                    // 空間的奥行き（リバーブ／ディレイ）エフェクトの構築
+                    // 空間的奥行き（リバーブ／ディレイ）エフェクトの洗練（暖かみのある空気残響）
                     this.delayNode = this.ctx.createDelay();
-                    this.delayNode.delayTime.setValueAtTime(0.12, this.ctx.currentTime);
+                    this.delayNode.delayTime.setValueAtTime(0.16, this.ctx.currentTime);
                     const delayFeedback = this.ctx.createGain();
-                    delayFeedback.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                    delayFeedback.gain.setValueAtTime(0.32, this.ctx.currentTime);
                     const delayFilter = this.ctx.createBiquadFilter();
                     delayFilter.type = 'lowpass';
-                    delayFilter.frequency.setValueAtTime(2500, this.ctx.currentTime);
+                    delayFilter.frequency.setValueAtTime(2200, this.ctx.currentTime);
 
                     this.delayNode.connect(delayFilter);
                     delayFilter.connect(delayFeedback);
@@ -669,26 +671,27 @@
                 osc.type = 'sawtooth';
                 osc2.type = 'triangle';
                 osc.frequency.setValueAtTime(587.33, now);
-                osc.frequency.exponentialRampToValueAtTime(1174.66, now + 0.35);
+                osc.frequency.exponentialRampToValueAtTime(1174.66, now + 0.4);
                 osc2.frequency.setValueAtTime(293.66, now);
-                osc2.frequency.exponentialRampToValueAtTime(587.33, now + 0.35);
+                osc2.frequency.exponentialRampToValueAtTime(587.33, now + 0.4);
                 
                 filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(1800, now);
-                filter.frequency.exponentialRampToValueAtTime(5500, now + 0.35);
+                filter.frequency.setValueAtTime(2000, now);
+                filter.frequency.exponentialRampToValueAtTime(6500, now + 0.4);
 
                 gain.gain.setValueAtTime(0.0001, now);
-                gain.gain.linearRampToValueAtTime(0.32, now + 0.015);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+                gain.gain.linearRampToValueAtTime(0.35, now + 0.015);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
                 
                 osc.connect(filter);
                 osc2.connect(filter);
                 filter.connect(gain);
-                gain.connect(this.delayNode || this.compressor || this.ctx.destination);
+                gain.connect(this.delayNode);
+                gain.connect(this.compressor || this.ctx.destination);
                 osc.start(now);
                 osc2.start(now);
-                osc.stop(now + 0.4);
-                osc2.stop(now + 0.4);
+                osc.stop(now + 0.45);
+                osc2.stop(now + 0.45);
             }
 
             playStop(pitchMultiplier = 1) {
@@ -742,23 +745,24 @@
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     const filter = this.ctx.createBiquadFilter();
-                    const startTime = now + idx * 0.05;
+                    const startTime = now + idx * 0.055;
                     
                     osc.type = idx >= notes.length - 2 ? 'sawtooth' : 'triangle';
                     osc.frequency.setValueAtTime(freq, startTime);
                     
                     filter.type = 'lowpass';
-                    filter.frequency.setValueAtTime(3500 + idx * 400, startTime);
+                    filter.frequency.setValueAtTime(4000 + idx * 450, startTime);
 
                     gain.gain.setValueAtTime(0.0001, startTime);
-                    gain.gain.linearRampToValueAtTime(0.25, startTime + 0.005);
-                    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.35);
+                    gain.gain.linearRampToValueAtTime(0.28, startTime + 0.005);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.4);
                     
                     osc.connect(filter);
                     filter.connect(gain);
-                    gain.connect(this.delayNode || this.compressor || this.ctx.destination);
+                    gain.connect(this.delayNode);
+                    gain.connect(this.compressor || this.ctx.destination);
                     osc.start(startTime);
-                    osc.stop(startTime + 0.35);
+                    osc.stop(startTime + 0.4);
                 });
             }
 
@@ -1443,16 +1447,17 @@
                 const h = this.bgCanvas.height;
 
                 if (!this.particles) {
-                    // よりリッチなマルチレイヤー・パララックスパーティクル群の構築（光の筋・ボケ味対応）
-                    this.particles = Array.from({ length: 72 }, (_, i) => ({
+                    // 被写界深度（DoF）とリアルなボケ味を持つマルチレイヤー・パララックスパーティクル群
+                    this.particles = Array.from({ length: 80 }, (_, i) => ({
                         x: Math.random() * w,
                         y: Math.random() * h,
-                        vx: (Math.random() - 0.5) * 0.4,
-                        vy: (Math.random() - 0.5) * 0.4 - 0.3,
-                        size: Math.random() * 5.0 + 0.8,
-                        alpha: Math.random() * 0.8 + 0.2,
-                        layer: i % 3 + 1, // 1:遠景, 2:中景, 3:近景
-                        trailLen: Math.random() * 8 + 2
+                        vx: (Math.random() - 0.5) * 0.35,
+                        vy: (Math.random() - 0.5) * 0.35 - 0.25,
+                        size: Math.random() * 4.5 + 0.6,
+                        alpha: Math.random() * 0.75 + 0.2,
+                        layer: i % 3 + 1, // 1:遠景(深いボケ), 2:中景, 3:近景(シャープ＆大光量)
+                        blur: (i % 3 === 0) ? 12 : (i % 3 === 1) ? 6 : 1,
+                        trailLen: Math.random() * 10 + 3
                     }));
                 }
 
@@ -1462,38 +1467,38 @@
                 const cy = h / 2;
                 const radius = Math.max(w, h) * 0.95;
 
-                // シネマティックなリッチグラデーション背景
+                // シネマティックなリッチグラデーション背景（なめらかな明度・色相補間）
                 const bgGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, radius);
                 if (this.isFever) {
-                    const pulse = Math.sin(now * 0.016) * 0.35 + 0.85;
-                    const hueShift = Math.sin(now * 0.006) * 35;
-                    bgGrad.addColorStop(0, `hsla(${330 + hueShift}, 100%, 45%, ${pulse * 0.98})`);
-                    bgGrad.addColorStop(0.4, '#380028');
-                    bgGrad.addColorStop(0.75, '#120222');
-                    bgGrad.addColorStop(1, '#05010f');
+                    const pulse = Math.sin(now * 0.016) * 0.32 + 0.88;
+                    const hueShift = Math.sin(now * 0.005) * 40;
+                    bgGrad.addColorStop(0, `hsla(${325 + hueShift}, 100%, 48%, ${pulse * 0.98})`);
+                    bgGrad.addColorStop(0.35, '#3a0030');
+                    bgGrad.addColorStop(0.7, '#150228');
+                    bgGrad.addColorStop(1, '#050112');
                 } else {
-                    bgGrad.addColorStop(0, '#1c1c46');
-                    bgGrad.addColorStop(0.5, '#0c0c24');
-                    bgGrad.addColorStop(1, '#03030a');
+                    bgGrad.addColorStop(0, '#1a1a4a');
+                    bgGrad.addColorStop(0.48, '#0b0b26');
+                    bgGrad.addColorStop(1, '#020208');
                 }
                 ctx.fillStyle = bgGrad;
                 ctx.fillRect(0, 0, w, h);
 
-                // 中央スロット背面からの微かな放射状ゴッドレイ（光芒）の演出
+                // 中央スロット背面からの微かな放射状ゴッドレイ（光芒）と空間体感演出
                 ctx.save();
-                const godRayAlpha = (Math.sin(now * 0.003) * 0.15 + 0.35) * (this.isFever ? 1.8 : 1.0);
-                const rayGrad = ctx.createRadialGradient(cx, cy - 20, 10, cx, cy - 20, Math.max(w, h) * 0.7);
-                rayGrad.addColorStop(0, this.isFever ? `rgba(255, 0, 120, ${godRayAlpha * 0.6})` : `rgba(0, 243, 255, ${godRayAlpha * 0.35})`);
-                rayGrad.addColorStop(0.5, this.isFever ? `rgba(255, 200, 0, ${godRayAlpha * 0.2})` : `rgba(0, 120, 255, ${godRayAlpha * 0.15})`);
+                const godRayAlpha = (Math.sin(now * 0.003) * 0.18 + 0.38) * (this.isFever ? 1.9 : 1.0);
+                const rayGrad = ctx.createRadialGradient(cx, cy - 15, 5, cx, cy - 15, Math.max(w, h) * 0.75);
+                rayGrad.addColorStop(0, this.isFever ? `rgba(255, 0, 130, ${godRayAlpha * 0.65})` : `rgba(0, 243, 255, ${godRayAlpha * 0.38})`);
+                rayGrad.addColorStop(0.45, this.isFever ? `rgba(255, 215, 0, ${godRayAlpha * 0.22})` : `rgba(0, 130, 255, ${godRayAlpha * 0.16})`);
                 rayGrad.addColorStop(1, 'transparent');
                 ctx.fillStyle = rayGrad;
                 ctx.fillRect(0, 0, w, h);
                 ctx.restore();
 
-                // 立体深度・モーショントレイルを強調したマルチレイヤー・パララックスパーティクル描画
+                // 物理深度（DoFボケ・モーショントレイル）を完備したパララックスパーティクル描画
                 ctx.save();
                 this.particles.forEach(p => {
-                    const speedMultiplier = p.layer * (this.isFever ? 2.6 : 1.0);
+                    const speedMultiplier = p.layer * (this.isFever ? 2.5 : 1.0);
                     p.x += p.vx * speedMultiplier;
                     p.y += p.vy * speedMultiplier;
                     if (p.x < 0) p.x = w;
@@ -1501,39 +1506,39 @@
                     if (p.y < 0) p.y = h;
                     if (p.y > h) p.y = 0;
 
-                    const currentAlpha = p.alpha * (p.layer * 0.35 + 0.25);
-                    ctx.shadowColor = this.isFever ? '#ff0055' : '#00f3ff';
-                    ctx.shadowBlur = p.layer * 10;
-                    ctx.fillStyle = this.isFever ? `rgba(255, 40, 140, ${currentAlpha})` : `rgba(0, 243, 255, ${currentAlpha})`;
+                    const currentAlpha = p.alpha * (p.layer * 0.32 + 0.28);
+                    ctx.shadowColor = this.isFever ? '#ff0066' : '#00f3ff';
+                    ctx.shadowBlur = p.blur * (this.isFever ? 1.5 : 1.0);
+                    ctx.fillStyle = this.isFever ? `rgba(255, 50, 150, ${currentAlpha})` : `rgba(0, 243, 255, ${currentAlpha})`;
                     
-                    // 近景・中景のパーティクルに光の筋（トレイル）を付与
                     if (p.layer >= 2) {
                         ctx.beginPath();
-                        ctx.ellipse(p.x, p.y, p.size * (p.layer * 0.4 + 0.5), p.size * p.layer + p.trailLen, Math.PI / 4, 0, Math.PI * 2);
+                        ctx.ellipse(p.x, p.y, p.size * (p.layer * 0.45 + 0.4), p.size * p.layer + p.trailLen, Math.PI / 4, 0, Math.PI * 2);
                         ctx.fill();
                     } else {
+                        // 遠景のボケたパーティクル
                         ctx.beginPath();
-                        ctx.arc(p.x, p.y, p.size * (p.layer * 0.35 + 0.45), 0, Math.PI * 2);
+                        ctx.arc(p.x, p.y, p.size * (p.layer * 0.4 + 0.5), 0, Math.PI * 2);
                         ctx.fill();
                     }
                 });
                 ctx.restore();
 
-                // 空気感が熱を帯びて発光するようなシネマティックな同心環とライティング
+                // 空気感が熱を帯びて発光するようなシネマティックな同心環
                 ctx.save();
-                const ringPulse = Math.sin(now * 0.005) * 0.07 + 1.0;
-                const ringPulse2 = Math.cos(now * 0.004) * 0.09 + 1.0;
+                const ringPulse = Math.sin(now * 0.005) * 0.06 + 1.0;
+                const ringPulse2 = Math.cos(now * 0.004) * 0.08 + 1.0;
 
-                ctx.strokeStyle = this.isFever ? 'rgba(255, 0, 120, 0.4)' : 'rgba(0, 243, 255, 0.18)';
+                ctx.strokeStyle = this.isFever ? 'rgba(255, 0, 130, 0.45)' : 'rgba(0, 243, 255, 0.2)';
                 ctx.lineWidth = 2.5;
                 ctx.beginPath();
-                ctx.arc(cx, cy, Math.min(w, h) * 0.42 * ringPulse, 0, Math.PI * 2);
+                ctx.arc(cx, cy, Math.min(w, h) * 0.43 * ringPulse, 0, Math.PI * 2);
                 ctx.stroke();
 
-                ctx.strokeStyle = this.isFever ? 'rgba(255, 230, 0, 0.28)' : 'rgba(255, 255, 255, 0.08)';
+                ctx.strokeStyle = this.isFever ? 'rgba(255, 230, 0, 0.3)' : 'rgba(255, 255, 255, 0.09)';
                 ctx.lineWidth = 1.8;
                 ctx.beginPath();
-                ctx.arc(cx, cy, Math.min(w, h) * 0.58 / ringPulse2, 0, Math.PI * 2);
+                ctx.arc(cx, cy, Math.min(w, h) * 0.59 / ringPulse2, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.restore();
             }
