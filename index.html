@@ -743,6 +743,8 @@
             filter: drop-shadow(0 0 35px rgba(255, 0, 85, 0.95)) drop-shadow(0 0 10px rgba(0, 243, 255, 0.6));
             transform: skewX(-8deg) scale(1);
             animation: title-float 2.8s ease-in-out infinite alternate, title-glow-pulse 1.6s infinite alternate;
+            transition: transform 0.1s ease-out;
+            will-change: transform, filter;
         }
 
         @keyframes title-float {
@@ -2393,6 +2395,19 @@
             };
             window.addEventListener('pointerdown', quickActionHandler, { once: true });
         };
+
+        // タイトル画面シネマティックな視差パララックス・インタラクション追加
+        window.addEventListener('pointermove', (e) => {
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen && !startScreen.classList.contains('hidden')) {
+                const x = (e.clientX / window.innerWidth - 0.5) * 15;
+                const y = (e.clientY / window.innerHeight - 0.5) * 15;
+                const title = startScreen.querySelector('.game-title');
+                if (title) {
+                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.02)`;
+                }
+            }
+        });
 ====
         // モーダル操作・ハクスラ強化システムの実装（サイバーハッキングデッキ対応）
         Game.prototype.openDexModal = function() {
@@ -2822,6 +2837,19 @@
             };
             window.addEventListener('pointerdown', quickActionHandler, { once: true });
         };
+
+        // タイトル画面シネマティックな視差パララックス・インタラクション追加
+        window.addEventListener('pointermove', (e) => {
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen && !startScreen.classList.contains('hidden')) {
+                const x = (e.clientX / window.innerWidth - 0.5) * 15;
+                const y = (e.clientY / window.innerHeight - 0.5) * 15;
+                const title = startScreen.querySelector('.game-title');
+                if (title) {
+                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.02)`;
+                }
+            }
+        });
 
         // ゲーム起動
         window.addEventListener('load', () => {
