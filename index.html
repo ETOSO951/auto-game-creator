@@ -180,12 +180,19 @@
             top: 50%;
             left: 0;
             width: 100%;
-            height: 4px;
-            background: rgba(255, 0, 85, 0.6);
-            box-shadow: 0 0 10px var(--primary-neon);
+            height: 3px;
+            background: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
             transform: translateY(-50%);
             z-index: 5;
             pointer-events: none;
+            transition: all 0.2s ease;
+        }
+
+        .payline.active-win {
+            height: 5px;
+            background: var(--accent-gold);
+            box-shadow: 0 0 15px var(--accent-gold), 0 0 30px var(--accent-gold);
         }
 
         /* 各リール */
@@ -569,18 +576,23 @@
         ];
 
         /**
-         * リール管理クラス
+         * リール管理クラス（物理イージング・高精度停止）
          */
         class Reel {
-            constructor(canvasId, index) {
+            constructor(canvasId, index, onCompleteStop) {
                 this.canvas = document.getElementById(canvasId);
                 this.ctx = this.canvas.getContext('2d');
                 this.index = index;
                 this.symbols = [...SYMBOLS, ...SYMBOLS]; // ループ用
                 this.position = Math.floor(Math.random() * this.symbols.length);
                 this.speed = 0;
-                this.isSpinning = false;
+                this.state = 'IDLE'; // 'IDLE', 'SPINNING', 'STOPPING'
+                this.targetPos = 0;
+                this.stopProgress = 0;
+                this.startStopPos = 0;
                 this.stoppedSymbol = null;
+                this.isHighlighted = false;
+                this.onCompleteStop = onCompleteStop;
                 this.resize();
             }
 
@@ -592,23 +604,52 @@
             }
 
             spin() {
-                this.isSpinning = true;
-                this.speed = 0.8 + Math.random() * 0.2; // 超高速
+                this.state = 'SPINNING';
+                this.isHighlighted = false;
+                this.speed = 0.75 + Math.random() * 0.15;
             }
 
             stop() {
-                if (!this.isSpinning) return;
-                this.isSpinning = false;
-                // ピタッと目押し風に合わせる
-                this.position = Math.round(this.position) % this.symbols.length;
-                this.stoppedSymbol = this.symbols[(this.position + 1) % this.symbols.length];
-                sound.playStop(1 + this.index * 0.2);
+                if (this.state !== 'SPINNING') return;
+                this.state = 'STOPPING';
+                this.stopProgress = 0;
+                this.startStopPos = this.position;
+                // 自然な滑り（0.8〜1.2コマ）を加えて次の整数位置へ吸い付き
+                this.targetPos = Math.ceil(this.position + 0.8);
+            }
+
+            get isSpinning() {
+                return this.state === 'SPINNING';
+            }
+
+            get isIdle() {
+                return this.state === 'IDLE';
             }
 
             update(dt) {
-                if (this.isSpinning) {
+                if (this.state === 'SPINNING') {
                     this.position += this.speed * dt * 60;
                     if (Math.random() < 0.1) sound.playSpin();
+                } else if (this.state === 'STOPPING') {
+                    this.stopProgress += dt * 7.5; // 約0.13秒で停止
+                    if (this.stopProgress >= 1) {
+                        this.stopProgress = 1;
+                        this.position = this.targetPos % this.symbols.length;
+                        this.state = 'IDLE';
+                        // 中央段（インデックス1）がペイライン対象
+                        const centerIdx = (Math.round(this.position) + 1) % this.symbols.length;
+                        this.stoppedSymbol = this.symbols[centerIdx];
+                        sound.playStop(1 + this.index * 0.2);
+                        if (this.onCompleteStop) {
+                            this.onCompleteStop(this.index);
+                        }
+                    } else {
+                        // バックラッシュ（行き過ぎてから戻る物理スプリング効果）
+                        const t = this.stopProgress;
+                        const c4 = (2 * Math.PI) / 3;
+                        const easeOutElastic = t === 1 ? 1 : Math.sin(t * Math.PI * 0.5) + Math.sin(t * Math.PI * 2) * (1 - t) * 0.12;
+                        this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutElastic;
+                    }
                 }
             }
 
@@ -627,30 +668,36 @@
                     const symIdx = (baseIdx + i + this.symbols.length * 10) % this.symbols.length;
                     const symbol = this.symbols[symIdx];
                     const y = (i * sh) - offset;
+                    const isCenterLine = (i === 1);
 
                     ctx.save();
                     ctx.translate(w / 2, y + sh / 2);
 
-                    // 高速回転中の残像・モーションブラー効果
-                    if (this.isSpinning) {
-                        ctx.scale(1, 1.2);
-                        ctx.globalAlpha = 0.7;
+                    // 回転中のブラー
+                    if (this.state === 'SPINNING') {
+                        ctx.scale(1, 1.25);
+                        ctx.globalAlpha = 0.65;
                     }
 
-                    // シンボル背景グラデーション
-                    const grad = ctx.createRadialGradient(0, 0, 5, 0, 0, sh / 2);
-                    grad.addColorStop(0, 'rgba(255,255,255,0.1)');
-                    grad.addColorStop(1, 'rgba(0,0,0,0)');
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(-w/2, -sh/2, w, sh);
+                    // 的確な当たりシンボルのハイライト
+                    if (isCenterLine && this.isHighlighted && this.state === 'IDLE') {
+                        ctx.save();
+                        const pulseScale = 1.08 + Math.sin(performance.now() * 0.015) * 0.05;
+                        ctx.scale(pulseScale, pulseScale);
+                        ctx.fillStyle = 'rgba(255, 230, 0, 0.2)';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, sh * 0.45, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
 
-                    // シンボル文字
-                    ctx.font = `900 ${sh * 0.45}px 'Impact', sans-serif`;
+                    // シンボル文字描画
+                    ctx.font = `900 ${sh * 0.48}px 'Impact', sans-serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillStyle = symbol.color;
-                    ctx.shadowColor = symbol.color;
-                    ctx.shadowBlur = this.isSpinning ? 5 : 15;
+                    ctx.shadowColor = (isCenterLine && this.isHighlighted) ? '#ffffff' : symbol.color;
+                    ctx.shadowBlur = (isCenterLine && this.isHighlighted) ? 25 : (this.state === 'SPINNING' ? 6 : 14);
 
                     ctx.fillText(symbol.label, 0, 0);
                     ctx.restore();
@@ -659,7 +706,7 @@
         }
 
         /**
-         * メインゲーム管理
+         * メインゲーム管理（堅牢なステートマシンと同期）
          */
         class Game {
             constructor() {
@@ -667,11 +714,12 @@
                 this.flashOverlay = document.getElementById('flash-overlay');
                 this.bgCanvas = document.getElementById('bg-canvas');
                 this.bgCtx = this.bgCanvas.getContext('2d');
+                this.paylineEl = document.querySelector('.payline');
 
                 this.reels = [
-                    new Reel('reel-0', 0),
-                    new Reel('reel-1', 1),
-                    new Reel('reel-2', 2)
+                    new Reel('reel-0', 0, (idx) => this.onReelComplete(idx)),
+                    new Reel('reel-1', 1, (idx) => this.onReelComplete(idx)),
+                    new Reel('reel-2', 2, (idx) => this.onReelComplete(idx))
                 ];
 
                 this.score = 0;
@@ -680,7 +728,10 @@
                 this.feverGauge = 0;
                 this.isFever = false;
                 this.gameState = 'START'; // START, PLAYING, GAMEOVER
+                this.isEvaluating = false;
                 this.autoMode = false;
+                this.autoTimer = null;
+                this.autoStopTimers = [];
                 this.lastTime = performance.now();
                 this.beatTimer = 0;
 
@@ -723,20 +774,32 @@
                     this.autoMode = !this.autoMode;
                     this.btnAuto.classList.toggle('active', this.autoMode);
                     this.btnAuto.innerText = `AUTO: ${this.autoMode ? 'ON' : 'OFF'}`;
-                    if (this.autoMode && this.gameState === 'PLAYING') {
+                    if (!this.autoMode) {
+                        this.clearAutoTimers();
+                    } else if (this.gameState === 'PLAYING' && !this.isEvaluating) {
                         this.handleSpinAction();
                     }
                 });
 
-                // キーボード操作（1, 2, 3キー または Spaceキー）
+                // キーボード操作
                 window.addEventListener('keydown', (e) => {
-                    if (this.gameState !== 'PLAYING') return;
+                    if (this.gameState !== 'PLAYING' || e.repeat) return;
                     if (e.code === 'Space') {
+                        e.preventDefault();
                         this.handleSpinAction();
                     } else if (e.key === '1') this.stopReel(0);
                     else if (e.key === '2') this.stopReel(1);
                     else if (e.key === '3') this.stopReel(2);
                 });
+            }
+
+            clearAutoTimers() {
+                if (this.autoTimer) {
+                    clearTimeout(this.autoTimer);
+                    this.autoTimer = null;
+                }
+                this.autoStopTimers.forEach(t => clearTimeout(t));
+                this.autoStopTimers = [];
             }
 
             resizeBg() {
@@ -751,6 +814,8 @@
                 this.timeRemaining = 45.0;
                 this.feverGauge = 0;
                 this.isFever = false;
+                this.isEvaluating = false;
+                this.clearAutoTimers();
                 this.gameState = 'PLAYING';
 
                 document.getElementById('start-screen').classList.add('hidden');
@@ -761,13 +826,12 @@
             }
 
             handleSpinAction() {
-                const allSpinning = this.reels.every(r => r.isSpinning);
-                const allStopped = this.reels.every(r => !r.isSpinning);
+                if (this.gameState !== 'PLAYING' || this.isEvaluating) return;
 
-                if (allStopped) {
+                const allIdle = this.reels.every(r => r.isIdle);
+                if (allIdle) {
                     this.triggerSpin();
                 } else {
-                    // まだ回っているリールを順番に止める
                     const nextToStop = this.reels.findIndex(r => r.isSpinning);
                     if (nextToStop !== -1) {
                         this.stopReel(nextToStop);
@@ -776,23 +840,35 @@
             }
 
             triggerSpin() {
-                if (this.gameState !== 'PLAYING') return;
+                if (this.gameState !== 'PLAYING' || this.isEvaluating) return;
+                this.paylineEl.classList.remove('active-win');
                 this.reels.forEach(r => r.spin());
                 this.updateStopButtonsState();
                 this.triggerCameraShake('light');
+
+                if (this.autoMode) {
+                    this.clearAutoTimers();
+                    this.autoStopTimers.push(setTimeout(() => this.stopReel(0), 120));
+                    this.autoStopTimers.push(setTimeout(() => this.stopReel(1), 220));
+                    this.autoStopTimers.push(setTimeout(() => this.stopReel(2), 320));
+                }
             }
 
             stopReel(index) {
                 if (this.gameState !== 'PLAYING') return;
-                if (this.reels[index].isSpinning) {
-                    this.reels[index].stop();
+                const reel = this.reels[index];
+                if (reel && reel.isSpinning) {
+                    reel.stop();
                     this.triggerCameraShake('light');
                     this.updateStopButtonsState();
+                }
+            }
 
-                    // 全て止まったか判定
-                    if (this.reels.every(r => !r.isSpinning)) {
-                        this.evaluateResult();
-                    }
+            onReelComplete(index) {
+                this.updateStopButtonsState();
+                // すべてのリールが物理停止したかチェック
+                if (this.reels.every(r => r.isIdle) && !this.isEvaluating && this.gameState === 'PLAYING') {
+                    this.evaluateResult();
                 }
             }
 
@@ -810,29 +886,47 @@
             }
 
             evaluateResult() {
+                this.isEvaluating = true;
                 const s0 = this.reels[0].stoppedSymbol;
                 const s1 = this.reels[1].stoppedSymbol;
                 const s2 = this.reels[2].stoppedSymbol;
 
-                if (!s0 || !s1 || !s2) return;
+                if (!s0 || !s1 || !s2) {
+                    this.isEvaluating = false;
+                    return;
+                }
 
                 let winAmount = 0;
                 let comboText = '';
 
-                // 3つのシンボル一致
+                // 全揃い (JACKPOT)
                 if (s0.id === s1.id && s1.id === s2.id) {
                     winAmount = s0.score * 3 * this.multiplier;
                     comboText = `JACKPOT! +${winAmount}`;
+                    this.reels.forEach(r => r.isHighlighted = true);
+                    this.paylineEl.classList.add('active-win');
                     this.triggerFlash('#ffe600');
                     this.triggerCameraShake('heavy');
                     sound.playWin();
                     this.addFever(35);
                 } 
-                // 2つ一致（テンパイヒット）
+                // テンパイヒット（左2つ、右2つ、両端）
                 else if (s0.id === s1.id || s1.id === s2.id || s0.id === s2.id) {
-                    const matched = (s0.id === s1.id) ? s0 : s2;
-                    winAmount = matched.score * this.multiplier;
+                    if (s0.id === s1.id) {
+                        this.reels[0].isHighlighted = true;
+                        this.reels[1].isHighlighted = true;
+                        winAmount = s0.score * this.multiplier;
+                    } else if (s1.id === s2.id) {
+                        this.reels[1].isHighlighted = true;
+                        this.reels[2].isHighlighted = true;
+                        winAmount = s1.score * this.multiplier;
+                    } else {
+                        this.reels[0].isHighlighted = true;
+                        this.reels[2].isHighlighted = true;
+                        winAmount = s0.score * this.multiplier;
+                    }
                     comboText = `GREAT! +${winAmount}`;
+                    this.paylineEl.classList.add('active-win');
                     sound.playWin();
                     this.addFever(15);
                 }
@@ -841,23 +935,19 @@
                     this.score += winAmount;
                     this.showComboText(comboText);
                 } else {
-                    this.addFever(5); // 外れても少しゲージが溜まる（超高速テンポ維持のため）
+                    this.addFever(5);
                 }
 
                 this.updateUI();
 
-                // AUTOモードの場合、超高速で次のスピンへ
-                if (this.autoMode && this.gameState === 'PLAYING') {
-                    setTimeout(() => {
-                        if (this.autoMode && this.reels.every(r => !r.isSpinning)) {
-                            this.triggerSpin();
-                            // オートストップのタイムラインも高速展開
-                            setTimeout(() => this.stopReel(0), 120);
-                            setTimeout(() => this.stopReel(1), 240);
-                            setTimeout(() => this.stopReel(2), 360);
-                        }
-                    }, 150);
-                }
+                // 評価完了後にAUTOまたは次待機へ遷移
+                const waitTime = winAmount > 0 ? 350 : 120;
+                this.autoTimer = setTimeout(() => {
+                    this.isEvaluating = false;
+                    if (this.autoMode && this.gameState === 'PLAYING') {
+                        this.triggerSpin();
+                    }
+                }, waitTime);
             }
 
             addFever(amount) {
@@ -920,6 +1010,8 @@
 
             gameOver() {
                 this.gameState = 'GAMEOVER';
+                this.clearAutoTimers();
+                this.paylineEl.classList.remove('active-win');
                 document.getElementById('final-score').innerText = this.score.toLocaleString();
                 document.getElementById('gameover-screen').classList.remove('hidden');
             }
