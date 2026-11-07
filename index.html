@@ -46,10 +46,33 @@
             will-change: transform, filter;
         }
 
-        /* カメラズーム・シェイク用クラス */
-        .shake-light { transform: translate(calc(Math.random() * 4px - 2px), calc(Math.random() * 4px - 2px)) scale(1.01); }
-        .shake-heavy { transform: translate(calc(Math.random() * 16px - 8px), calc(Math.random() * 16px - 8px)) scale(1.05) rotate(calc(Math.random() * 2deg - 1deg)); }
-        .pulse-beat { transform: scale(1.03); }
+        /* カメラズーム・シェイク用アニメーション */
+        .shake-light { animation: anim-shake-light 0.1s ease-out; }
+        .shake-heavy { animation: anim-shake-heavy 0.18s ease-out; }
+        .pulse-beat { animation: anim-pulse 0.08s ease-out; }
+
+        @keyframes anim-shake-light {
+            0% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(-2px, 3px) scale(1.008); }
+            50% { transform: translate(3px, -2px) scale(1.005); }
+            75% { transform: translate(-1px, -1px) scale(1.002); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+        @keyframes anim-shake-heavy {
+            0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+            20% { transform: translate(-6px, 5px) rotate(-1.5deg) scale(1.03); }
+            40% { transform: translate(6px, -4px) rotate(1.2deg) scale(1.02); }
+            60% { transform: translate(-4px, -3px) rotate(-0.8deg) scale(1.01); }
+            80% { transform: translate(2px, 2px) rotate(0.4deg) scale(1.005); }
+            100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+        }
+
+        @keyframes anim-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.018); }
+            100% { transform: scale(1); }
+        }
 
         /* フラッシュオーバーレイ */
         #flash-overlay {
@@ -698,12 +721,14 @@
                 this.stopProgress = 0;
                 this.startStopPos = this.position;
                 
-                // 確実に整数コマ（または半コマ）の美しい位置へ吸着する確定物理計算
-                const minSlip = 0.3;
-                this.targetPos = Math.ceil(this.position + minSlip);
+                // 確実に整数コマの位置にぴったり止める高精度吸着ロジック
+                // 最小スベリ量を確保しつつ次の整数のグリッドへ着地
+                const slipDistance = 0.45;
+                this.targetPos = Math.ceil(this.position + slipDistance);
 
-                const finalPosition = ((Math.round(this.targetPos) % this.symbols.length) + this.symbols.length) % this.symbols.length;
-                const centerIdx = (finalPosition + 1) % this.symbols.length;
+                // 中央ライン(i=1)に位置する確定シンボルを厳密算出
+                const finalGridPos = Math.round(this.targetPos);
+                const centerIdx = (finalGridPos + 1) % this.symbols.length;
                 this.stoppedSymbol = this.symbols[centerIdx];
             }
 
@@ -720,8 +745,8 @@
                     this.position += this.speed * dt * 60;
                     if (Math.random() < 0.08) sound.playSpin();
                 } else if (this.state === 'STOPPING') {
-                    // 減速アニメーション（フレーム非依存）
-                    this.stopProgress += dt * 10.0;
+                    // フレーム非依存の高応答イージング (速度感とバウンドのキレを極限チューニング)
+                    this.stopProgress += dt * 8.5;
                     if (this.stopProgress >= 1) {
                         this.stopProgress = 1;
                         this.position = this.targetPos;
@@ -731,10 +756,11 @@
                             this.onCompleteStop(this.index);
                         }
                     } else {
-                        // 減速バウンド（正確かつ心地よいピタ止め感）
+                        // ピタッと吸着する気持ち良いオーバーシュート減速曲線 (Custom Elastic Ease-Out)
                         const t = this.stopProgress;
-                        const easeOutBack = 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2);
-                        this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutBack;
+                        const overshoot = 1.4;
+                        const easeOutElastic = 1 + Math.pow(t - 1, 3) * (overshoot * (t - 1) + overshoot);
+                        this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutElastic;
                     }
                 }
             }
@@ -832,10 +858,15 @@
                 const addFastListener = (el, handler) => {
                     const listener = (e) => {
                         e.preventDefault();
-                        sound.init(); // ユーザー操作契機でオーディオコンテキストを確実に再開
+                        sound.init();
                         const now = performance.now();
-                        if (now - lastInputTime < 50) return; // デバウンスガード (50ms)
+                        if (now - lastInputTime < 30) return; // 超低遅延・高応答デバウンス (30ms)
                         lastInputTime = now;
+
+                        // 即座に押下状態のフィードバックを与える
+                        el.classList.add('pressed');
+                        setTimeout(() => el.classList.remove('pressed'), 120);
+
                         handler();
                     };
                     el.addEventListener('pointerdown', listener, { passive: false });
@@ -1042,12 +1073,13 @@
             }
 
             triggerCameraShake(type) {
-                // DOMリフロー（offsetWidth強制読み出し）を完全に排除し、クラスの付け替えのみでGPU負荷のないアニメーションを実現
+                const className = type === 'heavy' ? 'shake-heavy' : 'shake-light';
                 this.viewport.classList.remove('shake-light', 'shake-heavy');
+                // 次フレームで正確にキーフレームアニメーションを再適用
                 requestAnimationFrame(() => {
-                    this.viewport.classList.add(type === 'heavy' ? 'shake-heavy' : 'shake-light');
+                    this.viewport.classList.add(className);
                 });
-                this.shakeTimer = 0.1; // 100ms
+                this.shakeTimer = type === 'heavy' ? 0.18 : 0.1;
             }
 
             triggerFlash(color = '#ffffff') {
@@ -1085,31 +1117,32 @@
 
                 ctx.clearRect(0, 0, w, h);
 
-                // 音ハメ・ビート感のある背景アニメーション
-                const speed = this.isFever ? 0.005 : 0.002;
-                const time = now * speed;
+                // リールの視認性を最優先にした洗練されたミニマルグラデーション背景
+                const cx = w / 2;
+                const cy = h / 2;
+                const radius = Math.max(w, h) * 0.75;
 
-                // スピードグラデーション背景
-                const bgGrad = ctx.createRadialGradient(w/2, h/2, 10, w/2, h/2, Math.max(w, h)/1.2);
-                bgGrad.addColorStop(0, this.isFever ? '#33001b' : '#0a0a1a');
-                bgGrad.addColorStop(1, '#020205');
+                const bgGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, radius);
+                if (this.isFever) {
+                    const pulse = Math.sin(now * 0.008) * 0.15 + 0.85;
+                    bgGrad.addColorStop(0, `rgba(80, 0, 35, ${pulse * 0.9})`);
+                    bgGrad.addColorStop(0.6, '#15000a');
+                    bgGrad.addColorStop(1, '#040206');
+                } else {
+                    bgGrad.addColorStop(0, '#0d0d1e');
+                    bgGrad.addColorStop(0.7, '#06060e');
+                    bgGrad.addColorStop(1, '#020205');
+                }
                 ctx.fillStyle = bgGrad;
                 ctx.fillRect(0, 0, w, h);
 
-                // 集中線 / 放射状グラフィック（常に回転・伸縮）
+                // ミニマルな光の環（引き算の視界デザイン）
                 ctx.save();
-                ctx.translate(w / 2, h / 2);
-                ctx.rotate(time);
-                const numLines = 16;
-                for (let i = 0; i < numLines; i++) {
-                    ctx.rotate((Math.PI * 2) / numLines);
-                    ctx.fillStyle = (i % 2 === 0) ? (this.isFever ? 'rgba(255, 0, 85, 0.08)' : 'rgba(0, 243, 255, 0.03)') : 'transparent';
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(w, -50);
-                    ctx.lineTo(w, 50);
-                    ctx.fill();
-                }
+                ctx.strokeStyle = this.isFever ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 243, 255, 0.05)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(cx, cy, Math.min(w, h) * 0.38, 0, Math.PI * 2);
+                ctx.stroke();
                 ctx.restore();
             }
 
