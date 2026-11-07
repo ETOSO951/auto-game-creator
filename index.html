@@ -245,9 +245,20 @@
             font-family: var(--font-family);
             font-size: 11px;
             transition: all 0.15s;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-upgrade-action.affordable {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            animation: pulse-affordable 1.5s infinite alternate;
+        }
+        @keyframes pulse-affordable {
+            0% { box-shadow: 0 0 5px rgba(255, 230, 0, 0.3); }
+            100% { box-shadow: 0 0 15px rgba(255, 230, 0, 0.7); }
         }
         .btn-upgrade-action:active { transform: scale(0.95); background: rgba(0, 243, 255, 0.5); }
-        .btn-upgrade-action:disabled { opacity: 0.4; border-color: rgba(255,255,255,0.2); cursor: not-allowed; }
+        .btn-upgrade-action:disabled { opacity: 0.4; border-color: rgba(255,255,255,0.2); cursor: not-allowed; animation: none; }
 
         /* ボスシールドバリアバッジ */
         .boss-shield-badge {
@@ -718,6 +729,32 @@
             color: var(--secondary-neon);
             margin-bottom: 40px;
             font-weight: bold;
+            animation: subtitle-glitch 4s infinite;
+        }
+
+        @keyframes subtitle-glitch {
+            0%, 90%, 100% { opacity: 1; transform: translate(0, 0); }
+            92% { opacity: 0.6; transform: translate(-2px, 1px); }
+            94% { opacity: 1; transform: translate(2px, -1px); }
+            96% { opacity: 0.8; transform: translate(-1px, 2px); }
+        }
+
+        /* CRTスキャンライン装飾（タイトル画面用） */
+        .overlay-screen::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 1;
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+            opacity: 0.65;
+        }
+
+        .overlay-screen > * {
+            position: relative;
+            z-index: 2;
         }
 
         .btn-start {
@@ -743,7 +780,7 @@
         .score-summary {
             font-size: 18px;
             color: #ccc;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .score-summary span {
@@ -751,6 +788,20 @@
             font-size: 36px;
             color: var(--accent-gold);
             display: block;
+        }
+
+        .rank-badge {
+            font-family: var(--font-family);
+            font-size: 14px;
+            color: var(--secondary-neon);
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--secondary-neon);
+            padding: 4px 12px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+            display: inline-block;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
         }
 
         /* UIレイアウトの一元最適化済み */
@@ -950,6 +1001,7 @@
             FINAL SCORE
             <span id="final-score">0</span>
         </div>
+        <div class="rank-badge" id="final-rank">RANK: CYBER NOVICE</div>
         <button class="btn-start" id="btn-restart">RETRY</button>
     </div>
 
@@ -2280,6 +2332,22 @@
                 `;
                 container.appendChild(item);
             }
+
+            // フラグメント所持数に応じたボタンの動的クラス付与（アフォーダブル演出）
+            const updateAffordable = (btnId, cost) => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    if (GAME_PROGRESSION.fragments >= cost) {
+                        btn.classList.add('affordable');
+                    } else {
+                        btn.classList.remove('affordable');
+                    }
+                }
+            };
+            updateAffordable('upg-fever', 50);
+            updateAffordable('upg-time', 50);
+            updateAffordable('upg-prism', 75);
+
             document.getElementById('dex-modal').classList.add('active');
         };
 
@@ -2425,7 +2493,30 @@
                 this.gameState = 'GAMEOVER';
                 this.clearAutoTimers();
                 this.paylineEl.classList.remove('active-win');
-                document.getElementById('final-score').innerText = this.score.toLocaleString();
+
+                // ゲームオーバー時のオドメーター風スコアカウントアップ演出
+                const finalScoreTarget = this.score;
+                const finalScoreEl = document.getElementById('final-score');
+                const rankEl = document.getElementById('final-rank');
+                
+                // 称号判定
+                let rankText = 'RANK: CYBER NOVICE';
+                if (finalScoreTarget >= 20000) rankText = 'RANK: OMEGA NET_RUNNER';
+                else if (finalScoreTarget >= 10000) rankText = 'RANK: CYBER HACKER';
+                else if (finalScoreTarget >= 5000) rankText = 'RANK: NET OPERATOR';
+                rankEl.innerText = rankText;
+
+                let currentCount = 0;
+                const increment = Math.max(1, Math.floor(finalScoreTarget / 30));
+                const countInterval = setInterval(() => {
+                    currentCount += increment;
+                    if (currentCount >= finalScoreTarget) {
+                        currentCount = finalScoreTarget;
+                        clearInterval(countInterval);
+                    }
+                    finalScoreEl.innerText = currentCount.toLocaleString();
+                }, 30);
+
                 document.getElementById('gameover-screen').classList.remove('hidden');
             }
 
