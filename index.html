@@ -1337,9 +1337,10 @@
             { id: 'LEMON', color: '#ccff00', score: 50, label: '🍋' }
         ];
 
-        // ハクスラ・プログレッション＆モジュール拡張スロットシステム用データ
+        // ハクスラ・プログレッション＆モジュール拡張スロットシステム用データ（エキゾチックマテリアル対応）
         const GAME_PROGRESSION = {
             fragments: 150,
+            exoticMaterials: 5,
             upgrades: {
                 feverEfficiency: 0, // レベル0〜3
                 timeBonus: 0,       // レベル0〜3
@@ -1347,7 +1348,8 @@
             },
             modules: {
                 rewindActive: true,
-                overloadExtended: false
+                overloadExtended: false,
+                equippedDeck: ['TIME FREEZE', 'OVERCLOCK', 'RECONFIG']
             },
             dex: {
                 '7': { name: 'NEON 7', desc: 'Standard high-value symbol.', unlocked: true },
@@ -1972,32 +1974,94 @@
             }
 
             damageBoss(dmg) {
+                if (this.bossShieldActive && dmg < 400) {
+                    this.showComboText("SHIELD ACTIVE! DMG REDUCED");
+                    dmg *= 0.35;
+                }
                 this.bossHp -= dmg;
-                GAME_PROGRESSION.fragments += Math.floor(dmg * 0.1);
+                GAME_PROGRESSION.fragments += Math.max(1, Math.floor(dmg * 0.15));
+
+                // マルチフェーズ・ボスバトル：HPが50%を切った際にオーバーロード（暴走）形態へ変化
+                const hpRatio = this.bossHp / this.bossMaxHp;
+                if (hpRatio <= 0.5 && !this.bossOverloaded) {
+                    this.bossOverloaded = true;
+                    this.showComboText("WARNING: BOSS OVERLOAD PHASE REACHED!!");
+                    this.triggerFlash('#ff0055');
+                    this.triggerCameraShake('heavy');
+                    sound.playReach();
+                }
+
                 if (this.bossHp <= 0) {
                     this.bossHp = 0;
+                    GAME_PROGRESSION.exoticMaterials += 2;
                     this.nextStage();
                 }
                 const hpPct = `${Math.max(0, (this.bossHp / this.bossMaxHp) * 100)}%`;
                 document.getElementById('boss-hp-bar').style.width = hpPct;
-                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments}`;
+                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments} | EX: ${GAME_PROGRESSION.exoticMaterials}`;
             }
 
             nextStage() {
+                this.openRogueTerminal();
+            }
+
+            openRogueTerminal() {
+                this.gameState = 'ROGUE_SELECT';
+                const rogueModal = document.getElementById('rogue-modal');
+                rogueModal.classList.add('active');
+
+                const setupOpt = (id, type) => {
+                    const el = document.getElementById(id);
+                    const newEl = el.cloneNode(true);
+                    el.parentNode.replaceChild(newEl, el);
+                    newEl.addEventListener('click', () => {
+                        rogueModal.classList.remove('active');
+                        this.applyRogueChoice(type);
+                    });
+                };
+
+                setupOpt('rogue-opt-0', 'contract');
+                setupOpt('rogue-opt-1', 'market');
+                setupOpt('rogue-opt-2', 'bay');
+            }
+
+            applyRogueChoice(type) {
                 this.stage++;
-                this.bossMaxHp = Math.round(this.bossMaxHp * 1.5);
+                this.bossMaxHp = Math.round(this.bossMaxHp * 1.65);
                 this.bossHp = this.bossMaxHp;
-                this.timeRemaining += 15.0;
+                this.bossShieldActive = true;
+                this.bossOverloaded = false;
                 
-                const stageNames = ['STAGE 1: CYBER CITY', 'STAGE 2: NET CORE', 'STAGE 3: MATRIX OVERLOAD'];
-                const bossNames = ['BOSS: CORRUPT_CORE', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_GLITCH'];
+                const stageWeaknesses = ['7', 'BAR', 'PRISM'];
+                this.bossWeakness = stageWeaknesses[(this.stage - 1) % stageWeaknesses.length];
+
+                if (type === 'contract') {
+                    this.multiplier *= 2;
+                    this.timeRemaining += 10.0;
+                    this.showComboText("CONTRACT: MULTIPLIER x2!");
+                } else if (type === 'market') {
+                    GAME_PROGRESSION.fragments += 300;
+                    GAME_PROGRESSION.exoticMaterials += 3;
+                    this.skills.forEach(s => s.charge = s.maxCharge);
+                    this.timeRemaining += 15.0;
+                    this.showComboText("MARKET: +300 FRAGS & EXOTICS ACQUIRED!");
+                } else if (type === 'bay') {
+                    GAME_PROGRESSION.upgrades.timeBonus += 2;
+                    this.timeRemaining += 25.0;
+                    this.showComboText("MAINTENANCE: TIME EXTENDED!");
+                }
+
+                const stageNames = [`STAGE ${this.stage}: NET CORE (WEAK: ${this.bossWeakness})`, `STAGE ${this.stage}: MATRIX CORE`, `STAGE ${this.stage}: OMEGA GRID`];
+                const bossNames = ['BOSS: FROST_DEFENDER', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_EMP'];
                 
                 document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
                 document.getElementById('boss-name').innerText = bossNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-shield-badge').style.display = 'inline-block';
                 
-                this.showComboText(`STAGE CLEAR! +15.0s`);
+                this.gameState = 'PLAYING';
                 this.triggerFlash('#00f3ff');
                 sound.playFever();
+                this.triggerSpin();
             }
 
             triggerOverdriveMode() {
@@ -2020,32 +2084,94 @@
 
 <<<<<<<
             damageBoss(dmg) {
+                if (this.bossShieldActive && dmg < 400) {
+                    this.showComboText("SHIELD ACTIVE! DMG REDUCED");
+                    dmg *= 0.35;
+                }
                 this.bossHp -= dmg;
-                GAME_PROGRESSION.fragments += Math.floor(dmg * 0.1);
+                GAME_PROGRESSION.fragments += Math.max(1, Math.floor(dmg * 0.15));
+
+                // マルチフェーズ・ボスバトル：HPが50%を切った際にオーバーロード（暴走）形態へ変化
+                const hpRatio = this.bossHp / this.bossMaxHp;
+                if (hpRatio <= 0.5 && !this.bossOverloaded) {
+                    this.bossOverloaded = true;
+                    this.showComboText("WARNING: BOSS OVERLOAD PHASE REACHED!!");
+                    this.triggerFlash('#ff0055');
+                    this.triggerCameraShake('heavy');
+                    sound.playReach();
+                }
+
                 if (this.bossHp <= 0) {
                     this.bossHp = 0;
+                    GAME_PROGRESSION.exoticMaterials += 2;
                     this.nextStage();
                 }
                 const hpPct = `${Math.max(0, (this.bossHp / this.bossMaxHp) * 100)}%`;
                 document.getElementById('boss-hp-bar').style.width = hpPct;
-                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments}`;
+                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments} | EX: ${GAME_PROGRESSION.exoticMaterials}`;
             }
 
             nextStage() {
+                this.openRogueTerminal();
+            }
+
+            openRogueTerminal() {
+                this.gameState = 'ROGUE_SELECT';
+                const rogueModal = document.getElementById('rogue-modal');
+                rogueModal.classList.add('active');
+
+                const setupOpt = (id, type) => {
+                    const el = document.getElementById(id);
+                    const newEl = el.cloneNode(true);
+                    el.parentNode.replaceChild(newEl, el);
+                    newEl.addEventListener('click', () => {
+                        rogueModal.classList.remove('active');
+                        this.applyRogueChoice(type);
+                    });
+                };
+
+                setupOpt('rogue-opt-0', 'contract');
+                setupOpt('rogue-opt-1', 'market');
+                setupOpt('rogue-opt-2', 'bay');
+            }
+
+            applyRogueChoice(type) {
                 this.stage++;
-                this.bossMaxHp = Math.round(this.bossMaxHp * 1.5);
+                this.bossMaxHp = Math.round(this.bossMaxHp * 1.65);
                 this.bossHp = this.bossMaxHp;
-                this.timeRemaining += 15.0;
+                this.bossShieldActive = true;
+                this.bossOverloaded = false;
                 
-                const stageNames = ['STAGE 1: CYBER CITY', 'STAGE 2: NET CORE', 'STAGE 3: MATRIX OVERLOAD'];
-                const bossNames = ['BOSS: CORRUPT_CORE', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_GLITCH'];
+                const stageWeaknesses = ['7', 'BAR', 'PRISM'];
+                this.bossWeakness = stageWeaknesses[(this.stage - 1) % stageWeaknesses.length];
+
+                if (type === 'contract') {
+                    this.multiplier *= 2;
+                    this.timeRemaining += 10.0;
+                    this.showComboText("CONTRACT: MULTIPLIER x2!");
+                } else if (type === 'market') {
+                    GAME_PROGRESSION.fragments += 300;
+                    GAME_PROGRESSION.exoticMaterials += 3;
+                    this.skills.forEach(s => s.charge = s.maxCharge);
+                    this.timeRemaining += 15.0;
+                    this.showComboText("MARKET: +300 FRAGS & EXOTICS ACQUIRED!");
+                } else if (type === 'bay') {
+                    GAME_PROGRESSION.upgrades.timeBonus += 2;
+                    this.timeRemaining += 25.0;
+                    this.showComboText("MAINTENANCE: TIME EXTENDED!");
+                }
+
+                const stageNames = [`STAGE ${this.stage}: NET CORE (WEAK: ${this.bossWeakness})`, `STAGE ${this.stage}: MATRIX CORE`, `STAGE ${this.stage}: OMEGA GRID`];
+                const bossNames = ['BOSS: FROST_DEFENDER', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_EMP'];
                 
                 document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
                 document.getElementById('boss-name').innerText = bossNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-shield-badge').style.display = 'inline-block';
                 
-                this.showComboText(`STAGE CLEAR! +15.0s`);
+                this.gameState = 'PLAYING';
                 this.triggerFlash('#00f3ff');
                 sound.playFever();
+                this.triggerSpin();
             }
 ====
             damageBoss(dmg) {
@@ -2153,7 +2279,7 @@
             window.addEventListener('pointerdown', quickActionHandler, { once: true });
         };
 ====
-        // モーダル操作・ハクスラ強化システムの実装
+        // モーダル操作・ハクスラ強化システムの実装（サイバーハッキングデッキ対応）
         Game.prototype.openDexModal = function() {
             const container = document.getElementById('dex-items-container');
             container.innerHTML = '';
@@ -2207,13 +2333,13 @@
                 sound.playWin();
                 this.triggerFlash('#00f3ff');
                 if (idx === 0) {
-                    this.timeRemaining += 10.0;
-                    this.showComboText("TIME FREEZE: +10.0s");
+                    this.timeRemaining += 12.0;
+                    this.showComboText("DECK SUBROUTINE: TIME FREEZE +12s");
                 } else if (idx === 1) {
                     this.triggerOverdriveMode();
                 } else if (idx === 2) {
-                    this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.3);
-                    this.showComboText("RECONFIG: BOSS SHIELD BROKEN!");
+                    this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.35);
+                    this.showComboText("DECK SUBROUTINE: SHIELD ANNIHILATED!");
                     this.bossShieldActive = false;
                     document.getElementById('boss-shield-badge').style.display = 'none';
                 }
