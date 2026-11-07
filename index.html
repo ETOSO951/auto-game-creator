@@ -219,18 +219,18 @@
         .slot-frame::after {
             content: '';
             position: absolute;
-            top: 0; left: -160%; width: 160%; height: 100%;
-            background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.22) 48%, rgba(0, 243, 255, 0.12) 52%, transparent 62%);
+            top: 0; left: -180%; width: 180%; height: 100%;
+            background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.32) 47%, rgba(0, 243, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 53%, transparent 65%);
             pointer-events: none;
-            box-shadow: inset 0 0 40px rgba(0, 243, 255, 0.12);
-            animation: panel-reflection 3.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: inset 0 0 50px rgba(0, 243, 255, 0.18), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+            animation: panel-reflection 4.2s infinite cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         @keyframes panel-reflection {
-            0% { left: -160%; opacity: 0; }
-            15% { opacity: 1; }
-            35% { left: 160%; opacity: 0; }
-            100% { left: 160%; opacity: 0; }
+            0% { left: -180%; opacity: 0; }
+            10% { opacity: 1; }
+            30% { left: 180%; opacity: 0; }
+            100% { left: 180%; opacity: 0; }
         }
 
         /* リール線 */
@@ -350,10 +350,11 @@
         }
 
         .btn-stop:active, .btn-stop.pressed {
-            transform: translateY(4px) scale(0.97);
-            box-shadow: 0 2px 0 #0d0d18, 0 2px 10px rgba(0, 243, 255, 0.5);
-            background: linear-gradient(180deg, #4a4a70, #252545);
+            transform: translateY(5px) scale(0.96);
+            box-shadow: 0 1px 0 #0d0d18, 0 0 18px rgba(0, 243, 255, 0.7);
+            background: linear-gradient(180deg, #555580, #2c2c50);
             border-color: var(--secondary-neon);
+            transition: transform 0.04s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .btn-stop.active-ready {
@@ -389,8 +390,9 @@
         }
 
         .btn-spin:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px 0 #660022, 0 4px 10px rgba(255, 0, 85, 0.5);
+            transform: translateY(5px) scale(0.97);
+            box-shadow: 0 1px 0 #660022, 0 0 25px rgba(255, 0, 85, 0.8);
+            transition: transform 0.04s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .btn-auto {
@@ -1385,8 +1387,9 @@
             showComboText(text) {
                 this.comboPopup.innerText = text;
                 this.comboPopup.style.opacity = '1';
-                this.comboPopup.style.transform = 'translate(-50%, -50%) scale(1.2) rotate(-3deg)';
-                this.comboTimer = 0.4; // 400ms
+                this.comboPopup.style.transform = 'translate(-50%, -50%) scale(1.35) rotate(-4deg)';
+                this.comboPopup.style.transition = 'transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.4), opacity 0.15s ease-out';
+                this.comboTimer = 0.45; // 450ms
             }
 
             updateUI(force = false) {
@@ -1429,14 +1432,14 @@
                 const h = this.bgCanvas.height;
 
                 if (!this.particles) {
-                    // 多層的な視差深度（レイヤー奥行き）を持つパーティクル群の構築
-                    this.particles = Array.from({ length: 48 }, (_, i) => ({
+                    // よりリッチなマルチレイヤー・パララックスパーティクル群の構築
+                    this.particles = Array.from({ length: 64 }, (_, i) => ({
                         x: Math.random() * w,
                         y: Math.random() * h,
-                        vx: (Math.random() - 0.5) * 0.4,
-                        vy: (Math.random() - 0.5) * 0.4 - 0.2,
-                        size: Math.random() * 3.8 + 0.8,
-                        alpha: Math.random() * 0.65 + 0.15,
+                        vx: (Math.random() - 0.5) * 0.35,
+                        vy: (Math.random() - 0.5) * 0.35 - 0.25,
+                        size: Math.random() * 4.2 + 0.6,
+                        alpha: Math.random() * 0.75 + 0.2,
                         layer: i % 3 + 1 // 1:遠景, 2:中景, 3:近景
                     }));
                 }
@@ -1445,27 +1448,29 @@
 
                 const cx = w / 2;
                 const cy = h / 2;
-                const radius = Math.max(w, h) * 0.85;
+                const radius = Math.max(w, h) * 0.9;
 
-                const bgGrad = ctx.createRadialGradient(cx, cy, 15, cx, cy, radius);
+                // シネマティックなリッチグラデーション背景
+                const bgGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, radius);
                 if (this.isFever) {
-                    const pulse = Math.sin(now * 0.012) * 0.25 + 0.8;
-                    const hueShift = Math.sin(now * 0.004) * 25;
-                    bgGrad.addColorStop(0, `hsla(${335 + hueShift}, 100%, 35%, ${pulse * 0.98})`);
-                    bgGrad.addColorStop(0.5, '#220018');
-                    bgGrad.addColorStop(1, '#08020d');
+                    const pulse = Math.sin(now * 0.014) * 0.3 + 0.85;
+                    const hueShift = Math.sin(now * 0.005) * 30;
+                    bgGrad.addColorStop(0, `hsla(${330 + hueShift}, 100%, 40%, ${pulse * 0.95})`);
+                    bgGrad.addColorStop(0.45, '#2b0020');
+                    bgGrad.addColorStop(0.8, '#0d0216');
+                    bgGrad.addColorStop(1, '#04010a');
                 } else {
-                    bgGrad.addColorStop(0, '#141432');
-                    bgGrad.addColorStop(0.6, '#080816');
-                    bgGrad.addColorStop(1, '#030308');
+                    bgGrad.addColorStop(0, '#18183c');
+                    bgGrad.addColorStop(0.55, '#0a0a1e');
+                    bgGrad.addColorStop(1, '#030309');
                 }
                 ctx.fillStyle = bgGrad;
                 ctx.fillRect(0, 0, w, h);
 
-                // 立体深度（パララックス・ブーム効果）を伴うマルチレイヤー・パーティクル描画
+                // 立体深度を強調したマルチレイヤー・パララックスパーティクル描画
                 ctx.save();
                 this.particles.forEach(p => {
-                    const speedMultiplier = p.layer * (this.isFever ? 2.2 : 1.0);
+                    const speedMultiplier = p.layer * (this.isFever ? 2.4 : 1.0);
                     p.x += p.vx * speedMultiplier;
                     p.y += p.vy * speedMultiplier;
                     if (p.x < 0) p.x = w;
@@ -1473,29 +1478,31 @@
                     if (p.y < 0) p.y = h;
                     if (p.y > h) p.y = 0;
 
-                    const currentAlpha = p.alpha * (p.layer * 0.45);
+                    const currentAlpha = p.alpha * (p.layer * 0.38 + 0.2);
                     ctx.shadowColor = this.isFever ? '#ff0055' : '#00f3ff';
-                    ctx.shadowBlur = p.layer * 6;
-                    ctx.fillStyle = this.isFever ? `rgba(255, 20, 120, ${currentAlpha})` : `rgba(0, 243, 255, ${currentAlpha})`;
+                    ctx.shadowBlur = p.layer * 8;
+                    ctx.fillStyle = this.isFever ? `rgba(255, 30, 130, ${currentAlpha})` : `rgba(0, 243, 255, ${currentAlpha})`;
                     ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.size * (p.layer * 0.4 + 0.4), 0, Math.PI * 2);
+                    ctx.arc(p.x, p.y, p.size * (p.layer * 0.35 + 0.45), 0, Math.PI * 2);
                     ctx.fill();
                 });
                 ctx.restore();
 
-                // 呼吸するオーガニックな光の多重同心環と立体グロー
+                // 空気感が熱を帯びて発光するようなシネマティックな同心環とライティング
                 ctx.save();
-                const ringPulse = Math.sin(now * 0.006) * 0.05 + 1.0;
-                ctx.strokeStyle = this.isFever ? 'rgba(255, 0, 90, 0.3)' : 'rgba(0, 243, 255, 0.12)';
-                ctx.lineWidth = 2.5;
+                const ringPulse = Math.sin(now * 0.005) * 0.06 + 1.0;
+                const ringPulse2 = Math.cos(now * 0.004) * 0.08 + 1.0;
+
+                ctx.strokeStyle = this.isFever ? 'rgba(255, 0, 100, 0.35)' : 'rgba(0, 243, 255, 0.15)';
+                ctx.lineWidth = 2.2;
                 ctx.beginPath();
-                ctx.arc(cx, cy, Math.min(w, h) * 0.38 * ringPulse, 0, Math.PI * 2);
+                ctx.arc(cx, cy, Math.min(w, h) * 0.42 * ringPulse, 0, Math.PI * 2);
                 ctx.stroke();
 
-                ctx.strokeStyle = this.isFever ? 'rgba(255, 230, 0, 0.18)' : 'rgba(255, 255, 255, 0.05)';
-                ctx.lineWidth = 1.8;
+                ctx.strokeStyle = this.isFever ? 'rgba(255, 220, 0, 0.22)' : 'rgba(255, 255, 255, 0.06)';
+                ctx.lineWidth = 1.5;
                 ctx.beginPath();
-                ctx.arc(cx, cy, Math.min(w, h) * 0.52 / ringPulse, 0, Math.PI * 2);
+                ctx.arc(cx, cy, Math.min(w, h) * 0.58 / ringPulse2, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.restore();
             }
