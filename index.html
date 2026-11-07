@@ -913,6 +913,11 @@
                     <span id="fragment-display" style="font-size: 9px; color: var(--accent-gold);">FRAG: 0</span>
                 </div>
             </div>
+            <!-- 新機能：サイバー・バウンティ（懸賞金）クエスト インジケーター -->
+            <div id="bounty-quest-bar" style="width: 100%; background: rgba(0,243,255,0.1); border: 1px dashed rgba(0,243,255,0.4); border-radius: 6px; padding: 3px 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 9px; font-family: var(--font-family); color: var(--secondary-neon);">
+                <span id="bounty-text">QUEST: SPIN & ACHIEVE COMBO CHAIN (0/3)</span>
+                <span id="bounty-reward" style="color: var(--accent-gold);">REWARD: +200 FRAG</span>
+            </div>
             <!-- BOSS HP BAR -->
             <div class="fever-container" style="height: 6px; margin-bottom: 6px; background: rgba(255,0,85,0.15);">
                 <div class="fever-bar" id="boss-hp-bar" style="width: 100%; background: linear-gradient(90deg, var(--primary-neon), var(--accent-gold));"></div>
@@ -1324,17 +1329,17 @@
         const sound = new SoundEngine();
 
         /**
-         * シンボルデータ定義
+         * シンボルデータ定義（新機能：エレメント属性システム統合）
          */
         const SYMBOLS = [
-            { id: '7', color: '#ff0055', score: 500, label: '7' },
-            { id: 'BAR', color: '#ffe600', score: 300, label: 'BAR' },
-            { id: 'GEM', color: '#00f3ff', score: 200, label: '★' },
-            { id: 'PRISM', color: '#ff00ff', score: 900, label: '💎' },
-            { id: 'BOMB', color: '#ff3300', score: 600, label: '💣' },
-            { id: 'BELL', color: '#ff9900', score: 150, label: '🔔' },
-            { id: 'CHERRY', color: '#ff2244', score: 100, label: '🍒' },
-            { id: 'LEMON', color: '#ccff00', score: 50, label: '🍋' }
+            { id: '7', color: '#ff0055', score: 500, label: '7', element: 'FIRE' },
+            { id: 'BAR', color: '#ffe600', score: 300, label: 'BAR', element: 'ELECTRIC' },
+            { id: 'GEM', color: '#00f3ff', score: 200, label: '★', element: 'ICE' },
+            { id: 'PRISM', color: '#ff00ff', score: 900, label: '💎', element: 'FIRE' },
+            { id: 'BOMB', color: '#ff3300', score: 600, label: '💣', element: 'ELECTRIC' },
+            { id: 'BELL', color: '#ff9900', score: 150, label: '🔔', element: 'ICE' },
+            { id: 'CHERRY', color: '#ff2244', score: 100, label: '🍒', element: 'FIRE' },
+            { id: 'LEMON', color: '#ccff00', score: 50, label: '🍋', element: 'ELECTRIC' }
         ];
 
         // ハクスラ・プログレッション＆モジュール拡張スロットシステム用データ（エキゾチックマテリアル対応）
@@ -1765,7 +1770,9 @@
                 this.bossMaxHp = 1000;
                 this.bossHp = this.bossMaxHp;
                 this.bossShieldActive = true;
-                this.bossWeakness = '7'; // ステージごとの弱点シンボル
+                this.bossElementWeakness = 'FIRE'; // エレメント属性弱点
+                this.activePassives = []; // ハックパスポート（パーク）
+                this.bountyQuest = { type: 'COMBO', target: 3, current: 0, text: 'QUEST: ACHIEVE 3 COMBO CHAIN', reward: 250 };
                 this.comboChain = 0;
                 this.isOverdrive = false;
                 this.feverGauge = 0;
@@ -1779,9 +1786,10 @@
 
                 document.getElementById('start-screen').classList.add('hidden');
                 document.getElementById('gameover-screen').classList.add('hidden');
-                document.getElementById('stage-badge').innerText = 'STAGE 1: FIREWALL (WEAK: 7)';
+                document.getElementById('stage-badge').innerText = 'STAGE 1: FIREWALL (ELEM WEAK: FIRE)';
                 document.getElementById('boss-name').innerText = 'BOSS: VULCAN_CORE';
                 document.getElementById('boss-shield-badge').style.display = 'inline-block';
+                this.updateBountyDisplay();
 
                 this.updateUI(true);
                 this.triggerSpin();
@@ -1904,15 +1912,15 @@
                 const hasBomb = [s0, s1, s2].some(s => s.id === 'BOMB');
                 const prismBonus = (GAME_PROGRESSION.upgrades.prismBoost + 1);
 
-                // ボス弱点シンボル一致による特効ボーナス
-                const isWeaknessHit = [s0, s1, s2].some(s => s.id === this.bossWeakness);
-                const weaknessMultiplier = isWeaknessHit ? 1.8 : 1.0;
+                // エレメント属性の弱点一致による「オーバーロード特効」ボーナス算出
+                const matchedElements = [s0, s1, s2].filter(s => s.element === this.bossElementWeakness);
+                const elementMultiplier = 1.0 + (matchedElements.length * 0.45);
 
                 // 全揃い (JACKPOT)
                 if (s0.id === s1.id && s1.id === s2.id) {
-                    winAmount = s0.score * 3 * this.multiplier * prismBonus * weaknessMultiplier;
-                    damageToBoss = winAmount * 2.0;
-                    comboText = `JACKPOT! (WEAK HIT!) +${Math.round(winAmount)}`;
+                    winAmount = s0.score * 3 * this.multiplier * prismBonus * elementMultiplier;
+                    damageToBoss = winAmount * 2.2;
+                    comboText = `JACKPOT! (ELEM SYNTH!) +${Math.round(winAmount)}`;
                     this.reels.forEach(r => r.isHighlighted = true);
                     this.paylineEl.classList.add('active-win');
                     this.triggerFlash('#ffe600');
@@ -1920,37 +1928,39 @@
                     sound.playWin();
                     this.addFever(35);
                     this.comboChain++;
+                    this.checkBountyProgress('JACKPOT');
                 } 
                 // テンパイヒット（左2つ、右2つ、両端）またはボム誘発
                 else if (s0.id === s1.id || s1.id === s2.id || s0.id === s2.id || hasBomb) {
                     if (s0.id === s1.id) {
                         this.reels[0].isHighlighted = true;
                         this.reels[1].isHighlighted = true;
-                        winAmount = s0.score * this.multiplier * prismBonus * weaknessMultiplier;
+                        winAmount = s0.score * this.multiplier * prismBonus * elementMultiplier;
                     } else if (s1.id === s2.id) {
                         this.reels[1].isHighlighted = true;
                         this.reels[2].isHighlighted = true;
-                        winAmount = s1.score * this.multiplier * prismBonus * weaknessMultiplier;
+                        winAmount = s1.score * this.multiplier * prismBonus * elementMultiplier;
                     } else if (s0.id === s2.id) {
                         this.reels[0].isHighlighted = true;
                         this.reels[2].isHighlighted = true;
-                        winAmount = s0.score * this.multiplier * prismBonus * weaknessMultiplier;
+                        winAmount = s0.score * this.multiplier * prismBonus * elementMultiplier;
                     } else if (hasBomb) {
                         this.reels.forEach(r => r.isHighlighted = true);
-                        winAmount = 400 * this.multiplier * prismBonus * weaknessMultiplier;
+                        winAmount = 400 * this.multiplier * prismBonus * elementMultiplier;
                     }
                     damageToBoss = winAmount;
                     comboText = `CHAIN x${++this.comboChain}! +${Math.round(winAmount)}`;
                     this.paylineEl.classList.add('active-win');
                     sound.playWin();
                     this.addFever(hasBomb ? 25 : 15);
+                    this.checkBountyProgress('CHAIN');
                 } else {
                     this.comboChain = 0;
                     this.addFever(5);
-                    // エキゾチックモジュール「CHRONO REWIND CIRCUIT」発動判定
-                    if (GAME_PROGRESSION.modules.rewindActive && Math.random() < 0.15) {
-                        this.timeRemaining += 1.5;
-                        this.showComboText("REWIND CIRCUIT: +1.5s!");
+                    // ハックパスポート（パーク）またはエキゾチックモジュール「REWIND」発動判定
+                    if ((GAME_PROGRESSION.modules.rewindActive || this.activePassives.includes('REWIND')) && Math.random() < 0.2) {
+                        this.timeRemaining += 2.0;
+                        this.showComboText("HACK PASSPORT: TIME REWIND +2s!");
                     }
                 }
 
@@ -1971,6 +1981,31 @@
 
                 this.updateUI();
                 this.evalTimer = winAmount > 0 ? 0.35 : 0.12;
+            }
+
+            checkBountyProgress(type) {
+                if (this.bountyQuest && this.bountyQuest.type === type) {
+                    this.bountyQuest.current++;
+                    if (this.bountyQuest.current >= this.bountyQuest.target) {
+                        GAME_PROGRESSION.fragments += this.bountyQuest.reward;
+                        this.showComboText(`BOUNTY COMPLETED! +${this.bountyQuest.reward} FRAGS`);
+                        sound.playWin();
+                        // 次のランダムバウンティクエストを生成
+                        const quests = [
+                            { type: 'JACKPOT', target: 1, current: 0, text: 'QUEST: LAND A JACKPOT', reward: 400 },
+                            { type: 'CHAIN', target: 2, current: 0, text: 'QUEST: SCORE 2 WINS IN A ROW', reward: 300 }
+                        ];
+                        this.bountyQuest = quests[Math.floor(Math.random() * quests.length)];
+                    }
+                    this.updateBountyDisplay();
+                }
+            }
+
+            updateBountyDisplay() {
+                if (this.bountyQuest) {
+                    document.getElementById('bounty-text').innerText = `${this.bountyQuest.text} (${this.bountyQuest.current}/${this.bountyQuest.target})`;
+                    document.getElementById('bounty-reward').innerText = `REWARD: +${this.bountyQuest.reward} FRAG`;
+                }
             }
 
             damageBoss(dmg) {
@@ -2222,33 +2257,29 @@
                 this.bossShieldActive = true;
                 this.bossOverloaded = false;
                 
-                const stageWeaknesses = ['7', 'BAR', 'PRISM'];
-                this.bossWeakness = stageWeaknesses[(this.stage - 1) % stageWeaknesses.length];
+                const elements = ['FIRE', 'ELECTRIC', 'ICE'];
+                this.bossElementWeakness = elements[(this.stage - 1) % elements.length];
 
                 if (type === 'contract') {
                     this.multiplier *= 2;
-                    this.timeRemaining += 10.0;
-                    this.showComboText("CONTRACT: MULTIPLIER x2!");
+                    this.timeRemaining += 12.0;
+                    this.activePassives.push('OVERCLOCK_PASSPORT');
+                    this.showComboText("HACK PASSPORT: OVERCLOCK CONTRACT EQUIPPED!");
                 } else if (type === 'market') {
-                    GAME_PROGRESSION.fragments += 300;
+                    GAME_PROGRESSION.fragments += 350;
                     GAME_PROGRESSION.exoticMaterials += 3;
                     this.skills.forEach(s => s.charge = s.maxCharge);
-                    this.timeRemaining += 15.0;
-                    this.showComboText("MARKET: +300 FRAGS & EXOTICS ACQUIRED!");
+                    this.timeRemaining += 18.0;
+                    this.activePassives.push('MARKET_BOOST');
+                    this.showComboText("HACK PASSPORT: BLACK MARKET SYNDICATE!");
                 } else if (type === 'bay') {
                     GAME_PROGRESSION.upgrades.timeBonus += 2;
-                    this.timeRemaining += 25.0;
-                    this.showComboText("MAINTENANCE: TIME EXTENDED!");
+                    this.timeRemaining += 30.0;
+                    this.activePassives.push('REWIND');
+                    this.showComboText("HACK PASSPORT: CHRONO REWIND INSTALLED!");
                 }
 
-                // ステージごとの動的ギミック演出適応
-                if (this.stage === 2) {
-                    this.showComboText("STAGE 2: DATASTREAM ANOMALY ACTIVE!");
-                } else if (this.stage >= 3) {
-                    this.showComboText("STAGE 3: OMEGA OVERCLOCK HAZARD!");
-                }
-
-                const stageNames = [`STAGE ${this.stage}: NET CORE (WEAK: ${this.bossWeakness})`, `STAGE ${this.stage}: MATRIX CORE`, `STAGE ${this.stage}: OMEGA GRID`];
+                const stageNames = [`STAGE ${this.stage}: NET CORE (WEAK ELEM: ${this.bossElementWeakness})`, `STAGE ${this.stage}: MATRIX CORE`, `STAGE ${this.stage}: OMEGA GRID`];
                 const bossNames = ['BOSS: FROST_DEFENDER', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_EMP'];
                 
                 document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
