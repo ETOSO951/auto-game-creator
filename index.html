@@ -32,6 +32,172 @@
             color: #fff;
         }
 
+        /* 新機能：ステージインジケーター & スキルパネル & 図鑑ボタン */
+        .hud-top-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 11px;
+            font-family: var(--font-family);
+            letter-spacing: 1px;
+            color: var(--secondary-neon);
+        }
+
+        .stage-badge {
+            background: rgba(0, 243, 255, 0.15);
+            border: 1px solid var(--secondary-neon);
+            padding: 3px 8px;
+            border-radius: 6px;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+
+        .btn-dex {
+            background: rgba(255, 230, 0, 0.15);
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 3px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-family);
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .btn-dex:active { transform: scale(0.95); background: rgba(255, 230, 0, 0.4); }
+
+        /* スキル発動パネル */
+        .skill-panel {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+            margin-bottom: 6px;
+        }
+
+        .btn-skill {
+            flex: 1;
+            height: 36px;
+            background: linear-gradient(135deg, rgba(30, 30, 50, 0.85), rgba(15, 15, 30, 0.95));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #8a8aa0;
+            font-family: var(--font-family);
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.15s;
+        }
+
+        .btn-skill.ready {
+            border-color: var(--secondary-neon);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+            background: linear-gradient(135deg, rgba(0, 100, 150, 0.8), rgba(0, 40, 80, 0.9));
+        }
+
+        .btn-skill.ready:active {
+            transform: scale(0.95);
+        }
+
+        .skill-gauge-fill {
+            position: absolute;
+            bottom: 0; left: 0; height: 3px;
+            background: var(--secondary-neon);
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        /* コレクション・図鑑・ハクスラ強化モーダル */
+        .modal-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 5, 15, 0.92);
+            backdrop-filter: blur(12px);
+            z-index: 60;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 10px;
+        }
+
+        .modal-title {
+            font-family: var(--font-family);
+            font-size: 22px;
+            color: var(--accent-gold);
+        }
+
+        .btn-close-modal {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-family);
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-right: 4px;
+        }
+
+        .dex-item {
+            background: rgba(25, 25, 45, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dex-item.unlocked {
+            border-color: var(--secondary-neon);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+        }
+
+        .dex-info h4 {
+            font-size: 13px;
+            color: #fff;
+            margin-bottom: 2px;
+        }
+
+        .dex-info p {
+            font-size: 10px;
+            color: #8a8aa0;
+        }
+
+        .dex-status {
+            font-family: var(--font-family);
+            font-size: 12px;
+            color: var(--accent-gold);
+        }
+
         /* 画面全体揺れ・カメラワーク用コンテナ */
         #viewport {
             width: 100%;
@@ -700,6 +866,28 @@
         <canvas id="bg-canvas"></canvas>
 
         <div class="ui-layer">
+            <!-- HUD TOP BAR -->
+            <div class="hud-top-bar">
+                <div class="stage-badge" id="stage-badge">STAGE 1: CYBER CITY</div>
+                <button class="btn-dex" id="btn-dex">DEX / UPGRADE</button>
+            </div>
+
+            <!-- SKILL PANEL -->
+            <div class="skill-panel">
+                <button class="btn-skill" id="btn-skill-0">
+                    <span id="skill-name-0">TIME FREEZE</span>
+                    <div class="skill-gauge-fill" id="skill-gauge-0"></div>
+                </button>
+                <button class="btn-skill" id="btn-skill-1">
+                    <span id="skill-name-1">OVERCLOCK</span>
+                    <div class="skill-gauge-fill" id="skill-gauge-1"></div>
+                </button>
+                <button class="btn-skill" id="btn-skill-2">
+                    <span id="skill-name-2">RECONFIG</span>
+                    <div class="skill-gauge-fill" id="skill-gauge-2"></div>
+                </button>
+            </div>
+
             <!-- HEADER -->
             <div class="header-ui">
                 <div class="stat-box">
@@ -763,6 +951,17 @@
             <span id="final-score">0</span>
         </div>
         <button class="btn-start" id="btn-restart">RETRY</button>
+    </div>
+
+    <!-- DEX & UPGRADE MODAL -->
+    <div class="modal-overlay" id="dex-modal">
+        <div class="modal-header">
+            <div class="modal-title">ARCHIVE & UPGRADES</div>
+            <button class="btn-close-modal" id="btn-close-dex">CLOSE</button>
+        </div>
+        <div class="modal-body" id="dex-modal-body">
+            <!-- Dynamically populated -->
+        </div>
     </div>
 
     <script>
@@ -1013,11 +1212,30 @@
             { id: '7', color: '#ff0055', score: 500, label: '7' },
             { id: 'BAR', color: '#ffe600', score: 300, label: 'BAR' },
             { id: 'GEM', color: '#00f3ff', score: 200, label: '★' },
-            { id: 'PRISM', color: '#ff00ff', score: 800, label: '💎' }, // ラッシュモード限定超高配当レアプリズムシンボル
+            { id: 'PRISM', color: '#ff00ff', score: 800, label: '💎' },
             { id: 'BELL', color: '#ff9900', score: 150, label: '🔔' },
             { id: 'CHERRY', color: '#ff2244', score: 100, label: '🍒' },
             { id: 'LEMON', color: '#ccff00', score: 50, label: '🍋' }
         ];
+
+        // ハクスラ・プログレッション＆スキルシステム用データ
+        const GAME_PROGRESSION = {
+            fragments: 0,
+            upgrades: {
+                feverEfficiency: 0, // レベル0〜3
+                timeBonus: 0,       // レベル0〜3
+                prismBoost: 0       // レベル0〜3
+            },
+            dex: {
+                '7': { name: 'NEON 7', desc: 'Standard high-value symbol.', unlocked: true },
+                'BAR': { name: 'GOLD BAR', desc: 'Classic medium-value symbol.', unlocked: true },
+                'GEM': { name: 'CYBER GEM', desc: 'Energetic star symbol.', unlocked: true },
+                'PRISM': { name: 'PRISM DIAMOND', desc: 'Rare Rush-mode ultimate symbol.', unlocked: false },
+                'BELL': { name: 'NEON BELL', desc: 'Ringing reward symbol.', unlocked: true },
+                'CHERRY': { name: 'SYNTH CHERRY', desc: 'Sweet small win symbol.', unlocked: true },
+                'LEMON': { name: 'DIGITAL LEMON', desc: 'Basic fruit symbol.', unlocked: true }
+            }
+        };
 
         /**
          * Canvas描画キャッシュ管理（描画パフォーマンス極限最適化）
@@ -1252,12 +1470,21 @@
                 this.score = 0;
                 this.multiplier = 1;
                 this.timeRemaining = 45.0;
+                this.stage = 1;
                 this.feverGauge = 0;
                 this.isFever = false;
                 this.gameState = 'START'; // START, PLAYING, GAMEOVER
                 this.isEvaluating = false;
                 this.isReach = false;
                 this.autoMode = false;
+
+                // スキルシステムの状態変数
+                this.skills = [
+                    { name: 'TIME FREEZE', charge: 100, maxCharge: 100, active: false },
+                    { name: 'OVERCLOCK', charge: 100, maxCharge: 100, active: false },
+                    { name: 'RECONFIG', charge: 100, maxCharge: 100, active: false }
+                ];
+
                 // dt駆動の一元タイマーマネージャー
                 this.evalTimer = -1;
                 this.autoStopTimers = [-1, -1, -1];
@@ -1349,6 +1576,15 @@
                     }
                 });
 
+                // スキルボタンリスナー
+                for (let i = 0; i < 3; i++) {
+                    addFastListener(document.getElementById(`btn-skill-${i}`), () => this.useSkill(i));
+                }
+
+                // 図鑑・アップグレードモーダルリスナー
+                addFastListener(document.getElementById('btn-dex'), () => this.openDexModal());
+                addFastListener(document.getElementById('btn-close-dex'), () => this.closeDexModal());
+
                 window.addEventListener('keydown', (e) => {
                     if (this.gameState !== 'PLAYING' || e.repeat) return;
                     sound.init();
@@ -1391,15 +1627,18 @@
                 sound.init();
                 this.score = 0;
                 this.multiplier = 1;
-                this.timeRemaining = 45.0;
+                this.timeRemaining = 45.0 + (GAME_PROGRESSION.upgrades.timeBonus * 5);
+                this.stage = 1;
                 this.feverGauge = 0;
                 this.isFever = false;
                 this.isEvaluating = false;
+                this.skills.forEach(s => s.charge = s.maxCharge);
                 this.clearAutoTimers();
                 this.gameState = 'PLAYING';
 
                 document.getElementById('start-screen').classList.add('hidden');
                 document.getElementById('gameover-screen').classList.add('hidden');
+                document.getElementById('stage-badge').innerText = 'STAGE 1: CYBER CITY';
 
                 this.updateUI(true);
                 this.triggerSpin();
