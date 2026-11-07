@@ -2076,112 +2076,7 @@
             }
 
 <<<<<<<
-            damageBoss(dmg) {
-                if (this.bossShieldActive && dmg < 400) {
-                    this.showComboText("SHIELD ACTIVE! DMG REDUCED");
-                    dmg *= 0.35;
-                }
-                this.bossHp -= dmg;
-                GAME_PROGRESSION.fragments += Math.max(1, Math.floor(dmg * 0.15));
-                if (this.bossHp <= 0) {
-                    this.bossHp = 0;
-                    this.nextStage();
-                }
-                const hpPct = `${Math.max(0, (this.bossHp / this.bossMaxHp) * 100)}%`;
-                document.getElementById('boss-hp-bar').style.width = hpPct;
-                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments}`;
-            }
-
-            nextStage() {
-                this.openRogueTerminal();
-            }
-
-            openRogueTerminal() {
-                this.gameState = 'ROGUE_SELECT';
-                const rogueModal = document.getElementById('rogue-modal');
-                rogueModal.classList.add('active');
-                
-                sound.playReach();
-                this.triggerCameraShake('medium');
-
-                // ハッカーターミナル：極上のハッキングフィードバックとライティング連動
-                const setupOpt = (id, type, glowColor, pitch) => {
-                    const el = document.getElementById(id);
-                    const newEl = el.cloneNode(true);
-                    el.parentNode.replaceChild(newEl, el);
-                    
-                    const handleHover = () => {
-                        rogueModal.style.boxShadow = `inset 0 0 100px ${glowColor}, 0 0 30px ${glowColor}`;
-                        sound.playSynthWave(pitch, 'sawtooth', 0.05, 0.06);
-                        newEl.style.transform = 'scale(1.02) translateY(-2px)';
-                    };
-                    const handleLeave = () => {
-                        rogueModal.style.boxShadow = 'none';
-                        newEl.style.transform = 'none';
-                    };
-
-                    newEl.addEventListener('pointerenter', handleHover, { passive: true });
-                    newEl.addEventListener('pointerleave', handleLeave, { passive: true });
-                    newEl.addEventListener('touchstart', handleHover, { passive: true });
-
-                    newEl.addEventListener('click', () => {
-                        rogueModal.style.boxShadow = 'none';
-                        rogueModal.classList.remove('active');
-                        sound.playStop(1.5);
-                        this.triggerFlash('#00f3ff');
-                        this.applyRogueChoice(type);
-                    });
-                };
-
-                setupOpt('rogue-opt-0', 'contract', 'rgba(0, 243, 255, 0.45)', 587.33);
-                setupOpt('rogue-opt-1', 'market', 'rgba(255, 230, 0, 0.45)', 783.99);
-                setupOpt('rogue-opt-2', 'bay', 'rgba(255, 0, 85, 0.45)', 1046.50);
-            }
-
-            applyRogueChoice(type) {
-                this.stage++;
-                this.bossMaxHp = Math.round(this.bossMaxHp * 1.65);
-                this.bossHp = this.bossMaxHp;
-                this.bossShieldActive = true;
-                this.bossOverloaded = false;
-                
-                const elements = ['FIRE', 'ELECTRIC', 'ICE'];
-                this.bossElementWeakness = elements[(this.stage - 1) % elements.length];
-
-                if (type === 'contract') {
-                    this.multiplier *= 2;
-                    this.timeRemaining += 12.0;
-                    this.activePassives.push('OVERCLOCK_PASSPORT');
-                    this.showComboText("HACK PASSPORT: OVERCLOCK CONTRACT EQUIPPED!");
-                } else if (type === 'market') {
-                    GAME_PROGRESSION.fragments += 350;
-                    GAME_PROGRESSION.exoticMaterials += 3;
-                    this.skills.forEach(s => s.charge = s.maxCharge);
-                    this.timeRemaining += 18.0;
-                    this.activePassives.push('MARKET_BOOST');
-                    this.showComboText("HACK PASSPORT: BLACK MARKET SYNDICATE!");
-                } else if (type === 'bay') {
-                    GAME_PROGRESSION.upgrades.timeBonus += 2;
-                    this.timeRemaining += 30.0;
-                    this.activePassives.push('REWIND');
-                    this.showComboText("HACK PASSPORT: CHRONO REWIND INSTALLED!");
-                }
-
-                const stageNames = [`STAGE ${this.stage}: NET CORE (WEAK ELEM: ${this.bossElementWeakness})`, `STAGE ${this.stage}: MATRIX CORE`, `STAGE ${this.stage}: OMEGA GRID`];
-                const bossNames = ['BOSS: FROST_DEFENDER', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_EMP'];
-                
-                document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
-                document.getElementById('boss-name').innerText = bossNames[Math.min(this.stage - 1, 2)];
-                document.getElementById('boss-shield-badge').style.display = 'inline-block';
-                
-                this.gameState = 'PLAYING';
-                this.triggerFlash('#00f3ff');
-                sound.playFever();
-                this.triggerSpin();
-            }
-====
-
-<<<<<<<
+<<<<
         // グリッチバグ撃破ボーナスギミックのメソッド追加
         Game.prototype.triggerGlitchBug = function() {
             const alertEl = document.getElementById('glitch-alert');
@@ -2456,7 +2351,7 @@
             }
 ====
 
-<<<<<<<
+<<<<
         // グリッチバグ撃破ボーナスギミックのメソッド追加
         Game.prototype.triggerGlitchBug = function() {
             const alertEl = document.getElementById('glitch-alert');
@@ -2631,6 +2526,571 @@
                 sound.playReach();
                 this.triggerCameraShake('medium');
 
+                const setupOpt = (id, type, glowColor, pitch) => {
+                    const el = document.getElementById(id);
+                    const newEl = el.cloneNode(true);
+                    el.parentNode.replaceChild(newEl, el);
+                    
+                    const handleHover = () => {
+                        rogueModal.style.boxShadow = `inset 0 0 100px ${glowColor}, 0 0 30px ${glowColor}`;
+                        sound.playSynthWave(pitch, 'sawtooth', 0.05, 0.06);
+                        newEl.style.transform = 'scale(1.02) translateY(-2px)';
+                    };
+                    const handleLeave = () => {
+                        rogueModal.style.boxShadow = 'none';
+                        newEl.style.transform = 'none';
+                    };
+
+                    newEl.addEventListener('pointerenter', handleHover, { passive: true });
+                    newEl.addEventListener('pointerleave', handleLeave, { passive: true });
+                    newEl.addEventListener('touchstart', handleHover, { passive: true });
+
+                    newEl.addEventListener('click', () => {
+                        rogueModal.style.boxShadow = 'none';
+                        rogueModal.classList.remove('active');
+                        sound.playStop(1.5);
+                        this.triggerFlash('#00f3ff');
+                        this.applyRogueChoice(type);
+                    });
+                };
+
+                setupOpt('rogue-opt-0', 'contract', 'rgba(0, 243, 255, 0.45)', 587.33);
+                setupOpt('rogue-opt-1', 'market', 'rgba(255, 230, 0, 0.45)', 783.99);
+                setupOpt('rogue-opt-2', 'bay', 'rgba(255, 0, 85, 0.45)', 1046.50);
+            }
+
+            applyRogueChoice(type) {
+                this.stage++;
+                this.bossMaxHp = Math.round(this.bossMaxHp * 1.65);
+                this.bossHp = this.bossMaxHp;
+                this.bossShieldActive = true;
+                this.bossOverloaded = false;
+                
+                const elements = ['FIRE', 'ELECTRIC', 'ICE'];
+                this.bossElementWeakness = elements[(this.stage - 1) % elements.length];
+
+                if (type === 'contract') {
+                    this.multiplier *= 2;
+                    this.timeRemaining += 12.0;
+                    this.activePassives.push('OVERCLOCK_PASSPORT');
+                    this.showComboText("HACK PASSPORT: OVERCLOCK CONTRACT EQUIPPED!");
+                } else if (type === 'market') {
+                    GAME_PROGRESSION.fragments += 350;
+                    GAME_PROGRESSION.exoticMaterials += 3;
+                    this.skills.forEach(s => s.charge = s.maxCharge);
+                    this.timeRemaining += 18.0;
+                    this.activePassives.push('MARKET_BOOST');
+                    this.showComboText("HACK PASSPORT: BLACK MARKET SYNDICATE!");
+                } else if (type === 'bay') {
+                    GAME_PROGRESSION.upgrades.timeBonus += 2;
+                    this.timeRemaining += 30.0;
+                    this.activePassives.push('REWIND');
+                    this.showComboText("HACK PASSPORT: CHRONO REWIND INSTALLED!");
+                }
+
+                const stageNames = [`STAGE ${this.stage}: NET CORE (WEAK ELEM: ${this.bossElementWeakness})`, `STAGE ${this.stage}: MATRIX CORE`, `STAGE ${this.stage}: OMEGA GRID`];
+                const bossNames = ['BOSS: FROST_DEFENDER', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_EMP'];
+                
+                document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-name').innerText = bossNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-shield-badge').style.display = 'inline-block';
+                
+                this.gameState = 'PLAYING';
+                this.triggerFlash('#00f3ff');
+                sound.playFever();
+                this.triggerSpin();
+            }
+
+            addFever(amount) {
+                if (this.isFever) return;
+                const efficiencyBonus = 1.0 + (GAME_PROGRESSION.upgrades.feverEfficiency * 0.1);
+                this.feverGauge += amount * efficiencyBonus;
+                if (this.feverGauge >= 100) {
+                    this.triggerFeverMode();
+                }
+            }
+
+            triggerOverdriveMode() {
+                this.isOverdrive = true;
+                this.multiplier = (this.isFever ? 4 : 1) * 2;
+                this.showComboText("CYBER OVERDRIVE!!");
+                this.triggerFlash('#ff0055');
+                sound.playFever();
+            }
+
+            openDexModal() {
+                const container = document.getElementById('dex-items-container');
+                container.innerHTML = '';
+                for (const [key, val] of Object.entries(GAME_PROGRESSION.dex)) {
+                    const item = document.createElement('div');
+                    item.className = 'dex-item unlocked';
+                    item.innerHTML = `
+                        <div class="dex-info">
+                            <h4>${val.name}</h4>
+                            <p>${val.desc}</p>
+                        </div>
+                        <div class="dex-status">UNLOCKED</div>
+                    `;
+                    container.appendChild(item);
+                }
+
+                const updateAffordable = (btnId, cost) => {
+                    const btn = document.getElementById(btnId);
+                    if (btn) {
+                        if (GAME_PROGRESSION.fragments >= cost) {
+                            btn.classList.add('affordable');
+                        } else {
+                            btn.classList.remove('affordable');
+                        }
+                    }
+                };
+                updateAffordable('upg-fever', 50);
+                updateAffordable('upg-time', 50);
+                updateAffordable('upg-prism', 75);
+
+                document.getElementById('dex-modal').classList.add('active');
+            }
+
+            closeDexModal() {
+                document.getElementById('dex-modal').classList.remove('active');
+            }
+
+            buyUpgrade(type, cost) {
+                if (GAME_PROGRESSION.fragments >= cost) {
+                    GAME_PROGRESSION.fragments -= cost;
+                    GAME_PROGRESSION.upgrades[type]++;
+                    sound.playWin();
+                    this.updateUI(true);
+                    this.openDexModal();
+                } else {
+                    sound.playStop(0.5);
+                }
+            }
+
+            triggerCyberAnomaly() {
+                this.isAnomalyActive = true;
+                this.multiplier *= 3;
+                this.showComboText("CYBER ANOMALY: TRIPLE MULTIPLIER!");
+                this.triggerFlash('#ffe600');
+                sound.playFever();
+                setTimeout(() => {
+                    this.isAnomalyActive = false;
+                    this.multiplier = Math.max(1, Math.floor(this.multiplier / 3));
+                }, 7000);
+            }
+
+            useSkill(idx) {
+                const skill = this.skills[idx];
+                if (skill.charge >= skill.maxCharge) {
+                    skill.charge = 0;
+                    sound.playWin();
+                    this.triggerFlash('#00f3ff');
+                    if (idx === 0) {
+                        this.timeRemaining += 12.0;
+                        this.showComboText("DECK SUBROUTINE: TIME FREEZE +12s");
+                    } else if (idx === 1) {
+                        this.triggerOverdriveMode();
+                    } else if (idx === 2) {
+                        this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.35);
+                        this.showComboText("DECK SUBROUTINE: SHIELD ANNIHILATED!");
+                        this.bossShieldActive = false;
+                        document.getElementById('boss-shield-badge').style.display = 'none';
+                    }
+                }
+            }
+
+            triggerGlitchBug() {
+                const alertEl = document.getElementById('glitch-alert');
+                alertEl.style.opacity = '1';
+                sound.playReach();
+                this.triggerCameraShake('light');
+                
+                const bugTimeout = setTimeout(() => {
+                    alertEl.style.opacity = '0';
+                }, 1800);
+
+                const quickActionHandler = () => {
+                    clearTimeout(bugTimeout);
+                    alertEl.style.opacity = '0';
+                    this.score += 1500 * this.multiplier;
+                    this.timeRemaining += 2.5;
+                    this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                    sound.playWin();
+                    this.triggerFlash('#00f3ff');
+                    window.removeEventListener('pointerdown', quickActionHandler);
+                };
+                window.addEventListener('pointerdown', quickActionHandler, { once: true });
+            }
+====
+
+<<<<<<<
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            // プレイヤーが素早くスピンまたはストップボタンを押すことでバグ撃破ボーナス
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5; // 追加タイムボーナス
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+
+        // タイトル画面シネマティックな視差パララックス・ライティング連動インタラクション追加
+        window.addEventListener('pointermove', (e) => {
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen && !startScreen.classList.contains('hidden')) {
+                const x = (e.clientX / window.innerWidth - 0.5) * 20;
+                const y = (e.clientY / window.innerHeight - 0.5) * 20;
+                const title = startScreen.querySelector('.game-title');
+                if (title) {
+                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.03)`;
+                    title.style.filter = `drop-shadow(${ -x * 0.8 }px ${ -y * 0.8 }px 35px rgba(255, 0, 85, 0.95)) drop-shadow(0 0 15px rgba(0, 243, 255, 0.8))`;
+                }
+            }
+        });
+====
+        // モーダル操作・ハクスラ強化システムの実装（サイバーハッキングデッキ対応）
+        Game.prototype.openDexModal = function() {
+            const container = document.getElementById('dex-items-container');
+            container.innerHTML = '';
+            for (const [key, val] of Object.entries(GAME_PROGRESSION.dex)) {
+                const item = document.createElement('div');
+                item.className = 'dex-item unlocked';
+                item.innerHTML = `
+                    <div class="dex-info">
+                        <h4>${val.name}</h4>
+                        <p>${val.desc}</p>
+                    </div>
+                    <div class="dex-status">UNLOCKED</div>
+                `;
+                container.appendChild(item);
+            }
+
+            // フラグメント所持数に応じたボタンの動的クラス付与（アフォーダブル演出）
+            const updateAffordable = (btnId, cost) => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    if (GAME_PROGRESSION.fragments >= cost) {
+                        btn.classList.add('affordable');
+                    } else {
+                        btn.classList.remove('affordable');
+                    }
+                }
+            };
+            updateAffordable('upg-fever', 50);
+            updateAffordable('upg-time', 50);
+            updateAffordable('upg-prism', 75);
+
+            document.getElementById('dex-modal').classList.add('active');
+        };
+
+        Game.prototype.closeDexModal = function() {
+            document.getElementById('dex-modal').classList.remove('active');
+        };
+
+        Game.prototype.buyUpgrade = function(type, cost) {
+            if (GAME_PROGRESSION.fragments >= cost) {
+                GAME_PROGRESSION.fragments -= cost;
+                GAME_PROGRESSION.upgrades[type]++;
+                sound.playWin();
+                this.updateUI(true);
+                this.openDexModal();
+            } else {
+                sound.playStop(0.5);
+            }
+        };
+
+        Game.prototype.triggerCyberAnomaly = function() {
+            this.isAnomalyActive = true;
+            this.multiplier *= 3;
+            this.showComboText("CYBER ANOMALY: TRIPLE MULTIPLIER!");
+            this.triggerFlash('#ffe600');
+            sound.playFever();
+            setTimeout(() => {
+                this.isAnomalyActive = false;
+                this.multiplier = Math.max(1, Math.floor(this.multiplier / 3));
+            }, 7000);
+        };
+
+        Game.prototype.useSkill = function(idx) {
+            const skill = this.skills[idx];
+            if (skill.charge >= skill.maxCharge) {
+                skill.charge = 0;
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                if (idx === 0) {
+                    this.timeRemaining += 12.0;
+                    this.showComboText("DECK SUBROUTINE: TIME FREEZE +12s");
+                } else if (idx === 1) {
+                    this.triggerOverdriveMode();
+                } else if (idx === 2) {
+                    this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.35);
+                    this.showComboText("DECK SUBROUTINE: SHIELD ANNIHILATED!");
+                    this.bossShieldActive = false;
+                    document.getElementById('boss-shield-badge').style.display = 'none';
+                }
+            }
+        };
+
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5;
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+
+            triggerOverdriveMode() {
+                this.isOverdrive = true;
+                this.multiplier = (this.isFever ? 4 : 1) * 2;
+                this.showComboText("CYBER OVERDRIVE!!");
+                this.triggerFlash('#ff0055');
+                sound.playFever();
+            }
+
+<<<<
+            damageBoss(dmg) {
+====
+            addFever(amount) {
+                if (this.isFever) return;
+                const efficiencyBonus = 1.0 + (GAME_PROGRESSION.upgrades.feverEfficiency * 0.1);
+                this.feverGauge += amount * efficiencyBonus;
+                if (this.feverGauge >= 100) {
+                    this.triggerFeverMode();
+                }
+            }
+====
+
+<<<<<<<
+<<<<<<<
+<<<<
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            // プレイヤーが素早くスピンまたはストップボタンを押すことでバグ撃破ボーナス
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5; // 追加タイムボーナス
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+
+        // タイトル画面シネマティックな視差パララックス・ライティング連動インタラクション追加
+        window.addEventListener('pointermove', (e) => {
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen && !startScreen.classList.contains('hidden')) {
+                const x = (e.clientX / window.innerWidth - 0.5) * 20;
+                const y = (e.clientY / window.innerHeight - 0.5) * 20;
+                const title = startScreen.querySelector('.game-title');
+                if (title) {
+                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.03)`;
+                    title.style.filter = `drop-shadow(${ -x * 0.8 }px ${ -y * 0.8 }px 35px rgba(255, 0, 85, 0.95)) drop-shadow(0 0 15px rgba(0, 243, 255, 0.8))`;
+                }
+            }
+        });
+====
+        // モーダル操作・ハクスラ強化システムの実装（サイバーハッキングデッキ対応）
+        Game.prototype.openDexModal = function() {
+            const container = document.getElementById('dex-items-container');
+            container.innerHTML = '';
+            for (const [key, val] of Object.entries(GAME_PROGRESSION.dex)) {
+                const item = document.createElement('div');
+                item.className = 'dex-item unlocked';
+                item.innerHTML = `
+                    <div class="dex-info">
+                        <h4>${val.name}</h4>
+                        <p>${val.desc}</p>
+                    </div>
+                    <div class="dex-status">UNLOCKED</div>
+                `;
+                container.appendChild(item);
+            }
+
+            // フラグメント所持数に応じたボタンの動的クラス付与（アフォーダブル演出）
+            const updateAffordable = (btnId, cost) => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    if (GAME_PROGRESSION.fragments >= cost) {
+                        btn.classList.add('affordable');
+                    } else {
+                        btn.classList.remove('affordable');
+                    }
+                }
+            };
+            updateAffordable('upg-fever', 50);
+            updateAffordable('upg-time', 50);
+            updateAffordable('upg-prism', 75);
+
+            document.getElementById('dex-modal').classList.add('active');
+        };
+
+        Game.prototype.closeDexModal = function() {
+            document.getElementById('dex-modal').classList.remove('active');
+        };
+
+        Game.prototype.buyUpgrade = function(type, cost) {
+            if (GAME_PROGRESSION.fragments >= cost) {
+                GAME_PROGRESSION.fragments -= cost;
+                GAME_PROGRESSION.upgrades[type]++;
+                sound.playWin();
+                this.updateUI(true);
+                this.openDexModal();
+            } else {
+                sound.playStop(0.5);
+            }
+        };
+
+        Game.prototype.triggerCyberAnomaly = function() {
+            this.isAnomalyActive = true;
+            this.multiplier *= 3;
+            this.showComboText("CYBER ANOMALY: TRIPLE MULTIPLIER!");
+            this.triggerFlash('#ffe600');
+            sound.playFever();
+            setTimeout(() => {
+                this.isAnomalyActive = false;
+                this.multiplier = Math.max(1, Math.floor(this.multiplier / 3));
+            }, 7000);
+        };
+
+        Game.prototype.useSkill = function(idx) {
+            const skill = this.skills[idx];
+            if (skill.charge >= skill.maxCharge) {
+                skill.charge = 0;
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                if (idx === 0) {
+                    this.timeRemaining += 12.0;
+                    this.showComboText("DECK SUBROUTINE: TIME FREEZE +12s");
+                } else if (idx === 1) {
+                    this.triggerOverdriveMode();
+                } else if (idx === 2) {
+                    this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.35);
+                    this.showComboText("DECK SUBROUTINE: SHIELD ANNIHILATED!");
+                    this.bossShieldActive = false;
+                    document.getElementById('boss-shield-badge').style.display = 'none';
+                }
+            }
+        };
+
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5;
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+
+            triggerOverdriveMode() {
+                this.isOverdrive = true;
+                this.multiplier = (this.isFever ? 4 : 1) * 2;
+                this.showComboText("CYBER OVERDRIVE!!");
+                this.triggerFlash('#ff0055');
+                sound.playFever();
+            }
+
+<<<<
+            damageBoss(dmg) {
+====
+            addFever(amount) {
+                if (this.isFever) return;
+                const efficiencyBonus = 1.0 + (GAME_PROGRESSION.upgrades.feverEfficiency * 0.1);
+                this.feverGauge += amount * efficiencyBonus;
+                if (this.feverGauge >= 100) {
+                    this.triggerFeverMode();
+                }
+            }
+====
+
+<<<<<<<
+<<<<<<<
+            damageBoss(dmg) {
+                if (this.bossShieldActive && dmg < 400) {
+                    this.showComboText("SHIELD ACTIVE! DMG REDUCED");
+                    dmg *= 0.35;
+                }
+                this.bossHp -= dmg;
+                GAME_PROGRESSION.fragments += Math.max(1, Math.floor(dmg * 0.15));
+                if (this.bossHp <= 0) {
+                    this.bossHp = 0;
+                    this.nextStage();
+                }
+                const hpPct = `${Math.max(0, (this.bossHp / this.bossMaxHp) * 100)}%`;
+                document.getElementById('boss-hp-bar').style.width = hpPct;
+                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments}`;
+            }
+
+            nextStage() {
+                this.openRogueTerminal();
+            }
+
+            openRogueTerminal() {
+                this.gameState = 'ROGUE_SELECT';
+                const rogueModal = document.getElementById('rogue-modal');
+                rogueModal.classList.add('active');
+                
+                sound.playReach();
+                this.triggerCameraShake('medium');
+
                 // ハッカーターミナル：極上のハッキングフィードバックとライティング連動
                 const setupOpt = (id, type, glowColor, pitch) => {
                     const el = document.getElementById(id);
@@ -2705,6 +3165,1172 @@
                 this.triggerFlash('#00f3ff');
                 sound.playFever();
                 this.triggerSpin();
+            }
+====
+
+<<<<
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            // プレイヤーが素早くスピンまたはストップボタンを押すことでバグ撃破ボーナス
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5; // 追加タイムボーナス
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+
+        // タイトル画面シネマティックな視差パララックス・ライティング連動インタラクション追加
+        window.addEventListener('pointermove', (e) => {
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen && !startScreen.classList.contains('hidden')) {
+                const x = (e.clientX / window.innerWidth - 0.5) * 20;
+                const y = (e.clientY / window.innerHeight - 0.5) * 20;
+                const title = startScreen.querySelector('.game-title');
+                if (title) {
+                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.03)`;
+                    title.style.filter = `drop-shadow(${ -x * 0.8 }px ${ -y * 0.8 }px 35px rgba(255, 0, 85, 0.95)) drop-shadow(0 0 15px rgba(0, 243, 255, 0.8))`;
+                }
+            }
+        });
+====
+        // モーダル操作・ハクスラ強化システムの実装（サイバーハッキングデッキ対応）
+        Game.prototype.openDexModal = function() {
+            const container = document.getElementById('dex-items-container');
+            container.innerHTML = '';
+            for (const [key, val] of Object.entries(GAME_PROGRESSION.dex)) {
+                const item = document.createElement('div');
+                item.className = 'dex-item unlocked';
+                item.innerHTML = `
+                    <div class="dex-info">
+                        <h4>${val.name}</h4>
+                        <p>${val.desc}</p>
+                    </div>
+                    <div class="dex-status">UNLOCKED</div>
+                `;
+                container.appendChild(item);
+            }
+
+            // フラグメント所持数に応じたボタンの動的クラス付与（アフォーダブル演出）
+            const updateAffordable = (btnId, cost) => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    if (GAME_PROGRESSION.fragments >= cost) {
+                        btn.classList.add('affordable');
+                    } else {
+                        btn.classList.remove('affordable');
+                    }
+                }
+            };
+            updateAffordable('upg-fever', 50);
+            updateAffordable('upg-time', 50);
+            updateAffordable('upg-prism', 75);
+
+            document.getElementById('dex-modal').classList.add('active');
+        };
+
+        Game.prototype.closeDexModal = function() {
+            document.getElementById('dex-modal').classList.remove('active');
+        };
+
+        Game.prototype.buyUpgrade = function(type, cost) {
+            if (GAME_PROGRESSION.fragments >= cost) {
+                GAME_PROGRESSION.fragments -= cost;
+                GAME_PROGRESSION.upgrades[type]++;
+                sound.playWin();
+                this.updateUI(true);
+                this.openDexModal();
+            } else {
+                sound.playStop(0.5);
+            }
+        };
+
+        Game.prototype.triggerCyberAnomaly = function() {
+            this.isAnomalyActive = true;
+            this.multiplier *= 3;
+            this.showComboText("CYBER ANOMALY: TRIPLE MULTIPLIER!");
+            this.triggerFlash('#ffe600');
+            sound.playFever();
+            setTimeout(() => {
+                this.isAnomalyActive = false;
+                this.multiplier = Math.max(1, Math.floor(this.multiplier / 3));
+            }, 7000);
+        };
+
+        Game.prototype.useSkill = function(idx) {
+            const skill = this.skills[idx];
+            if (skill.charge >= skill.maxCharge) {
+                skill.charge = 0;
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                if (idx === 0) {
+                    this.timeRemaining += 12.0;
+                    this.showComboText("DECK SUBROUTINE: TIME FREEZE +12s");
+                } else if (idx === 1) {
+                    this.triggerOverdriveMode();
+                } else if (idx === 2) {
+                    this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.35);
+                    this.showComboText("DECK SUBROUTINE: SHIELD ANNIHILATED!");
+                    this.bossShieldActive = false;
+                    document.getElementById('boss-shield-badge').style.display = 'none';
+                }
+            }
+        };
+
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5;
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+====
+            damageBoss(dmg) {
+                if (this.bossShieldActive && dmg < 400) {
+                    this.showComboText("SHIELD ACTIVE! DMG REDUCED");
+                    dmg *= 0.35;
+                }
+                this.bossHp -= dmg;
+                GAME_PROGRESSION.fragments += Math.max(1, Math.floor(dmg * 0.15));
+                if (this.bossHp <= 0) {
+                    this.bossHp = 0;
+                    this.nextStage();
+                }
+                const hpPct = `${Math.max(0, (this.bossHp / this.bossMaxHp) * 100)}%`;
+                document.getElementById('boss-hp-bar').style.width = hpPct;
+                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments}`;
+            }
+
+            nextStage() {
+                this.openRogueTerminal();
+            }
+
+            openRogueTerminal() {
+                this.gameState = 'ROGUE_SELECT';
+                const rogueModal = document.getElementById('rogue-modal');
+                rogueModal.classList.add('active');
+                
+                sound.playReach();
+                this.triggerCameraShake('medium');
+
+                const setupOpt = (id, type, glowColor, pitch) => {
+                    const el = document.getElementById(id);
+                    const newEl = el.cloneNode(true);
+                    el.parentNode.replaceChild(newEl, el);
+                    
+                    const handleHover = () => {
+                        rogueModal.style.boxShadow = `inset 0 0 100px ${glowColor}, 0 0 30px ${glowColor}`;
+                        sound.playSynthWave(pitch, 'sawtooth', 0.05, 0.06);
+                        newEl.style.transform = 'scale(1.02) translateY(-2px)';
+                    };
+                    const handleLeave = () => {
+                        rogueModal.style.boxShadow = 'none';
+                        newEl.style.transform = 'none';
+                    };
+
+                    newEl.addEventListener('pointerenter', handleHover, { passive: true });
+                    newEl.addEventListener('pointerleave', handleLeave, { passive: true });
+                    newEl.addEventListener('touchstart', handleHover, { passive: true });
+
+                    newEl.addEventListener('click', () => {
+                        rogueModal.style.boxShadow = 'none';
+                        rogueModal.classList.remove('active');
+                        sound.playStop(1.5);
+                        this.triggerFlash('#00f3ff');
+                        this.applyRogueChoice(type);
+                    });
+                };
+
+                setupOpt('rogue-opt-0', 'contract', 'rgba(0, 243, 255, 0.45)', 587.33);
+                setupOpt('rogue-opt-1', 'market', 'rgba(255, 230, 0, 0.45)', 783.99);
+                setupOpt('rogue-opt-2', 'bay', 'rgba(255, 0, 85, 0.45)', 1046.50);
+            }
+
+            applyRogueChoice(type) {
+                this.stage++;
+                this.bossMaxHp = Math.round(this.bossMaxHp * 1.65);
+                this.bossHp = this.bossMaxHp;
+                this.bossShieldActive = true;
+                this.bossOverloaded = false;
+                
+                const elements = ['FIRE', 'ELECTRIC', 'ICE'];
+                this.bossElementWeakness = elements[(this.stage - 1) % elements.length];
+
+                if (type === 'contract') {
+                    this.multiplier *= 2;
+                    this.timeRemaining += 12.0;
+                    this.activePassives.push('OVERCLOCK_PASSPORT');
+                    this.showComboText("HACK PASSPORT: OVERCLOCK CONTRACT EQUIPPED!");
+                } else if (type === 'market') {
+                    GAME_PROGRESSION.fragments += 350;
+                    GAME_PROGRESSION.exoticMaterials += 3;
+                    this.skills.forEach(s => s.charge = s.maxCharge);
+                    this.timeRemaining += 18.0;
+                    this.activePassives.push('MARKET_BOOST');
+                    this.showComboText("HACK PASSPORT: BLACK MARKET SYNDICATE!");
+                } else if (type === 'bay') {
+                    GAME_PROGRESSION.upgrades.timeBonus += 2;
+                    this.timeRemaining += 30.0;
+                    this.activePassives.push('REWIND');
+                    this.showComboText("HACK PASSPORT: CHRONO REWIND INSTALLED!");
+                }
+
+                const stageNames = [`STAGE ${this.stage}: NET CORE (WEAK ELEM: ${this.bossElementWeakness})`, `STAGE ${this.stage}: MATRIX CORE`, `STAGE ${this.stage}: OMEGA GRID`];
+                const bossNames = ['BOSS: FROST_DEFENDER', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_EMP'];
+                
+                document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-name').innerText = bossNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-shield-badge').style.display = 'inline-block';
+                
+                this.gameState = 'PLAYING';
+                this.triggerFlash('#00f3ff');
+                sound.playFever();
+                this.triggerSpin();
+            }
+
+            addFever(amount) {
+                if (this.isFever) return;
+                const efficiencyBonus = 1.0 + (GAME_PROGRESSION.upgrades.feverEfficiency * 0.1);
+                this.feverGauge += amount * efficiencyBonus;
+                if (this.feverGauge >= 100) {
+                    this.triggerFeverMode();
+                }
+            }
+
+            triggerOverdriveMode() {
+                this.isOverdrive = true;
+                this.multiplier = (this.isFever ? 4 : 1) * 2;
+                this.showComboText("CYBER OVERDRIVE!!");
+                this.triggerFlash('#ff0055');
+                sound.playFever();
+            }
+
+            openDexModal() {
+                const container = document.getElementById('dex-items-container');
+                container.innerHTML = '';
+                for (const [key, val] of Object.entries(GAME_PROGRESSION.dex)) {
+                    const item = document.createElement('div');
+                    item.className = 'dex-item unlocked';
+                    item.innerHTML = `
+                        <div class="dex-info">
+                            <h4>${val.name}</h4>
+                            <p>${val.desc}</p>
+                        </div>
+                        <div class="dex-status">UNLOCKED</div>
+                    `;
+                    container.appendChild(item);
+                }
+
+                const updateAffordable = (btnId, cost) => {
+                    const btn = document.getElementById(btnId);
+                    if (btn) {
+                        if (GAME_PROGRESSION.fragments >= cost) {
+                            btn.classList.add('affordable');
+                        } else {
+                            btn.classList.remove('affordable');
+                        }
+                    }
+                };
+                updateAffordable('upg-fever', 50);
+                updateAffordable('upg-time', 50);
+                updateAffordable('upg-prism', 75);
+
+                document.getElementById('dex-modal').classList.add('active');
+            }
+
+            closeDexModal() {
+                document.getElementById('dex-modal').classList.remove('active');
+            }
+
+            buyUpgrade(type, cost) {
+                if (GAME_PROGRESSION.fragments >= cost) {
+                    GAME_PROGRESSION.fragments -= cost;
+                    GAME_PROGRESSION.upgrades[type]++;
+                    sound.playWin();
+                    this.updateUI(true);
+                    this.openDexModal();
+                } else {
+                    sound.playStop(0.5);
+                }
+            }
+
+            triggerCyberAnomaly() {
+                this.isAnomalyActive = true;
+                this.multiplier *= 3;
+                this.showComboText("CYBER ANOMALY: TRIPLE MULTIPLIER!");
+                this.triggerFlash('#ffe600');
+                sound.playFever();
+                setTimeout(() => {
+                    this.isAnomalyActive = false;
+                    this.multiplier = Math.max(1, Math.floor(this.multiplier / 3));
+                }, 7000);
+            }
+
+            useSkill(idx) {
+                const skill = this.skills[idx];
+                if (skill.charge >= skill.maxCharge) {
+                    skill.charge = 0;
+                    sound.playWin();
+                    this.triggerFlash('#00f3ff');
+                    if (idx === 0) {
+                        this.timeRemaining += 12.0;
+                        this.showComboText("DECK SUBROUTINE: TIME FREEZE +12s");
+                    } else if (idx === 1) {
+                        this.triggerOverdriveMode();
+                    } else if (idx === 2) {
+                        this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.35);
+                        this.showComboText("DECK SUBROUTINE: SHIELD ANNIHILATED!");
+                        this.bossShieldActive = false;
+                        document.getElementById('boss-shield-badge').style.display = 'none';
+                    }
+                }
+            }
+
+            triggerGlitchBug() {
+                const alertEl = document.getElementById('glitch-alert');
+                alertEl.style.opacity = '1';
+                sound.playReach();
+                this.triggerCameraShake('light');
+                
+                const bugTimeout = setTimeout(() => {
+                    alertEl.style.opacity = '0';
+                }, 1800);
+
+                const quickActionHandler = () => {
+                    clearTimeout(bugTimeout);
+                    alertEl.style.opacity = '0';
+                    this.score += 1500 * this.multiplier;
+                    this.timeRemaining += 2.5;
+                    this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                    sound.playWin();
+                    this.triggerFlash('#00f3ff');
+                    window.removeEventListener('pointerdown', quickActionHandler);
+                };
+                window.addEventListener('pointerdown', quickActionHandler, { once: true });
+            }
+====
+
+<<<<<<<
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            // プレイヤーが素早くスピンまたはストップボタンを押すことでバグ撃破ボーナス
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5; // 追加タイムボーナス
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+
+        // タイトル画面シネマティックな視差パララックス・ライティング連動インタラクション追加
+        window.addEventListener('pointermove', (e) => {
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen && !startScreen.classList.contains('hidden')) {
+                const x = (e.clientX / window.innerWidth - 0.5) * 20;
+                const y = (e.clientY / window.innerHeight - 0.5) * 20;
+                const title = startScreen.querySelector('.game-title');
+                if (title) {
+                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.03)`;
+                    title.style.filter = `drop-shadow(${ -x * 0.8 }px ${ -y * 0.8 }px 35px rgba(255, 0, 85, 0.95)) drop-shadow(0 0 15px rgba(0, 243, 255, 0.8))`;
+                }
+            }
+        });
+====
+        // モーダル操作・ハクスラ強化システムの実装（サイバーハッキングデッキ対応）
+        Game.prototype.openDexModal = function() {
+            const container = document.getElementById('dex-items-container');
+            container.innerHTML = '';
+            for (const [key, val] of Object.entries(GAME_PROGRESSION.dex)) {
+                const item = document.createElement('div');
+                item.className = 'dex-item unlocked';
+                item.innerHTML = `
+                    <div class="dex-info">
+                        <h4>${val.name}</h4>
+                        <p>${val.desc}</p>
+                    </div>
+                    <div class="dex-status">UNLOCKED</div>
+                `;
+                container.appendChild(item);
+            }
+
+            // フラグメント所持数に応じたボタンの動的クラス付与（アフォーダブル演出）
+            const updateAffordable = (btnId, cost) => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    if (GAME_PROGRESSION.fragments >= cost) {
+                        btn.classList.add('affordable');
+                    } else {
+                        btn.classList.remove('affordable');
+                    }
+                }
+            };
+            updateAffordable('upg-fever', 50);
+            updateAffordable('upg-time', 50);
+            updateAffordable('upg-prism', 75);
+
+            document.getElementById('dex-modal').classList.add('active');
+        };
+
+        Game.prototype.closeDexModal = function() {
+            document.getElementById('dex-modal').classList.remove('active');
+        };
+
+        Game.prototype.buyUpgrade = function(type, cost) {
+            if (GAME_PROGRESSION.fragments >= cost) {
+                GAME_PROGRESSION.fragments -= cost;
+                GAME_PROGRESSION.upgrades[type]++;
+                sound.playWin();
+                this.updateUI(true);
+                this.openDexModal();
+            } else {
+                sound.playStop(0.5);
+            }
+        };
+
+        Game.prototype.triggerCyberAnomaly = function() {
+            this.isAnomalyActive = true;
+            this.multiplier *= 3;
+            this.showComboText("CYBER ANOMALY: TRIPLE MULTIPLIER!");
+            this.triggerFlash('#ffe600');
+            sound.playFever();
+            setTimeout(() => {
+                this.isAnomalyActive = false;
+                this.multiplier = Math.max(1, Math.floor(this.multiplier / 3));
+            }, 7000);
+        };
+
+        Game.prototype.useSkill = function(idx) {
+            const skill = this.skills[idx];
+            if (skill.charge >= skill.maxCharge) {
+                skill.charge = 0;
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                if (idx === 0) {
+                    this.timeRemaining += 12.0;
+                    this.showComboText("DECK SUBROUTINE: TIME FREEZE +12s");
+                } else if (idx === 1) {
+                    this.triggerOverdriveMode();
+                } else if (idx === 2) {
+                    this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.35);
+                    this.showComboText("DECK SUBROUTINE: SHIELD ANNIHILATED!");
+                    this.bossShieldActive = false;
+                    document.getElementById('boss-shield-badge').style.display = 'none';
+                }
+            }
+        };
+
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5;
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+====
+<<<<
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            // プレイヤーが素早くスピンまたはストップボタンを押すことでバグ撃破ボーナス
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5; // 追加タイムボーナス
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+
+        // タイトル画面シネマティックな視差パララックス・ライティング連動インタラクション追加
+        window.addEventListener('pointermove', (e) => {
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen && !startScreen.classList.contains('hidden')) {
+                const x = (e.clientX / window.innerWidth - 0.5) * 20;
+                const y = (e.clientY / window.innerHeight - 0.5) * 20;
+                const title = startScreen.querySelector('.game-title');
+                if (title) {
+                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.03)`;
+                    title.style.filter = `drop-shadow(${ -x * 0.8 }px ${ -y * 0.8 }px 35px rgba(255, 0, 85, 0.95)) drop-shadow(0 0 15px rgba(0, 243, 255, 0.8))`;
+                }
+            }
+        });
+====
+        // モーダル操作・ハクスラ強化システムの実装（サイバーハッキングデッキ対応）
+        Game.prototype.openDexModal = function() {
+            const container = document.getElementById('dex-items-container');
+            container.innerHTML = '';
+            for (const [key, val] of Object.entries(GAME_PROGRESSION.dex)) {
+                const item = document.createElement('div');
+                item.className = 'dex-item unlocked';
+                item.innerHTML = `
+                    <div class="dex-info">
+                        <h4>${val.name}</h4>
+                        <p>${val.desc}</p>
+                    </div>
+                    <div class="dex-status">UNLOCKED</div>
+                `;
+                container.appendChild(item);
+            }
+
+            // フラグメント所持数に応じたボタンの動的クラス付与（アフォーダブル演出）
+            const updateAffordable = (btnId, cost) => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    if (GAME_PROGRESSION.fragments >= cost) {
+                        btn.classList.add('affordable');
+                    } else {
+                        btn.classList.remove('affordable');
+                    }
+                }
+            };
+            updateAffordable('upg-fever', 50);
+            updateAffordable('upg-time', 50);
+            updateAffordable('upg-prism', 75);
+
+            document.getElementById('dex-modal').classList.add('active');
+        };
+
+        Game.prototype.closeDexModal = function() {
+            document.getElementById('dex-modal').classList.remove('active');
+        };
+
+        Game.prototype.buyUpgrade = function(type, cost) {
+            if (GAME_PROGRESSION.fragments >= cost) {
+                GAME_PROGRESSION.fragments -= cost;
+                GAME_PROGRESSION.upgrades[type]++;
+                sound.playWin();
+                this.updateUI(true);
+                this.openDexModal();
+            } else {
+                sound.playStop(0.5);
+            }
+        };
+
+        Game.prototype.triggerCyberAnomaly = function() {
+            this.isAnomalyActive = true;
+            this.multiplier *= 3;
+            this.showComboText("CYBER ANOMALY: TRIPLE MULTIPLIER!");
+            this.triggerFlash('#ffe600');
+            sound.playFever();
+            setTimeout(() => {
+                this.isAnomalyActive = false;
+                this.multiplier = Math.max(1, Math.floor(this.multiplier / 3));
+            }, 7000);
+        };
+
+        Game.prototype.useSkill = function(idx) {
+            const skill = this.skills[idx];
+            if (skill.charge >= skill.maxCharge) {
+                skill.charge = 0;
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                if (idx === 0) {
+                    this.timeRemaining += 12.0;
+                    this.showComboText("DECK SUBROUTINE: TIME FREEZE +12s");
+                } else if (idx === 1) {
+                    this.triggerOverdriveMode();
+                } else if (idx === 2) {
+                    this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.35);
+                    this.showComboText("DECK SUBROUTINE: SHIELD ANNIHILATED!");
+                    this.bossShieldActive = false;
+                    document.getElementById('boss-shield-badge').style.display = 'none';
+                }
+            }
+        };
+
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5;
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+
+            triggerOverdriveMode() {
+                this.isOverdrive = true;
+                this.multiplier = (this.isFever ? 4 : 1) * 2;
+                this.showComboText("CYBER OVERDRIVE!!");
+                this.triggerFlash('#ff0055');
+                sound.playFever();
+            }
+
+<<<<
+            damageBoss(dmg) {
+====
+            addFever(amount) {
+                if (this.isFever) return;
+                const efficiencyBonus = 1.0 + (GAME_PROGRESSION.upgrades.feverEfficiency * 0.1);
+                this.feverGauge += amount * efficiencyBonus;
+                if (this.feverGauge >= 100) {
+                    this.triggerFeverMode();
+                }
+            }
+====
+
+<<<<<<<
+<<<<<<<
+            damageBoss(dmg) {
+                if (this.bossShieldActive && dmg < 400) {
+                    this.showComboText("SHIELD ACTIVE! DMG REDUCED");
+                    dmg *= 0.35;
+                }
+                this.bossHp -= dmg;
+                GAME_PROGRESSION.fragments += Math.max(1, Math.floor(dmg * 0.15));
+                if (this.bossHp <= 0) {
+                    this.bossHp = 0;
+                    this.nextStage();
+                }
+                const hpPct = `${Math.max(0, (this.bossHp / this.bossMaxHp) * 100)}%`;
+                document.getElementById('boss-hp-bar').style.width = hpPct;
+                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments}`;
+            }
+
+            nextStage() {
+                this.openRogueTerminal();
+            }
+
+            openRogueTerminal() {
+                this.gameState = 'ROGUE_SELECT';
+                const rogueModal = document.getElementById('rogue-modal');
+                rogueModal.classList.add('active');
+                
+                sound.playReach();
+                this.triggerCameraShake('medium');
+
+                // ハッカーターミナル：極上のハッキングフィードバックとライティング連動
+                const setupOpt = (id, type, glowColor, pitch) => {
+                    const el = document.getElementById(id);
+                    const newEl = el.cloneNode(true);
+                    el.parentNode.replaceChild(newEl, el);
+                    
+                    const handleHover = () => {
+                        rogueModal.style.boxShadow = `inset 0 0 100px ${glowColor}, 0 0 30px ${glowColor}`;
+                        sound.playSynthWave(pitch, 'sawtooth', 0.05, 0.06);
+                        newEl.style.transform = 'scale(1.02) translateY(-2px)';
+                    };
+                    const handleLeave = () => {
+                        rogueModal.style.boxShadow = 'none';
+                        newEl.style.transform = 'none';
+                    };
+
+                    newEl.addEventListener('pointerenter', handleHover, { passive: true });
+                    newEl.addEventListener('pointerleave', handleLeave, { passive: true });
+                    newEl.addEventListener('touchstart', handleHover, { passive: true });
+
+                    newEl.addEventListener('click', () => {
+                        rogueModal.style.boxShadow = 'none';
+                        rogueModal.classList.remove('active');
+                        sound.playStop(1.5);
+                        this.triggerFlash('#00f3ff');
+                        this.applyRogueChoice(type);
+                    });
+                };
+
+                setupOpt('rogue-opt-0', 'contract', 'rgba(0, 243, 255, 0.45)', 587.33);
+                setupOpt('rogue-opt-1', 'market', 'rgba(255, 230, 0, 0.45)', 783.99);
+                setupOpt('rogue-opt-2', 'bay', 'rgba(255, 0, 85, 0.45)', 1046.50);
+            }
+
+            applyRogueChoice(type) {
+                this.stage++;
+                this.bossMaxHp = Math.round(this.bossMaxHp * 1.65);
+                this.bossHp = this.bossMaxHp;
+                this.bossShieldActive = true;
+                this.bossOverloaded = false;
+                
+                const elements = ['FIRE', 'ELECTRIC', 'ICE'];
+                this.bossElementWeakness = elements[(this.stage - 1) % elements.length];
+
+                if (type === 'contract') {
+                    this.multiplier *= 2;
+                    this.timeRemaining += 12.0;
+                    this.activePassives.push('OVERCLOCK_PASSPORT');
+                    this.showComboText("HACK PASSPORT: OVERCLOCK CONTRACT EQUIPPED!");
+                } else if (type === 'market') {
+                    GAME_PROGRESSION.fragments += 350;
+                    GAME_PROGRESSION.exoticMaterials += 3;
+                    this.skills.forEach(s => s.charge = s.maxCharge);
+                    this.timeRemaining += 18.0;
+                    this.activePassives.push('MARKET_BOOST');
+                    this.showComboText("HACK PASSPORT: BLACK MARKET SYNDICATE!");
+                } else if (type === 'bay') {
+                    GAME_PROGRESSION.upgrades.timeBonus += 2;
+                    this.timeRemaining += 30.0;
+                    this.activePassives.push('REWIND');
+                    this.showComboText("HACK PASSPORT: CHRONO REWIND INSTALLED!");
+                }
+
+                const stageNames = [`STAGE ${this.stage}: NET CORE (WEAK ELEM: ${this.bossElementWeakness})`, `STAGE ${this.stage}: MATRIX CORE`, `STAGE ${this.stage}: OMEGA GRID`];
+                const bossNames = ['BOSS: FROST_DEFENDER', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_EMP'];
+                
+                document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-name').innerText = bossNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-shield-badge').style.display = 'inline-block';
+                
+                this.gameState = 'PLAYING';
+                this.triggerFlash('#00f3ff');
+                sound.playFever();
+                this.triggerSpin();
+            }
+====
+
+<<<<
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            // プレイヤーが素早くスピンまたはストップボタンを押すことでバグ撃破ボーナス
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5; // 追加タイムボーナス
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+
+        // タイトル画面シネマティックな視差パララックス・ライティング連動インタラクション追加
+        window.addEventListener('pointermove', (e) => {
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen && !startScreen.classList.contains('hidden')) {
+                const x = (e.clientX / window.innerWidth - 0.5) * 20;
+                const y = (e.clientY / window.innerHeight - 0.5) * 20;
+                const title = startScreen.querySelector('.game-title');
+                if (title) {
+                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.03)`;
+                    title.style.filter = `drop-shadow(${ -x * 0.8 }px ${ -y * 0.8 }px 35px rgba(255, 0, 85, 0.95)) drop-shadow(0 0 15px rgba(0, 243, 255, 0.8))`;
+                }
+            }
+        });
+====
+        // モーダル操作・ハクスラ強化システムの実装（サイバーハッキングデッキ対応）
+        Game.prototype.openDexModal = function() {
+            const container = document.getElementById('dex-items-container');
+            container.innerHTML = '';
+            for (const [key, val] of Object.entries(GAME_PROGRESSION.dex)) {
+                const item = document.createElement('div');
+                item.className = 'dex-item unlocked';
+                item.innerHTML = `
+                    <div class="dex-info">
+                        <h4>${val.name}</h4>
+                        <p>${val.desc}</p>
+                    </div>
+                    <div class="dex-status">UNLOCKED</div>
+                `;
+                container.appendChild(item);
+            }
+
+            // フラグメント所持数に応じたボタンの動的クラス付与（アフォーダブル演出）
+            const updateAffordable = (btnId, cost) => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    if (GAME_PROGRESSION.fragments >= cost) {
+                        btn.classList.add('affordable');
+                    } else {
+                        btn.classList.remove('affordable');
+                    }
+                }
+            };
+            updateAffordable('upg-fever', 50);
+            updateAffordable('upg-time', 50);
+            updateAffordable('upg-prism', 75);
+
+            document.getElementById('dex-modal').classList.add('active');
+        };
+
+        Game.prototype.closeDexModal = function() {
+            document.getElementById('dex-modal').classList.remove('active');
+        };
+
+        Game.prototype.buyUpgrade = function(type, cost) {
+            if (GAME_PROGRESSION.fragments >= cost) {
+                GAME_PROGRESSION.fragments -= cost;
+                GAME_PROGRESSION.upgrades[type]++;
+                sound.playWin();
+                this.updateUI(true);
+                this.openDexModal();
+            } else {
+                sound.playStop(0.5);
+            }
+        };
+
+        Game.prototype.triggerCyberAnomaly = function() {
+            this.isAnomalyActive = true;
+            this.multiplier *= 3;
+            this.showComboText("CYBER ANOMALY: TRIPLE MULTIPLIER!");
+            this.triggerFlash('#ffe600');
+            sound.playFever();
+            setTimeout(() => {
+                this.isAnomalyActive = false;
+                this.multiplier = Math.max(1, Math.floor(this.multiplier / 3));
+            }, 7000);
+        };
+
+        Game.prototype.useSkill = function(idx) {
+            const skill = this.skills[idx];
+            if (skill.charge >= skill.maxCharge) {
+                skill.charge = 0;
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                if (idx === 0) {
+                    this.timeRemaining += 12.0;
+                    this.showComboText("DECK SUBROUTINE: TIME FREEZE +12s");
+                } else if (idx === 1) {
+                    this.triggerOverdriveMode();
+                } else if (idx === 2) {
+                    this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.35);
+                    this.showComboText("DECK SUBROUTINE: SHIELD ANNIHILATED!");
+                    this.bossShieldActive = false;
+                    document.getElementById('boss-shield-badge').style.display = 'none';
+                }
+            }
+        };
+
+        // グリッチバグ撃破ボーナスギミックのメソッド追加
+        Game.prototype.triggerGlitchBug = function() {
+            const alertEl = document.getElementById('glitch-alert');
+            alertEl.style.opacity = '1';
+            sound.playReach();
+            this.triggerCameraShake('light');
+            
+            const bugTimeout = setTimeout(() => {
+                alertEl.style.opacity = '0';
+            }, 1800);
+
+            const quickActionHandler = () => {
+                clearTimeout(bugTimeout);
+                alertEl.style.opacity = '0';
+                this.score += 1500 * this.multiplier;
+                this.timeRemaining += 2.5;
+                this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                sound.playWin();
+                this.triggerFlash('#00f3ff');
+                window.removeEventListener('pointerdown', quickActionHandler);
+            };
+            window.addEventListener('pointerdown', quickActionHandler, { once: true });
+        };
+====
+            damageBoss(dmg) {
+                if (this.bossShieldActive && dmg < 400) {
+                    this.showComboText("SHIELD ACTIVE! DMG REDUCED");
+                    dmg *= 0.35;
+                }
+                this.bossHp -= dmg;
+                GAME_PROGRESSION.fragments += Math.max(1, Math.floor(dmg * 0.15));
+                if (this.bossHp <= 0) {
+                    this.bossHp = 0;
+                    this.nextStage();
+                }
+                const hpPct = `${Math.max(0, (this.bossHp / this.bossMaxHp) * 100)}%`;
+                document.getElementById('boss-hp-bar').style.width = hpPct;
+                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments}`;
+            }
+
+            nextStage() {
+                this.openRogueTerminal();
+            }
+
+            openRogueTerminal() {
+                this.gameState = 'ROGUE_SELECT';
+                const rogueModal = document.getElementById('rogue-modal');
+                rogueModal.classList.add('active');
+                
+                sound.playReach();
+                this.triggerCameraShake('medium');
+
+                const setupOpt = (id, type, glowColor, pitch) => {
+                    const el = document.getElementById(id);
+                    const newEl = el.cloneNode(true);
+                    el.parentNode.replaceChild(newEl, el);
+                    
+                    const handleHover = () => {
+                        rogueModal.style.boxShadow = `inset 0 0 100px ${glowColor}, 0 0 30px ${glowColor}`;
+                        sound.playSynthWave(pitch, 'sawtooth', 0.05, 0.06);
+                        newEl.style.transform = 'scale(1.02) translateY(-2px)';
+                    };
+                    const handleLeave = () => {
+                        rogueModal.style.boxShadow = 'none';
+                        newEl.style.transform = 'none';
+                    };
+
+                    newEl.addEventListener('pointerenter', handleHover, { passive: true });
+                    newEl.addEventListener('pointerleave', handleLeave, { passive: true });
+                    newEl.addEventListener('touchstart', handleHover, { passive: true });
+
+                    newEl.addEventListener('click', () => {
+                        rogueModal.style.boxShadow = 'none';
+                        rogueModal.classList.remove('active');
+                        sound.playStop(1.5);
+                        this.triggerFlash('#00f3ff');
+                        this.applyRogueChoice(type);
+                    });
+                };
+
+                setupOpt('rogue-opt-0', 'contract', 'rgba(0, 243, 255, 0.45)', 587.33);
+                setupOpt('rogue-opt-1', 'market', 'rgba(255, 230, 0, 0.45)', 783.99);
+                setupOpt('rogue-opt-2', 'bay', 'rgba(255, 0, 85, 0.45)', 1046.50);
+            }
+
+            applyRogueChoice(type) {
+                this.stage++;
+                this.bossMaxHp = Math.round(this.bossMaxHp * 1.65);
+                this.bossHp = this.bossMaxHp;
+                this.bossShieldActive = true;
+                this.bossOverloaded = false;
+                
+                const elements = ['FIRE', 'ELECTRIC', 'ICE'];
+                this.bossElementWeakness = elements[(this.stage - 1) % elements.length];
+
+                if (type === 'contract') {
+                    this.multiplier *= 2;
+                    this.timeRemaining += 12.0;
+                    this.activePassives.push('OVERCLOCK_PASSPORT');
+                    this.showComboText("HACK PASSPORT: OVERCLOCK CONTRACT EQUIPPED!");
+                } else if (type === 'market') {
+                    GAME_PROGRESSION.fragments += 350;
+                    GAME_PROGRESSION.exoticMaterials += 3;
+                    this.skills.forEach(s => s.charge = s.maxCharge);
+                    this.timeRemaining += 18.0;
+                    this.activePassives.push('MARKET_BOOST');
+                    this.showComboText("HACK PASSPORT: BLACK MARKET SYNDICATE!");
+                } else if (type === 'bay') {
+                    GAME_PROGRESSION.upgrades.timeBonus += 2;
+                    this.timeRemaining += 30.0;
+                    this.activePassives.push('REWIND');
+                    this.showComboText("HACK PASSPORT: CHRONO REWIND INSTALLED!");
+                }
+
+                const stageNames = [`STAGE ${this.stage}: NET CORE (WEAK ELEM: ${this.bossElementWeakness})`, `STAGE ${this.stage}: MATRIX CORE`, `STAGE ${this.stage}: OMEGA GRID`];
+                const bossNames = ['BOSS: FROST_DEFENDER', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_EMP'];
+                
+                document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-name').innerText = bossNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-shield-badge').style.display = 'inline-block';
+                
+                this.gameState = 'PLAYING';
+                this.triggerFlash('#00f3ff');
+                sound.playFever();
+                this.triggerSpin();
+            }
+
+            addFever(amount) {
+                if (this.isFever) return;
+                const efficiencyBonus = 1.0 + (GAME_PROGRESSION.upgrades.feverEfficiency * 0.1);
+                this.feverGauge += amount * efficiencyBonus;
+                if (this.feverGauge >= 100) {
+                    this.triggerFeverMode();
+                }
+            }
+
+            triggerOverdriveMode() {
+                this.isOverdrive = true;
+                this.multiplier = (this.isFever ? 4 : 1) * 2;
+                this.showComboText("CYBER OVERDRIVE!!");
+                this.triggerFlash('#ff0055');
+                sound.playFever();
+            }
+
+            openDexModal() {
+                const container = document.getElementById('dex-items-container');
+                container.innerHTML = '';
+                for (const [key, val] of Object.entries(GAME_PROGRESSION.dex)) {
+                    const item = document.createElement('div');
+                    item.className = 'dex-item unlocked';
+                    item.innerHTML = `
+                        <div class="dex-info">
+                            <h4>${val.name}</h4>
+                            <p>${val.desc}</p>
+                        </div>
+                        <div class="dex-status">UNLOCKED</div>
+                    `;
+                    container.appendChild(item);
+                }
+
+                const updateAffordable = (btnId, cost) => {
+                    const btn = document.getElementById(btnId);
+                    if (btn) {
+                        if (GAME_PROGRESSION.fragments >= cost) {
+                            btn.classList.add('affordable');
+                        } else {
+                            btn.classList.remove('affordable');
+                        }
+                    }
+                };
+                updateAffordable('upg-fever', 50);
+                updateAffordable('upg-time', 50);
+                updateAffordable('upg-prism', 75);
+
+                document.getElementById('dex-modal').classList.add('active');
+            }
+
+            closeDexModal() {
+                document.getElementById('dex-modal').classList.remove('active');
+            }
+
+            buyUpgrade(type, cost) {
+                if (GAME_PROGRESSION.fragments >= cost) {
+                    GAME_PROGRESSION.fragments -= cost;
+                    GAME_PROGRESSION.upgrades[type]++;
+                    sound.playWin();
+                    this.updateUI(true);
+                    this.openDexModal();
+                } else {
+                    sound.playStop(0.5);
+                }
+            }
+
+            triggerCyberAnomaly() {
+                this.isAnomalyActive = true;
+                this.multiplier *= 3;
+                this.showComboText("CYBER ANOMALY: TRIPLE MULTIPLIER!");
+                this.triggerFlash('#ffe600');
+                sound.playFever();
+                setTimeout(() => {
+                    this.isAnomalyActive = false;
+                    this.multiplier = Math.max(1, Math.floor(this.multiplier / 3));
+                }, 7000);
+            }
+
+            useSkill(idx) {
+                const skill = this.skills[idx];
+                if (skill.charge >= skill.maxCharge) {
+                    skill.charge = 0;
+                    sound.playWin();
+                    this.triggerFlash('#00f3ff');
+                    if (idx === 0) {
+                        this.timeRemaining += 12.0;
+                        this.showComboText("DECK SUBROUTINE: TIME FREEZE +12s");
+                    } else if (idx === 1) {
+                        this.triggerOverdriveMode();
+                    } else if (idx === 2) {
+                        this.bossHp = Math.max(0, this.bossHp - this.bossMaxHp * 0.35);
+                        this.showComboText("DECK SUBROUTINE: SHIELD ANNIHILATED!");
+                        this.bossShieldActive = false;
+                        document.getElementById('boss-shield-badge').style.display = 'none';
+                    }
+                }
+            }
+
+            triggerGlitchBug() {
+                const alertEl = document.getElementById('glitch-alert');
+                alertEl.style.opacity = '1';
+                sound.playReach();
+                this.triggerCameraShake('light');
+                
+                const bugTimeout = setTimeout(() => {
+                    alertEl.style.opacity = '0';
+                }, 1800);
+
+                const quickActionHandler = () => {
+                    clearTimeout(bugTimeout);
+                    alertEl.style.opacity = '0';
+                    this.score += 1500 * this.multiplier;
+                    this.timeRemaining += 2.5;
+                    this.showComboText("BUG DESTROYED! +1500 & +2.5s");
+                    sound.playWin();
+                    this.triggerFlash('#00f3ff');
+                    window.removeEventListener('pointerdown', quickActionHandler);
+                };
+                window.addEventListener('pointerdown', quickActionHandler, { once: true });
             }
 ====
 
