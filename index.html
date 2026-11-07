@@ -511,6 +511,7 @@
                 this.masterGain = null;
                 this.compressor = null;
                 this.isMuted = false;
+                this.clickBuffer = null;
             }
 
             init() {
@@ -519,17 +520,24 @@
                     this.ctx = new AudioContext();
                     
                     this.compressor = this.ctx.createDynamicsCompressor();
-                    this.compressor.threshold.setValueAtTime(-12, this.ctx.currentTime);
-                    this.compressor.knee.setValueAtTime(40, this.ctx.currentTime);
-                    this.compressor.ratio.setValueAtTime(12, this.ctx.currentTime);
-                    this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
-                    this.compressor.release.setValueAtTime(0.1, this.ctx.currentTime);
+                    this.compressor.threshold.setValueAtTime(-16, this.ctx.currentTime);
+                    this.compressor.knee.setValueAtTime(24, this.ctx.currentTime);
+                    this.compressor.ratio.setValueAtTime(8, this.ctx.currentTime);
+                    this.compressor.attack.setValueAtTime(0.001, this.ctx.currentTime);
+                    this.compressor.release.setValueAtTime(0.08, this.ctx.currentTime);
 
                     this.masterGain = this.ctx.createGain();
-                    this.masterGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+                    this.masterGain.gain.setValueAtTime(0.85, this.ctx.currentTime);
 
                     this.compressor.connect(this.masterGain);
                     this.masterGain.connect(this.ctx.destination);
+
+                    // クリックノイズ用バッファを事前生成（発音レスポンスの高速化）
+                    this.clickBuffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.03), this.ctx.sampleRate);
+                    const output = this.clickBuffer.getChannelData(0);
+                    for (let i = 0; i < output.length; i++) {
+                        output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (output.length * 0.3));
+                    }
                 }
                 if (this.ctx.state === 'suspended') {
                     this.ctx.resume();
@@ -565,43 +573,41 @@
                 this.init();
                 const now = this.ctx.currentTime;
                 
-                // メインのロック音（重厚感アップ）
+                // メインのロック音
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(180 * pitchMultiplier, now);
-                osc.frequency.exponentialRampToValueAtTime(25, now + 0.09);
+                osc.frequency.setValueAtTime(200 * pitchMultiplier, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
                 
                 gain.gain.setValueAtTime(0.0001, now);
-                gain.gain.linearRampToValueAtTime(0.35, now + 0.002);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+                gain.gain.linearRampToValueAtTime(0.4, now + 0.001);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
                 
                 osc.connect(gain);
                 gain.connect(this.compressor || this.ctx.destination);
                 osc.start(now);
-                osc.stop(now + 0.09);
+                osc.stop(now + 0.08);
 
-                // 物理的なメカニカルクリック音（ノイズ＋短形波ミックスによる目押し打撃感）
-                const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.04, this.ctx.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
-                for (let i = 0; i < noiseBuffer.length; i++) {
-                    output[i] = Math.random() * 2 - 1;
+                // 事前生成バッファを利用した即応メカニカルクリック
+                if (this.clickBuffer) {
+                    const whiteNoise = this.ctx.createBufferSource();
+                    whiteNoise.buffer = this.clickBuffer;
+                    
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(1500, now);
+                    filter.Q.setValueAtTime(1.5, now);
+
+                    const noiseGain = this.ctx.createGain();
+                    noiseGain.gain.setValueAtTime(0.2, now);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+                    whiteNoise.connect(filter);
+                    filter.connect(noiseGain);
+                    noiseGain.connect(this.compressor || this.ctx.destination);
+                    whiteNoise.start(now);
                 }
-                const whiteNoise = this.ctx.createBufferSource();
-                whiteNoise.buffer = noiseBuffer;
-                
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(1200, now);
-
-                const noiseGain = this.ctx.createGain();
-                noiseGain.gain.setValueAtTime(0.15, now);
-                noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-
-                whiteNoise.connect(filter);
-                filter.connect(noiseGain);
-                noiseGain.connect(this.compressor || this.ctx.destination);
-                whiteNoise.start(now);
             }
 
             playWin() {
@@ -663,6 +669,7 @@
          * Canvas描画キャッシュ管理（描画パフォーマンス極限最適化）
          */
         const symbolCacheStore = new Map();
+        const MAX_CACHE_SIZE = 100;
 
         function clearSymbolCache() {
             symbolCacheStore.clear();
@@ -670,9 +677,15 @@
 
         function getCachedSymbolCanvas(symbol, height, isHighlighted, isSpinning) {
             const h = Math.round(height);
-            const key = `${symbol.id}_${h}_${isHighlighted}_${isSpinning}`;
+            const key = `${symbol.id}_${h}_${isHighlighted ? 1 : 0}_${isSpinning ? 1 : 0}`;
             if (symbolCacheStore.has(key)) {
                 return symbolCacheStore.get(key);
+            }
+
+            // キャッシュサイズ上限管理によるメモリリーク防止
+            if (symbolCacheStore.size > MAX_CACHE_SIZE) {
+                const firstKey = symbolCacheStore.keys().next().value;
+                symbolCacheStore.delete(firstKey);
             }
 
             const offCanvas = document.createElement('canvas');
@@ -751,13 +764,12 @@
                 this.stopProgress = 0;
                 this.startStopPos = this.position;
                 
-                // 確実に整数コマの位置にぴったり止める高精度吸着ロジック
-                // 最小スベリ量を確保しつつ次の整数のグリッドへ着地
-                const slipDistance = 0.45;
-                this.targetPos = Math.ceil(this.position + slipDistance);
+                // グリッド単位（整数位置）への着地を厳密化
+                const minSlip = 0.5;
+                this.targetPos = Math.ceil(this.position + minSlip);
 
-                // 中央ライン(i=1)に位置する確定シンボルを厳密算出
-                const finalGridPos = Math.round(this.targetPos);
+                // 中央ライン(i=1)の位置にあるシンボルを特定
+                const finalGridPos = this.targetPos;
                 const centerIdx = (finalGridPos + 1) % this.symbols.length;
                 this.stoppedSymbol = this.symbols[centerIdx];
             }
@@ -772,21 +784,21 @@
 
             update(dt) {
                 if (this.state === 'SPINNING') {
-                    this.position += this.speed * dt * 60;
+                    this.position = (this.position + this.speed * dt * 60) % this.symbols.length;
                     if (Math.random() < 0.08) sound.playSpin();
                 } else if (this.state === 'STOPPING') {
-                    // 目押しのダイレクト感とキレ味を最大化する超高速・高精度イージング
-                    this.stopProgress += dt * 10.5;
+                    // ディスプレイのリフレッシュレートに依存しない高精度イージング
+                    this.stopProgress += dt * 12.0;
                     if (this.stopProgress >= 1) {
                         this.stopProgress = 1;
-                        this.position = this.targetPos;
+                        this.position = this.targetPos % this.symbols.length;
                         this.state = 'IDLE';
                         sound.playStop(1 + this.index * 0.25);
                         if (this.onCompleteStop) {
                             this.onCompleteStop(this.index);
                         }
                     } else {
-                        // 鋭くピタッと吸着しつつ心地よい微小バックラッシュを生むスナップ減速曲線
+                        // スナップ効果のある減速曲線
                         const t = this.stopProgress;
                         const easeOutSnap = 1 - Math.pow(1 - t, 4);
                         this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutSnap;
@@ -889,12 +901,14 @@
                         e.preventDefault();
                         sound.init();
                         const now = performance.now();
-                        if (now - lastInputTime < 30) return; // 超低遅延・高応答デバウンス (30ms)
+                        if (now - lastInputTime < 20) return; // 超低遅延デバウンス (20ms)
                         lastInputTime = now;
 
-                        // 即座に押下状態のフィードバックを与える
+                        // 即座の視覚フィードバック
                         el.classList.add('pressed');
-                        setTimeout(() => el.classList.remove('pressed'), 120);
+                        requestAnimationFrame(() => {
+                            setTimeout(() => el.classList.remove('pressed'), 100);
+                        });
 
                         handler();
                     };
