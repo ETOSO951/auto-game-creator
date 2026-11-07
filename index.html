@@ -868,8 +868,17 @@
         <div class="ui-layer">
             <!-- HUD TOP BAR -->
             <div class="hud-top-bar">
-                <div class="stage-badge" id="stage-badge">STAGE 1: CYBER CITY</div>
-                <button class="btn-dex" id="btn-dex">DEX / UPGRADE</button>
+                <div class="hud-row">
+                    <div class="stage-badge" id="stage-badge">STAGE 1: CYBER CITY</div>
+                    <button class="btn-dex" id="btn-dex">DEX / UPGRADE</button>
+                </div>
+                <div class="hud-row">
+                    <span id="boss-name" style="font-size: 9px; color: var(--primary-neon);">BOSS: CORRUPT_CORE</span>
+                    <div class="boss-hp-container">
+                        <div class="boss-hp-fill" id="boss-hp-bar"></div>
+                    </div>
+                    <span id="fragment-display" style="font-size: 9px; color: var(--accent-gold);">FRAG: 0</span>
+                </div>
             </div>
 
             <!-- SKILL PANEL -->
@@ -1212,13 +1221,14 @@
             { id: '7', color: '#ff0055', score: 500, label: '7' },
             { id: 'BAR', color: '#ffe600', score: 300, label: 'BAR' },
             { id: 'GEM', color: '#00f3ff', score: 200, label: '★' },
-            { id: 'PRISM', color: '#ff00ff', score: 800, label: '💎' },
+            { id: 'PRISM', color: '#ff00ff', score: 900, label: '💎' },
+            { id: 'BOMB', color: '#ff3300', score: 600, label: '💣' },
             { id: 'BELL', color: '#ff9900', score: 150, label: '🔔' },
             { id: 'CHERRY', color: '#ff2244', score: 100, label: '🍒' },
             { id: 'LEMON', color: '#ccff00', score: 50, label: '🍋' }
         ];
 
-        // ハクスラ・プログレッション＆スキルシステム用データ
+        // ハクスラ・プログレッション＆モジュール拡張スロットシステム用データ
         const GAME_PROGRESSION = {
             fragments: 0,
             upgrades: {
@@ -1230,7 +1240,8 @@
                 '7': { name: 'NEON 7', desc: 'Standard high-value symbol.', unlocked: true },
                 'BAR': { name: 'GOLD BAR', desc: 'Classic medium-value symbol.', unlocked: true },
                 'GEM': { name: 'CYBER GEM', desc: 'Energetic star symbol.', unlocked: true },
-                'PRISM': { name: 'PRISM DIAMOND', desc: 'Rare Rush-mode ultimate symbol.', unlocked: false },
+                'PRISM': { name: 'PRISM DIAMOND', desc: 'Ultimate multiplier symbol.', unlocked: true },
+                'BOMB': { name: 'CLUSTER BOMB', desc: 'Explodes adjacent symbols for huge damage.', unlocked: false, cost: 50 },
                 'BELL': { name: 'NEON BELL', desc: 'Ringing reward symbol.', unlocked: true },
                 'CHERRY': { name: 'SYNTH CHERRY', desc: 'Sweet small win symbol.', unlocked: true },
                 'LEMON': { name: 'DIGITAL LEMON', desc: 'Basic fruit symbol.', unlocked: true }
@@ -1471,6 +1482,10 @@
                 this.multiplier = 1;
                 this.timeRemaining = 45.0;
                 this.stage = 1;
+                this.bossMaxHp = 1000;
+                this.bossHp = 1000;
+                this.comboChain = 0;
+                this.isOverdrive = false;
                 this.feverGauge = 0;
                 this.isFever = false;
                 this.gameState = 'START'; // START, PLAYING, GAMEOVER
@@ -1629,6 +1644,10 @@
                 this.multiplier = 1;
                 this.timeRemaining = 45.0 + (GAME_PROGRESSION.upgrades.timeBonus * 5);
                 this.stage = 1;
+                this.bossMaxHp = 1000;
+                this.bossHp = this.bossMaxHp;
+                this.comboChain = 0;
+                this.isOverdrive = false;
                 this.feverGauge = 0;
                 this.isFever = false;
                 this.isEvaluating = false;
@@ -1639,6 +1658,7 @@
                 document.getElementById('start-screen').classList.add('hidden');
                 document.getElementById('gameover-screen').classList.add('hidden');
                 document.getElementById('stage-badge').innerText = 'STAGE 1: CYBER CITY';
+                document.getElementById('boss-name').innerText = 'BOSS: CORRUPT_CORE';
 
                 this.updateUI(true);
                 this.triggerSpin();
@@ -1756,10 +1776,15 @@
 
                 let winAmount = 0;
                 let comboText = '';
+                let damageToBoss = 0;
+
+                const hasBomb = [s0, s1, s2].some(s => s.id === 'BOMB');
+                const prismBonus = (GAME_PROGRESSION.upgrades.prismBoost + 1);
 
                 // 全揃い (JACKPOT)
                 if (s0.id === s1.id && s1.id === s2.id) {
-                    winAmount = s0.score * 3 * this.multiplier;
+                    winAmount = s0.score * 3 * this.multiplier * prismBonus;
+                    damageToBoss = winAmount * 1.5;
                     comboText = `JACKPOT! +${winAmount}`;
                     this.reels.forEach(r => r.isHighlighted = true);
                     this.paylineEl.classList.add('active-win');
@@ -1767,39 +1792,91 @@
                     this.triggerCameraShake('heavy');
                     sound.playWin();
                     this.addFever(35);
+                    this.comboChain++;
                 } 
-                // テンパイヒット（左2つ、右2つ、両端）
-                else if (s0.id === s1.id || s1.id === s2.id || s0.id === s2.id) {
+                // テンパイヒット（左2つ、右2つ、両端）またはボム誘発
+                else if (s0.id === s1.id || s1.id === s2.id || s0.id === s2.id || hasBomb) {
                     if (s0.id === s1.id) {
                         this.reels[0].isHighlighted = true;
                         this.reels[1].isHighlighted = true;
-                        winAmount = s0.score * this.multiplier;
+                        winAmount = s0.score * this.multiplier * prismBonus;
                     } else if (s1.id === s2.id) {
                         this.reels[1].isHighlighted = true;
                         this.reels[2].isHighlighted = true;
-                        winAmount = s1.score * this.multiplier;
-                    } else {
+                        winAmount = s1.score * this.multiplier * prismBonus;
+                    } else if (s0.id === s2.id) {
                         this.reels[0].isHighlighted = true;
                         this.reels[2].isHighlighted = true;
-                        winAmount = s0.score * this.multiplier;
+                        winAmount = s0.score * this.multiplier * prismBonus;
+                    } else if (hasBomb) {
+                        this.reels.forEach(r => r.isHighlighted = true);
+                        winAmount = 400 * this.multiplier * prismBonus;
                     }
-                    comboText = `GREAT! +${winAmount}`;
+                    damageToBoss = winAmount;
+                    comboText = `CHAIN x${++this.comboChain}! +${winAmount}`;
                     this.paylineEl.classList.add('active-win');
                     sound.playWin();
-                    this.addFever(15);
+                    this.addFever(hasBomb ? 25 : 15);
+                } else {
+                    this.comboChain = 0;
+                    this.addFever(5);
                 }
 
                 if (winAmount > 0) {
                     this.score += winAmount;
+                    this.damageBoss(damageToBoss);
                     this.showComboText(comboText);
+                    
+                    // コンボチェインによるサイバー・オーバードライブ（覚醒モード）判定
+                    if (this.comboChain >= 3 && !this.isOverdrive) {
+                        this.triggerOverdriveMode();
+                    }
                 } else {
-                    this.addFever(5);
+                    if (this.isOverdrive) {
+                        this.isOverdrive = false;
+                        this.multiplier = this.isFever ? 4 : 1;
+                    }
                 }
 
                 this.updateUI();
-
-                // 評価完了ウェイトをdt駆動タイマー(秒)にセット
                 this.evalTimer = winAmount > 0 ? 0.35 : 0.12;
+            }
+
+            damageBoss(dmg) {
+                this.bossHp -= dmg;
+                GAME_PROGRESSION.fragments += Math.floor(dmg * 0.1);
+                if (this.bossHp <= 0) {
+                    this.bossHp = 0;
+                    this.nextStage();
+                }
+                const hpPct = `${Math.max(0, (this.bossHp / this.bossMaxHp) * 100)}%`;
+                document.getElementById('boss-hp-bar').style.width = hpPct;
+                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments}`;
+            }
+
+            nextStage() {
+                this.stage++;
+                this.bossMaxHp = Math.round(this.bossMaxHp * 1.5);
+                this.bossHp = this.bossMaxHp;
+                this.timeRemaining += 15.0;
+                
+                const stageNames = ['STAGE 1: CYBER CITY', 'STAGE 2: NET CORE', 'STAGE 3: MATRIX OVERLOAD'];
+                const bossNames = ['BOSS: CORRUPT_CORE', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_GLITCH'];
+                
+                document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
+                document.getElementById('boss-name').innerText = bossNames[Math.min(this.stage - 1, 2)];
+                
+                this.showComboText(`STAGE CLEAR! +15.0s`);
+                this.triggerFlash('#00f3ff');
+                sound.playFever();
+            }
+
+            triggerOverdriveMode() {
+                this.isOverdrive = true;
+                this.multiplier = (this.isFever ? 4 : 1) * 2;
+                this.showComboText("CYBER OVERDRIVE!!");
+                this.triggerFlash('#ff0055');
+                sound.playFever();
             }
 
             addFever(amount) {
@@ -1859,7 +1936,7 @@
                     this.timeEl.innerText = timeStr;
                 }
 
-                const multStr = `x${this.multiplier}`;
+                const multStr = `x${this.multiplier}${this.isOverdrive ? ' (OD)' : ''}`;
                 if (force || this._uiCache.mult !== multStr) {
                     this._uiCache.mult = multStr;
                     this.multEl.innerText = multStr;
@@ -1870,6 +1947,10 @@
                     this._uiCache.feverPct = feverPct;
                     this.feverBar.style.width = feverPct;
                 }
+
+                const hpPct = `${Math.max(0, (this.bossHp / this.bossMaxHp) * 100)}%`;
+                document.getElementById('boss-hp-bar').style.width = hpPct;
+                document.getElementById('fragment-display').innerText = `FRAG: ${GAME_PROGRESSION.fragments}`;
             }
 
             gameOver() {
