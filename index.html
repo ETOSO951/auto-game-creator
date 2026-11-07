@@ -909,29 +909,23 @@
         <canvas id="bg-canvas"></canvas>
 
         <div class="ui-layer">
-            <!-- HUD TOP BAR -->
+            <!-- 【引き算の美学：洗練されたクリーンHUD】 -->
             <div class="hud-top-bar">
                 <div style="display: flex; gap: 6px; align-items: center;">
                     <div class="stage-badge" id="stage-badge">STAGE 1: FIREWALL</div>
-                    <button class="btn-dex" id="btn-dex">ARCHIVE & MODS</button>
                 </div>
                 <div style="display: flex; align-items: center; gap: 6px;">
                     <span id="boss-name" style="font-size: 9px; color: var(--primary-neon);">BOSS: VULCAN_CORE</span>
                     <span class="boss-shield-badge" id="boss-shield-badge">SHIELD: ON</span>
-                    <span id="fragment-display" style="font-size: 9px; color: var(--accent-gold);">FRAG: 0</span>
+                    <button class="btn-dex" id="btn-dex" style="font-size: 8px; padding: 1px 4px;">ARCHIVE</button>
                 </div>
             </div>
-            <!-- 新機能：サイバー・バウンティ（懸賞金）クエスト インジケーター -->
-            <div id="bounty-quest-bar" style="width: 100%; background: rgba(0,243,255,0.1); border: 1px dashed rgba(0,243,255,0.4); border-radius: 6px; padding: 3px 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 9px; font-family: var(--font-family); color: var(--secondary-neon);">
-                <span id="bounty-text">QUEST: SPIN & ACHIEVE COMBO CHAIN (0/3)</span>
-                <span id="bounty-reward" style="color: var(--accent-gold);">REWARD: +200 FRAG</span>
-            </div>
-            <!-- BOSS HP BAR -->
-            <div class="fever-container" style="height: 6px; margin-bottom: 6px; background: rgba(255,0,85,0.15);">
+            <!-- BOSS HP BAR & コンテキスト統合クエスト演出 -->
+            <div class="fever-container" style="height: 5px; margin-bottom: 6px; background: rgba(255,0,85,0.15);">
                 <div class="fever-bar" id="boss-hp-bar" style="width: 100%; background: linear-gradient(90deg, var(--primary-neon), var(--accent-gold));"></div>
             </div>
 
-            <!-- SKILL PANEL -->
+            <!-- SKILL PANEL (未チャージ時はミニマル透過、Ready時のみ鮮烈発光) -->
             <div class="skill-panel">
                 <button class="btn-skill" id="btn-skill-0">
                     <span id="skill-name-0">TIME FREEZE</span>
@@ -945,10 +939,6 @@
                     <span id="skill-name-2">RECONFIG</span>
                     <div class="skill-gauge-fill" id="skill-gauge-2"></div>
                 </button>
-            </div>
-            <!-- 新機能：エキゾチックパッシブアビリティ・インジケーター -->
-            <div id="passive-indicator" style="font-size: 9px; color: var(--accent-gold); text-align: center; margin-bottom: 4px; letter-spacing: 1px;">
-                PASSIVE: [NEON PRISM MATRIX ACTIVE]
             </div>
 
             <!-- HEADER -->
