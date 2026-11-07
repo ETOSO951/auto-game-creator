@@ -564,35 +564,64 @@
                 if (!this.ctx) return;
                 this.init();
                 const now = this.ctx.currentTime;
+                
+                // メインのロック音（重厚感アップ）
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(140 * pitchMultiplier, now);
-                osc.frequency.exponentialRampToValueAtTime(35, now + 0.08);
+                osc.frequency.setValueAtTime(180 * pitchMultiplier, now);
+                osc.frequency.exponentialRampToValueAtTime(25, now + 0.09);
                 
                 gain.gain.setValueAtTime(0.0001, now);
-                gain.gain.linearRampToValueAtTime(0.25, now + 0.004);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+                gain.gain.linearRampToValueAtTime(0.35, now + 0.002);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
                 
                 osc.connect(gain);
                 gain.connect(this.compressor || this.ctx.destination);
                 osc.start(now);
-                osc.stop(now + 0.08);
+                osc.stop(now + 0.09);
+
+                // 物理的なメカニカルクリック音（ノイズ＋短形波ミックスによる目押し打撃感）
+                const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.04, this.ctx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < noiseBuffer.length; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                const whiteNoise = this.ctx.createBufferSource();
+                whiteNoise.buffer = noiseBuffer;
+                
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(1200, now);
+
+                const noiseGain = this.ctx.createGain();
+                noiseGain.gain.setValueAtTime(0.15, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+                whiteNoise.connect(filter);
+                filter.connect(noiseGain);
+                noiseGain.connect(this.compressor || this.ctx.destination);
+                whiteNoise.start(now);
             }
 
             playWin() {
                 if (!this.ctx) return;
-                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C5, E5, G5, C6, E6
                 notes.forEach((freq, idx) => {
                     setTimeout(() => {
-                        this.playSynthWave(freq, 'sine', 0.18, 0.12);
-                    }, idx * 45);
+                        this.playSynthWave(freq, 'triangle', 0.22, 0.18);
+                    }, idx * 40);
                 });
             }
 
             playFever() {
                 if (!this.ctx) return;
-                this.playSynthWave(880, 'square', 0.25, 0.15);
+                const notes = [440, 554.37, 659.25, 880];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        this.playSynthWave(freq, 'square', 0.3, 0.2);
+                    }, idx * 60);
+                });
             }
 
             playBeat() {
@@ -601,17 +630,18 @@
                 const now = this.ctx.currentTime;
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
-                osc.frequency.setValueAtTime(130, now);
-                osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.09);
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.07);
                 
                 gain.gain.setValueAtTime(0.0001, now);
-                gain.gain.linearRampToValueAtTime(0.18, now + 0.003);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+                gain.gain.linearRampToValueAtTime(0.22, now + 0.002);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
                 
                 osc.connect(gain);
                 gain.connect(this.compressor || this.ctx.destination);
                 osc.start(now);
-                osc.stop(now + 0.09);
+                osc.stop(now + 0.07);
             }
         }
 
@@ -745,22 +775,21 @@
                     this.position += this.speed * dt * 60;
                     if (Math.random() < 0.08) sound.playSpin();
                 } else if (this.state === 'STOPPING') {
-                    // フレーム非依存の高応答イージング (速度感とバウンドのキレを極限チューニング)
-                    this.stopProgress += dt * 8.5;
+                    // 目押しのダイレクト感とキレ味を最大化する超高速・高精度イージング
+                    this.stopProgress += dt * 10.5;
                     if (this.stopProgress >= 1) {
                         this.stopProgress = 1;
                         this.position = this.targetPos;
                         this.state = 'IDLE';
-                        sound.playStop(1 + this.index * 0.2);
+                        sound.playStop(1 + this.index * 0.25);
                         if (this.onCompleteStop) {
                             this.onCompleteStop(this.index);
                         }
                     } else {
-                        // ピタッと吸着する気持ち良いオーバーシュート減速曲線 (Custom Elastic Ease-Out)
+                        // 鋭くピタッと吸着しつつ心地よい微小バックラッシュを生むスナップ減速曲線
                         const t = this.stopProgress;
-                        const overshoot = 1.4;
-                        const easeOutElastic = 1 + Math.pow(t - 1, 3) * (overshoot * (t - 1) + overshoot);
-                        this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutElastic;
+                        const easeOutSnap = 1 - Math.pow(1 - t, 4);
+                        this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutSnap;
                     }
                 }
             }
@@ -970,14 +999,20 @@
                     reel.stop();
                     this.triggerCameraShake('light');
                     this.updateStopButtonsState();
+
+                    // 即座にストップボタンの視覚フィードバック（火花・パルス演出）
+                    const btn = this.stopBtns[index];
+                    btn.classList.add('pressed');
+                    setTimeout(() => btn.classList.remove('pressed'), 100);
                 }
             }
 
             onReelComplete(index) {
                 this.updateStopButtonsState();
-                // すべてのリールが物理停止したかチェック
+                // 1フレームのズレも許さない完全同期ステート判定
                 if (this.reels.every(r => r.isIdle) && !this.isEvaluating && this.gameState === 'PLAYING') {
-                    this.evaluateResult();
+                    // 次のイベントループティックで完全同期実行
+                    requestAnimationFrame(() => this.evaluateResult());
                 }
             }
 
