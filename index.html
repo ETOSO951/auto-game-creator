@@ -210,7 +210,19 @@
             transform: translateY(-50%);
             z-index: 5;
             pointer-events: none;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
+        }
+
+        .payline.reach {
+            height: 4px;
+            background: var(--secondary-neon);
+            box-shadow: 0 0 12px var(--secondary-neon), 0 0 25px var(--secondary-neon);
+            animation: payline-pulse 0.25s infinite alternate;
+        }
+
+        @keyframes payline-pulse {
+            0% { opacity: 0.7; transform: translateY(-50%) scaleY(0.9); }
+            100% { opacity: 1; transform: translateY(-50%) scaleY(1.3); }
         }
 
         .payline.active-win {
@@ -229,6 +241,18 @@
             position: relative;
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .reel-viewport.reach-target {
+            border-color: var(--secondary-neon);
+            box-shadow: inset 0 0 25px rgba(0, 243, 255, 0.4), 0 0 15px rgba(0, 243, 255, 0.6);
+            animation: reel-reach-glow 0.3s infinite alternate ease-in-out;
+        }
+
+        @keyframes reel-reach-glow {
+            0% { box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.3), 0 0 10px rgba(0, 243, 255, 0.4); }
+            100% { box-shadow: inset 0 0 30px rgba(0, 243, 255, 0.7), 0 0 25px rgba(0, 243, 255, 0.9); }
         }
 
         .reel-canvas {
@@ -569,6 +593,26 @@
                 this.playSynthWave(150, 'sawtooth', 0.04, 0.02);
             }
 
+            playReach() {
+                if (!this.ctx) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+                
+                gain.gain.setValueAtTime(0.0001, now);
+                gain.gain.linearRampToValueAtTime(0.25, now + 0.005);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+                
+                osc.connect(gain);
+                gain.connect(this.compressor || this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+
             playStop(pitchMultiplier = 1) {
                 if (!this.ctx) return;
                 this.init();
@@ -764,6 +808,7 @@
                 this.startStopPos = 0;
                 this.stoppedSymbol = null;
                 this.isHighlighted = false;
+                this.isReach = false;
                 this.onCompleteStop = onCompleteStop;
                 this.resize();
             }
@@ -780,8 +825,16 @@
                 if (this.state !== 'IDLE') return;
                 this.state = 'SPINNING';
                 this.isHighlighted = false;
+                this.isReach = false;
                 this.stoppedSymbol = null;
-                this.speed = 1.0 + Math.random() * 0.2;
+                this.speed = 1.0 + Math.random() * 0.15;
+            }
+
+            setReachMode(isReach) {
+                this.isReach = isReach;
+                if (isReach && this.state === 'SPINNING') {
+                    this.speed = 1.35;
+                }
             }
 
             stop() {
@@ -790,9 +843,9 @@
                 this.stopProgress = 0;
                 this.startStopPos = this.position;
                 
-                // 押し下げた瞬間の絶対位置からジャストなグリッド（整数単位）へ精密吸着
-                // 滑り量を最小限（0.35〜1.35シンボル）に留め、狙った箇所でビタ止まりする目押し精度を実現
-                this.targetPos = Math.floor(this.position + 0.85);
+                // 押し下げた瞬間の慣性を正確に計算し、グリッドのジャスト位置（目押しビタ止まり）へ吸着
+                const offsetShift = 0.82;
+                this.targetPos = Math.floor(this.position + offsetShift);
 
                 // 中央ライン(i=1)に完全吸着・確定するシンボルを計算
                 const centerIdx = (this.targetPos + 1) % this.symbols.length;
@@ -856,6 +909,15 @@
                     const drawY = y + (sh - cachedCanvas.height) / 2;
 
                     ctx.drawImage(cachedCanvas, drawX, drawY);
+
+                    // テンパイ時のスピード残像・ダイナミックオーラ演出
+                    if (this.isReach && isSpinning && isCenterLine) {
+                        ctx.save();
+                        ctx.globalCompositeOperation = 'screen';
+                        ctx.fillStyle = 'rgba(0, 243, 255, 0.15)';
+                        ctx.fillRect(0, y, w, sh);
+                        ctx.restore();
+                    }
                 }
             }
         }
@@ -884,6 +946,7 @@
                 this.isFever = false;
                 this.gameState = 'START'; // START, PLAYING, GAMEOVER
                 this.isEvaluating = false;
+                this.isReach = false;
                 this.autoMode = false;
                 // dt駆動の一元タイマーマネージャー
                 this.evalTimer = -1;
@@ -1049,8 +1112,12 @@
                 if (!allIdle) return; // 二重回転発火防止 Guard
 
                 this.clearAutoTimers();
-                this.paylineEl.classList.remove('active-win');
-                this.reels.forEach(r => r.spin());
+                this.isReach = false;
+                this.paylineEl.classList.remove('active-win', 'reach');
+                this.reels.forEach(r => {
+                    r.spin();
+                    r.canvas.parentElement.classList.remove('reach-target');
+                });
                 this.updateStopButtonsState();
                 this.triggerCameraShake('light');
 
@@ -1070,10 +1137,38 @@
                 }
             }
 
+            checkReachCondition() {
+                // リールが2つ停止し、1つが回転中の状態で判定
+                const idleReels = this.reels.filter(r => r.isIdle);
+                if (idleReels.length === 2 && !this.isReach) {
+                    const stoppedIdxs = this.reels.map((r, i) => r.isIdle ? i : -1).filter(i => i !== -1);
+                    const symA = this.reels[stoppedIdxs[0]].stoppedSymbol;
+                    const symB = this.reels[stoppedIdxs[1]].stoppedSymbol;
+                    
+                    if (symA && symB && symA.id === symB.id) {
+                        // テンパイ成立！
+                        this.isReach = true;
+                        const spinningIdx = this.reels.findIndex(r => r.isSpinning);
+                        if (spinningIdx !== -1) {
+                            this.reels[spinningIdx].setReachMode(true);
+                            this.reels[spinningIdx].canvas.parentElement.classList.add('reach-target');
+                            this.paylineEl.classList.add('reach');
+                            sound.playReach();
+                            this.triggerCameraShake('light');
+                        }
+                    }
+                }
+            }
+
             onReelComplete(index) {
                 this.updateStopButtonsState();
+                this.checkReachCondition();
+
                 // 3つのリールがすべて停止した瞬間に即時ロックをかけ、判定処理の多重発火を防ぐ
                 if (this.reels.every(r => r.isIdle) && !this.isEvaluating && this.gameState === 'PLAYING') {
+                    this.isReach = false;
+                    this.paylineEl.classList.remove('reach');
+                    this.reels.forEach(r => r.canvas.parentElement.classList.remove('reach-target'));
                     this.isEvaluating = true;
                     requestAnimationFrame(() => this.evaluateResult());
                 }
