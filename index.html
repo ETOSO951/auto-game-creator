@@ -790,10 +790,9 @@
                 this.stopProgress = 0;
                 this.startStopPos = this.position;
                 
-                // 目押し感を極限まで高める精密スべり・吸着計算
-                // 押し下げた瞬間の位置から最寄りのグリッド境界へ正確に引き込み
-                const rawTarget = this.position + 0.45;
-                this.targetPos = Math.ceil(rawTarget);
+                // 押し下げた瞬間の絶対位置からジャストなグリッド（整数単位）へ精密吸着
+                // 滑り量を最小限（0.35〜1.35シンボル）に留め、狙った箇所でビタ止まりする目押し精度を実現
+                this.targetPos = Math.floor(this.position + 0.85);
 
                 // 中央ライン(i=1)に完全吸着・確定するシンボルを計算
                 const centerIdx = (this.targetPos + 1) % this.symbols.length;
@@ -813,8 +812,8 @@
                     this.position = (this.position + this.speed * dt * 60) % this.symbols.length;
                     if (Math.random() < 0.08) sound.playSpin();
                 } else if (this.state === 'STOPPING') {
-                    // 60FPSベースでリフレッシュレート非依存の高精度スナップイージング
-                    this.stopProgress += dt * 14.0;
+                    // 高速レスポンスかつ衝撃感のあるシャープなスナップイージング
+                    this.stopProgress += dt * 16.0;
                     if (this.stopProgress >= 1) {
                         this.stopProgress = 1;
                         this.position = this.targetPos % this.symbols.length;
@@ -824,10 +823,10 @@
                             this.onCompleteStop(this.index);
                         }
                     } else {
-                        // 吸着感とビタ止まりの打撃感を高めるシャープな弾性イージング
+                        // オーバーシュート（跳ね返り）を精密に抑えたシャープな弾性イージング
                         const t = this.stopProgress;
-                        const back = 0.55;
-                        const easeOutBack = 1 + (back + 1) * Math.pow(t - 1, 3) + back * Math.pow(t - 1, 2);
+                        const s = 0.4; // 弾性係数
+                        const easeOutBack = 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2);
                         this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutBack;
                     }
                 }
@@ -911,6 +910,14 @@
                     document.getElementById('stop-1'),
                     document.getElementById('stop-2')
                 ];
+
+                // UI Cache for diff rendering
+                this._uiCache = {
+                    score: null,
+                    timeStr: null,
+                    mult: null,
+                    feverPct: null
+                };
 
                 this.initEvents();
                 this.resizeBg();
@@ -1018,7 +1025,7 @@
                 document.getElementById('start-screen').classList.add('hidden');
                 document.getElementById('gameover-screen').classList.add('hidden');
 
-                this.updateUI();
+                this.updateUI(true);
                 this.triggerSpin();
             }
 
@@ -1041,13 +1048,13 @@
                 const allIdle = this.reels.every(r => r.isIdle);
                 if (!allIdle) return; // 二重回転発火防止 Guard
 
+                this.clearAutoTimers();
                 this.paylineEl.classList.remove('active-win');
                 this.reels.forEach(r => r.spin());
                 this.updateStopButtonsState();
                 this.triggerCameraShake('light');
 
                 if (this.autoMode) {
-                    this.clearAutoTimers();
                     // dt駆動タイマー：秒単位で自動停止キューを設定
                     this.autoStopTimers = [0.12, 0.22, 0.32];
                 }
@@ -1065,9 +1072,9 @@
 
             onReelComplete(index) {
                 this.updateStopButtonsState();
-                // 1フレームのズレも許さない完全同期ステート判定
+                // 3つのリールがすべて停止した瞬間に即時ロックをかけ、判定処理の多重発火を防ぐ
                 if (this.reels.every(r => r.isIdle) && !this.isEvaluating && this.gameState === 'PLAYING') {
-                    // 次のイベントループティックで完全同期実行
+                    this.isEvaluating = true;
                     requestAnimationFrame(() => this.evaluateResult());
                 }
             }
@@ -1087,7 +1094,6 @@
             }
 
             evaluateResult() {
-                this.isEvaluating = true;
                 const s0 = this.reels[0].stoppedSymbol;
                 const s1 = this.reels[1].stoppedSymbol;
                 const s2 = this.reels[2].stoppedSymbol;
@@ -1186,11 +1192,30 @@
                 this.comboTimer = 0.4; // 400ms
             }
 
-            updateUI() {
-                this.scoreEl.innerText = this.score.toLocaleString();
-                this.timeEl.innerText = Math.max(0, this.timeRemaining).toFixed(1);
-                this.multEl.innerText = `x${this.multiplier}`;
-                this.feverBar.style.width = `${Math.min(100, this.feverGauge)}%`;
+            updateUI(force = false) {
+                const formattedScore = this.score.toLocaleString();
+                if (force || this._uiCache.score !== formattedScore) {
+                    this._uiCache.score = formattedScore;
+                    this.scoreEl.innerText = formattedScore;
+                }
+
+                const timeStr = Math.max(0, this.timeRemaining).toFixed(1);
+                if (force || this._uiCache.timeStr !== timeStr) {
+                    this._uiCache.timeStr = timeStr;
+                    this.timeEl.innerText = timeStr;
+                }
+
+                const multStr = `x${this.multiplier}`;
+                if (force || this._uiCache.mult !== multStr) {
+                    this._uiCache.mult = multStr;
+                    this.multEl.innerText = multStr;
+                }
+
+                const feverPct = `${Math.min(100, Math.max(0, this.feverGauge))}%`;
+                if (force || this._uiCache.feverPct !== feverPct) {
+                    this._uiCache.feverPct = feverPct;
+                    this.feverBar.style.width = feverPct;
+                }
             }
 
             gameOver() {
