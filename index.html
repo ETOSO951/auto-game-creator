@@ -636,7 +636,7 @@
                 this.symbols = [...SYMBOLS, ...SYMBOLS];
                 this.position = Math.floor(Math.random() * this.symbols.length);
                 this.speed = 0;
-                this.state = 'IDLE';
+                this.state = 'IDLE'; // IDLE, SPINNING, STOPPING
                 this.targetPos = 0;
                 this.stopProgress = 0;
                 this.startStopPos = 0;
@@ -655,10 +655,11 @@
             }
 
             spin() {
+                if (this.state !== 'IDLE') return;
                 this.state = 'SPINNING';
                 this.isHighlighted = false;
                 this.stoppedSymbol = null;
-                this.speed = 0.75 + Math.random() * 0.15;
+                this.speed = 0.85 + Math.random() * 0.1;
             }
 
             stop() {
@@ -667,11 +668,12 @@
                 this.stopProgress = 0;
                 this.startStopPos = this.position;
                 
-                // 次の吸い付きターゲット位置（絶対整数座標）を絶対値確定
-                this.targetPos = Math.ceil(this.position + 0.85);
+                // 【目押し精度向上】現在位置から最小スベリ量（0.15コマ）を加算し、自然に最も近いコマ境界へ吸着
+                const slip = 0.15;
+                this.targetPos = Math.ceil(this.position + slip);
 
-                // 中央判定ライン（インデックス1）に来るシンボルをこの時点で先行確定（100%同期）
-                const finalPosition = this.targetPos % this.symbols.length;
+                // 中央判定ライン（インデックス1）に位置する確定シンボルを先行算出（100%同期）
+                const finalPosition = ((Math.round(this.targetPos) % this.symbols.length) + this.symbols.length) % this.symbols.length;
                 const centerIdx = (finalPosition + 1) % this.symbols.length;
                 this.stoppedSymbol = this.symbols[centerIdx];
             }
@@ -687,9 +689,10 @@
             update(dt) {
                 if (this.state === 'SPINNING') {
                     this.position += this.speed * dt * 60;
-                    if (Math.random() < 0.1) sound.playSpin();
+                    if (Math.random() < 0.08) sound.playSpin();
                 } else if (this.state === 'STOPPING') {
-                    this.stopProgress += dt * 7.5;
+                    // 減速アニメーションのフレーム非依存化（イージング速度 9.0）
+                    this.stopProgress += dt * 9.0;
                     if (this.stopProgress >= 1) {
                         this.stopProgress = 1;
                         this.position = this.targetPos % this.symbols.length;
@@ -699,10 +702,10 @@
                             this.onCompleteStop(this.index);
                         }
                     } else {
-                        // 物理スプリング・バックラッシュ補間
+                        // 減速バウンド（ビタ止め感のある減速イージング）
                         const t = this.stopProgress;
-                        const easeOutElastic = Math.sin(t * Math.PI * 0.5) + Math.sin(t * Math.PI * 2) * (1 - t) * 0.12;
-                        this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutElastic;
+                        const easeOutBack = 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2);
+                        this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutBack;
                     }
                 }
             }
@@ -760,8 +763,13 @@
                 this.gameState = 'START'; // START, PLAYING, GAMEOVER
                 this.isEvaluating = false;
                 this.autoMode = false;
-                this.autoTimer = null;
-                this.autoStopTimers = [];
+                // dt駆動の一元タイマーマネージャー
+                this.evalTimer = -1;
+                this.autoStopTimers = [-1, -1, -1];
+                this.feverTimer = -1;
+                this.shakeTimer = -1;
+                this.flashTimer = -1;
+                this.comboTimer = -1;
                 this.lastTime = performance.now();
                 this.beatTimer = 0;
 
@@ -831,12 +839,8 @@
             }
 
             clearAutoTimers() {
-                if (this.autoTimer) {
-                    clearTimeout(this.autoTimer);
-                    this.autoTimer = null;
-                }
-                this.autoStopTimers.forEach(t => clearTimeout(t));
-                this.autoStopTimers = [];
+                this.evalTimer = -1;
+                this.autoStopTimers = [-1, -1, -1];
             }
 
             resizeBg() {
@@ -878,6 +882,9 @@
 
             triggerSpin() {
                 if (this.gameState !== 'PLAYING' || this.isEvaluating) return;
+                const allIdle = this.reels.every(r => r.isIdle);
+                if (!allIdle) return; // 二重回転発火防止 Guard
+
                 this.paylineEl.classList.remove('active-win');
                 this.reels.forEach(r => r.spin());
                 this.updateStopButtonsState();
@@ -885,14 +892,13 @@
 
                 if (this.autoMode) {
                     this.clearAutoTimers();
-                    this.autoStopTimers.push(setTimeout(() => this.stopReel(0), 120));
-                    this.autoStopTimers.push(setTimeout(() => this.stopReel(1), 220));
-                    this.autoStopTimers.push(setTimeout(() => this.stopReel(2), 320));
+                    // dt駆動タイマー：秒単位で自動停止キューを設定
+                    this.autoStopTimers = [0.12, 0.22, 0.32];
                 }
             }
 
             stopReel(index) {
-                if (this.gameState !== 'PLAYING') return;
+                if (this.gameState !== 'PLAYING' || this.isEvaluating) return;
                 const reel = this.reels[index];
                 if (reel && reel.isSpinning) {
                     reel.stop();
@@ -918,6 +924,7 @@
                     } else {
                         btn.classList.add('disabled');
                         btn.classList.remove('active-ready');
+                        btn.classList.remove('pressed');
                     }
                 });
             }
@@ -977,14 +984,8 @@
 
                 this.updateUI();
 
-                // 評価完了後にAUTOまたは次待機へ遷移
-                const waitTime = winAmount > 0 ? 350 : 120;
-                this.autoTimer = setTimeout(() => {
-                    this.isEvaluating = false;
-                    if (this.autoMode && this.gameState === 'PLAYING') {
-                        this.triggerSpin();
-                    }
-                }, waitTime);
+                // 評価完了ウェイトをdt駆動タイマー(秒)にセット
+                this.evalTimer = winAmount > 0 ? 0.35 : 0.12;
             }
 
             addFever(amount) {
@@ -999,43 +1000,30 @@
                 this.isFever = true;
                 this.feverGauge = 100;
                 this.multiplier = 3;
+                this.feverTimer = 7.0; // 7秒間のフィーバー(dt管理)
                 sound.playFever();
                 this.showComboText("HYPER FEVER!!");
                 this.triggerFlash('#ff0055');
-
-                setTimeout(() => {
-                    this.isFever = false;
-                    this.feverGauge = 0;
-                    this.multiplier = 1;
-                    this.updateUI();
-                }, 7000); // 7秒間のフィーバー
             }
 
             triggerCameraShake(type) {
                 this.viewport.classList.remove('shake-light', 'shake-heavy');
                 void this.viewport.offsetWidth; // reflow
                 this.viewport.classList.add(type === 'heavy' ? 'shake-heavy' : 'shake-light');
-                setTimeout(() => {
-                    this.viewport.classList.remove('shake-light', 'shake-heavy');
-                }, 100);
+                this.shakeTimer = 0.1; // 100ms
             }
 
             triggerFlash(color = '#ffffff') {
                 this.flashOverlay.style.background = color;
                 this.flashOverlay.style.opacity = '0.8';
-                setTimeout(() => {
-                    this.flashOverlay.style.opacity = '0';
-                }, 60);
+                this.flashTimer = 0.06; // 60ms
             }
 
             showComboText(text) {
                 this.comboPopup.innerText = text;
                 this.comboPopup.style.opacity = '1';
                 this.comboPopup.style.transform = 'translate(-50%, -50%) scale(1.2) rotate(-3deg)';
-                setTimeout(() => {
-                    this.comboPopup.style.opacity = '0';
-                    this.comboPopup.style.transform = 'translate(-50%, -50%) scale(0.5)';
-                }, 400);
+                this.comboTimer = 0.4; // 400ms
             }
 
             updateUI() {
@@ -1089,7 +1077,8 @@
             }
 
             loop(now) {
-                const dt = (now - this.lastTime) / 1000;
+                // dt制限（タブ非アクティブからの復帰時などの極端な飛びを防止）
+                const dt = Math.min((now - this.lastTime) / 1000, 0.1);
                 this.lastTime = now;
 
                 if (this.gameState === 'PLAYING') {
@@ -1098,6 +1087,66 @@
                         this.timeRemaining = 0;
                         this.gameOver();
                     }
+
+                    // --- dt駆動タイマー一元制御 ---
+                    // 1. オートストップ制御
+                    for (let i = 0; i < 3; i++) {
+                        if (this.autoStopTimers[i] > 0) {
+                            this.autoStopTimers[i] -= dt;
+                            if (this.autoStopTimers[i] <= 0) {
+                                this.autoStopTimers[i] = -1;
+                                this.stopReel(i);
+                            }
+                        }
+                    }
+
+                    // 2. 結果評価ウェイトタイマー
+                    if (this.evalTimer > 0) {
+                        this.evalTimer -= dt;
+                        if (this.evalTimer <= 0) {
+                            this.evalTimer = -1;
+                            this.isEvaluating = false;
+                            if (this.autoMode && this.gameState === 'PLAYING') {
+                                this.triggerSpin();
+                            }
+                        }
+                    }
+
+                    // 3. フィーバータイマー
+                    if (this.isFever && this.feverTimer > 0) {
+                        this.feverTimer -= dt;
+                        if (this.feverTimer <= 0) {
+                            this.isFever = false;
+                            this.feverGauge = 0;
+                            this.multiplier = 1;
+                        }
+                    }
+
+                    // 4. カメラシェイクタイマー
+                    if (this.shakeTimer > 0) {
+                        this.shakeTimer -= dt;
+                        if (this.shakeTimer <= 0) {
+                            this.viewport.classList.remove('shake-light', 'shake-heavy');
+                        }
+                    }
+
+                    // 5. フラッシュタイマー
+                    if (this.flashTimer > 0) {
+                        this.flashTimer -= dt;
+                        if (this.flashTimer <= 0) {
+                            this.flashOverlay.style.opacity = '0';
+                        }
+                    }
+
+                    // 6. コンボ表示タイマー
+                    if (this.comboTimer > 0) {
+                        this.comboTimer -= dt;
+                        if (this.comboTimer <= 0) {
+                            this.comboPopup.style.opacity = '0';
+                            this.comboPopup.style.transform = 'translate(-50%, -50%) scale(0.5)';
+                        }
+                    }
+
                     this.updateUI();
 
                     // 超高速ビート同期演出 (140 BPM)
