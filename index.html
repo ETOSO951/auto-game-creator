@@ -113,18 +113,15 @@
             color: #fff;
             opacity: 1;
             pointer-events: auto;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
-            background: rgba(0, 80, 120, 0.85);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.75);
+            background: rgba(0, 90, 140, 0.85);
             transform: translateY(-1px);
+            animation: skill-ready-pulse 1.2s infinite alternate;
         }
 
-        .btn-skill.ready {
-            border-color: var(--secondary-neon);
-            color: #fff;
-            opacity: 1;
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
-            background: rgba(0, 90, 140, 0.65);
-            transform: translateY(-1px);
+        @keyframes skill-ready-pulse {
+            0% { box-shadow: 0 0 8px rgba(0, 243, 255, 0.4); border-color: rgba(0, 243, 255, 0.6); }
+            100% { box-shadow: 0 0 20px rgba(0, 243, 255, 0.95), inset 0 0 8px rgba(0, 243, 255, 0.5); border-color: var(--secondary-neon); }
         }
 
         .btn-skill.ready:active {
@@ -703,12 +700,14 @@
             align-items: center;
             padding: 20px;
             text-align: center;
-            transition: opacity 0.25s cubic-bezier(0.16, 0.88, 0.24, 1);
+            transition: opacity 0.4s cubic-bezier(0.16, 0.88, 0.24, 1), transform 0.4s cubic-bezier(0.16, 0.88, 0.24, 1), filter 0.4s ease;
             overflow: hidden;
         }
 
         .overlay-screen.hidden {
             opacity: 0;
+            transform: scale(1.15);
+            filter: blur(10px) brightness(1.5);
             pointer-events: none;
         }
 
@@ -1828,6 +1827,11 @@
                 this.clearAutoTimers();
                 this.gameState = 'PLAYING';
 
+                // シームレス・ワープイン演出（フラッシュ＋カメラブースト）
+                this.triggerFlash('#00f3ff');
+                this.triggerCameraShake('heavy');
+                sound.playWin();
+
                 document.getElementById('start-screen').classList.add('hidden');
                 document.getElementById('gameover-screen').classList.add('hidden');
                 document.getElementById('stage-badge').innerText = 'STAGE 1: FIREWALL (ELEM WEAK: FIRE)';
@@ -2277,21 +2281,34 @@
                 this.gameState = 'ROGUE_SELECT';
                 const rogueModal = document.getElementById('rogue-modal');
                 rogueModal.classList.add('active');
+                
+                sound.playReach();
+                this.triggerCameraShake('light');
 
-                // 選択肢のイベント設定
-                const setupOpt = (id, type) => {
+                // 選択肢のイベント設定（環境ライティング・リアクティブ・グロー連動）
+                const setupOpt = (id, type, glowColor) => {
                     const el = document.getElementById(id);
                     const newEl = el.cloneNode(true);
                     el.parentNode.replaceChild(newEl, el);
+                    
+                    newEl.addEventListener('pointerenter', () => {
+                        rogueModal.style.boxShadow = `inset 0 0 80px ${glowColor}`;
+                        sound.playSynthWave(440, 'triangle', 0.08, 0.05);
+                    });
+                    newEl.addEventListener('pointerleave', () => {
+                        rogueModal.style.boxShadow = 'none';
+                    });
+
                     newEl.addEventListener('click', () => {
+                        rogueModal.style.boxShadow = 'none';
                         rogueModal.classList.remove('active');
                         this.applyRogueChoice(type);
                     });
                 };
 
-                setupOpt('rogue-opt-0', 'contract');
-                setupOpt('rogue-opt-1', 'market');
-                setupOpt('rogue-opt-2', 'bay');
+                setupOpt('rogue-opt-0', 'contract', 'rgba(0, 243, 255, 0.35)');
+                setupOpt('rogue-opt-1', 'market', 'rgba(255, 230, 0, 0.35)');
+                setupOpt('rogue-opt-2', 'bay', 'rgba(255, 0, 85, 0.35)');
             }
 
             applyRogueChoice(type) {
