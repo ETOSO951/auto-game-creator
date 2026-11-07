@@ -215,18 +215,18 @@
             overflow: hidden;
         }
 
-        /* アクリルパネル反射エフェクト（物理的な屈折ライティング・多層フレネル反射の極致） */
+        /* アクリルパネル反射エフェクト（物理的な屈折ライティング・多層フレネル反射の極致・さらなる洗練） */
         .slot-frame::after {
             content: '';
             position: absolute;
-            top: 0; left: -220%; width: 220%; height: 100%;
-            background: linear-gradient(115deg, transparent 22%, rgba(255, 0, 85, 0.32) 36%, rgba(255, 255, 255, 0.85) 45%, rgba(0, 243, 255, 0.75) 49%, rgba(255, 230, 0, 0.55) 53%, rgba(255, 255, 255, 0.4) 58%, transparent 78%);
+            top: 0; left: -240%; width: 240%; height: 100%;
+            background: linear-gradient(115deg, transparent 20%, rgba(255, 0, 120, 0.4) 34%, rgba(255, 255, 255, 0.95) 44%, rgba(0, 243, 255, 0.85) 48%, rgba(255, 230, 0, 0.65) 52%, rgba(255, 255, 255, 0.5) 56%, transparent 76%);
             pointer-events: none;
             mix-blend-mode: screen;
-            backdrop-filter: blur(1.5px);
-            -webkit-backdrop-filter: blur(1.5px);
-            box-shadow: inset 0 0 110px rgba(0, 243, 255, 0.45), inset 0 4px 8px rgba(255, 255, 255, 0.95), inset 0 -4px 12px rgba(255, 0, 85, 0.35);
-            animation: panel-reflection 3.8s infinite cubic-bezier(0.25, 1, 0.5, 1);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            box-shadow: inset 0 0 130px rgba(0, 243, 255, 0.55), inset 0 6px 12px rgba(255, 255, 255, 0.98), inset 0 -6px 16px rgba(255, 0, 120, 0.45);
+            animation: panel-reflection 3.4s infinite cubic-bezier(0.2, 0.9, 0.3, 1);
         }
 
         .slot-frame::before {
@@ -234,16 +234,16 @@
             position: absolute;
             inset: 0;
             border-radius: inherit;
-            box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.92), inset 0 1px 3px rgba(255, 255, 255, 0.6), inset 0 0 20px rgba(0, 243, 255, 0.15);
+            box-shadow: inset 0 0 75px rgba(0, 0, 0, 0.95), inset 0 2px 5px rgba(255, 255, 255, 0.75), inset 0 0 30px rgba(0, 243, 255, 0.25);
             pointer-events: none;
             z-index: 6;
         }
 
         @keyframes panel-reflection {
-            0% { left: -190%; opacity: 0; transform: skewX(-18deg) scaleY(1.02); }
-            10% { opacity: 1; }
-            38% { left: 190%; opacity: 0; transform: skewX(-18deg) scaleY(1.02); }
-            100% { left: 190%; opacity: 0; transform: skewX(-18deg) scaleY(1.02); }
+            0% { left: -200%; opacity: 0; transform: skewX(-20deg) scaleY(1.03); }
+            8% { opacity: 1; }
+            35% { left: 200%; opacity: 0; transform: skewX(-20deg) scaleY(1.03); }
+            100% { left: 200%; opacity: 0; transform: skewX(-20deg) scaleY(1.03); }
         }
 
         /* リール線 */
@@ -595,28 +595,29 @@
                     const AudioContext = window.AudioContext || window.webkitAudioContext;
                     this.ctx = new AudioContext();
                     
+                    // 聴覚の洗練：ダイナミクスレンジと空間的リッチネスを極限まで拡張したサウンドエンジン
                     this.compressor = this.ctx.createDynamicsCompressor();
-                    this.compressor.threshold.setValueAtTime(-16, this.ctx.currentTime);
-                    this.compressor.knee.setValueAtTime(24, this.ctx.currentTime);
-                    this.compressor.ratio.setValueAtTime(8, this.ctx.currentTime);
-                    this.compressor.attack.setValueAtTime(0.001, this.ctx.currentTime);
-                    this.compressor.release.setValueAtTime(0.08, this.ctx.currentTime);
+                    this.compressor.threshold.setValueAtTime(-18, this.ctx.currentTime);
+                    this.compressor.knee.setValueAtTime(20, this.ctx.currentTime);
+                    this.compressor.ratio.setValueAtTime(10, this.ctx.currentTime);
+                    this.compressor.attack.setValueAtTime(0.0008, this.ctx.currentTime);
+                    this.compressor.release.setValueAtTime(0.06, this.ctx.currentTime);
 
-                    // 空間的奥行き（リバーブ／ディレイ）エフェクトの洗練（暖かみのある空気残響）
+                    // 空間的奥行き（極上アンビエント・ディレイ＆ウォームリバーブ）
                     this.delayNode = this.ctx.createDelay();
-                    this.delayNode.delayTime.setValueAtTime(0.16, this.ctx.currentTime);
+                    this.delayNode.delayTime.setValueAtTime(0.18, this.ctx.currentTime);
                     const delayFeedback = this.ctx.createGain();
-                    delayFeedback.gain.setValueAtTime(0.32, this.ctx.currentTime);
+                    delayFeedback.gain.setValueAtTime(0.38, this.ctx.currentTime);
                     const delayFilter = this.ctx.createBiquadFilter();
                     delayFilter.type = 'lowpass';
-                    delayFilter.frequency.setValueAtTime(2200, this.ctx.currentTime);
+                    delayFilter.frequency.setValueAtTime(2600, this.ctx.currentTime);
 
                     this.delayNode.connect(delayFilter);
                     delayFilter.connect(delayFeedback);
                     delayFeedback.connect(this.delayNode);
 
                     this.masterGain = this.ctx.createGain();
-                    this.masterGain.gain.setValueAtTime(0.85, this.ctx.currentTime);
+                    this.masterGain.gain.setValueAtTime(0.9, this.ctx.currentTime);
 
                     this.compressor.connect(this.masterGain);
                     this.compressor.connect(this.delayNode);
@@ -740,29 +741,35 @@
                 if (!this.ctx) return;
                 this.init();
                 const now = this.ctx.currentTime;
-                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00]; // C5, E5, G5, C6, E6, G6, C7
+                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00, 2637.02]; // C5 ~ E7 プレミアムアルペジオ
                 notes.forEach((freq, idx) => {
                     const osc = this.ctx.createOscillator();
+                    const oscSub = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     const filter = this.ctx.createBiquadFilter();
-                    const startTime = now + idx * 0.055;
+                    const startTime = now + idx * 0.05;
                     
                     osc.type = idx >= notes.length - 2 ? 'sawtooth' : 'triangle';
+                    oscSub.type = 'square';
                     osc.frequency.setValueAtTime(freq, startTime);
+                    oscSub.frequency.setValueAtTime(freq * 0.5, startTime);
                     
                     filter.type = 'lowpass';
-                    filter.frequency.setValueAtTime(4000 + idx * 450, startTime);
+                    filter.frequency.setValueAtTime(4500 + idx * 500, startTime);
 
                     gain.gain.setValueAtTime(0.0001, startTime);
-                    gain.gain.linearRampToValueAtTime(0.28, startTime + 0.005);
-                    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.4);
+                    gain.gain.linearRampToValueAtTime(0.32, startTime + 0.004);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.5);
                     
                     osc.connect(filter);
+                    oscSub.connect(filter);
                     filter.connect(gain);
                     gain.connect(this.delayNode);
                     gain.connect(this.compressor || this.ctx.destination);
                     osc.start(startTime);
-                    osc.stop(startTime + 0.4);
+                    oscSub.start(startTime);
+                    osc.stop(startTime + 0.5);
+                    oscSub.stop(startTime + 0.5);
                 });
             }
 
@@ -1402,9 +1409,10 @@
             showComboText(text) {
                 this.comboPopup.innerText = text;
                 this.comboPopup.style.opacity = '1';
-                this.comboPopup.style.transform = 'translate(-50%, -50%) scale(1.42) rotate(-5deg)';
-                this.comboPopup.style.transition = 'transform 0.16s cubic-bezier(0.175, 1.25, 0.32, 1.45), opacity 0.12s ease-out';
-                this.comboTimer = 0.5; // 500ms
+                // 弾性イージングをさらに躍動的にブラッシュアップ
+                this.comboPopup.style.transform = 'translate(-50%, -50%) scale(1.55) rotate(-6deg)';
+                this.comboPopup.style.transition = 'transform 0.18s cubic-bezier(0.175, 1.45, 0.32, 1.6), opacity 0.1s ease-out';
+                this.comboTimer = 0.55; // 550ms
             }
 
             updateUI(force = false) {
@@ -1484,12 +1492,12 @@
                 ctx.fillStyle = bgGrad;
                 ctx.fillRect(0, 0, w, h);
 
-                // 中央スロット背面からの微かな放射状ゴッドレイ（光芒）と空間体感演出
+                // 中央スロット背面からの圧倒的な立体感を醸す放射状ゴッドレイ（光芒）と空間発光エフェクト
                 ctx.save();
-                const godRayAlpha = (Math.sin(now * 0.003) * 0.18 + 0.38) * (this.isFever ? 1.9 : 1.0);
-                const rayGrad = ctx.createRadialGradient(cx, cy - 15, 5, cx, cy - 15, Math.max(w, h) * 0.75);
-                rayGrad.addColorStop(0, this.isFever ? `rgba(255, 0, 130, ${godRayAlpha * 0.65})` : `rgba(0, 243, 255, ${godRayAlpha * 0.38})`);
-                rayGrad.addColorStop(0.45, this.isFever ? `rgba(255, 215, 0, ${godRayAlpha * 0.22})` : `rgba(0, 130, 255, ${godRayAlpha * 0.16})`);
+                const godRayAlpha = (Math.sin(now * 0.0035) * 0.22 + 0.45) * (this.isFever ? 2.1 : 1.1);
+                const rayGrad = ctx.createRadialGradient(cx, cy - 20, 10, cx, cy - 20, Math.max(w, h) * 0.85);
+                rayGrad.addColorStop(0, this.isFever ? `rgba(255, 0, 140, ${godRayAlpha * 0.75})` : `rgba(0, 243, 255, ${godRayAlpha * 0.45})`);
+                rayGrad.addColorStop(0.4, this.isFever ? `rgba(255, 220, 0, ${godRayAlpha * 0.3})` : `rgba(0, 140, 255, ${godRayAlpha * 0.2})`);
                 rayGrad.addColorStop(1, 'transparent');
                 ctx.fillStyle = rayGrad;
                 ctx.fillRect(0, 0, w, h);
