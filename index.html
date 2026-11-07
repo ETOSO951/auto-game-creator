@@ -217,17 +217,18 @@
         .slot-frame::after {
             content: '';
             position: absolute;
-            top: 0; left: -120%; width: 120%; height: 100%;
-            background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.07) 50%, transparent 60%);
+            top: 0; left: -140%; width: 140%; height: 100%;
+            background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.12) 50%, rgba(0, 243, 255, 0.05) 53%, transparent 65%);
             pointer-events: none;
-            animation: panel-reflection 5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: inset 0 0 30px rgba(0, 243, 255, 0.05);
+            animation: panel-reflection 4.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         @keyframes panel-reflection {
-            0% { left: -120%; opacity: 0; }
-            15% { opacity: 1; }
-            30% { left: 120%; opacity: 0; }
-            100% { left: 120%; opacity: 0; }
+            0% { left: -140%; opacity: 0; }
+            20% { opacity: 1; }
+            40% { left: 140%; opacity: 0; }
+            100% { left: 140%; opacity: 0; }
         }
 
         /* リール線 */
@@ -647,18 +648,25 @@
                 const now = this.ctx.currentTime;
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+                
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(587.33, now);
-                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+                osc.frequency.exponentialRampToValueAtTime(1174.66, now + 0.25);
                 
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1200, now);
+                filter.frequency.exponentialRampToValueAtTime(4000, now + 0.25);
+
                 gain.gain.setValueAtTime(0.0001, now);
-                gain.gain.linearRampToValueAtTime(0.25, now + 0.005);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+                gain.gain.linearRampToValueAtTime(0.28, now + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
                 
-                osc.connect(gain);
+                osc.connect(filter);
+                filter.connect(gain);
                 gain.connect(this.compressor || this.ctx.destination);
                 osc.start(now);
-                osc.stop(now + 0.2);
+                osc.stop(now + 0.3);
             }
 
             playStop(pitchMultiplier = 1) {
@@ -707,20 +715,28 @@
                 if (!this.ctx) return;
                 this.init();
                 const now = this.ctx.currentTime;
-                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C5, E5, G5, C6, E6
+                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98]; // C5, E5, G5, C6, E6, G6
                 notes.forEach((freq, idx) => {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
-                    const startTime = now + idx * 0.04;
-                    osc.type = 'triangle';
+                    const filter = this.ctx.createBiquadFilter();
+                    const startTime = now + idx * 0.045;
+                    
+                    osc.type = idx === notes.length - 1 ? 'sawtooth' : 'triangle';
                     osc.frequency.setValueAtTime(freq, startTime);
+                    
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(3000 + idx * 300, startTime);
+
                     gain.gain.setValueAtTime(0.0001, startTime);
-                    gain.gain.linearRampToValueAtTime(0.18, startTime + 0.003);
-                    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.22);
-                    osc.connect(gain);
+                    gain.gain.linearRampToValueAtTime(0.2, startTime + 0.004);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.28);
+                    
+                    osc.connect(filter);
+                    filter.connect(gain);
                     gain.connect(this.compressor || this.ctx.destination);
                     osc.start(startTime);
-                    osc.stop(startTime + 0.22);
+                    osc.stop(startTime + 0.28);
                 });
             }
 
