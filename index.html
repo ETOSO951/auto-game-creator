@@ -1230,7 +1230,7 @@
             }
 
             playSpin() {
-                this.playSynthWave(150, 'sawtooth', 0.04, 0.02);
+                this.playSynthWave(this.isFever ? 220 : 150, this.isFever ? 'square' : 'sawtooth', 0.04, 0.025);
             }
 
             playReach() {
@@ -2407,15 +2407,16 @@
             window.addEventListener('pointerdown', quickActionHandler, { once: true });
         };
 
-        // タイトル画面シネマティックな視差パララックス・インタラクション追加
+        // タイトル画面シネマティックな視差パララックス・ライティング連動インタラクション追加
         window.addEventListener('pointermove', (e) => {
             const startScreen = document.getElementById('start-screen');
             if (startScreen && !startScreen.classList.contains('hidden')) {
-                const x = (e.clientX / window.innerWidth - 0.5) * 15;
-                const y = (e.clientY / window.innerHeight - 0.5) * 15;
+                const x = (e.clientX / window.innerWidth - 0.5) * 20;
+                const y = (e.clientY / window.innerHeight - 0.5) * 20;
                 const title = startScreen.querySelector('.game-title');
                 if (title) {
-                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.02)`;
+                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.03)`;
+                    title.style.filter = `drop-shadow(${ -x * 0.8 }px ${ -y * 0.8 }px 35px rgba(255, 0, 85, 0.95)) drop-shadow(0 0 15px rgba(0, 243, 255, 0.8))`;
                 }
             }
         });
@@ -2597,39 +2598,43 @@
                 this.gameState = 'GAMEOVER';
                 this.clearAutoTimers();
                 this.paylineEl.classList.remove('active-win');
-                sound.playStop(0.6);
+                sound.playStop(0.5);
 
-                // ゲームオーバー時のオドメーター風スコアカウントアップ演出と称号ランク連動エフェクト
+                // ゲームオーバー時のオドメーター風スコアカウントアップ演出とリトライ直感化・カタルシス演出
                 const finalScoreTarget = this.score;
                 const finalScoreEl = document.getElementById('final-score');
                 const rankEl = document.getElementById('final-rank');
                 
-                // 称号判定
                 let rankText = 'RANK: CYBER NOVICE';
                 rankEl.classList.remove('omega-rank');
                 if (finalScoreTarget >= 20000) {
                     rankText = 'RANK: OMEGA NET_RUNNER [S+]';
                     rankEl.classList.add('omega-rank');
                     this.triggerFlash('#ffe600');
+                    this.triggerCameraShake('heavy');
                     sound.playWin();
                 } else if (finalScoreTarget >= 10000) {
                     rankText = 'RANK: CYBER HACKER [A]';
                     this.triggerFlash('#00f3ff');
+                    this.triggerCameraShake('light');
+                    sound.playFever();
                 } else if (finalScoreTarget >= 5000) {
                     rankText = 'RANK: NET OPERATOR [B]';
+                    sound.playStop(0.8);
                 }
                 rankEl.innerText = rankText;
 
                 let currentCount = 0;
-                const increment = Math.max(1, Math.floor(finalScoreTarget / 30));
+                const increment = Math.max(1, Math.floor(finalScoreTarget / 25));
                 const countInterval = setInterval(() => {
                     currentCount += increment;
                     if (currentCount >= finalScoreTarget) {
                         currentCount = finalScoreTarget;
                         clearInterval(countInterval);
+                        sound.playSynthWave(880, 'triangle', 0.08, 0.05);
                     }
                     finalScoreEl.innerText = currentCount.toLocaleString();
-                }, 30);
+                }, 25);
 
                 document.getElementById('gameover-screen').classList.remove('hidden');
             }
@@ -2849,15 +2854,16 @@
             window.addEventListener('pointerdown', quickActionHandler, { once: true });
         };
 
-        // タイトル画面シネマティックな視差パララックス・インタラクション追加
+        // タイトル画面シネマティックな視差パララックス・ライティング連動インタラクション追加
         window.addEventListener('pointermove', (e) => {
             const startScreen = document.getElementById('start-screen');
             if (startScreen && !startScreen.classList.contains('hidden')) {
-                const x = (e.clientX / window.innerWidth - 0.5) * 15;
-                const y = (e.clientY / window.innerHeight - 0.5) * 15;
+                const x = (e.clientX / window.innerWidth - 0.5) * 20;
+                const y = (e.clientY / window.innerHeight - 0.5) * 20;
                 const title = startScreen.querySelector('.game-title');
                 if (title) {
-                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.02)`;
+                    title.style.transform = `skewX(-8deg) translate(${x}px, ${y}px) scale(1.03)`;
+                    title.style.filter = `drop-shadow(${ -x * 0.8 }px ${ -y * 0.8 }px 35px rgba(255, 0, 85, 0.95)) drop-shadow(0 0 15px rgba(0, 243, 255, 0.8))`;
                 }
             }
         });
