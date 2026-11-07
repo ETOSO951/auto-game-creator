@@ -933,6 +933,10 @@
                     <div class="skill-gauge-fill" id="skill-gauge-2"></div>
                 </button>
             </div>
+            <!-- 新機能：エキゾチックパッシブアビリティ・インジケーター -->
+            <div id="passive-indicator" style="font-size: 9px; color: var(--accent-gold); text-align: center; margin-bottom: 4px; letter-spacing: 1px;">
+                PASSIVE: [NEON PRISM MATRIX ACTIVE]
+            </div>
 
             <!-- HEADER -->
             <div class="header-ui">
@@ -1028,8 +1032,53 @@
                 </div>
                 <button class="btn-upgrade-action" id="upg-prism">UPGRADE (FRAG: 75)</button>
             </div>
+            <div class="upgrade-section-title">EXOTIC MODULE DECK (PASSIVES)</div>
+            <div class="dex-item" style="border-color: var(--secondary-neon);">
+                <div class="dex-info">
+                    <h4>CHRONO REWIND CIRCUIT</h4>
+                    <p>Grants a 15% chance to refund time on non-win spins.</p>
+                </div>
+                <button class="btn-upgrade-action" id="mod-rewind">EQUIPPED</button>
+            </div>
+            <div class="dex-item">
+                <div class="dex-info">
+                    <h4>OVERLOAD CAPACITOR</h4>
+                    <p>Increases Overdrive duration by 3 seconds.</p>
+                </div>
+                <button class="btn-upgrade-action" id="mod-overload">UNLOCK (FRAG: 120)</button>
+            </div>
             <div class="upgrade-section-title">SYMBOL ARCHIVE</div>
             <div id="dex-items-container"></div>
+        </div>
+    </div>
+
+    <!-- ローグライク・ハッカールーム選択モーダル -->
+    <div class="modal-overlay" id="rogue-modal" style="z-index: 70;">
+        <div class="modal-header">
+            <div class="modal-title">HACKER TERMINAL: ROUTE SELECT</div>
+        </div>
+        <div class="modal-body" style="justify-content: center; gap: 15px;">
+            <div class="dex-item" id="rogue-opt-0" style="cursor: pointer; border-color: var(--secondary-neon); padding: 18px;">
+                <div class="dex-info">
+                    <h4 style="color: var(--secondary-neon);">OVERCLOCK CONTRACT</h4>
+                    <p>Score multiplier x2 for the next stage, but time limit is tight.</p>
+                </div>
+                <span class="dex-status">SELECT</span>
+            </div>
+            <div class="dex-item" id="rogue-opt-1" style="cursor: pointer; border-color: var(--accent-gold); padding: 18px;">
+                <div class="dex-info">
+                    <h4 style="color: var(--accent-gold);">BLACK MARKET TERMINAL</h4>
+                    <p>Instantly gain +300 Fragments and refill all skill gauges.</p>
+                </div>
+                <span class="dex-status">SELECT</span>
+            </div>
+            <div class="dex-item" id="rogue-opt-2" style="cursor: pointer; border-color: var(--primary-neon); padding: 18px;">
+                <div class="dex-info">
+                    <h4 style="color: var(--primary-neon);">MAINTENANCE BAY</h4>
+                    <p>Permanently upgrade time bonus +10.0s and shield breaker power.</p>
+                </div>
+                <span class="dex-status">SELECT</span>
+            </div>
         </div>
     </div>
 
@@ -1295,6 +1344,10 @@
                 feverEfficiency: 0, // レベル0〜3
                 timeBonus: 0,       // レベル0〜3
                 prismBoost: 0       // レベル0〜3
+            },
+            modules: {
+                rewindActive: true,
+                overloadExtended: false
             },
             dex: {
                 '7': { name: 'NEON 7', desc: 'Standard high-value symbol.', unlocked: true },
@@ -1710,6 +1763,7 @@
                 this.bossMaxHp = 1000;
                 this.bossHp = this.bossMaxHp;
                 this.bossShieldActive = true;
+                this.bossWeakness = '7'; // ステージごとの弱点シンボル
                 this.comboChain = 0;
                 this.isOverdrive = false;
                 this.feverGauge = 0;
@@ -1723,7 +1777,7 @@
 
                 document.getElementById('start-screen').classList.add('hidden');
                 document.getElementById('gameover-screen').classList.add('hidden');
-                document.getElementById('stage-badge').innerText = 'STAGE 1: FIREWALL';
+                document.getElementById('stage-badge').innerText = 'STAGE 1: FIREWALL (WEAK: 7)';
                 document.getElementById('boss-name').innerText = 'BOSS: VULCAN_CORE';
                 document.getElementById('boss-shield-badge').style.display = 'inline-block';
 
@@ -1848,11 +1902,15 @@
                 const hasBomb = [s0, s1, s2].some(s => s.id === 'BOMB');
                 const prismBonus = (GAME_PROGRESSION.upgrades.prismBoost + 1);
 
+                // ボス弱点シンボル一致による特効ボーナス
+                const isWeaknessHit = [s0, s1, s2].some(s => s.id === this.bossWeakness);
+                const weaknessMultiplier = isWeaknessHit ? 1.8 : 1.0;
+
                 // 全揃い (JACKPOT)
                 if (s0.id === s1.id && s1.id === s2.id) {
-                    winAmount = s0.score * 3 * this.multiplier * prismBonus;
-                    damageToBoss = winAmount * 1.5;
-                    comboText = `JACKPOT! +${winAmount}`;
+                    winAmount = s0.score * 3 * this.multiplier * prismBonus * weaknessMultiplier;
+                    damageToBoss = winAmount * 2.0;
+                    comboText = `JACKPOT! (WEAK HIT!) +${Math.round(winAmount)}`;
                     this.reels.forEach(r => r.isHighlighted = true);
                     this.paylineEl.classList.add('active-win');
                     this.triggerFlash('#ffe600');
@@ -1866,35 +1924,39 @@
                     if (s0.id === s1.id) {
                         this.reels[0].isHighlighted = true;
                         this.reels[1].isHighlighted = true;
-                        winAmount = s0.score * this.multiplier * prismBonus;
+                        winAmount = s0.score * this.multiplier * prismBonus * weaknessMultiplier;
                     } else if (s1.id === s2.id) {
                         this.reels[1].isHighlighted = true;
                         this.reels[2].isHighlighted = true;
-                        winAmount = s1.score * this.multiplier * prismBonus;
+                        winAmount = s1.score * this.multiplier * prismBonus * weaknessMultiplier;
                     } else if (s0.id === s2.id) {
                         this.reels[0].isHighlighted = true;
                         this.reels[2].isHighlighted = true;
-                        winAmount = s0.score * this.multiplier * prismBonus;
+                        winAmount = s0.score * this.multiplier * prismBonus * weaknessMultiplier;
                     } else if (hasBomb) {
                         this.reels.forEach(r => r.isHighlighted = true);
-                        winAmount = 400 * this.multiplier * prismBonus;
+                        winAmount = 400 * this.multiplier * prismBonus * weaknessMultiplier;
                     }
                     damageToBoss = winAmount;
-                    comboText = `CHAIN x${++this.comboChain}! +${winAmount}`;
+                    comboText = `CHAIN x${++this.comboChain}! +${Math.round(winAmount)}`;
                     this.paylineEl.classList.add('active-win');
                     sound.playWin();
                     this.addFever(hasBomb ? 25 : 15);
                 } else {
                     this.comboChain = 0;
                     this.addFever(5);
+                    // エキゾチックモジュール「CHRONO REWIND CIRCUIT」発動判定
+                    if (GAME_PROGRESSION.modules.rewindActive && Math.random() < 0.15) {
+                        this.timeRemaining += 1.5;
+                        this.showComboText("REWIND CIRCUIT: +1.5s!");
+                    }
                 }
 
                 if (winAmount > 0) {
-                    this.score += winAmount;
+                    this.score += Math.round(winAmount);
                     this.damageBoss(damageToBoss);
                     this.showComboText(comboText);
                     
-                    // コンボチェインによるサイバー・オーバードライブ（覚醒モード）判定
                     if (this.comboChain >= 3 && !this.isOverdrive) {
                         this.triggerOverdriveMode();
                     }
@@ -2003,22 +2065,65 @@
             }
 
             nextStage() {
+                this.openRogueTerminal();
+            }
+
+            openRogueTerminal() {
+                this.gameState = 'ROGUE_SELECT';
+                const rogueModal = document.getElementById('rogue-modal');
+                rogueModal.classList.add('active');
+
+                // 選択肢のイベント設定
+                const setupOpt = (id, type) => {
+                    const el = document.getElementById(id);
+                    const newEl = el.cloneNode(true);
+                    el.parentNode.replaceChild(newEl, el);
+                    newEl.addEventListener('click', () => {
+                        rogueModal.classList.remove('active');
+                        this.applyRogueChoice(type);
+                    });
+                };
+
+                setupOpt('rogue-opt-0', 'contract');
+                setupOpt('rogue-opt-1', 'market');
+                setupOpt('rogue-opt-2', 'bay');
+            }
+
+            applyRogueChoice(type) {
                 this.stage++;
-                this.bossMaxHp = Math.round(this.bossMaxHp * 1.6);
+                this.bossMaxHp = Math.round(this.bossMaxHp * 1.65);
                 this.bossHp = this.bossMaxHp;
                 this.bossShieldActive = true;
-                this.timeRemaining += 18.0;
                 
-                const stageNames = ['STAGE 1: FIREWALL', 'STAGE 2: FROST_NET', 'STAGE 3: EMP_CORE'];
-                const bossNames = ['BOSS: VULCAN_CORE', 'BOSS: FROST_DEFENDER', 'BOSS: OMEGA_EMP'];
+                const stageWeaknesses = ['7', 'BAR', 'PRISM'];
+                this.bossWeakness = stageWeaknesses[(this.stage - 1) % stageWeaknesses.length];
+
+                if (type === 'contract') {
+                    this.multiplier *= 2;
+                    this.timeRemaining += 10.0;
+                    this.showComboText("CONTRACT: MULTIPLIER x2!");
+                } else if (type === 'market') {
+                    GAME_PROGRESSION.fragments += 300;
+                    this.skills.forEach(s => s.charge = s.maxCharge);
+                    this.timeRemaining += 15.0;
+                    this.showComboText("MARKET: +300 FRAGS & SKILLS READY!");
+                } else if (type === 'bay') {
+                    GAME_PROGRESSION.upgrades.timeBonus += 2;
+                    this.timeRemaining += 25.0;
+                    this.showComboText("MAINTENANCE: TIME EXTENDED!");
+                }
+
+                const stageNames = [`STAGE ${this.stage}: NET CORE (WEAK: ${this.bossWeakness})`, `STAGE ${this.stage}: MATRIX CORE`, `STAGE ${this.stage}: OMEGA GRID`];
+                const bossNames = ['BOSS: FROST_DEFENDER', 'BOSS: NEON_PHANTOM', 'BOSS: OMEGA_EMP'];
                 
                 document.getElementById('stage-badge').innerText = stageNames[Math.min(this.stage - 1, 2)];
                 document.getElementById('boss-name').innerText = bossNames[Math.min(this.stage - 1, 2)];
                 document.getElementById('boss-shield-badge').style.display = 'inline-block';
                 
-                this.showComboText(`STAGE CLEAR! +18.0s`);
+                this.gameState = 'PLAYING';
                 this.triggerFlash('#00f3ff');
                 sound.playFever();
+                this.triggerSpin();
             }
 ====
 
