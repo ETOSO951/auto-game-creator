@@ -32,58 +32,70 @@
             color: #fff;
         }
 
-        /* 【引き算の美学による洗練されたクリーンUI設計：コンテキスト依存型HUD】 */
+        /* 【引き算の美学：統合コンテキストHUD設計】 */
+        .hud-context-card {
+            width: 100%;
+            background: rgba(12, 12, 24, 0.75);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.15);
+        }
+
         .hud-top-bar {
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 3px;
-            font-size: 9px;
+            font-size: 8.5px;
             font-family: var(--font-family);
             letter-spacing: 1px;
             color: var(--secondary-neon);
-            opacity: 0.85;
-            transition: opacity 0.2s;
         }
 
         .stage-badge {
-            background: rgba(0, 243, 255, 0.05);
-            border: 1px solid rgba(0, 243, 255, 0.2);
-            padding: 2px 5px;
+            background: rgba(0, 243, 255, 0.08);
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            padding: 2px 6px;
             border-radius: 4px;
         }
 
         .btn-dex {
-            background: rgba(255, 230, 0, 0.05);
-            border: 1px solid rgba(255, 230, 0, 0.25);
+            background: rgba(255, 230, 0, 0.08);
+            border: 1px solid rgba(255, 230, 0, 0.3);
             color: var(--accent-gold);
-            padding: 2px 5px;
+            padding: 2px 6px;
             border-radius: 4px;
             cursor: pointer;
             font-family: var(--font-family);
-            font-size: 9px;
+            font-size: 8.5px;
             transition: all 0.15s;
         }
         .btn-dex:active { transform: scale(0.96); background: rgba(255, 230, 0, 0.2); }
 
-        /* スマート・スキルパネル（未チャージ時はミニマル透過、Ready時のみ鮮烈に発光） */
+        /* スマート・スキルパネル（未チャージ時は完全にミニマル透過、Ready時のみ鮮烈発光） */
         .skill-panel {
             display: flex;
             gap: 4px;
             width: 100%;
-            margin-bottom: 3px;
+            margin-top: 2px;
         }
 
         .btn-skill {
             flex: 1;
-            height: 24px;
-            background: rgba(15, 15, 25, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 6px;
-            color: #4a4a60;
+            height: 20px;
+            background: rgba(10, 10, 18, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            color: #35354a;
             font-family: var(--font-family);
-            font-size: 8px;
+            font-size: 7px;
             cursor: pointer;
             display: flex;
             flex-direction: column;
@@ -91,7 +103,7 @@
             align-items: center;
             position: relative;
             overflow: hidden;
-            opacity: 0.55;
+            opacity: 0.35;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
@@ -99,8 +111,8 @@
             border-color: var(--secondary-neon);
             color: #fff;
             opacity: 1;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.35);
-            background: rgba(0, 80, 120, 0.55);
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
+            background: rgba(0, 90, 140, 0.65);
             transform: translateY(-1px);
         }
 
@@ -110,7 +122,7 @@
 
         .skill-gauge-fill {
             position: absolute;
-            bottom: 0; left: 0; height: 2px;
+            bottom: 0; left: 0; height: 1.5px;
             background: var(--secondary-neon);
             width: 0%;
             transition: width 0.1s;
@@ -730,88 +742,7 @@
             display: block;
         }
 
-        /* 【引き算の美学による洗練されたクリーンUI設計：コンテキスト依存型HUD】 */
-        /* 【引き算の美学：洗練されたコンテキスト依存型クリーンHUD】 */
-        .hud-top-bar {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-            font-size: 9px;
-            font-family: var(--font-family);
-            letter-spacing: 1px;
-            color: var(--secondary-neon);
-            opacity: 0.9;
-        }
-
-        .stage-badge {
-            background: rgba(0, 243, 255, 0.04);
-            border: 1px solid rgba(0, 243, 255, 0.18);
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        .btn-dex {
-            background: rgba(255, 230, 0, 0.04);
-            border: 1px solid rgba(255, 230, 0, 0.2);
-            color: var(--accent-gold);
-            padding: 2px 6px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: var(--font-family);
-            font-size: 9px;
-            transition: all 0.15s;
-        }
-        .btn-dex:active { transform: scale(0.96); background: rgba(255, 230, 0, 0.15); }
-
-        .skill-panel {
-            display: flex;
-            gap: 4px;
-            width: 100%;
-            margin-bottom: 4px;
-        }
-
-        .btn-skill {
-            flex: 1;
-            height: 22px;
-            background: rgba(15, 15, 25, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 5px;
-            color: #4a4a60;
-            font-family: var(--font-family);
-            font-size: 7.5px;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-            opacity: 0.5;
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .btn-skill.ready {
-            border-color: var(--secondary-neon);
-            color: #fff;
-            opacity: 1;
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
-            background: rgba(0, 80, 120, 0.5);
-            transform: translateY(-1px);
-        }
-
-        .btn-skill.ready:active {
-            transform: scale(0.95) translateY(0);
-        }
-
-        .skill-gauge-fill {
-            position: absolute;
-            bottom: 0; left: 0; height: 2px;
-            background: var(--secondary-neon);
-            width: 0%;
-            transition: width 0.1s;
-        }
+        /* UIレイアウトの一元最適化済み */
 
         .modal-overlay {
             position: absolute;
@@ -907,36 +838,37 @@
         <canvas id="bg-canvas"></canvas>
 
         <div class="ui-layer">
-            <!-- 【引き算の美学：洗練されたクリーンHUD】 -->
-            <div class="hud-top-bar">
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    <div class="stage-badge" id="stage-badge">STAGE 1: FIREWALL</div>
+            <!-- 【引き算の美学：統合コンテキストHUDカード】 -->
+            <div class="hud-context-card">
+                <div class="hud-top-bar">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <div class="stage-badge" id="stage-badge">STAGE 1: FIREWALL</div>
+                        <span id="boss-name" style="color: var(--primary-neon);">VULCAN_CORE</span>
+                        <span class="boss-shield-badge" id="boss-shield-badge">SHIELD</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button class="btn-dex" id="btn-dex">ARCHIVE</button>
+                    </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <span id="boss-name" style="font-size: 9px; color: var(--primary-neon);">BOSS: VULCAN_CORE</span>
-                    <span class="boss-shield-badge" id="boss-shield-badge">SHIELD: ON</span>
-                    <button class="btn-dex" id="btn-dex" style="font-size: 8px; padding: 1px 4px;">ARCHIVE</button>
+                <!-- BOSS HP BAR -->
+                <div class="fever-container" style="height: 4px; margin: 0; background: rgba(255,0,85,0.12); border: none;">
+                    <div class="fever-bar" id="boss-hp-bar" style="width: 100%; background: linear-gradient(90deg, var(--primary-neon), var(--accent-gold));"></div>
                 </div>
-            </div>
-            <!-- BOSS HP BAR & コンテキスト統合クエスト演出 -->
-            <div class="fever-container" style="height: 5px; margin-bottom: 6px; background: rgba(255,0,85,0.15);">
-                <div class="fever-bar" id="boss-hp-bar" style="width: 100%; background: linear-gradient(90deg, var(--primary-neon), var(--accent-gold));"></div>
-            </div>
-
-            <!-- SKILL PANEL (未チャージ時はミニマル透過、Ready時のみ鮮烈発光) -->
-            <div class="skill-panel">
-                <button class="btn-skill" id="btn-skill-0">
-                    <span id="skill-name-0">TIME FREEZE</span>
-                    <div class="skill-gauge-fill" id="skill-gauge-0"></div>
-                </button>
-                <button class="btn-skill" id="btn-skill-1">
-                    <span id="skill-name-1">OVERCLOCK</span>
-                    <div class="skill-gauge-fill" id="skill-gauge-1"></div>
-                </button>
-                <button class="btn-skill" id="btn-skill-2">
-                    <span id="skill-name-2">RECONFIG</span>
-                    <div class="skill-gauge-fill" id="skill-gauge-2"></div>
-                </button>
+                <!-- SKILL PANEL (未チャージ時は完全ミニマル、Ready時のみ発光) -->
+                <div class="skill-panel">
+                    <button class="btn-skill" id="btn-skill-0">
+                        <span id="skill-name-0">FREEZE</span>
+                        <div class="skill-gauge-fill" id="skill-gauge-0"></div>
+                    </button>
+                    <button class="btn-skill" id="btn-skill-1">
+                        <span id="skill-name-1">OVERCLOCK</span>
+                        <div class="skill-gauge-fill" id="skill-gauge-1"></div>
+                    </button>
+                    <button class="btn-skill" id="btn-skill-2">
+                        <span id="skill-name-2">RECONFIG</span>
+                        <div class="skill-gauge-fill" id="skill-gauge-2"></div>
+                    </button>
+                </div>
             </div>
 
             <!-- HEADER -->
