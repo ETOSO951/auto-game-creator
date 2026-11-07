@@ -613,21 +613,43 @@
 
             playWin() {
                 if (!this.ctx) return;
+                this.init();
+                const now = this.ctx.currentTime;
                 const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C5, E5, G5, C6, E6
                 notes.forEach((freq, idx) => {
-                    setTimeout(() => {
-                        this.playSynthWave(freq, 'triangle', 0.22, 0.18);
-                    }, idx * 40);
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const startTime = now + idx * 0.04;
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, startTime);
+                    gain.gain.setValueAtTime(0.0001, startTime);
+                    gain.gain.linearRampToValueAtTime(0.18, startTime + 0.003);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.22);
+                    osc.connect(gain);
+                    gain.connect(this.compressor || this.ctx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.22);
                 });
             }
 
             playFever() {
                 if (!this.ctx) return;
+                this.init();
+                const now = this.ctx.currentTime;
                 const notes = [440, 554.37, 659.25, 880];
                 notes.forEach((freq, idx) => {
-                    setTimeout(() => {
-                        this.playSynthWave(freq, 'square', 0.3, 0.2);
-                    }, idx * 60);
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const startTime = now + idx * 0.06;
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(freq, startTime);
+                    gain.gain.setValueAtTime(0.0001, startTime);
+                    gain.gain.linearRampToValueAtTime(0.2, startTime + 0.003);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.compressor || this.ctx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.3);
                 });
             }
 
@@ -768,13 +790,13 @@
                 this.stopProgress = 0;
                 this.startStopPos = this.position;
                 
-                // 完全なピクセル同期とビタ止まりを実現するグリッド吸着計算
-                const minSlip = 0.6;
-                this.targetPos = Math.round(this.position + minSlip);
+                // 目押し感を極限まで高める精密スべり・吸着計算
+                // 押し下げた瞬間の位置から最寄りのグリッド境界へ正確に引き込み
+                const rawTarget = this.position + 0.45;
+                this.targetPos = Math.ceil(rawTarget);
 
-                // 中央ライン(i=1)に完全に吸着・確定するシンボルを計算
-                const finalGridPos = this.targetPos;
-                const centerIdx = (finalGridPos + 1) % this.symbols.length;
+                // 中央ライン(i=1)に完全吸着・確定するシンボルを計算
+                const centerIdx = (this.targetPos + 1) % this.symbols.length;
                 this.stoppedSymbol = this.symbols[centerIdx];
             }
 
@@ -802,9 +824,9 @@
                             this.onCompleteStop(this.index);
                         }
                     } else {
-                        // ビタ止まり感を出す弾性オーバーシュート付きイージング (easeOutBack)
+                        // 吸着感とビタ止まりの打撃感を高めるシャープな弾性イージング
                         const t = this.stopProgress;
-                        const back = 0.8;
+                        const back = 0.55;
                         const easeOutBack = 1 + (back + 1) * Math.pow(t - 1, 3) + back * Math.pow(t - 1, 2);
                         this.position = this.startStopPos + (this.targetPos - this.startStopPos) * easeOutBack;
                     }
@@ -871,6 +893,7 @@
                 this.shakeTimer = -1;
                 this.flashTimer = -1;
                 this.comboTimer = -1;
+                this.pulseTimer = -1;
                 this.lastTime = performance.now();
                 this.beatTimer = 0;
 
@@ -902,24 +925,26 @@
 
                 const activePointers = new Set();
                 const addFastListener = (el, handler) => {
-                    const trigger = (e) => {
+                    const triggerDown = (e) => {
                         if (e) {
                             if (e.cancelable) e.preventDefault();
                             if (e.pointerId !== undefined && activePointers.has(e.pointerId)) return;
                             if (e.pointerId !== undefined) activePointers.add(e.pointerId);
                         }
                         sound.init();
-
-                        // 視覚的即時フィードバック（ノーレイテンシ）
                         el.classList.add('pressed');
-                        setTimeout(() => el.classList.remove('pressed'), 120);
-
                         handler();
                     };
 
-                    el.addEventListener('pointerdown', trigger, { passive: false });
-                    el.addEventListener('pointerup', (e) => activePointers.delete(e.pointerId));
-                    el.addEventListener('pointercancel', (e) => activePointers.delete(e.pointerId));
+                    const triggerUp = (e) => {
+                        if (e && e.pointerId !== undefined) activePointers.delete(e.pointerId);
+                        el.classList.remove('pressed');
+                    };
+
+                    el.addEventListener('pointerdown', triggerDown, { passive: false });
+                    el.addEventListener('pointerup', triggerUp, { passive: false });
+                    el.addEventListener('pointercancel', triggerUp, { passive: false });
+                    el.addEventListener('pointerleave', triggerUp, { passive: false });
                 };
 
                 addFastListener(document.getElementById('btn-start'), () => this.startGame());
@@ -941,22 +966,30 @@
                     }
                 });
 
-                // キーボード操作の完全最適化（ミリ秒応答）
                 window.addEventListener('keydown', (e) => {
                     if (this.gameState !== 'PLAYING' || e.repeat) return;
                     sound.init();
                     if (e.code === 'Space') {
                         e.preventDefault();
                         this.btnSpin.classList.add('pressed');
-                        setTimeout(() => this.btnSpin.classList.remove('pressed'), 120);
                         this.handleSpinAction();
                     } else if (e.key === '1' || e.key === '2' || e.key === '3') {
                         const idx = parseInt(e.key) - 1;
                         if (this.stopBtns[idx]) {
                             this.stopBtns[idx].classList.add('pressed');
-                            setTimeout(() => this.stopBtns[idx].classList.remove('pressed'), 120);
                         }
                         this.stopReel(idx);
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    if (e.code === 'Space') {
+                        this.btnSpin.classList.remove('pressed');
+                    } else if (e.key === '1' || e.key === '2' || e.key === '3') {
+                        const idx = parseInt(e.key) - 1;
+                        if (this.stopBtns[idx]) {
+                            this.stopBtns[idx].classList.remove('pressed');
+                        }
                     }
                 });
             }
@@ -1027,11 +1060,6 @@
                     reel.stop();
                     this.triggerCameraShake('light');
                     this.updateStopButtonsState();
-
-                    // 即座にストップボタンの視覚フィードバック（火花・パルス演出）
-                    const btn = this.stopBtns[index];
-                    btn.classList.add('pressed');
-                    setTimeout(() => btn.classList.remove('pressed'), 100);
                 }
             }
 
@@ -1282,13 +1310,23 @@
 
                     this.updateUI();
 
-                    // 超高速ビート同期演出 (140 BPM)
+                    // ビート同期演出（引き算の美学：フィーバー時のみ視覚脈動を強調し、画面のチラつきを抑制）
                     this.beatTimer += dt;
-                    if (this.beatTimer >= (60 / 140)) {
+                    const beatInterval = this.isFever ? (60 / 160) : (60 / 120);
+                    if (this.beatTimer >= beatInterval) {
                         this.beatTimer = 0;
-                        sound.playBeat();
-                        this.viewport.classList.add('pulse-beat');
-                        setTimeout(() => this.viewport.classList.remove('pulse-beat'), 50);
+                        if (this.isFever) {
+                            sound.playBeat();
+                            this.pulseTimer = 0.06;
+                            this.viewport.classList.add('pulse-beat');
+                        }
+                    }
+
+                    if (this.pulseTimer > 0) {
+                        this.pulseTimer -= dt;
+                        if (this.pulseTimer <= 0) {
+                            this.viewport.classList.remove('pulse-beat');
+                        }
                     }
                 }
 
