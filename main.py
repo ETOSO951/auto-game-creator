@@ -13,8 +13,8 @@ from playwright.sync_api import sync_playwright
 # ========================================================
 # ⚙️ AIエージェントの設定
 # ========================================================
-QUALITY_UP_ITERATIONS = 50 # 新規作成時の限界まで回す設定
-MAX_UPDATE_LOOPS = 30 # 既存コード修正時の最大ループ回数（達成度ベース）
+QUALITY_UP_ITERATIONS = 50  # 新規作成時の限界まで回す設定
+MAX_UPDATE_LOOPS = 30       # 既存コード修正時の最大ループ回数（達成度ベース）
 MAX_BUGFIX_LOOPS = 12
 
 # システムプロンプト
@@ -27,14 +27,14 @@ SYSTEM_INSTRUCTION = """あなたは世界的な天才フロントエンドエ�
 - 【重要】要素を無秩序に詰め込む「カオス化」を避け、引き算の美学を意識した統一感のあるUI/UXを維持すること。"""
 
 # --- 1. 初期設定 ---
-client = genai.Client() # 環境変数 GEMINI_API_KEY が自動で読み込まれます
+client = genai.Client()  # 環境変数 GEMINI_API_KEY が自動で読み込まれます
 
 event_path = os.environ.get('GITHUB_EVENT_PATH')
 with open(event_path, 'r', encoding='utf-8') as f:
     event_data = json.load(f)
 
 issue_title = event_data['issue'].get('title', '無題のゲーム')
-issue_body = event_data['issue'].get('body') or "" 
+issue_body = event_data['issue'].get('body') or ""
 issue_number = event_data['issue']['number']
 
 # --- グローバルモデルリスト（使えないモデルはここから削っていく） ---
@@ -44,6 +44,19 @@ ACTIVE_MODELS = [
     "gemini-3.5-flash-lite",
     "gemini-3.1-pro-preview"
 ]
+
+# --- 1.5. HTMLの健全性チェック関数 ---
+def is_valid_html(code):
+    """パッチマーカーの混入がなく、HTMLとして完結しているか検証する"""
+    if not code or len(code) < 100:
+        return False
+    # 行頭に4連続以上の <, =, > が残っている場合はパッチ崩れと判定
+    if re.search(r'^[ \t]*(?:<{4,}|={4,}|>{4,})', code, re.MULTILINE):
+        return False
+    # 開始タグと終了タグの両方が存在するか確認
+    has_start = re.search(r'<!DOCTYPE\s+html|<html', code, re.IGNORECASE)
+    has_end = re.search(r'</html>', code, re.IGNORECASE)
+    return bool(has_start and has_end)
 
 # --- 2. API呼び出し関数（リトライ強化・指数バックオフ・除外・タイムアウト機能付き） ---
 def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
@@ -72,7 +85,7 @@ def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(api_request)
                     try:
-                        response = future.result(timeout=120) # 2分でタイムアウト（強制切断）
+                        response = future.result(timeout=120)  # 2分でタイムアウト（強制切断）
                     except concurrent.futures.TimeoutError:
                         raise TimeoutError("APIレスポンスが無応答のためタイムアウトしました")
                 
@@ -80,7 +93,7 @@ def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
                 if not extract_html:
                     return text.strip()
 
-                match = re.search(r'```html\n(.*?)\n```', text, re.DOTALL)
+                match = re.search(r'```html\s*\n(.*?)\n```', text, re.DOTALL)
                 if match:
                     code = match.group(1).strip()
                 else:
@@ -89,15 +102,19 @@ def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
                         code = match_any.group(1).strip()
                     else:
                         code = text.strip()
+                        
                 html_match = re.search(r'(<!DOCTYPE html>.*?</html>|<html>.*?</html>)', code, re.IGNORECASE | re.DOTALL)
                 if html_match:
                     code = html_match.group(1).strip()
+                
+                if not is_valid_html(code):
+                    raise ValueError("生成されたHTMLが不完全（途中切れやマーカー混入）です")
                 
                 return code
 
             except TimeoutError as e:
                 print(f"⚠️ [{model_name}] {e}。次のモデルへ...")
-                break # タイムアウト時は次のモデルへ
+                break  # タイムアウト時は次のモデルへ
                 
             except errors.APIError as e:
                 # 429エラー (Resource Exhausted / レート制限) 
@@ -130,6 +147,10 @@ def call_gemini_api(prompt_text, max_retries=5, extract_html=True):
 
 # --- 2.5. 中間Push関数（タイムアウト対策付き） ---
 def save_and_push(html_code, commit_msg):
+    if not is_valid_html(html_code):
+        print("⚠️ 保存しようとしたHTMLが不完全なため、ファイル書き込みとPushを中止しました。")
+        return
+
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_code)
     try:
@@ -177,36 +198,73 @@ def test_game_code(html_code):
                 os.remove("temp_test.html")
     return errors_list
 
-# --- 3.5. パッチ適用関数（Diff形式での部分書き換え） ---
+# --- 3.5. パッチ適用関数（巻き込み防止・バリデーション強化版） ---
 def apply_patches(original_code, patch_text):
-    # <<<< から ====、そして >>>> までのブロックを抽出
-    pattern = re.compile(r'<<<<\s*\n(.*?)\n====\s*\n(.*?)\n>>>>\s*', re.DOTALL)
-    matches = pattern.findall(patch_text)
+    # 行頭の4文字以上の '<' でブロックを分割（途中で閉じタグが欠落しても他のブロックを巻き込まない）
+    raw_blocks = re.split(r'^[ \t]*<{4,}[ \t]*\r?\n', patch_text, flags=re.MULTILINE)
     
-    if not matches:
-        # パッチ形式が守られなかった場合のフォールバック（HTMLタグの抽出）
-        html_match = re.search(r'```html\n(.*?)\n```', patch_text, re.DOTALL)
+    valid_patches = []
+    # raw_blocks[0] は最初の <<<< より前の文章（<thinking>など）なのでスキップ
+    for block in raw_blocks[1:]:
+        # 終了マーカー（>>>>）を探す
+        end_match = re.search(r'\r?\n^[ \t]*>{4,}[ \t]*(?:\r?\n|$)', block, flags=re.MULTILINE)
+        if not end_match:
+            print("⚠️ 終了マーカー(>>>>)が欠落している不完全なパッチブロックを破棄しました。")
+            continue
+            
+        block_content = block[:end_match.start()]
+        
+        # 区切りマーカー（====）で SEARCH と REPLACE に分割
+        parts = re.split(r'\r?\n^[ \t]*={4,}[ \t]*\r?\n', block_content, flags=re.MULTILINE)
+        if len(parts) != 2:
+            print("⚠️ 区切りマーカー(====)の数が不正なパッチブロックを破棄しました。")
+            continue
+            
+        search_block, replace_block = parts[0], parts[1]
+        
+        # ブロック内部に未処理のマーカーが紛れ込んでいないか二重チェック
+        if re.search(r'^[ \t]*(?:<{4,}|={4,}|>{4,})', search_block + "\n" + replace_block, re.MULTILINE):
+            print("⚠️ マーカーが内部に混入している異常なパッチブロックを破棄しました。")
+            continue
+            
+        valid_patches.append((search_block, replace_block))
+
+    # パッチが1つも抽出できなかった場合のフォールバック処理
+    if not valid_patches:
+        html_match = re.search(r'```html\s*\n(.*?)\n```', patch_text, re.DOTALL)
         if html_match:
-            print("⚠️ SEARCH/REPLACE形式が見つかりませんでした。全文出力を適用します。")
-            return html_match.group(1).strip()
-        print("⚠️ パッチもHTMLコードも見つかりませんでした。変更をスキップします。")
+            candidate = html_match.group(1).strip()
+            # 完全なHTMLであり、かつパッチ記号が含まれていない場合のみ全文適用を許可
+            if is_valid_html(candidate):
+                print("⚠️ SEARCH/REPLACE形式が見つかりませんでしたが、完全なHTML全文を検出したため適用します。")
+                return candidate
+            else:
+                print("⚠️ 抽出されたコードが不完全なHTML（または壊れたパッチ）のため、全文上書きを阻止しました。")
+                return original_code
+                
+        print("⚠️ 有効なパッチも完全なHTMLも見つかりませんでした。変更をスキップします。")
         return original_code
 
+    # パッチの適用
     new_code = original_code
     success_count = 0
-    for search_block, replace_block in matches:
+    for search_block, replace_block in valid_patches:
         if search_block in new_code:
-            # 完全一致での置換
-            new_code = new_code.replace(search_block, replace_block)
+            # 意図しない複数箇所の書き換えを防ぐため count=1 を指定
+            new_code = new_code.replace(search_block, replace_block, 1)
             success_count += 1
-        elif search_block.strip() in new_code:
-            # 前後の空白による不一致を防ぐためのストリップ置換
-            new_code = new_code.replace(search_block.strip(), replace_block.strip())
+        elif search_block.strip() and search_block.strip() in new_code:
+            new_code = new_code.replace(search_block.strip(), replace_block.strip(), 1)
             success_count += 1
         else:
             print(f"⚠️ パッチ適用失敗（対象コードが見つかりません）:\n{search_block[:50]}...")
-    
-    print(f"✅ パッチ適用完了 ({success_count}/{len(matches)} 個成功)")
+
+    # 最終防衛ライン：パッチ適用後のコードがHTMLとして壊れていないか確認
+    if not is_valid_html(new_code):
+        print("❌ パッチ適用後のコードに構文崩れやマーカー残存を検知したため、変更前にロールバックします。")
+        return original_code
+
+    print(f"✅ パッチ適用完了 ({success_count}/{len(valid_patches)} 個成功)")
     return new_code
 
 # --- 4. 既存コードの確認 ---
@@ -296,164 +354,3 @@ if not existing_code:
             prompt_apply = f"""現在のコード:
 ```html
 {html_content}
-```
-【実装するアイデア】
-{ideas}
-
-【重要】コード全体を出力するのではなく、必ず以下の SEARCH/REPLACE 形式を使って変更・追加部分のみを出力してください。
-新機能や変数を追加する場合は、追加したい場所の既存コードを SEARCH に含め、REPLACE に「既存コード＋追加コード」を書いてください。
-
-<<<<
-置き換え対象の既存コード（一言一句違わずコピペすること）
-====
-新しく置き換えるコード
->>>>
-
-複数の箇所を変更する場合は、<<<< ==== >>>> のブロックを複数回使用してください。
-`<thinking>` タグで論理的に記述後に出力してください。省略厳禁。
-"""
-            patch_text = call_gemini_api(prompt_apply, extract_html=False)
-            html_content = apply_patches(html_content, patch_text)
-            
-            print(f"💾 ループ {i} の成果を保存・Push中...")
-            save_and_push(html_content, f"🔄 自律改善ループ {i}/{QUALITY_UP_ITERATIONS} 完了")
-            
-        except Exception as e:
-            if "API_LIMIT_REACHED" in str(e):
-                print(f"\n⚠️ トークン上限・API制限に到達しました！\nループ {i-1} までの成果を保存して、自動的に次のステップへ進みます。")
-            else:
-                print(f"\n⚠️ 予期せぬエラー発生: {e}\nループ {i-1} までの成果を保存して、自動的に次のステップへ進みます。")
-            break
-
-else:
-    # --- 既存コード修正時: 達成度ベースの調整ループ ---
-    print(f"\n--- 🎯 ユーザー要望達成ループ開始（既存編集モード: 最大{MAX_UPDATE_LOOPS}回） ---")
-    for i in range(1, MAX_UPDATE_LOOPS + 1):
-        try:
-            time.sleep(3)
-            print(f"\n【ループ {i}/{MAX_UPDATE_LOOPS}】達成度の評価と改善案の作成中...")
-            
-            prompt_eval = f"""現在のコード:
-```html
-{html_content}
-```
-【ユーザーからの依頼内容】
-タイトル: {issue_title}
-内容: {issue_body}
-
-あなたは世界で最も厳格なコードレビュアーであり、粗探しをするテスターです。
-【重要】あなたは上記のコードを書いていません。他人が書いたコードを審査しています。
-現在のコードが「ユーザーの依頼」をどれくらい完璧に満たしているか、達成度を0〜100の数値で評価してください。
-
-【評価の厳格なルール】
-1. 依頼された機能が「すべて」実装され、かつ「正常に動作しそうか」をコードを読んで疑ってかかってください。
-2. 見た目だけでなく、ロジック（JavaScript）のバグ、当たり判定の抜け漏れ、UIの崩れ落ちがないか厳格に探してください。
-3. 少しでも機能が欠けている、またはバグの可能性がある場合は、絶対に100点をつけてはいけません（最高でも90点以下にすること）。
-4. 「修正しました」という言葉を信じず、実際のコードのロジックに修正が反映されているか確認してください。
-
-出力フォーマット（必ず以下の形式を厳守すること）:
-達成度: [0〜100の数値]
-改善案: [達成度が100でない場合、次にどのようなコード修正や微調整を行うべきか具体的な指示を書いてください。100の場合は「要望は完全に満たされています」と書いてください。]
-"""
-            eval_result = call_gemini_api(prompt_eval, extract_html=False)
-            print(f"📊 評価結果:\n{eval_result}\n")
-            
-            # 達成度の抽出
-            score = 0
-            match = re.search(r'達成度[:：]\s*(\d+)', eval_result)
-            if match:
-                score = int(match.group(1))
-                if score >= 100:
-                    print("✨ 達成度100%に到達しました！ユーザーの要望は完全に反映されたため、調整ループを終了します。")
-                    break
-            else:
-                print("⚠️ 達成度の数値が抽出できませんでした。処理を継続します。")
-                
-            time.sleep(3)
-            print(f"【ループ {i}/{MAX_UPDATE_LOOPS}】改善案（微調整）の実装中...")
-            prompt_apply = f"""現在のコード:
-```html
-{html_content}
-```
-【ユーザーの依頼内容】
-{issue_body}
-【実装する改善案】
-{eval_result}
-            
-【重要】コード全体を出力するのではなく、必ず以下の SEARCH/REPLACE 形式を使って変更・追加部分のみを出力してください。
-新機能や変数を追加する場合は、追加したい場所の既存コードを SEARCH に含め、REPLACE に「既存コード＋追加コード」を書いてください。
-
-<<<<
-置き換え対象の既存コード（一言一句違わずコピペすること）
-====
-新しく置き換えるコード
->>>>
-
-複数の箇所を変更する場合は、<<<< ==== >>>> のブロックを複数回使用してください。
-`<thinking>` タグで論理的に記述後に出力してください。省略厳禁。
-"""
-            patch_text = call_gemini_api(prompt_apply, extract_html=False)
-            html_content = apply_patches(html_content, patch_text)
-            
-            print(f"💾 調整ループ {i} の成果を保存・Push中...")
-            save_and_push(html_content, f"🔄 要望達成ループ {i}/{MAX_UPDATE_LOOPS} (達成度: {score}%) 完了")
-            
-        except Exception as e:
-            if "API_LIMIT_REACHED" in str(e):
-                print(f"\n⚠️ トークン上限・API制限に到達しました！\nループ {i-1} までの成果を保存して、自動的に次のステップへ進みます。")
-            else:
-                print(f"\n⚠️ 予期せぬエラー発生: {e}\nループ {i-1} までの成果を保存して、自動的に次のステップへ進みます。")
-            break
-
-# ========================================================
-# フェーズ3: 自己修正（バグ取り）ループ
-# ========================================================
-print(f"\n--- 🛠 バグ監視・自己修正ループ開始（最大{MAX_BUGFIX_LOOPS}回） ---")
-final_code = html_content
-success = False
-
-for attempt in range(1, MAX_BUGFIX_LOOPS + 1):
-    print(f"--- テスト実行 {attempt}/{MAX_BUGFIX_LOOPS} ---")
-    js_errors = test_game_code(final_code)
-    
-    if not js_errors:
-        print("✅ テスト合格！バグはありません。")
-        success = True
-        break
-    else:
-        print(f"❌ エラーを検知: {js_errors[:2]} (他略)")
-        if attempt < MAX_BUGFIX_LOOPS:
-            try:
-                print("🔄 エラーの自己修正を行います...")
-                time.sleep(3)
-                error_text = "\n".join(js_errors[:5])
-                prompt_fix = f"""以下のエラーが発生しました。
-{error_text}
-【エラーが出たコード】
-```html
-{final_code}
-```
-
-【重要】コード全体を出力するのではなく、以下の SEARCH/REPLACE 形式を使ってバグ修正部分のみを出力してください。
-
-<<<<
-バグの原因となっている既存コード（一言一句違わずコピペすること）
-====
-修正後のコード
->>>>
-
-原因分析を `<thinking>` タグで行った後、上記の形式でパッチを出力してください。
-"""
-                patch_text = call_gemini_api(prompt_fix, extract_html=False)
-                final_code = apply_patches(final_code, patch_text)
-                
-                # バグ修正後も中間セーブ＆Push
-                save_and_push(final_code, f"🛠 バグ自己修正 試行 {attempt}/{MAX_BUGFIX_LOOPS}")
-            except Exception as e:
-                print(f"⚠️ バグ修正中にAPI制限に到達しました。直前のコードを維持して終了します。")
-                break
-        else:
-            print("⚠️ 最大修正回数に達しました。現状のコードを保存します。")
-
-# --- 7. 保存と最終Push ---
-save_and_push(final_code, f"🎉 AI自律改善版 (限界突破完了 / 合格:{success}) Issue #{issue_number}")
