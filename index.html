@@ -364,9 +364,9 @@
         class Player {
             constructor() {
                 this.baseSize = 24;
-                this.baseHitRadius = 9;
+                this.baseHitRadius = 8.5; // 見た目と完全に一致する精密な判定半径
                 this.baseGravity = 0.8;
-                this.baseJumpForce = -12;
+                this.baseJumpForce = -12.5;
                 
                 this.reset();
             }
@@ -407,6 +407,8 @@
 
             jump() {
                 this.gravityDir *= -1;
+                // 従来の垂直速度を完全にリセットしてから反転力を加えることで、遅延のないダイレクトな操作感を実現
+                this.vy = 0;
                 this.vy = (this.baseJumpForce * baseScale) * this.gravityDir;
                 sound.jump();
 
@@ -542,8 +544,8 @@
             }
         }
 
-        // 精密な「円 vs 猶予付き矩形」当たり判定ロジック
-        function checkCircleBoxCollision(cx, cy, r, bx, by, bw, bh, inset = 3) {
+        // 精密な「円 vs 猶予付き矩形」当たり判定ロジック（ビジュアル整合性を高めたチューニング）
+        function checkCircleBoxCollision(cx, cy, r, bx, by, bw, bh, inset = 2) {
             const rx = bx + inset;
             const ry = by + inset;
             const rw = Math.max(0, bw - inset * 2);
@@ -618,28 +620,121 @@
             document.getElementById('gameover-screen').classList.remove('hidden');
         }
 
-        // --- MAIN GAME LOOP ---
+        // --- GAME LOOP & RESPONSIBILITY SEPARATION ---
         let lastTime = performance.now();
-        function loop(timestamp) {
-            if (!lastTime) lastTime = timestamp;
-            let dt = (timestamp - lastTime) / 1000;
-            lastTime = timestamp;
 
-            // タブ非アクティブ時などの異常なDeltaTimeジャンプを抑制
-            if (dt > 0.1) dt = 0.1;
-            const dt60 = dt * 60; // 60fps基準のスケーリング係数
-
-            // Hit stop effect
-            if (hitStop > 0) {
-                hitStop--;
-                requestAnimationFrame(loop);
-                return;
+        function updateGame(dt, dt60) {
+            // 入力バッファ（先行入力）の処理
+            if (jumpBufferTimer > 0) {
+                jumpBufferTimer -= dt;
+                player.jump();
+                jumpBufferTimer = 0;
             }
 
-            // 描画パイプラインの統一（Context Matrix の統合管理）
+            // スピード補間 (Lerp) による滑らかな加減速
+            let targetSpeed = (isFever ? 9 : 5) * baseScale;
+            currentSpeed += (targetSpeed - currentSpeed) * (1 - Math.exp(-0.15 * dt60));
+
+            // Fever logic
+            if (isFever) {
+                feverTimer -= dt;
+                feverGauge = Math.max(0, (feverTimer / 5.0) * 100);
+                if (feverTimer <= 0) {
+                    isFever = false;
+                }
+            }
+
+            // Spawn obstacles (Delta-time scaling)
+            spawnTimer += dt60;
+            if (spawnTimer >= (isFever ? 45 : 75)) {
+                spawnTimer = 0;
+                let obs = new Obstacle();
+                obstacles.push(obs);
+                collectibles.push(new Collectible(obs));
+            }
+
+            // Update Obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.update(currentSpeed, dt60);
+
+                if (!obs.passed && obs.x + obs.w < player.x) {
+                    obs.passed = true;
+                    score += isFever ? 200 : 100;
+                    sound.score();
+                }
+
+                // Precise Collision Detection
+                const hitTop = checkCircleBoxCollision(player.x, player.y, player.hitRadius, obs.x, 0, obs.w, obs.topH);
+                const hitBottom = checkCircleBoxCollision(player.x, player.y, player.hitRadius, obs.x, height - obs.bottomH, obs.w, obs.bottomH);
+
+                if (hitTop || hitBottom) {
+                    gameOver();
+                }
+
+                if (obs.x < -100 * baseScale) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // Update Collectibles
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                let col = collectibles[i];
+                col.update(currentSpeed, dt60);
+
+                let dist = Math.hypot(player.x - col.x, player.y - col.y);
+                if (!col.collected && dist < player.hitRadius + col.size) {
+                    col.collected = true;
+                    score += 500;
+                    combo++;
+                    comboTimer = 3.0;
+                    sound.score();
+
+                    const comboBadge = document.getElementById('combo-badge');
+                    document.getElementById('combo-count').innerText = combo;
+                    comboBadge.style.display = 'block';
+                    comboBadge.classList.add('pulse');
+                    setTimeout(() => comboBadge.classList.remove('pulse'), 100);
+
+                    if (!isFever) {
+                        feverGauge += 15;
+                        if (feverGauge >= 100) {
+                            isFever = true;
+                            feverTimer = 5.0;
+                            feverGauge = 100;
+                            sound.fever();
+                            screenShake = 15;
+                        }
+                    }
+
+                    for(let p = 0; p < 12; p++) {
+                        particles.push(new Particle(col.x, col.y, '#ffcc00', true));
+                    }
+                }
+
+                if (col.x < -100 * baseScale || col.collected) {
+                    collectibles.splice(i, 1);
+                }
+            }
+
+            // Combo timeout
+            if (combo > 0) {
+                comboTimer -= dt;
+                if (comboTimer <= 0) {
+                    combo = 0;
+                    document.getElementById('combo-badge').style.display = 'none';
+                }
+            }
+
+            // Update Player
+            player.update(dt60);
+            score += (isFever ? 2 : 1) * dt60;
+        }
+
+        function renderGame(dt60) {
             ctx.save();
 
-            // Screen Shake Application (描画全体に正しく適用)
+            // Screen Shake Application
             if (screenShake > 0) {
                 let offsetX = (Math.random() - 0.5) * screenShake * baseScale;
                 let offsetY = (Math.random() - 0.5) * screenShake * baseScale;
@@ -648,144 +743,58 @@
                 if (screenShake < 0.2) screenShake = 0;
             }
 
-            // Screen clear with trail effect (揺れによる端の欠けを防ぐため領域を僅かに拡張)
+            // Screen clear
             ctx.fillStyle = isFever ? 'rgba(26, 11, 46, 0.3)' : 'rgba(11, 9, 26, 0.3)';
             ctx.fillRect(-30, -30, width + 60, height + 60);
 
-            if (gameState === 'PLAYING') {
-                // 入力バッファ（先行入力）の処理
-                if (jumpBufferTimer > 0) {
-                    jumpBufferTimer -= dt;
-                    player.jump();
-                    jumpBufferTimer = 0; // 反転実行後にバッファを消費
-                }
+            // Draw Obstacles & Collectibles
+            for (let obs of obstacles) obs.draw();
+            for (let col of collectibles) col.draw();
 
-                // スピード補間 (Lerp) による滑らかな加減速
-                let targetSpeed = (isFever ? 9 : 5) * baseScale;
-                currentSpeed += (targetSpeed - currentSpeed) * (1 - Math.exp(-0.15 * dt60));
-
-                // Fever logic
-                if (isFever) {
-                    feverTimer -= dt;
-                    feverGauge = Math.max(0, (feverTimer / 5.0) * 100);
-                    if (feverTimer <= 0) {
-                        isFever = false;
-                    }
-                }
-
-                // Spawn obstacles (Delta-time scaling)
-                spawnTimer += dt60;
-                if (spawnTimer >= (isFever ? 45 : 75)) {
-                    spawnTimer = 0;
-                    let obs = new Obstacle();
-                    obstacles.push(obs);
-                    collectibles.push(new Collectible(obs));
-                }
-
-                // Update & Draw Obstacles
-                for (let i = obstacles.length - 1; i >= 0; i--) {
-                    let obs = obstacles[i];
-                    obs.update(currentSpeed, dt60);
-                    obs.draw();
-
-                    // Score point passing
-                    if (!obs.passed && obs.x + obs.w < player.x) {
-                        obs.passed = true;
-                        score += isFever ? 200 : 100;
-                        sound.score();
-                    }
-
-                    // Fair & Precise Collision Detection (Circle vs Inset Box)
-                    const hitTop = checkCircleBoxCollision(player.x, player.y, player.hitRadius, obs.x, 0, obs.w, obs.topH);
-                    const hitBottom = checkCircleBoxCollision(player.x, player.y, player.hitRadius, obs.x, height - obs.bottomH, obs.w, obs.bottomH);
-
-                    if (hitTop || hitBottom) {
-                        gameOver();
-                    }
-
-                    if (obs.x < -100 * baseScale) {
-                        obstacles.splice(i, 1);
-                    }
-                }
-
-                // Update & Draw Collectibles
-                for (let i = collectibles.length - 1; i >= 0; i--) {
-                    let col = collectibles[i];
-                    col.update(currentSpeed, dt60);
-                    col.draw();
-
-                    // Check collection
-                    let dist = Math.hypot(player.x - col.x, player.y - col.y);
-                    if (!col.collected && dist < player.hitRadius + col.size) {
-                        col.collected = true;
-                        score += 500;
-                        combo++;
-                        comboTimer = 3.0;
-                        sound.score();
-
-                        // Combo UI
-                        const comboBadge = document.getElementById('combo-badge');
-                        document.getElementById('combo-count').innerText = combo;
-                        comboBadge.style.display = 'block';
-                        comboBadge.classList.add('pulse');
-                        setTimeout(() => comboBadge.classList.remove('pulse'), 100);
-
-                        // Fill fever
-                        if (!isFever) {
-                            feverGauge += 15;
-                            if (feverGauge >= 100) {
-                                isFever = true;
-                                feverTimer = 5.0;
-                                feverGauge = 100;
-                                sound.fever();
-                                screenShake = 15;
-                            }
-                        }
-
-                        // Burst particles
-                        for(let p = 0; p < 12; p++) {
-                            particles.push(new Particle(col.x, col.y, '#ffcc00', true));
-                        }
-                    }
-
-                    if (col.x < -100 * baseScale || col.collected) {
-                        collectibles.splice(i, 1);
-                    }
-                }
-
-                // Combo timeout
-                if (combo > 0) {
-                    comboTimer -= dt;
-                    if (comboTimer <= 0) {
-                        combo = 0;
-                        document.getElementById('combo-badge').style.display = 'none';
-                    }
-                }
-
-                // Update Player
-                player.update(dt60);
-                score += (isFever ? 2 : 1) * dt60; // Delta-scaled passive score growth
-            }
-
-            // Update & Draw Particles
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.update(dt60);
-                p.draw();
-                if (p.life <= 0) {
-                    particles.splice(i, 1);
-                }
-            }
+            // Draw Particles
+            for (let p of particles) p.draw();
 
             if (gameState === 'PLAYING') {
                 player.draw();
             }
 
             ctx.restore();
+        }
 
-            // Update HUD elements
+        function updateUI() {
             document.getElementById('current-score').innerText = String(Math.floor(score)).padStart(6, '0');
             document.getElementById('fever-fill').style.width = feverGauge + '%';
+        }
+
+        function loop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            let dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            if (dt > 0.1) dt = 0.1;
+            const dt60 = dt * 60;
+
+            if (hitStop > 0) {
+                hitStop--;
+                requestAnimationFrame(loop);
+                return;
+            }
+
+            if (gameState === 'PLAYING') {
+                updateGame(dt, dt60);
+            }
+
+            // Update Particles always
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.update(dt60);
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            renderGame(dt60);
+            updateUI();
 
             requestAnimationFrame(loop);
         }
