@@ -297,31 +297,43 @@
                     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
                 }
             }
-            playTone(freq, type, duration, vol = 0.1, slideTo = null) {
+            playTone(freq, type, duration, vol = 0.08, slideTo = null, fadeOut = true) {
                 if (!this.ctx) return;
                 try {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
+                    const t = this.ctx.currentTime;
                     osc.type = type;
-                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    osc.frequency.setValueAtTime(freq, t);
                     if (slideTo) {
-                        osc.frequency.exponentialRampToValueAtTime(slideTo, this.ctx.currentTime + duration);
+                        osc.frequency.exponentialRampToValueAtTime(Math.max(10, slideTo), t + duration);
                     }
-                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    gain.gain.setValueAtTime(vol, t);
+                    if (fadeOut) {
+                        gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+                    } else {
+                        gain.gain.linearRampToValueAtTime(0, t + duration);
+                    }
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + duration);
+                    osc.start(t);
+                    osc.stop(t + duration);
                 } catch(e) {}
             }
-            jump() { this.playTone(300, 'square', 0.15, 0.1, 600); }
-            score() { this.playTone(800, 'sine', 0.1, 0.08, 1200); }
-            hit() { this.playTone(120, 'sawtooth', 0.3, 0.2, 40); }
+            jump() {
+                this.playTone(320, 'sine', 0.12, 0.08, 580);
+                this.playTone(160, 'triangle', 0.08, 0.04, 300);
+            }
+            score() {
+                this.playTone(784, 'sine', 0.08, 0.06, 1174);
+            }
+            hit() {
+                this.playTone(140, 'sawtooth', 0.25, 0.15, 30);
+            }
             fever() {
                 if (!this.ctx) return;
-                [400, 600, 800, 1200].forEach((f, i) => {
-                    setTimeout(() => this.playTone(f, 'triangle', 0.1, 0.15), i * 60);
+                [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                    setTimeout(() => this.playTone(f, 'sine', 0.12, 0.08), i * 50);
                 });
             }
         }
@@ -404,7 +416,7 @@
             constructor() {
                 this.baseSize = 24;
                 this.baseGravity = 0.75;
-                this.baseJumpForce = 12.0;
+                this.baseJumpForce = 11.5;
                 this.trail = [];
                 this.reset();
             }
@@ -414,9 +426,12 @@
             reset() {
                 this.x = Math.max(60, width * 0.18);
                 this.y = height / 2;
+                this.prevX = this.x;
+                this.prevY = this.y;
                 this.vy = 0;
                 this.gravityDir = 1; // 1: down, -1: up
                 this.rotation = 0;
+                this.prevRotation = 0;
                 this.trail.length = 0;
                 for (let i = 0; i < 10; i++) {
                     this.trail.push({ x: this.x, y: this.y });
@@ -424,30 +439,45 @@
             }
 
             update(dtFixed) {
-                const gravity = this.baseGravity * baseScale * 3600;
+                this.prevX = this.x;
+                this.prevY = this.y;
+                this.prevRotation = this.rotation;
+
+                // 重力計算とイージングの効いたスムーズな加速
+                const gravity = this.baseGravity * baseScale * 3500;
                 this.vy += gravity * this.gravityDir * dtFixed;
                 
-                // ターミナルベロシティ（最高落下速度）のクランプ
-                const maxTerminalVel = 900 * baseScale;
+                // ターミナルベロシティのクランプ
+                const maxTerminalVel = 850 * baseScale;
                 if (Math.abs(this.vy) > maxTerminalVel) {
                     this.vy = Math.sign(this.vy) * maxTerminalVel;
                 }
 
                 this.y += this.vy * dtFixed;
 
-                // 上下境界の滑空クランプ処理
+                // 画面上下境界の吸い付くようなクッション運動（ソフトダンパー）
                 const margin = this.size * 0.55;
-                if (this.y < margin) {
-                    this.y = margin;
-                    if (this.vy < 0) this.vy = 0;
-                } else if (this.y > height - margin) {
-                    this.y = height - margin;
-                    if (this.vy > 0) this.vy = 0;
+                const cushionRange = 25 * baseScale;
+
+                if (this.gravityDir === -1 && this.y < margin + cushionRange) {
+                    const depth = Math.max(0, (margin + cushionRange - this.y) / cushionRange);
+                    this.vy += depth * 1400 * baseScale * dtFixed;
+                } else if (this.gravityDir === 1 && this.y > height - margin - cushionRange) {
+                    const depth = Math.max(0, (this.y - (height - margin - cushionRange)) / cushionRange);
+                    this.vy -= depth * 1400 * baseScale * dtFixed;
                 }
 
-                this.rotation += 8.0 * this.gravityDir * dtFixed;
+                if (this.y < margin) {
+                    this.y = margin;
+                    if (this.vy < 0) this.vy *= -0.15; // ソフトなクッション反発
+                } else if (this.y > height - margin) {
+                    this.y = height - margin;
+                    if (this.vy > 0) this.vy *= -0.15;
+                }
 
-                // Trail (オブジェクト使い回しによるZero-GC)
+                this.rotation += 7.5 * this.gravityDir * dtFixed;
+
+                // Trail
                 const lastTrail = this.trail.shift();
                 lastTrail.x = this.x;
                 lastTrail.y = this.y;
@@ -457,7 +487,8 @@
             jump() {
                 this.gravityDir *= -1;
                 const targetVelocity = this.baseJumpForce * baseScale * 60;
-                this.vy = -this.gravityDir * targetVelocity;
+                // 微少な慣性イージングを付与した滑らかな初速切替
+                this.vy = -this.gravityDir * targetVelocity + (this.vy * 0.15);
                 sound.jump();
 
                 for (let i = 0; i < 8; i++) {
@@ -465,12 +496,12 @@
                 }
             }
 
-            // SAT (分離軸定理) 用の角丸近似8頂点取得（理不尽な角での衝突死を排除）
-            getVertices(scaleFactor = 1.0) {
+            // SAT用頂点算出（指定座標・角度対応）
+            getVerticesAt(x, y, rotation, scaleFactor = 1.0) {
                 const s = this.size * scaleFactor * 0.5;
-                const c = s * 0.35; // 面取りオフセット値
-                const cos = Math.cos(this.rotation);
-                const sin = Math.sin(this.rotation);
+                const c = s * 0.35;
+                const cos = Math.cos(rotation);
+                const sin = Math.sin(rotation);
                 
                 const localVerts = [
                     { x: -s + c, y: -s }, { x: s - c, y: -s },
@@ -480,28 +511,36 @@
                 ];
                 
                 return localVerts.map(v => ({
-                    x: this.x + (v.x * cos - v.y * sin),
-                    y: this.y + (v.x * sin + v.y * cos)
+                    x: x + (v.x * cos - v.y * sin),
+                    y: y + (v.x * sin + v.y * cos)
                 }));
             }
 
-            draw() {
+            getVertices(scaleFactor = 1.0) {
+                return this.getVerticesAt(this.x, this.y, this.rotation, scaleFactor);
+            }
+
+            draw(alpha = 1.0) {
+                const drawX = this.prevX + (this.x - this.prevX) * alpha;
+                const drawY = this.prevY + (this.y - this.prevY) * alpha;
+                const drawRot = this.prevRotation + (this.rotation - this.prevRotation) * alpha;
                 const curSize = this.size;
+
                 // Draw trail
                 for (let i = 0; i < this.trail.length; i++) {
-                    let alpha = (i + 1) / this.trail.length;
+                    let trailAlpha = (i + 1) / this.trail.length;
                     let t = this.trail[i];
-                    ctx.fillStyle = isFever ? `rgba(255, 0, 128, ${alpha * 0.35})` : `rgba(0, 255, 204, ${alpha * 0.25})`;
+                    ctx.fillStyle = isFever ? `rgba(255, 0, 128, ${trailAlpha * 0.3})` : `rgba(0, 255, 204, ${trailAlpha * 0.22})`;
                     ctx.beginPath();
-                    ctx.arc(t.x, t.y, curSize * 0.7 * alpha, 0, Math.PI * 2);
+                    ctx.arc(t.x, t.y, curSize * 0.65 * trailAlpha, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
                 ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.rotation);
+                ctx.translate(drawX, drawY);
+                ctx.rotate(drawRot);
 
-                ctx.shadowBlur = isFever ? 25 : 15;
+                ctx.shadowBlur = isFever ? 20 : 12;
                 ctx.shadowColor = isFever ? '#ff0080' : '#00ffcc';
                 ctx.fillStyle = isFever ? '#ff0080' : '#00ffcc';
                 ctx.fillRect(-curSize / 2, -curSize / 2, curSize, curSize);
@@ -520,28 +559,34 @@
             init(x, y, color, burst = false) {
                 this.x = x;
                 this.y = y;
+                this.prevX = x;
+                this.prevY = y;
                 this.color = color;
                 const angle = burst ? Math.random() * Math.PI * 2 : (Math.random() - 0.5) * 0.5;
-                const speed = (burst ? Math.random() * 360 + 120 : Math.random() * 180 + 60) * baseScale;
+                const speed = (burst ? Math.random() * 320 + 100 : Math.random() * 160 + 50) * baseScale;
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
-                this.size = (Math.random() * 4 + 2) * baseScale;
+                this.size = (Math.random() * 3.5 + 1.8) * baseScale;
                 this.life = 1.0;
-                this.decay = Math.random() * 1.8 + 1.2;
+                this.decay = Math.random() * 1.6 + 1.2;
             }
             update(dtFixed) {
+                this.prevX = this.x;
+                this.prevY = this.y;
                 this.x += this.vx * dtFixed;
                 this.y += this.vy * dtFixed;
                 this.life -= this.decay * dtFixed;
                 if (this.life <= 0) this.active = false;
             }
-            draw() {
+            draw(alpha = 1.0) {
+                const drawX = this.prevX + (this.x - this.prevX) * alpha;
+                const drawY = this.prevY + (this.y - this.prevY) * alpha;
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, this.life);
                 ctx.fillStyle = this.color;
-                ctx.shadowBlur = 8;
+                ctx.shadowBlur = 6;
                 ctx.shadowColor = this.color;
-                ctx.fillRect(this.x, this.y, this.size, this.size);
+                ctx.fillRect(drawX, drawY, this.size, this.size);
                 ctx.restore();
             }
         }
@@ -552,6 +597,7 @@
             }
             init() {
                 this.x = width + 60 * baseScale;
+                this.prevX = this.x;
                 this.w = 32 * baseScale;
                 this.topH = Math.random() * (height * 0.38) + 50 * baseScale;
                 this.gap = (isFever ? 230 : 165) * baseScale;
@@ -562,30 +608,32 @@
                 this.color = '#ff3366';
             }
             update(speed, dtFixed) {
+                this.prevX = this.x;
                 this.x -= speed * dtFixed;
                 if (this.x < -100 * baseScale) {
                     this.active = false;
                 }
             }
-            getTopAABB() {
-                return { x: this.x, y: 0, w: this.w, h: this.topH };
+            getTopAABB(currX = this.x) {
+                return { x: currX, y: 0, w: this.w, h: this.topH };
             }
-            getBottomAABB() {
-                return { x: this.x, y: height - this.bottomH, w: this.w, h: this.bottomH };
+            getBottomAABB(currX = this.x) {
+                return { x: currX, y: height - this.bottomH, w: this.w, h: this.bottomH };
             }
-            draw() {
+            draw(alpha = 1.0) {
+                const drawX = this.prevX + (this.x - this.prevX) * alpha;
                 ctx.save();
-                ctx.shadowBlur = 15;
+                ctx.shadowBlur = 12;
                 ctx.shadowColor = this.color;
                 ctx.fillStyle = this.color;
 
-                ctx.fillRect(this.x, 0, this.w, this.topH);
-                ctx.fillRect(this.x, height - this.bottomH, this.w, this.bottomH);
+                ctx.fillRect(drawX, 0, this.w, this.topH);
+                ctx.fillRect(drawX, height - this.bottomH, this.w, this.bottomH);
 
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(this.x, 0, this.w, this.topH);
-                ctx.strokeRect(this.x, height - this.bottomH, this.w, this.bottomH);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(drawX, 0, this.w, this.topH);
+                ctx.strokeRect(drawX, height - this.bottomH, this.w, this.bottomH);
 
                 ctx.restore();
             }
@@ -597,24 +645,34 @@
             }
             init(obs) {
                 this.x = obs.x + obs.w / 2;
+                this.prevX = this.x;
                 this.y = obs.topH + (obs.gap / 2);
+                this.prevY = this.y;
                 this.size = 14 * baseScale;
                 this.collected = false;
                 this.angle = 0;
+                this.prevAngle = 0;
             }
             update(speed, dtFixed) {
+                this.prevX = this.x;
+                this.prevY = this.y;
+                this.prevAngle = this.angle;
                 this.x -= speed * dtFixed;
                 this.angle += 6.0 * dtFixed;
                 if (this.x < -100 * baseScale || this.collected) {
                     this.active = false;
                 }
             }
-            draw() {
+            draw(alpha = 1.0) {
                 if (this.collected) return;
+                const drawX = this.prevX + (this.x - this.prevX) * alpha;
+                const drawY = this.prevY + (this.y - this.prevY) * alpha;
+                const drawAngle = this.prevAngle + (this.angle - this.prevAngle) * alpha;
+
                 ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle);
-                ctx.shadowBlur = 15;
+                ctx.translate(drawX, drawY);
+                ctx.rotate(drawAngle);
+                ctx.shadowBlur = 12;
                 ctx.shadowColor = '#ffcc00';
                 ctx.fillStyle = '#ffcc00';
                 
@@ -637,24 +695,30 @@
             init(x, y, text, color = '#00ffcc') {
                 this.x = x;
                 this.y = y;
+                this.prevX = x;
+                this.prevY = y;
                 this.text = text;
                 this.color = color;
                 this.life = 1.0;
-                this.vy = -40 * baseScale;
+                this.vy = -35 * baseScale;
             }
             update(dtFixed) {
+                this.prevX = this.x;
+                this.prevY = this.y;
                 this.y += this.vy * dtFixed;
-                this.life -= 1.5 * dtFixed;
+                this.life -= 1.4 * dtFixed;
                 if (this.life <= 0) this.active = false;
             }
-            draw() {
+            draw(alpha = 1.0) {
+                const drawX = this.prevX + (this.x - this.prevX) * alpha;
+                const drawY = this.prevY + (this.y - this.prevY) * alpha;
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, this.life);
                 ctx.fillStyle = this.color;
-                ctx.font = `900 ${Math.floor(14 * baseScale)}px sans-serif`;
-                ctx.shadowBlur = 10;
+                ctx.font = `900 ${Math.floor(13 * baseScale)}px sans-serif`;
+                ctx.shadowBlur = 8;
                 ctx.shadowColor = this.color;
-                ctx.fillText(this.text, this.x, this.y);
+                ctx.fillText(this.text, drawX, drawY);
                 ctx.restore();
             }
         }
@@ -929,20 +993,20 @@
                 let offsetX = (Math.random() - 0.5) * screenShake * baseScale;
                 let offsetY = (Math.random() - 0.5) * screenShake * baseScale;
                 ctx.translate(offsetX, offsetY);
-                screenShake *= 0.85;
-                if (screenShake < 0.2) screenShake = 0;
+                screenShake *= 0.88;
+                if (screenShake < 0.1) screenShake = 0;
             }
 
             ctx.fillStyle = isFever ? 'rgba(26, 11, 46, 0.35)' : 'rgba(11, 9, 26, 0.35)';
             ctx.fillRect(-30, -30, width + 60, height + 60);
 
-            obstaclePool.forEachActive(obs => obs.draw());
-            collectiblePool.forEachActive(col => col.draw());
-            particlePool.forEachActive(p => p.draw());
-            textPool.forEachActive(t => t.draw());
+            obstaclePool.forEachActive(obs => obs.draw(alpha));
+            collectiblePool.forEachActive(col => col.draw(alpha));
+            particlePool.forEachActive(p => p.draw(alpha));
+            textPool.forEachActive(t => t.draw(alpha));
 
             if (gameState === 'PLAYING') {
-                player.draw();
+                player.draw(alpha);
             }
 
             ctx.restore();
