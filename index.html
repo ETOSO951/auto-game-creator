@@ -357,8 +357,9 @@
         let hitStop = 0;
 
         // 速度スムーズ遷移＆入力先行入力用変数
-        let currentSpeed = 5 * baseScale;
+        let currentSpeed = 300 * baseScale;
         let jumpBufferTimer = 0;
+        let lastInputTime = 0;
 
         // --- OBJECT POOL SYSTEM (Zero-GC) ---
         class ObjectPool {
@@ -425,9 +426,16 @@
             update(dtFixed) {
                 const gravity = this.baseGravity * baseScale * 3600;
                 this.vy += gravity * this.gravityDir * dtFixed;
+                
+                // ターミナルベロシティ（最高落下速度）のクランプ
+                const maxTerminalVel = 900 * baseScale;
+                if (Math.abs(this.vy) > maxTerminalVel) {
+                    this.vy = Math.sign(this.vy) * maxTerminalVel;
+                }
+
                 this.y += this.vy * dtFixed;
 
-                // 上下境界の滑空クランプ処理（完全リセットにより端でのスタックを防止）
+                // 上下境界の滑空クランプ処理
                 const margin = this.size * 0.55;
                 if (this.y < margin) {
                     this.y = margin;
@@ -448,7 +456,6 @@
 
             jump() {
                 this.gravityDir *= -1;
-                // 重力反転時、既存の慣性を完全リセットしキレのある垂直初速を瞬時に付与
                 const targetVelocity = this.baseJumpForce * baseScale * 60;
                 this.vy = -this.gravityDir * targetVelocity;
                 sound.jump();
@@ -720,15 +727,19 @@
         function triggerAction(e) {
             if (e.target.closest && e.target.closest('.interactive')) return;
             
-            // タッチ操作時のデフォルト拡大・スクロール動作および二重発火を抑止
             if (e.type === 'touchstart' || e.type === 'pointerdown') {
                 if (e.cancelable && !e.target.closest('.interactive')) {
                     e.preventDefault();
                 }
             }
 
+            // マルチタッチや連打時の過剰な重力反転を防ぐ入力制限（クールダウン）
+            const now = performance.now();
+            if (now - lastInputTime < 80) return;
+            lastInputTime = now;
+
             if (gameState === 'PLAYING') {
-                jumpBufferTimer = 0.15; // 0.15秒の先行入力を保持
+                jumpBufferTimer = 0.15;
             }
         }
 
@@ -737,6 +748,9 @@
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.code === 'ArrowUp') {
                 if (e.repeat) return;
+                const now = performance.now();
+                if (now - lastInputTime < 80) return;
+                lastInputTime = now;
                 if (gameState === 'PLAYING') {
                     jumpBufferTimer = 0.15;
                 }
@@ -791,24 +805,21 @@
             document.getElementById('gameover-screen').classList.remove('hidden');
         }
 
-        // --- FIXED TIMESTEP GAME LOOP ---
+        // --- FIXED TIMESTEP & INTERPOLATION GAME LOOP ---
         const FIXED_DT = 1 / 60;
         let accumulator = 0;
         let lastTime = performance.now();
 
         function updateGamePhysics(dtFixed) {
-            // 先行入力判定
             if (jumpBufferTimer > 0) {
                 jumpBufferTimer -= dtFixed;
                 player.jump();
                 jumpBufferTimer = 0;
             }
 
-            // スピードLerp計算
             let targetSpeed = (isFever ? 540 : 320) * baseScale;
             currentSpeed += (targetSpeed - currentSpeed) * (1 - Math.exp(-9.0 * dtFixed));
 
-            // Fever logic
             if (isFever) {
                 feverTimer -= dtFixed;
                 feverGauge = Math.max(0, (feverTimer / 5.0) * 100);
@@ -817,7 +828,6 @@
                 }
             }
 
-            // Spawn Obstacles
             spawnTimer += dtFixed;
             if (spawnTimer >= (isFever ? 0.75 : 1.25)) {
                 spawnTimer = 0;
@@ -827,11 +837,11 @@
                 col.init(obs);
             }
 
-            // 精密Hitbox / NearMiss Box の多重頂点取得
-            const playerHitVerts = player.getVertices(0.78); // 理不尽死亡防止用
-            const playerNearVerts = player.getVertices(1.20); // カスリ判定用
+            // 高速移動時にも破綻しない動的スケーリング・精密Hitbox判定
+            const speedFactor = Math.min(1.25, currentSpeed / (320 * baseScale));
+            const playerHitVerts = player.getVertices(0.74); 
+            const playerNearVerts = player.getVertices(1.15 * speedFactor); 
 
-            // Update Obstacles & Precision Collision Check
             obstaclePool.forEachActive(obs => {
                 obs.update(currentSpeed, dtFixed);
 
@@ -846,13 +856,11 @@
                 const topVerts = getAABBVertices(topAABB);
                 const bottomVerts = getAABBVertices(bottomAABB);
 
-                // 死亡判定 (OBB vs AABB)
                 if (checkSATCollision(playerHitVerts, topVerts) || checkSATCollision(playerHitVerts, bottomVerts)) {
                     gameOver();
                     return;
                 }
 
-                // カスリ（Near Miss）判定 & カタルシスフィードバック
                 if (!obs.nearMissedTop && checkSATCollision(playerNearVerts, topVerts)) {
                     obs.nearMissedTop = true;
                     score += 150;
@@ -867,7 +875,6 @@
                 }
             });
 
-            // Update Collectibles
             collectiblePool.forEachActive(col => {
                 col.update(currentSpeed, dtFixed);
 
@@ -902,7 +909,6 @@
                 }
             });
 
-            // Combo Timeout
             if (combo > 0) {
                 comboTimer -= dtFixed;
                 if (comboTimer <= 0) {
@@ -911,18 +917,14 @@
                 }
             }
 
-            // Floating Text
             textPool.forEachActive(t => t.update(dtFixed));
-
-            // Player Update
             player.update(dtFixed);
             score += (isFever ? 120 : 60) * dtFixed;
         }
 
-        function renderGame() {
+        function renderGame(alpha) {
             ctx.save();
 
-            // Screen Shake
             if (screenShake > 0) {
                 let offsetX = (Math.random() - 0.5) * screenShake * baseScale;
                 let offsetY = (Math.random() - 0.5) * screenShake * baseScale;
@@ -931,11 +933,9 @@
                 if (screenShake < 0.2) screenShake = 0;
             }
 
-            // Canvas Background Clear
             ctx.fillStyle = isFever ? 'rgba(26, 11, 46, 0.35)' : 'rgba(11, 9, 26, 0.35)';
             ctx.fillRect(-30, -30, width + 60, height + 60);
 
-            // Draw Pools
             obstaclePool.forEachActive(obs => obs.draw());
             collectiblePool.forEachActive(col => col.draw());
             particlePool.forEachActive(p => p.draw());
@@ -958,7 +958,6 @@
             let frameTime = (timestamp - lastTime) / 1000;
             lastTime = timestamp;
 
-            // スパイク防止（タブ切り替え等の長時間復帰対策）
             if (frameTime > 0.1) frameTime = 0.1;
 
             if (hitStop > 0) {
@@ -969,7 +968,6 @@
 
             accumulator += frameTime;
 
-            // 固定タイムステップ（1/60秒）による一貫した物理シミュレーション実行
             while (accumulator >= FIXED_DT) {
                 if (gameState === 'PLAYING') {
                     updateGamePhysics(FIXED_DT);
@@ -978,7 +976,9 @@
                 accumulator -= FIXED_DT;
             }
 
-            renderGame();
+            // 補間係数（alpha）を用いた滑らかな高リフレッシュレート対応レンダリング
+            const alpha = accumulator / FIXED_DT;
+            renderGame(alpha);
             updateUI();
 
             requestAnimationFrame(loop);
