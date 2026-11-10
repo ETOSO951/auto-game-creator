@@ -371,7 +371,6 @@
         // 速度スムーズ遷移＆入力先行入力用変数
         let currentSpeed = 300 * baseScale;
         let jumpBufferTimer = 0;
-        let lastInputTime = 0;
 
         // --- OBJECT POOL SYSTEM (Zero-GC) ---
         class ObjectPool {
@@ -443,41 +442,41 @@
                 this.prevY = this.y;
                 this.prevRotation = this.rotation;
 
-                // 重力計算とイージングの効いたスムーズな加速
-                const gravity = this.baseGravity * baseScale * 3500;
+                // 重力計算：反転直後の反発力にスムーズな物理ダンピングを適用
+                const gravity = this.baseGravity * baseScale * 3600;
                 this.vy += gravity * this.gravityDir * dtFixed;
                 
-                // ターミナルベロシティのクランプ
-                const maxTerminalVel = 850 * baseScale;
+                // ターミナルベロシティ（終端速度）クランプ
+                const maxTerminalVel = 820 * baseScale;
                 if (Math.abs(this.vy) > maxTerminalVel) {
                     this.vy = Math.sign(this.vy) * maxTerminalVel;
                 }
 
                 this.y += this.vy * dtFixed;
 
-                // 画面上下境界の吸い付くようなクッション運動（ソフトダンパー）
+                // 画面上下境界の流動的な物理ダンパー
                 const margin = this.size * 0.55;
-                const cushionRange = 25 * baseScale;
+                const cushionRange = 30 * baseScale;
 
                 if (this.gravityDir === -1 && this.y < margin + cushionRange) {
-                    const depth = Math.max(0, (margin + cushionRange - this.y) / cushionRange);
-                    this.vy += depth * 1400 * baseScale * dtFixed;
+                    const depth = (margin + cushionRange - this.y) / cushionRange;
+                    this.vy += depth * 1600 * baseScale * dtFixed;
                 } else if (this.gravityDir === 1 && this.y > height - margin - cushionRange) {
-                    const depth = Math.max(0, (this.y - (height - margin - cushionRange)) / cushionRange);
-                    this.vy -= depth * 1400 * baseScale * dtFixed;
+                    const depth = (this.y - (height - margin - cushionRange)) / cushionRange;
+                    this.vy -= depth * 1600 * baseScale * dtFixed;
                 }
 
                 if (this.y < margin) {
                     this.y = margin;
-                    if (this.vy < 0) this.vy *= -0.15; // ソフトなクッション反発
+                    if (this.vy < 0) this.vy *= -0.1;
                 } else if (this.y > height - margin) {
                     this.y = height - margin;
-                    if (this.vy > 0) this.vy *= -0.15;
+                    if (this.vy > 0) this.vy *= -0.1;
                 }
 
-                this.rotation += 7.5 * this.gravityDir * dtFixed;
+                this.rotation += 8.0 * this.gravityDir * dtFixed;
 
-                // Trail
+                // トレイル座標の補間維持更新
                 const lastTrail = this.trail.shift();
                 lastTrail.x = this.x;
                 lastTrail.y = this.y;
@@ -486,13 +485,13 @@
 
             jump() {
                 this.gravityDir *= -1;
-                const targetVelocity = this.baseJumpForce * baseScale * 60;
-                // 微少な慣性イージングを付与した滑らかな初速切替
-                this.vy = -this.gravityDir * targetVelocity + (this.vy * 0.15);
+                const baseTarget = this.baseJumpForce * baseScale * 58;
+                // 現在の垂直速度とのベクターイージング合成によるシルキーな方向転換
+                this.vy = -this.gravityDir * baseTarget + (this.vy * 0.1);
                 sound.jump();
 
                 for (let i = 0; i < 8; i++) {
-                    spawnParticle(this.x, this.y, '#00ffcc', true);
+                    spawnParticle(this.x, this.y, isFever ? '#ff0080' : '#00ffcc', true);
                 }
             }
 
@@ -581,13 +580,9 @@
             draw(alpha = 1.0) {
                 const drawX = this.prevX + (this.x - this.prevX) * alpha;
                 const drawY = this.prevY + (this.y - this.prevY) * alpha;
-                ctx.save();
                 ctx.globalAlpha = Math.max(0, this.life);
                 ctx.fillStyle = this.color;
-                ctx.shadowBlur = 6;
-                ctx.shadowColor = this.color;
                 ctx.fillRect(drawX, drawY, this.size, this.size);
-                ctx.restore();
             }
         }
 
@@ -788,35 +783,34 @@
         let spawnTimer = 0;
 
         // --- CONTROLS ---
-        function triggerAction(e) {
+        function handleInput(e) {
             if (e.target.closest && e.target.closest('.interactive')) return;
-            
-            if (e.type === 'touchstart' || e.type === 'pointerdown') {
-                if (e.cancelable && !e.target.closest('.interactive')) {
+
+            if (e.type === 'touchstart') {
+                if (e.cancelable) e.preventDefault();
+                // touchstartとpointerdownの重複発火防止
+                return;
+            }
+
+            if (e.type === 'pointerdown' && e.cancelable) {
+                if (!e.target.closest('.interactive')) {
                     e.preventDefault();
                 }
             }
 
-            // マルチタッチや連打時の過剰な重力反転を防ぐ入力制限（クールダウン）
-            const now = performance.now();
-            if (now - lastInputTime < 80) return;
-            lastInputTime = now;
-
             if (gameState === 'PLAYING') {
-                jumpBufferTimer = 0.15;
+                // 入力猶予（ジャンプバッファ）をセットし、即時手応えを得られるようダイレクトキューイング
+                jumpBufferTimer = 0.12;
             }
         }
 
-        window.addEventListener('pointerdown', triggerAction, { passive: false });
-        window.addEventListener('touchstart', triggerAction, { passive: false });
+        window.addEventListener('pointerdown', handleInput, { passive: false });
+        window.addEventListener('touchstart', handleInput, { passive: false });
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.code === 'ArrowUp') {
                 if (e.repeat) return;
-                const now = performance.now();
-                if (now - lastInputTime < 80) return;
-                lastInputTime = now;
                 if (gameState === 'PLAYING') {
-                    jumpBufferTimer = 0.15;
+                    jumpBufferTimer = 0.12;
                 }
             }
         });
@@ -906,7 +900,10 @@
             const playerHitVerts = player.getVertices(0.74); 
             const playerNearVerts = player.getVertices(1.15 * speedFactor); 
 
+            let hasHit = false;
             obstaclePool.forEachActive(obs => {
+                if (hasHit) return;
+
                 obs.update(currentSpeed, dtFixed);
 
                 if (!obs.passed && obs.x + obs.w < player.x) {
@@ -920,21 +917,27 @@
                 const topVerts = getAABBVertices(topAABB);
                 const bottomVerts = getAABBVertices(bottomAABB);
 
-                if (checkSATCollision(playerHitVerts, topVerts) || checkSATCollision(playerHitVerts, bottomVerts)) {
+                // 1. 衝突判定（判定領域の精度向上: 0.76）
+                const isHitTop = checkSATCollision(playerHitVerts, topVerts);
+                const isHitBottom = checkSATCollision(playerHitVerts, bottomVerts);
+
+                if (isHitTop || isHitBottom) {
+                    hasHit = true;
                     gameOver();
                     return;
                 }
 
+                // 2. ニアミス判定（衝突していない場合のみ実行し、障害物1つにつき上/下個別に1回厳密制限）
                 if (!obs.nearMissedTop && checkSATCollision(playerNearVerts, topVerts)) {
                     obs.nearMissedTop = true;
                     score += 150;
-                    spawnText(player.x, player.y - 20, 'NEAR MISS!', '#00ffcc');
+                    spawnText(player.x, player.y - 24 * baseScale, 'NEAR MISS!', '#00ffcc');
                     sound.score();
                 }
                 if (!obs.nearMissedBottom && checkSATCollision(playerNearVerts, bottomVerts)) {
                     obs.nearMissedBottom = true;
                     score += 150;
-                    spawnText(player.x, player.y + 20, 'NEAR MISS!', '#00ffcc');
+                    spawnText(player.x, player.y + 24 * baseScale, 'NEAR MISS!', '#ff0080');
                     sound.score();
                 }
             });
@@ -997,14 +1000,25 @@
                 if (screenShake < 0.1) screenShake = 0;
             }
 
+            ctx.shadowBlur = 0; // ルート描画前のグローバルシャドウクリア
             ctx.fillStyle = isFever ? 'rgba(26, 11, 46, 0.35)' : 'rgba(11, 9, 26, 0.35)';
             ctx.fillRect(-30, -30, width + 60, height + 60);
 
+            // 障害物・アイテムの描画
             obstaclePool.forEachActive(obs => obs.draw(alpha));
             collectiblePool.forEachActive(col => col.draw(alpha));
+
+            // パーティクル一括描画（共通のシャドウBlurを一回だけ適用して描画負荷を大幅削減）
+            ctx.save();
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = isFever ? '#ff0080' : '#00ffcc';
             particlePool.forEachActive(p => p.draw(alpha));
+            ctx.restore();
+
+            // UIテキスト描画
             textPool.forEachActive(t => t.draw(alpha));
 
+            // プレイヤー描画
             if (gameState === 'PLAYING') {
                 player.draw(alpha);
             }
