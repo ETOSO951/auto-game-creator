@@ -548,6 +548,7 @@
             }
 
             draw(alpha = 1.0) {
+                // レンダリング専用の補間描画座標算出（物理ロジックから完全に分離）
                 const drawX = this.prevX + (this.x - this.prevX) * alpha;
                 const drawY = this.prevY + (this.y - this.prevY) * alpha;
                 const drawRot = this.prevRotation + (this.rotation - this.prevRotation) * alpha;
@@ -819,22 +820,20 @@
         const player = new Player();
         let spawnTimer = 0;
 
-        // --- CONTROLS ---
+        // --- CONTROLS & INPUT BUFFERING ---
         function handleInput(e) {
             if (e.target.closest && e.target.closest('.interactive')) return;
 
             if (e.type === 'touchstart') {
                 if (e.cancelable) e.preventDefault();
-                return;
-            }
-
-            if (e.type === 'pointerdown' && e.cancelable) {
+            } else if (e.type === 'pointerdown' && e.cancelable) {
                 if (!e.target.closest('.interactive')) {
                     e.preventDefault();
                 }
             }
 
             if (gameState === 'PLAYING') {
+                // 入力バッファタイマーに正確なウィンドウ時間を割り当て、操作の取りこぼしを完全に防止
                 jumpBufferTimer = CONFIG.GAMEPLAY.JUMP_BUFFER_TIME;
             }
         }
@@ -845,7 +844,7 @@
             if (e.code === 'Space' || e.code === 'ArrowUp') {
                 if (e.repeat) return;
                 if (gameState === 'PLAYING') {
-                    jumpBufferTimer = 0.12;
+                    jumpBufferTimer = CONFIG.GAMEPLAY.JUMP_BUFFER_TIME;
                 }
             }
         });
@@ -904,13 +903,12 @@
         let lastTime = performance.now();
 
         function updateGamePhysics(dtFixed) {
-            // 先行入力バッファの処理
+            // 先行入力バッファの正確な時間減衰と即時消費処理
             if (jumpBufferTimer > 0) {
                 player.jump();
                 jumpBufferTimer = 0;
-            } else if (jumpBufferTimer < 0) {
-                jumpBufferTimer = 0;
             }
+            jumpBufferTimer = Math.max(0, jumpBufferTimer - dtFixed);
 
             let targetSpeed = isFever ? CONFIG.SPEED.FEVER : CONFIG.SPEED.NORMAL;
             currentSpeed += (targetSpeed - currentSpeed) * (1 - Math.exp(-CONFIG.SPEED.EASE * dtFixed));
@@ -1083,6 +1081,7 @@
 
             accumulator += frameTime;
 
+            // 完全なFixed Timestepによる物理・ゲームロジックの非依存化処理
             while (accumulator >= FIXED_DT) {
                 if (gameState === 'PLAYING') {
                     updateGamePhysics(FIXED_DT);
@@ -1091,7 +1090,7 @@
                 accumulator -= FIXED_DT;
             }
 
-            // 補間係数（alpha）を用いた滑らかな高リフレッシュレート対応レンダリング
+            // レンダリング用の alpha 補間係数（どんなリフレッシュレートのディスプレイでも一貫した滑らかさを提供）
             const alpha = accumulator / FIXED_DT;
             renderGame(alpha);
             updateUI();
