@@ -351,3 +351,132 @@ if not existing_code:
             prompt_apply = f"""現在のコード:
 ```html
 {html_content}
+```
+
+以下の改善アイデアをすべて実装し、ゲームを進化させてください。
+【改善アイデア】
+{ideas}
+
+【重要】コード全体を出力するのではなく、必ず以下の SEARCH/REPLACE 形式を使って変更部分のみを出力してください。
+<<<<
+置き換え対象の既存コード（一言一句違わずコピペすること）
+====
+新しく置き換えるコード
+>>>>
+
+`<thinking>` タグで設計思考を記述してから出力してください。
+"""
+            patch_text = call_gemini_api(prompt_apply, extract_html=False)
+            new_html = apply_patches(html_content, patch_text)
+            if new_html != html_content:
+                html_content = new_html
+                save_and_push(html_content, f"🚀 クオリティアップ ({i}/{QUALITY_UP_ITERATIONS}) (Issue #{issue_number})")
+            else:
+                print("⚠️ コードに変更がなかったため、保存をスキップします。")
+
+        except RuntimeError as e:
+            if "API_LIMIT_REACHED" in str(e):
+                print("⚠️ 利用可能なすべてのモデルが上限に達したため、クオリティアップループを終了します。")
+                break
+        except Exception as e:
+            print(f"⚠️ ループ {i} でエラーが発生しましたが継続します: {e}")
+
+else:
+    # --- 既存コード修正時: 達成度ベースの調整ループ ---
+    print(f"\n--- 🔧 達成度ベース調整ループ開始（既存修正モード: 最大{MAX_UPDATE_LOOPS}回） ---")
+    for i in range(1, MAX_UPDATE_LOOPS + 1):
+        try:
+            time.sleep(3)
+            print(f"\n【調整ループ {i}/{MAX_UPDATE_LOOPS}】依頼の達成度チェック中...")
+            prompt_check = f"""現在のコード:
+```html
+{html_content}
+```
+【ユーザーの依頼】
+タイトル: {issue_title}
+内容: {issue_body}
+
+上記のコードがユーザーの依頼を100%完璧に満たしており、かつさらなるブラッシュアップの余地がない場合は「COMPLETED」とだけ出力してください。
+まだ改善・追加・調整すべき点がある場合は、具体的な改善指示を3つ以内で簡潔に挙げてください（コードは書かないこと）。
+"""
+            check_result = call_gemini_api(prompt_check, extract_html=False)
+            if "COMPLETED" in check_result.upper() and len(check_result) < 50:
+                print("🎉 ユーザーの依頼が100%達成されたと判定されました！調整ループを完了します。")
+                break
+
+            print(f"📋 追加の改善ポイント:\n{check_result}\n")
+            time.sleep(3)
+            prompt_update = f"""現在のコード:
+```html
+{html_content}
+```
+以下の改善ポイントを実装してください：
+{check_result}
+
+【重要】必ず以下の SEARCH/REPLACE 形式を使って変更部分のみを出力してください。
+<<<<
+置き換え対象の既存コード（一言一句違わずコピペすること）
+====
+新しく置き換えるコード
+>>>>
+"""
+            patch_text = call_gemini_api(prompt_update, extract_html=False)
+            new_html = apply_patches(html_content, patch_text)
+            if new_html != html_content:
+                html_content = new_html
+                save_and_push(html_content, f"🔧 依頼達成度アップ ({i}/{MAX_UPDATE_LOOPS}) (Issue #{issue_number})")
+
+        except RuntimeError as e:
+            if "API_LIMIT_REACHED" in str(e):
+                print("⚠️ 利用可能なすべてのモデルが上限に達したため、調整ループを終了します。")
+                break
+        except Exception as e:
+            print(f"⚠️ 調整ループ {i} でエラーが発生しましたが継続します: {e}")
+
+# ========================================================
+# フェーズ3: 自動テスト＆バグ修正ループ
+# ========================================================
+print(f"\n--- 🐛 フェーズ3: 自動テスト＆バグ修正ループ（最大{MAX_BUGFIX_LOOPS}回） ---")
+for b in range(1, MAX_BUGFIX_LOOPS + 1):
+    errors_found = test_game_code(html_content)
+    if not errors_found:
+        print("✅ エラーは検出されませんでした！すべての工程が完了しました。")
+        break
+
+    print(f"⚠️ エラー検出 ({b}/{MAX_BUGFIX_LOOPS}):\n" + "\n".join(errors_found))
+    if not ACTIVE_MODELS:
+        print("⚠️ 利用可能なモデルがないため、バグ修正を終了します。")
+        break
+
+    try:
+        time.sleep(3)
+        prompt_fix = f"""現在のコードで以下のJavaScriptエラーが検出されました。
+【検出されたエラー】
+{chr(10).join(errors_found)}
+
+【現在のコード】
+```html
+{html_content}
+```
+
+エラーの原因を特定し、必ず以下の SEARCH/REPLACE 形式を使って修正パッチのみを出力してください。
+<<<<
+置き換え対象の既存コード（一言一句違わずコピペすること）
+====
+新しく置き換えるコード
+>>>>
+"""
+        patch_text = call_gemini_api(prompt_fix, extract_html=False)
+        new_html = apply_patches(html_content, patch_text)
+        if new_html != html_content:
+            html_content = new_html
+            save_and_push(html_content, f"🐛 バグ自動修正 ({b}/{MAX_BUGFIX_LOOPS}) (Issue #{issue_number})")
+    except RuntimeError as e:
+        if "API_LIMIT_REACHED" in str(e):
+            print("⚠️ API上限に達したためバグ修正ループを終了します。")
+            break
+    except Exception as e:
+        print(f"⚠️ バグ修正中にエラーが発生しました: {e}")
+        break
+
+print(f"🏁 全プロセス完了 (Issue #{issue_number})")
