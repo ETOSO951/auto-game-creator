@@ -340,20 +340,21 @@
 
         const sound = new SoundManager();
 
-        // --- GAME CONFIG & STATE ---
+        // --- GAME CONFIG & VIRTUAL VIEWPORT ---
+        const VIRTUAL_WIDTH = 480;
+        const VIRTUAL_HEIGHT = 854;
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        let width, height;
-        let baseScale = 1; // 解像度相対化のためのスケール基準値
+        let width = VIRTUAL_WIDTH;
+        let height = VIRTUAL_HEIGHT;
+
         function resize() {
-            width = canvas.parentElement.clientWidth;
-            height = canvas.parentElement.clientHeight;
-            canvas.width = width * window.devicePixelRatio;
-            canvas.height = height * window.devicePixelRatio;
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-            // 基準高さ（800px）に対するスケール比率を算出
-            baseScale = height / 800;
+            const containerW = canvas.parentElement.clientWidth;
+            const containerH = canvas.parentElement.clientHeight;
+            canvas.width = containerW * window.devicePixelRatio;
+            canvas.height = containerH * window.devicePixelRatio;
         }
         window.addEventListener('resize', resize);
         resize();
@@ -413,18 +414,14 @@
         // --- GAME OBJECTS ---
         class Player {
             constructor() {
-                this.baseSize = 24;
-                this.baseGravity = 0.75;
-                this.baseJumpForce = 11.5;
+                this.size = 24;
                 this.trail = [];
                 this.reset();
             }
 
-            get size() { return this.baseSize * baseScale; }
-
             reset() {
-                this.x = Math.max(60, width * 0.18);
-                this.y = height / 2;
+                this.x = 80;
+                this.y = VIRTUAL_HEIGHT / 2;
                 this.prevX = this.x;
                 this.prevY = this.y;
                 this.vy = 0;
@@ -442,41 +439,42 @@
                 this.prevY = this.y;
                 this.prevRotation = this.rotation;
 
-                // 重力計算：反転直後の反発力にスムーズな物理ダンピングを適用
-                const gravity = this.baseGravity * baseScale * 3600;
-                this.vy += gravity * this.gravityDir * dtFixed;
+                // 仮想解像度基準の物理定数
+                const GRAVITY_ACCEL = 2700;
+                const MAX_TERMINAL_VEL = 850;
                 
-                // ターミナルベロシティ（終端速度）クランプ
-                const maxTerminalVel = 820 * baseScale;
-                if (Math.abs(this.vy) > maxTerminalVel) {
-                    this.vy = Math.sign(this.vy) * maxTerminalVel;
+                this.vy += GRAVITY_ACCEL * this.gravityDir * dtFixed;
+
+                if (Math.abs(this.vy) > MAX_TERMINAL_VEL) {
+                    this.vy = Math.sign(this.vy) * MAX_TERMINAL_VEL;
                 }
 
                 this.y += this.vy * dtFixed;
 
-                // 画面上下境界の流動的な物理ダンパー
-                const margin = this.size * 0.55;
-                const cushionRange = 30 * baseScale;
+                // 画面上下境界の物理ダンパー処理
+                const margin = this.size * 0.5;
+                const cushionRange = 32;
 
+                // 現在の進行方向と同方向への接触時のみダンパーを動かす（反転直後の反発力との衝突を完全回避）
                 if (this.gravityDir === -1 && this.y < margin + cushionRange) {
                     const depth = (margin + cushionRange - this.y) / cushionRange;
-                    this.vy += depth * 1600 * baseScale * dtFixed;
-                } else if (this.gravityDir === 1 && this.y > height - margin - cushionRange) {
-                    const depth = (this.y - (height - margin - cushionRange)) / cushionRange;
-                    this.vy -= depth * 1600 * baseScale * dtFixed;
+                    this.vy += depth * 1800 * dtFixed;
+                } else if (this.gravityDir === 1 && this.y > VIRTUAL_HEIGHT - margin - cushionRange) {
+                    const depth = (this.y - (VIRTUAL_HEIGHT - margin - cushionRange)) / cushionRange;
+                    this.vy -= depth * 1800 * dtFixed;
                 }
 
                 if (this.y < margin) {
                     this.y = margin;
-                    if (this.vy < 0) this.vy *= -0.1;
-                } else if (this.y > height - margin) {
-                    this.y = height - margin;
-                    if (this.vy > 0) this.vy *= -0.1;
+                    if (this.vy < 0) this.vy = 0;
+                } else if (this.y > VIRTUAL_HEIGHT - margin) {
+                    this.y = VIRTUAL_HEIGHT - margin;
+                    if (this.vy > 0) this.vy = 0;
                 }
 
                 this.rotation += 8.0 * this.gravityDir * dtFixed;
 
-                // トレイル座標の補間維持更新
+                // トレイル座標更新
                 const lastTrail = this.trail.shift();
                 lastTrail.x = this.x;
                 lastTrail.y = this.y;
@@ -485,9 +483,9 @@
 
             jump() {
                 this.gravityDir *= -1;
-                const baseTarget = this.baseJumpForce * baseScale * 58;
-                // 反転時の初期レスポンスのキレを高めつつ、流れるような操作感へ最適化
-                this.vy = -this.gravityDir * baseTarget;
+                const JUMP_IMPULSE = 680;
+                // 反転時の即時ベクトル上書きにより、画面端でも遅延のない反転レスポンスを実現
+                this.vy = -this.gravityDir * JUMP_IMPULSE;
                 sound.jump();
 
                 for (let i = 0; i < 8; i++) {
@@ -495,30 +493,19 @@
                 }
             }
 
-            // Zero-GC 頂点算出（指定配列バッファへ直接書き込み）
+            // Zero-GC 頂点算出（描画される正方形と100%同期した4頂点）
             fillVertices(outVerts, scaleFactor = 1.0) {
-                const s = this.size * scaleFactor * 0.5;
-                const c = s * 0.35;
+                const halfSize = (this.size * 0.5) * scaleFactor;
                 const cos = Math.cos(this.rotation);
                 const sin = Math.sin(this.rotation);
                 
-                const lx0 = -s + c, ly0 = -s;
-                const lx1 =  s - c, ly1 = -s;
-                const lx2 =  s,     ly2 = -s + c;
-                const lx3 =  s,     ly3 =  s - c;
-                const lx4 =  s - c, ly4 =  s;
-                const lx5 = -s + c, ly5 =  s;
-                const lx6 = -s,     ly6 =  s - c;
-                const lx7 = -s,     ly7 = -s + c;
+                const localX = [-halfSize, halfSize, halfSize, -halfSize];
+                const localY = [-halfSize, -halfSize, halfSize, halfSize];
 
-                outVerts[0].x = this.x + (lx0 * cos - ly0 * sin); outVerts[0].y = this.y + (lx0 * sin + ly0 * cos);
-                outVerts[1].x = this.x + (lx1 * cos - ly1 * sin); outVerts[1].y = this.y + (lx1 * sin + ly1 * cos);
-                outVerts[2].x = this.x + (lx2 * cos - ly2 * sin); outVerts[2].y = this.y + (lx2 * sin + ly2 * cos);
-                outVerts[3].x = this.x + (lx3 * cos - ly3 * sin); outVerts[3].y = this.y + (lx3 * sin + ly3 * cos);
-                outVerts[4].x = this.x + (lx4 * cos - ly4 * sin); outVerts[4].y = this.y + (lx4 * sin + ly4 * cos);
-                outVerts[5].x = this.x + (lx5 * cos - ly5 * sin); outVerts[5].y = this.y + (lx5 * sin + ly5 * cos);
-                outVerts[6].x = this.x + (lx6 * cos - ly6 * sin); outVerts[6].y = this.y + (lx6 * sin + ly6 * cos);
-                outVerts[7].x = this.x + (lx7 * cos - ly7 * sin); outVerts[7].y = this.y + (lx7 * sin + ly7 * cos);
+                for (let i = 0; i < 4; i++) {
+                    outVerts[i].x = this.x + (localX[i] * cos - localY[i] * sin);
+                    outVerts[i].y = this.y + (localX[i] * sin + localY[i] * cos);
+                }
             }
 
             draw(alpha = 1.0) {
@@ -564,10 +551,10 @@
                 this.prevY = y;
                 this.color = color;
                 const angle = burst ? Math.random() * Math.PI * 2 : (Math.random() - 0.5) * 0.5;
-                const speed = (burst ? Math.random() * 320 + 100 : Math.random() * 160 + 50) * baseScale;
+                const speed = burst ? Math.random() * 320 + 100 : Math.random() * 160 + 50;
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
-                this.size = (Math.random() * 3.5 + 1.8) * baseScale;
+                this.size = Math.random() * 3.5 + 1.8;
                 this.life = 1.0;
                 this.decay = Math.random() * 1.6 + 1.2;
             }
@@ -593,12 +580,12 @@
                 this.active = false;
             }
             init() {
-                this.x = width + 60 * baseScale;
+                this.x = VIRTUAL_WIDTH + 60;
                 this.prevX = this.x;
-                this.w = 32 * baseScale;
-                this.topH = Math.random() * (height * 0.38) + 50 * baseScale;
-                this.gap = (isFever ? 230 : 165) * baseScale;
-                this.bottomH = height - (this.topH + this.gap);
+                this.w = 36;
+                this.topH = Math.random() * (VIRTUAL_HEIGHT * 0.38) + 60;
+                this.gap = isFever ? 240 : 175;
+                this.bottomH = VIRTUAL_HEIGHT - (this.topH + this.gap);
                 this.passed = false;
                 this.nearMissedTop = false;
                 this.nearMissedBottom = false;
@@ -607,7 +594,7 @@
             update(speed, dtFixed) {
                 this.prevX = this.x;
                 this.x -= speed * dtFixed;
-                if (this.x < -100 * baseScale) {
+                if (this.x < -100) {
                     this.active = false;
                 }
             }
@@ -615,7 +602,7 @@
                 return { x: currX, y: 0, w: this.w, h: this.topH };
             }
             getBottomAABB(currX = this.x) {
-                return { x: currX, y: height - this.bottomH, w: this.w, h: this.bottomH };
+                return { x: currX, y: VIRTUAL_HEIGHT - this.bottomH, w: this.w, h: this.bottomH };
             }
             draw(alpha = 1.0) {
                 const drawX = this.prevX + (this.x - this.prevX) * alpha;
@@ -625,12 +612,12 @@
                 ctx.fillStyle = this.color;
 
                 ctx.fillRect(drawX, 0, this.w, this.topH);
-                ctx.fillRect(drawX, height - this.bottomH, this.w, this.bottomH);
+                ctx.fillRect(drawX, VIRTUAL_HEIGHT - this.bottomH, this.w, this.bottomH);
 
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
                 ctx.lineWidth = 1.5;
                 ctx.strokeRect(drawX, 0, this.w, this.topH);
-                ctx.strokeRect(drawX, height - this.bottomH, this.w, this.bottomH);
+                ctx.strokeRect(drawX, VIRTUAL_HEIGHT - this.bottomH, this.w, this.bottomH);
 
                 ctx.restore();
             }
@@ -645,7 +632,7 @@
                 this.prevX = this.x;
                 this.y = obs.topH + (obs.gap / 2);
                 this.prevY = this.y;
-                this.size = 14 * baseScale;
+                this.size = 14;
                 this.collected = false;
                 this.angle = 0;
                 this.prevAngle = 0;
@@ -656,7 +643,7 @@
                 this.prevAngle = this.angle;
                 this.x -= speed * dtFixed;
                 this.angle += 6.0 * dtFixed;
-                if (this.x < -100 * baseScale || this.collected) {
+                if (this.x < -100 || this.collected) {
                     this.active = false;
                 }
             }
@@ -697,7 +684,7 @@
                 this.text = text;
                 this.color = color;
                 this.life = 1.0;
-                this.vy = -35 * baseScale;
+                this.vy = -35;
             }
             update(dtFixed) {
                 this.prevX = this.x;
@@ -712,7 +699,7 @@
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, this.life);
                 ctx.fillStyle = this.color;
-                ctx.font = `900 ${Math.floor(13 * baseScale)}px sans-serif`;
+                ctx.font = '900 14px sans-serif';
                 ctx.shadowBlur = 8;
                 ctx.shadowColor = this.color;
                 ctx.fillText(this.text, drawX, drawY);
@@ -722,8 +709,8 @@
 
         // --- SEPARATING AXIS THEOREM (SAT) OBB COLLISION & NEAR MISS (Zero-GC Optimization) ---
         // 判定用のプレアロケーションバッファ（メモリ再利用によるGCジャダー防止）
-        const staticPlayerVertsHit = Array.from({ length: 8 }, () => ({ x: 0, y: 0 }));
-        const staticPlayerVertsNear = Array.from({ length: 8 }, () => ({ x: 0, y: 0 }));
+        const staticPlayerVertsHit = Array.from({ length: 4 }, () => ({ x: 0, y: 0 }));
+        const staticPlayerVertsNear = Array.from({ length: 4 }, () => ({ x: 0, y: 0 }));
         const staticTopAABBVerts = Array.from({ length: 4 }, () => ({ x: 0, y: 0 }));
         const staticBottomAABBVerts = Array.from({ length: 4 }, () => ({ x: 0, y: 0 }));
 
@@ -842,7 +829,7 @@
             isFever = false;
             feverTimer = 0;
             jumpBufferTimer = 0;
-            currentSpeed = 300 * baseScale;
+            currentSpeed = 300;
             spawnTimer = 0;
 
             particlePool.clear();
@@ -886,7 +873,7 @@
                 jumpBufferTimer = 0;
             }
 
-            let targetSpeed = (isFever ? 540 : 320) * baseScale;
+            let targetSpeed = isFever ? 540 : 320;
             currentSpeed += (targetSpeed - currentSpeed) * (1 - Math.exp(-9.0 * dtFixed));
 
             if (isFever) {
@@ -906,10 +893,9 @@
                 col.init(obs);
             }
 
-            // 公平で気持ち良いHitbox精度 & Zero-GC SAT判定バッファへの書き込み
-            const speedFactor = Math.min(1.2, currentSpeed / (320 * baseScale));
-            player.fillVertices(staticPlayerVertsHit, 0.72);
-            player.fillVertices(staticPlayerVertsNear, 1.12 * speedFactor);
+            // 描画矩形と100%完全一致するHitbox（スケール1.0）およびNearMiss判定用領域
+            player.fillVertices(staticPlayerVertsHit, 1.0);
+            player.fillVertices(staticPlayerVertsNear, 1.45);
 
             let hasHit = false;
             obstaclePool.forEachActive(obs => {
@@ -926,9 +912,9 @@
                 fillAABBVertices(staticTopAABBVerts, obs.getTopAABB());
                 fillAABBVertices(staticBottomAABBVerts, obs.getBottomAABB());
 
-                // 1. 衝突判定 (Zero-GC)
-                const isHitTop = checkSATCollisionZeroGC(staticPlayerVertsHit, 8, staticTopAABBVerts, 4);
-                const isHitBottom = checkSATCollisionZeroGC(staticPlayerVertsHit, 8, staticBottomAABBVerts, 4);
+                // 1. 衝突判定 (Zero-GC: 4頂点 vs 4頂点)
+                const isHitTop = checkSATCollisionZeroGC(staticPlayerVertsHit, 4, staticTopAABBVerts, 4);
+                const isHitBottom = checkSATCollisionZeroGC(staticPlayerVertsHit, 4, staticBottomAABBVerts, 4);
 
                 if (isHitTop || isHitBottom) {
                     hasHit = true;
@@ -937,16 +923,16 @@
                 }
 
                 // 2. ニアミス判定 (Zero-GC)
-                if (!obs.nearMissedTop && checkSATCollisionZeroGC(staticPlayerVertsNear, 8, staticTopAABBVerts, 4)) {
+                if (!obs.nearMissedTop && checkSATCollisionZeroGC(staticPlayerVertsNear, 4, staticTopAABBVerts, 4)) {
                     obs.nearMissedTop = true;
                     score += 150;
-                    spawnText(player.x, player.y - 24 * baseScale, 'NEAR MISS!', '#00ffcc');
+                    spawnText(player.x, player.y - 24, 'NEAR MISS!', '#00ffcc');
                     sound.score();
                 }
-                if (!obs.nearMissedBottom && checkSATCollisionZeroGC(staticPlayerVertsNear, 8, staticBottomAABBVerts, 4)) {
+                if (!obs.nearMissedBottom && checkSATCollisionZeroGC(staticPlayerVertsNear, 4, staticBottomAABBVerts, 4)) {
                     obs.nearMissedBottom = true;
                     score += 150;
-                    spawnText(player.x, player.y + 24 * baseScale, 'NEAR MISS!', '#ff0080');
+                    spawnText(player.x, player.y + 24, 'NEAR MISS!', '#ff0080');
                     sound.score();
                 }
             });
@@ -1000,10 +986,12 @@
 
         function renderGame(alpha) {
             ctx.save();
+            // 仮想解像度 (480x854) を実画面へビューポートマッピング
+            ctx.scale(canvas.width / VIRTUAL_WIDTH, canvas.height / VIRTUAL_HEIGHT);
 
             if (screenShake > 0) {
-                let offsetX = (Math.random() - 0.5) * screenShake * baseScale;
-                let offsetY = (Math.random() - 0.5) * screenShake * baseScale;
+                let offsetX = (Math.random() - 0.5) * screenShake;
+                let offsetY = (Math.random() - 0.5) * screenShake;
                 ctx.translate(offsetX, offsetY);
                 screenShake *= 0.88;
                 if (screenShake < 0.1) screenShake = 0;
@@ -1011,7 +999,7 @@
 
             ctx.shadowBlur = 0; // ルート描画前のグローバルシャドウクリア
             ctx.fillStyle = isFever ? 'rgba(26, 11, 46, 0.35)' : 'rgba(11, 9, 26, 0.35)';
-            ctx.fillRect(-30, -30, width + 60, height + 60);
+            ctx.fillRect(-30, -30, VIRTUAL_WIDTH + 60, VIRTUAL_HEIGHT + 60);
 
             // 障害物・アイテムの描画
             obstaclePool.forEachActive(obs => obs.draw(alpha));
