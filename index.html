@@ -369,8 +369,34 @@
         let screenShake = 0;
         let hitStop = 0;
 
-        // 速度スムーズ遷移＆入力先行入力用変数
-        let currentSpeed = 300 * baseScale;
+        // --- GAME CONFIGURATION ---
+        const CONFIG = {
+            PHYSICS: {
+                GRAVITY: 2800,
+                JUMP_IMPULSE: 700,
+                TERMINAL_VEL: 880,
+                CUSHION_RANGE: 34,
+                SPRING_K: 2400,
+                REVERSE_KICK: 1.12, // 反転直後の瞬間推進力
+            },
+            HITBOX: {
+                PLAYER_SCALE: 0.82, // 理不尽な角当たり死を完全排除するHitboxインセット補正
+                NEAR_MISS_SCALE: 1.48
+            },
+            SPEED: {
+                NORMAL: 320,
+                FEVER: 550,
+                EASE: 9.0
+            },
+            GAMEPLAY: {
+                SPAWN_INTERVAL_NORMAL: 1.25,
+                SPAWN_INTERVAL_FEVER: 0.75,
+                FEVER_DURATION: 5.0,
+                JUMP_BUFFER_TIME: 0.12
+            }
+        };
+
+        let currentSpeed = CONFIG.SPEED.NORMAL;
         let jumpBufferTimer = 0;
 
         // --- OBJECT POOL SYSTEM (Zero-GC) ---
@@ -416,6 +442,8 @@
             constructor() {
                 this.size = 24;
                 this.trail = [];
+                this.squishX = 1.0;
+                this.squishY = 1.0;
                 this.reset();
             }
 
@@ -428,6 +456,8 @@
                 this.gravityDir = 1; // 1: down, -1: up
                 this.rotation = 0;
                 this.prevRotation = 0;
+                this.squishX = 1.0;
+                this.squishY = 1.0;
                 this.trail.length = 0;
                 for (let i = 0; i < 10; i++) {
                     this.trail.push({ x: this.x, y: this.y });
@@ -439,40 +469,45 @@
                 this.prevY = this.y;
                 this.prevRotation = this.rotation;
 
-                // 仮想解像度基準の物理定数
-                const GRAVITY_ACCEL = 2700;
-                const MAX_TERMINAL_VEL = 850;
-                
-                this.vy += GRAVITY_ACCEL * this.gravityDir * dtFixed;
+                // 伸縮トランスフォームのスムーズ復元（変形イージング）
+                this.squishX += (1.0 - this.squishX) * 14.0 * dtFixed;
+                this.squishY += (1.0 - this.squishY) * 14.0 * dtFixed;
 
-                if (Math.abs(this.vy) > MAX_TERMINAL_VEL) {
-                    this.vy = Math.sign(this.vy) * MAX_TERMINAL_VEL;
+                // CONFIG定数に基づく重力・最高速度の計算
+                this.vy += CONFIG.PHYSICS.GRAVITY * this.gravityDir * dtFixed;
+
+                if (Math.abs(this.vy) > CONFIG.PHYSICS.TERMINAL_VEL) {
+                    this.vy = Math.sign(this.vy) * CONFIG.PHYSICS.TERMINAL_VEL;
                 }
 
                 this.y += this.vy * dtFixed;
 
-                // 画面上下境界の物理ダンパー処理
+                // 画面上下境界の滑らかなスプリング（弾性ダンパー）処理
                 const margin = this.size * 0.5;
-                const cushionRange = 32;
+                const cushionRange = CONFIG.PHYSICS.CUSHION_RANGE;
 
-                // 現在の進行方向と同方向への接触時のみダンパーを動かす（反転直後の反発力との衝突を完全回避）
                 if (this.gravityDir === -1 && this.y < margin + cushionRange) {
                     const depth = (margin + cushionRange - this.y) / cushionRange;
-                    this.vy += depth * 1800 * dtFixed;
+                    this.vy += depth * CONFIG.PHYSICS.SPRING_K * dtFixed;
                 } else if (this.gravityDir === 1 && this.y > VIRTUAL_HEIGHT - margin - cushionRange) {
                     const depth = (this.y - (VIRTUAL_HEIGHT - margin - cushionRange)) / cushionRange;
-                    this.vy -= depth * 1800 * dtFixed;
+                    this.vy -= depth * CONFIG.PHYSICS.SPRING_K * dtFixed;
                 }
 
                 if (this.y < margin) {
                     this.y = margin;
                     if (this.vy < 0) this.vy = 0;
+                    this.squishX = 1.35;
+                    this.squishY = 0.7;
                 } else if (this.y > VIRTUAL_HEIGHT - margin) {
                     this.y = VIRTUAL_HEIGHT - margin;
                     if (this.vy > 0) this.vy = 0;
+                    this.squishX = 1.35;
+                    this.squishY = 0.7;
                 }
 
-                this.rotation += 8.0 * this.gravityDir * dtFixed;
+                // スムーズな回転アニメーション
+                this.rotation += 9.5 * this.gravityDir * dtFixed;
 
                 // トレイル座標更新
                 const lastTrail = this.trail.shift();
@@ -483,17 +518,21 @@
 
             jump() {
                 this.gravityDir *= -1;
-                const JUMP_IMPULSE = 680;
-                // 反転時の即時ベクトル上書きにより、画面端でも遅延のない反転レスポンスを実現
-                this.vy = -this.gravityDir * JUMP_IMPULSE;
+                // ネオンエネルギー反転：初速に推進乗数を掛け即時ベクトル上書き（手応えのある反転感）
+                this.vy = -this.gravityDir * CONFIG.PHYSICS.JUMP_IMPULSE * CONFIG.PHYSICS.REVERSE_KICK;
+                
+                // ジャンプ時のSquish & Stretch（潰れ・伸びフィードバック）
+                this.squishX = 0.65;
+                this.squishY = 1.4;
+
                 sound.jump();
 
-                for (let i = 0; i < 8; i++) {
+                for (let i = 0; i < 10; i++) {
                     spawnParticle(this.x, this.y, isFever ? '#ff0080' : '#00ffcc', true);
                 }
             }
 
-            // Zero-GC 頂点算出（描画される正方形と100%同期した4頂点）
+            // Zero-GC 頂点算出（インセット補正と幾何学的正確性を両立）
             fillVertices(outVerts, scaleFactor = 1.0) {
                 const halfSize = (this.size * 0.5) * scaleFactor;
                 const cos = Math.cos(this.rotation);
@@ -527,6 +566,7 @@
                 ctx.save();
                 ctx.translate(drawX, drawY);
                 ctx.rotate(drawRot);
+                ctx.scale(this.squishX, this.squishY);
 
                 ctx.shadowBlur = isFever ? 20 : 12;
                 ctx.shadowColor = isFever ? '#ff0080' : '#00ffcc';
@@ -795,8 +835,7 @@
             }
 
             if (gameState === 'PLAYING') {
-                // 入力猶予（ジャンプバッファ: 約7フレーム）をセット
-                jumpBufferTimer = 0.12;
+                jumpBufferTimer = CONFIG.GAMEPLAY.JUMP_BUFFER_TIME;
             }
         }
 
@@ -829,7 +868,7 @@
             isFever = false;
             feverTimer = 0;
             jumpBufferTimer = 0;
-            currentSpeed = 300;
+            currentSpeed = CONFIG.SPEED.NORMAL;
             spawnTimer = 0;
 
             particlePool.clear();
@@ -865,7 +904,7 @@
         let lastTime = performance.now();
 
         function updateGamePhysics(dtFixed) {
-            // 先行入力バッファの正常化（減衰処理と実行判定の分離）
+            // 先行入力バッファの処理
             if (jumpBufferTimer > 0) {
                 player.jump();
                 jumpBufferTimer = 0;
@@ -873,19 +912,20 @@
                 jumpBufferTimer = 0;
             }
 
-            let targetSpeed = isFever ? 540 : 320;
-            currentSpeed += (targetSpeed - currentSpeed) * (1 - Math.exp(-9.0 * dtFixed));
+            let targetSpeed = isFever ? CONFIG.SPEED.FEVER : CONFIG.SPEED.NORMAL;
+            currentSpeed += (targetSpeed - currentSpeed) * (1 - Math.exp(-CONFIG.SPEED.EASE * dtFixed));
 
             if (isFever) {
                 feverTimer -= dtFixed;
-                feverGauge = Math.max(0, (feverTimer / 5.0) * 100);
+                feverGauge = Math.max(0, (feverTimer / CONFIG.GAMEPLAY.FEVER_DURATION) * 100);
                 if (feverTimer <= 0) {
                     isFever = false;
                 }
             }
 
             spawnTimer += dtFixed;
-            if (spawnTimer >= (isFever ? 0.75 : 1.25)) {
+            const spawnInterval = isFever ? CONFIG.GAMEPLAY.SPAWN_INTERVAL_FEVER : CONFIG.GAMEPLAY.SPAWN_INTERVAL_NORMAL;
+            if (spawnTimer >= spawnInterval) {
                 spawnTimer = 0;
                 const obs = obstaclePool.get();
                 obs.init();
@@ -893,9 +933,9 @@
                 col.init(obs);
             }
 
-            // 描画矩形と100%完全一致するHitbox（スケール1.0）およびNearMiss判定用領域
-            player.fillVertices(staticPlayerVertsHit, 1.0);
-            player.fillVertices(staticPlayerVertsNear, 1.45);
+            // 理不尽な角当たり死を完全排除するHitboxインセット(CONFIG.HITBOX.PLAYER_SCALE)およびNearMiss領域の緻密なチューニング
+            player.fillVertices(staticPlayerVertsHit, CONFIG.HITBOX.PLAYER_SCALE);
+            player.fillVertices(staticPlayerVertsNear, CONFIG.HITBOX.NEAR_MISS_SCALE);
 
             let hasHit = false;
             obstaclePool.forEachActive(obs => {
