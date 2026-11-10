@@ -486,8 +486,8 @@
             jump() {
                 this.gravityDir *= -1;
                 const baseTarget = this.baseJumpForce * baseScale * 58;
-                // 現在の垂直速度とのベクターイージング合成によるシルキーな方向転換
-                this.vy = -this.gravityDir * baseTarget + (this.vy * 0.1);
+                // 反転時の初期レスポンスのキレを高めつつ、流れるような操作感へ最適化
+                this.vy = -this.gravityDir * baseTarget;
                 sound.jump();
 
                 for (let i = 0; i < 8; i++) {
@@ -495,28 +495,30 @@
                 }
             }
 
-            // SAT用頂点算出（指定座標・角度対応）
-            getVerticesAt(x, y, rotation, scaleFactor = 1.0) {
+            // Zero-GC 頂点算出（指定配列バッファへ直接書き込み）
+            fillVertices(outVerts, scaleFactor = 1.0) {
                 const s = this.size * scaleFactor * 0.5;
                 const c = s * 0.35;
-                const cos = Math.cos(rotation);
-                const sin = Math.sin(rotation);
+                const cos = Math.cos(this.rotation);
+                const sin = Math.sin(this.rotation);
                 
-                const localVerts = [
-                    { x: -s + c, y: -s }, { x: s - c, y: -s },
-                    { x: s, y: -s + c }, { x: s, y: s - c },
-                    { x: s - c, y: s }, { x: -s + c, y: s },
-                    { x: -s, y: s - c }, { x: -s, y: -s + c }
-                ];
-                
-                return localVerts.map(v => ({
-                    x: x + (v.x * cos - v.y * sin),
-                    y: y + (v.x * sin + v.y * cos)
-                }));
-            }
+                const lx0 = -s + c, ly0 = -s;
+                const lx1 =  s - c, ly1 = -s;
+                const lx2 =  s,     ly2 = -s + c;
+                const lx3 =  s,     ly3 =  s - c;
+                const lx4 =  s - c, ly4 =  s;
+                const lx5 = -s + c, ly5 =  s;
+                const lx6 = -s,     ly6 =  s - c;
+                const lx7 = -s,     ly7 = -s + c;
 
-            getVertices(scaleFactor = 1.0) {
-                return this.getVerticesAt(this.x, this.y, this.rotation, scaleFactor);
+                outVerts[0].x = this.x + (lx0 * cos - ly0 * sin); outVerts[0].y = this.y + (lx0 * sin + ly0 * cos);
+                outVerts[1].x = this.x + (lx1 * cos - ly1 * sin); outVerts[1].y = this.y + (lx1 * sin + ly1 * cos);
+                outVerts[2].x = this.x + (lx2 * cos - ly2 * sin); outVerts[2].y = this.y + (lx2 * sin + ly2 * cos);
+                outVerts[3].x = this.x + (lx3 * cos - ly3 * sin); outVerts[3].y = this.y + (lx3 * sin + ly3 * cos);
+                outVerts[4].x = this.x + (lx4 * cos - ly4 * sin); outVerts[4].y = this.y + (lx4 * sin + ly4 * cos);
+                outVerts[5].x = this.x + (lx5 * cos - ly5 * sin); outVerts[5].y = this.y + (lx5 * sin + ly5 * cos);
+                outVerts[6].x = this.x + (lx6 * cos - ly6 * sin); outVerts[6].y = this.y + (lx6 * sin + ly6 * cos);
+                outVerts[7].x = this.x + (lx7 * cos - ly7 * sin); outVerts[7].y = this.y + (lx7 * sin + ly7 * cos);
             }
 
             draw(alpha = 1.0) {
@@ -718,43 +720,51 @@
             }
         }
 
-        // --- SEPARATING AXIS THEOREM (SAT) OBB COLLISION & NEAR MISS ---
-        function getAABBVertices(box) {
-            return [
-                { x: box.x, y: box.y },
-                { x: box.x + box.w, y: box.y },
-                { x: box.x + box.w, y: box.y + box.h },
-                { x: box.x, y: box.y + box.h }
-            ];
+        // --- SEPARATING AXIS THEOREM (SAT) OBB COLLISION & NEAR MISS (Zero-GC Optimization) ---
+        // 判定用のプレアロケーションバッファ（メモリ再利用によるGCジャダー防止）
+        const staticPlayerVertsHit = Array.from({ length: 8 }, () => ({ x: 0, y: 0 }));
+        const staticPlayerVertsNear = Array.from({ length: 8 }, () => ({ x: 0, y: 0 }));
+        const staticTopAABBVerts = Array.from({ length: 4 }, () => ({ x: 0, y: 0 }));
+        const staticBottomAABBVerts = Array.from({ length: 4 }, () => ({ x: 0, y: 0 }));
+
+        function fillAABBVertices(outVerts, box) {
+            outVerts[0].x = box.x;         outVerts[0].y = box.y;
+            outVerts[1].x = box.x + box.w; outVerts[1].y = box.y;
+            outVerts[2].x = box.x + box.w; outVerts[2].y = box.y + box.h;
+            outVerts[3].x = box.x;         outVerts[3].y = box.y + box.h;
         }
 
-        function projectPolygon(vertices, axis) {
-            let min = Infinity, max = -Infinity;
-            for (let i = 0; i < vertices.length; i++) {
-                const dot = vertices[i].x * axis.x + vertices[i].y * axis.y;
-                if (dot < min) min = dot;
-                if (dot > max) max = dot;
-            }
-            return { min, max };
-        }
+        function checkSATCollisionZeroGC(poly1, count1, poly2, count2) {
+            for (let p = 0; p < 2; p++) {
+                const poly = p === 0 ? poly1 : poly2;
+                const count = p === 0 ? count1 : count2;
 
-        function checkSATCollision(poly1, poly2) {
-            const polys = [poly1, poly2];
-            for (let i = 0; i < polys.length; i++) {
-                const poly = polys[i];
-                for (let j = 0; j < poly.length; j++) {
-                    const p1 = poly[j];
-                    const p2 = poly[(j + 1) % poly.length];
-                    const normal = { x: -(p2.y - p1.y), y: p2.x - p1.x };
-                    const len = Math.hypot(normal.x, normal.y);
+                for (let i = 0; i < count; i++) {
+                    const p1 = poly[i];
+                    const p2 = poly[(i + 1) % count];
+                    
+                    let nx = -(p2.y - p1.y);
+                    let ny = p2.x - p1.x;
+                    const len = Math.hypot(nx, ny);
                     if (len === 0) continue;
-                    normal.x /= len;
-                    normal.y /= len;
+                    nx /= len;
+                    ny /= len;
 
-                    const proj1 = projectPolygon(poly1, normal);
-                    const proj2 = projectPolygon(poly2, normal);
+                    let min1 = Infinity, max1 = -Infinity;
+                    for (let j = 0; j < count1; j++) {
+                        const dot = poly1[j].x * nx + poly1[j].y * ny;
+                        if (dot < min1) min1 = dot;
+                        if (dot > max1) max1 = dot;
+                    }
 
-                    if (proj1.max <= proj2.min || proj2.max <= proj1.min) {
+                    let min2 = Infinity, max2 = -Infinity;
+                    for (let j = 0; j < count2; j++) {
+                        const dot = poly2[j].x * nx + poly2[j].y * ny;
+                        if (dot < min2) min2 = dot;
+                        if (dot > max2) max2 = dot;
+                    }
+
+                    if (max1 <= min2 || max2 <= min1) {
                         return false;
                     }
                 }
@@ -788,7 +798,6 @@
 
             if (e.type === 'touchstart') {
                 if (e.cancelable) e.preventDefault();
-                // touchstartとpointerdownの重複発火防止
                 return;
             }
 
@@ -799,7 +808,7 @@
             }
 
             if (gameState === 'PLAYING') {
-                // 入力猶予（ジャンプバッファ）をセットし、即時手応えを得られるようダイレクトキューイング
+                // 入力猶予（ジャンプバッファ: 約7フレーム）をセット
                 jumpBufferTimer = 0.12;
             }
         }
@@ -869,9 +878,11 @@
         let lastTime = performance.now();
 
         function updateGamePhysics(dtFixed) {
+            // 先行入力バッファの正常化（減衰処理と実行判定の分離）
             if (jumpBufferTimer > 0) {
-                jumpBufferTimer -= dtFixed;
                 player.jump();
+                jumpBufferTimer = 0;
+            } else if (jumpBufferTimer < 0) {
                 jumpBufferTimer = 0;
             }
 
@@ -895,10 +906,10 @@
                 col.init(obs);
             }
 
-            // 高速移動時にも破綻しない動的スケーリング・精密Hitbox判定
-            const speedFactor = Math.min(1.25, currentSpeed / (320 * baseScale));
-            const playerHitVerts = player.getVertices(0.74); 
-            const playerNearVerts = player.getVertices(1.15 * speedFactor); 
+            // 公平で気持ち良いHitbox精度 & Zero-GC SAT判定バッファへの書き込み
+            const speedFactor = Math.min(1.2, currentSpeed / (320 * baseScale));
+            player.fillVertices(staticPlayerVertsHit, 0.72);
+            player.fillVertices(staticPlayerVertsNear, 1.12 * speedFactor);
 
             let hasHit = false;
             obstaclePool.forEachActive(obs => {
@@ -912,14 +923,12 @@
                     sound.score();
                 }
 
-                const topAABB = obs.getTopAABB();
-                const bottomAABB = obs.getBottomAABB();
-                const topVerts = getAABBVertices(topAABB);
-                const bottomVerts = getAABBVertices(bottomAABB);
+                fillAABBVertices(staticTopAABBVerts, obs.getTopAABB());
+                fillAABBVertices(staticBottomAABBVerts, obs.getBottomAABB());
 
-                // 1. 衝突判定（判定領域の精度向上: 0.76）
-                const isHitTop = checkSATCollision(playerHitVerts, topVerts);
-                const isHitBottom = checkSATCollision(playerHitVerts, bottomVerts);
+                // 1. 衝突判定 (Zero-GC)
+                const isHitTop = checkSATCollisionZeroGC(staticPlayerVertsHit, 8, staticTopAABBVerts, 4);
+                const isHitBottom = checkSATCollisionZeroGC(staticPlayerVertsHit, 8, staticBottomAABBVerts, 4);
 
                 if (isHitTop || isHitBottom) {
                     hasHit = true;
@@ -927,14 +936,14 @@
                     return;
                 }
 
-                // 2. ニアミス判定（衝突していない場合のみ実行し、障害物1つにつき上/下個別に1回厳密制限）
-                if (!obs.nearMissedTop && checkSATCollision(playerNearVerts, topVerts)) {
+                // 2. ニアミス判定 (Zero-GC)
+                if (!obs.nearMissedTop && checkSATCollisionZeroGC(staticPlayerVertsNear, 8, staticTopAABBVerts, 4)) {
                     obs.nearMissedTop = true;
                     score += 150;
                     spawnText(player.x, player.y - 24 * baseScale, 'NEAR MISS!', '#00ffcc');
                     sound.score();
                 }
-                if (!obs.nearMissedBottom && checkSATCollision(playerNearVerts, bottomVerts)) {
+                if (!obs.nearMissedBottom && checkSATCollisionZeroGC(staticPlayerVertsNear, 8, staticBottomAABBVerts, 4)) {
                     obs.nearMissedBottom = true;
                     score += 150;
                     spawnText(player.x, player.y + 24 * baseScale, 'NEAR MISS!', '#ff0080');
