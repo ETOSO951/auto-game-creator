@@ -359,6 +359,7 @@
                 this.x = 80;
                 this.y = height / 2;
                 this.size = 24;
+                this.hitRadius = 9; // 公平かつギリギリ回避を可能にする最適判定半径
                 this.vy = 0;
                 this.gravity = 0.8;
                 this.jumpForce = -12;
@@ -375,24 +376,23 @@
                 this.trail = [];
             }
 
-            update() {
-                this.vy += this.gravity * this.gravityDir;
-                this.y += this.vy;
+            update(dt60) {
+                this.vy += this.gravity * this.gravityDir * dt60;
+                this.y += this.vy * dt60;
 
-                // Bounds
-                const margin = this.size;
+                // 上下境界でのレスポンシブな減衰反発（スムーズな跳ね返り処理）
+                const margin = this.size * 0.8;
                 if (this.y < margin) {
                     this.y = margin;
-                    this.vy = 0;
-                }
-                if (this.y > height - margin) {
+                    this.vy = Math.abs(this.vy) * 0.2;
+                } else if (this.y > height - margin) {
                     this.y = height - margin;
-                    this.vy = 0;
+                    this.vy = -Math.abs(this.vy) * 0.2;
                 }
 
-                this.rotation += 0.15 * this.gravityDir;
+                this.rotation += 0.15 * this.gravityDir * dt60;
 
-                // Trail
+                // 軌跡 (Trail)
                 this.trail.push({x: this.x, y: this.y});
                 if (this.trail.length > 10) this.trail.shift();
             }
@@ -402,7 +402,7 @@
                 this.vy = this.jumpForce * this.gravityDir;
                 sound.jump();
 
-                // Spawn jump particles
+                // Jump particles
                 for(let i=0; i<8; i++) {
                     particles.push(new Particle(this.x, this.y, '#00ffcc', true));
                 }
@@ -449,14 +449,14 @@
                 this.life = 1.0;
                 this.decay = Math.random() * 0.03 + 0.02;
             }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.life -= this.decay;
+            update(dt60) {
+                this.x += this.vx * dt60;
+                this.y += this.vy * dt60;
+                this.life -= this.decay * dt60;
             }
             draw() {
                 ctx.save();
-                ctx.globalAlpha = this.life;
+                ctx.globalAlpha = Math.max(0, this.life);
                 ctx.fillStyle = this.color;
                 ctx.shadowBlur = 8;
                 ctx.shadowColor = this.color;
@@ -475,8 +475,8 @@
                 this.passed = false;
                 this.color = '#ff3366';
             }
-            update(speed) {
-                this.x -= speed;
+            update(speed, dt60) {
+                this.x -= speed * dt60;
             }
             draw() {
                 ctx.save();
@@ -507,9 +507,9 @@
                 this.collected = false;
                 this.angle = 0;
             }
-            update(speed) {
-                this.x -= speed;
-                this.angle += 0.1;
+            update(speed, dt60) {
+                this.x -= speed * dt60;
+                this.angle += 0.1 * dt60;
             }
             draw() {
                 if (this.collected) return;
@@ -531,6 +531,20 @@
 
                 ctx.restore();
             }
+        }
+
+        // 精密な「円 vs 猶予付き矩形」当たり判定ロジック
+        function checkCircleBoxCollision(cx, cy, r, bx, by, bw, bh, inset = 3) {
+            const rx = bx + inset;
+            const ry = by + inset;
+            const rw = Math.max(0, bw - inset * 2);
+            const rh = Math.max(0, bh - inset * 2);
+
+            const closestX = Math.max(rx, Math.min(cx, rx + rw));
+            const closestY = Math.max(ry, Math.min(cy, ry + rh));
+            const dx = cx - closestX;
+            const dy = cy - closestY;
+            return (dx * dx + dy * dy) < (r * r);
         }
 
         // --- INITIALIZATION ---
@@ -594,12 +608,15 @@
         }
 
         // --- MAIN GAME LOOP ---
-        let lastTime = 0;
+        let lastTime = performance.now();
         function loop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
             let dt = (timestamp - lastTime) / 1000;
             lastTime = timestamp;
 
+            // タブ非アクティブ時などの異常なDeltaTimeジャンプを抑制
             if (dt > 0.1) dt = 0.1;
+            const dt60 = dt * 60; // 60fps基準のスケーリング係数
 
             // Hit stop effect
             if (hitStop > 0) {
@@ -617,15 +634,15 @@
                 let gameSpeed = isFever ? 9 : 5;
                 if (isFever) {
                     feverTimer -= dt;
-                    feverGauge = (feverTimer / 5.0) * 100;
+                    feverGauge = Math.max(0, (feverTimer / 5.0) * 100);
                     if (feverTimer <= 0) {
                         isFever = false;
                     }
                 }
 
-                // Spawn obstacles
-                spawnTimer++;
-                if (spawnTimer > (isFever ? 50 : 80)) {
+                // Spawn obstacles (Delta-time scaling)
+                spawnTimer += dt60;
+                if (spawnTimer >= (isFever ? 45 : 75)) {
                     spawnTimer = 0;
                     let obs = new Obstacle();
                     obstacles.push(obs);
@@ -635,7 +652,7 @@
                 // Update & Draw Obstacles
                 for (let i = obstacles.length - 1; i >= 0; i--) {
                     let obs = obstacles[i];
-                    obs.update(gameSpeed);
+                    obs.update(gameSpeed, dt60);
                     obs.draw();
 
                     // Score point passing
@@ -645,12 +662,11 @@
                         sound.score();
                     }
 
-                    // Collision Detection (AABB)
-                    if (
-                        player.x + player.size/3 > obs.x &&
-                        player.x - player.size/3 < obs.x + obs.w &&
-                        (player.y - player.size/3 < obs.topH || player.y + player.size/3 > height - obs.bottomH)
-                    ) {
+                    // Fair & Precise Collision Detection (Circle vs Inset Box)
+                    const hitTop = checkCircleBoxCollision(player.x, player.y, player.hitRadius, obs.x, 0, obs.w, obs.topH);
+                    const hitBottom = checkCircleBoxCollision(player.x, player.y, player.hitRadius, obs.x, height - obs.bottomH, obs.w, obs.bottomH);
+
+                    if (hitTop || hitBottom) {
                         gameOver();
                     }
 
@@ -662,12 +678,12 @@
                 // Update & Draw Collectibles
                 for (let i = collectibles.length - 1; i >= 0; i--) {
                     let col = collectibles[i];
-                    col.update(gameSpeed);
+                    col.update(gameSpeed, dt60);
                     col.draw();
 
                     // Check collection
                     let dist = Math.hypot(player.x - col.x, player.y - col.y);
-                    if (!col.collected && dist < player.size + col.size) {
+                    if (!col.collected && dist < player.hitRadius + col.size) {
                         col.collected = true;
                         score += 500;
                         combo++;
@@ -686,7 +702,7 @@
                             feverGauge += 15;
                             if (feverGauge >= 100) {
                                 isFever = true;
-                                feverTimer = 5.0; // 5 seconds fever
+                                feverTimer = 5.0;
                                 feverGauge = 100;
                                 sound.fever();
                                 screenShake = 15;
@@ -714,14 +730,14 @@
                 }
 
                 // Update Player
-                player.update();
-                score += isFever ? 2 : 1; // Passive score growth
+                player.update(dt60);
+                score += (isFever ? 2 : 1) * dt60; // Delta-scaled passive score growth
             }
 
             // Update & Draw Particles
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
-                p.update();
+                p.update(dt60);
                 p.draw();
                 if (p.life <= 0) {
                     particles.splice(i, 1);
@@ -738,7 +754,7 @@
                 let offsetX = (Math.random() - 0.5) * screenShake;
                 let offsetY = (Math.random() - 0.5) * screenShake;
                 ctx.translate(offsetX, offsetY);
-                screenShake *= 0.9;
+                screenShake *= Math.pow(0.9, dt60);
                 if (screenShake < 0.5) screenShake = 0;
             }
             ctx.restore();
