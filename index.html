@@ -130,8 +130,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(5, 5, 10, 0.85);
-            backdrop-filter: blur(8px);
+            background: radial-gradient(circle at center, rgba(26, 11, 46, 0.9) 0%, rgba(5, 5, 10, 0.95) 100%);
+            backdrop-filter: blur(12px);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -141,22 +141,28 @@
             transition: opacity 0.3s ease;
         }
 
+        @keyframes floatTitle {
+            0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 20px rgba(0, 255, 204, 0.6)); }
+            50% { transform: translateY(-8px) scale(1.02); filter: drop-shadow(0 0 35px rgba(255, 0, 128, 0.9)); }
+        }
+
         .screen.hidden {
             opacity: 0;
             pointer-events: none;
         }
 
         .game-title {
-            font-size: 48px;
+            font-size: 52px;
             font-weight: 900;
             font-style: italic;
             text-align: center;
-            background: linear-gradient(180deg, #fff 0%, #00ffcc 100%);
+            background: linear-gradient(180deg, #fff 0%, #00ffcc 50%, #ff0080 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 30px rgba(0, 255, 204, 0.6);
+            text-shadow: 0 0 40px rgba(0, 255, 204, 0.8);
             margin-bottom: 5px;
             letter-spacing: -1px;
+            animation: floatTitle 2.5s ease-in-out infinite;
         }
 
         .game-subtitle {
@@ -168,19 +174,26 @@
             font-weight: bold;
         }
 
+        @keyframes pulseBtn {
+            0%, 100% { box-shadow: 0 0 25px rgba(0, 255, 204, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.5); }
+            50% { box-shadow: 0 0 45px rgba(255, 0, 128, 0.9), inset 0 0 25px rgba(255, 255, 255, 0.8); }
+        }
+
         .btn {
-            background: linear-gradient(135deg, #00ffcc 0%, #0088ff 100%);
-            color: #05050a;
+            background: linear-gradient(135deg, #00ffcc 0%, #ff0080 100%);
+            color: #fff;
             border: none;
-            padding: 18px 48px;
-            font-size: 18px;
+            padding: 20px 56px;
+            font-size: 20px;
             font-weight: 900;
-            border-radius: 35px;
+            border-radius: 40px;
             cursor: pointer;
-            box-shadow: 0 0 25px rgba(0, 255, 204, 0.4);
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.6);
+            animation: pulseBtn 1.5s infinite;
+            transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.4);
         }
 
         .btn:active {
@@ -332,9 +345,12 @@
             }
             fever() {
                 if (!this.ctx) return;
-                [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
-                    setTimeout(() => this.playTone(f, 'sine', 0.12, 0.08), i * 50);
+                [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98].forEach((f, i) => {
+                    setTimeout(() => this.playTone(f, 'square', 0.15, 0.1, f * 1.5), i * 45);
                 });
+            }
+            extremeCombo() {
+                this.playTone(1200, 'sine', 0.1, 0.1, 1800);
             }
         }
 
@@ -992,19 +1008,29 @@
                     comboBadge.classList.add('pulse');
                     setTimeout(() => comboBadge.classList.remove('pulse'), 100);
 
+                    if (combo % 5 === 0) {
+                        sound.extremeCombo();
+                        spawnText(player.x, player.y - 45, `${combo} COMBO!!`, '#ff0080');
+                        screenShake += 8;
+                    }
+
                     if (!isFever) {
-                        feverGauge += 15;
+                        feverGauge += 18;
                         if (feverGauge >= 100) {
                             isFever = true;
                             feverTimer = 5.0;
                             feverGauge = 100;
                             sound.fever();
-                            screenShake = 15;
+                            screenShake = 25;
+                            const flash = document.getElementById('flash-overlay');
+                            flash.style.background = 'radial-gradient(circle, rgba(255,0,128,0.8) 0%, rgba(0,255,204,0.4) 100%)';
+                            flash.style.opacity = '1';
+                            setTimeout(() => flash.style.opacity = '0', 400);
                         }
                     }
 
-                    for (let p = 0; p < 12; p++) {
-                        spawnParticle(col.x, col.y, '#ffcc00', true);
+                    for (let p = 0; p < 18; p++) {
+                        spawnParticle(col.x, col.y, isFever ? '#ff0080' : '#ffcc00', true);
                     }
                 }
             });
