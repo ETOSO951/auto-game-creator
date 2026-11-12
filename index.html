@@ -265,7 +265,7 @@
         <div class="ui-layer">
             <div class="hud-top">
                 <div class="score-board">
-                    <div class="score-label">SCORE</div>
+                    <div class="score-label">SCORE / BEST: <span id="best-score-display" style="color: #fff;">000000</span></div>
                     <div class="score-value" id="current-score">000000</div>
                     <div class="fever-container">
                         <div class="fever-fill" id="fever-fill"></div>
@@ -291,9 +291,13 @@
         <!-- Game Over Screen -->
         <div id="gameover-screen" class="screen hidden">
             <div class="game-title" style="font-size: 36px; margin-bottom: 20px; color: #ff0080; -webkit-text-fill-color: #ff0080;">GAME OVER</div>
-            <div class="gameover-stats">
+            <div class="gameover-stats" style="margin-bottom: 15px;">
                 <div class="label">FINAL SCORE</div>
                 <div class="val" id="final-score">000000</div>
+            </div>
+            <div class="gameover-stats" style="padding: 10px 40px; margin-bottom: 25px;">
+                <div class="label">BEST SCORE</div>
+                <div class="val" id="final-best-score" style="color: #00ffcc; font-size: 24px;">000000</div>
             </div>
             <button class="btn interactive" id="restart-btn">RETRY</button>
         </div>
