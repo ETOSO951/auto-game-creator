@@ -1724,29 +1724,38 @@ function rebuildPowerNetworks() {
     powerWires = [];
 
     try {
+        // 全施設マップから電力ノードを再検証して抽出（空間ハッシュのズレを完全防止）
+        powerNodeKeys.clear();
         const poles = [];
         const devices = [];
-        const powerMult = getUpgradeMult('power_output');
+        const rawPowerMult = getUpgradeMult('power_output');
+        const powerMult = (typeof rawPowerMult === 'number' && !isNaN(rawPowerMult) && rawPowerMult > 0) ? rawPowerMult : 1.0;
 
-        // Cleanup invalid keys
-        const invalidKeys = [];
-        for (const k of powerNodeKeys) {
-            const [x, y] = k.split(',').map(Number);
-            if (isNaN(x) || isNaN(y)) { invalidKeys.push(k); continue; }
-            const b = getBuilding(x, y);
-            if (!b || !b.type) { invalidKeys.push(k); continue; }
+        for (const [k, b] of buildingsMap.entries()) {
+            if (!b || !b.type) continue;
             const def = BUILDINGS[b.type];
-            if (!def) { invalidKeys.push(k); continue; }
+            if (!def) continue;
 
-            if (def.poleRange) {
-                const maxCap = Math.round((def.maxCap || 100) * powerMult);
-                poles.push({ x, y, k, range: def.poleRange, maxCap, lossRate: def.lossRate || 0, b, def });
+            const [x, y] = k.split(',').map(Number);
+            if (isNaN(x) || isNaN(y)) continue;
+
+            const isPole = !!def.poleRange;
+            const isPowerDevice = (def.power !== 0 || b.type === 'battery_bank');
+
+            if (isPole || isPowerDevice) {
+                powerNodeKeys.add(k);
             }
-            if (def.power !== 0 || b.type === 'battery_bank') {
+
+            if (isPole) {
+                const baseCap = (typeof def.maxCap === 'number' && !isNaN(def.maxCap)) ? def.maxCap : 100;
+                const maxCap = Math.round(baseCap * powerMult);
+                const lossRate = (typeof def.lossRate === 'number' && !isNaN(def.lossRate)) ? def.lossRate : 0;
+                poles.push({ x, y, k, range: def.poleRange, maxCap, lossRate, b, def });
+            }
+            if (isPowerDevice) {
                 devices.push({ x, y, k, b, def });
             }
         }
-        for (const ik of invalidKeys) powerNodeKeys.delete(ik);
 
         const visitedPoles = new Set();
         let netCounter = 1;
@@ -1781,8 +1790,8 @@ function rebuildPowerNetworks() {
             let totalPoleCap = 0;
             let avgLoss = 0;
             for (const cp of compPoles) {
-                totalPoleCap += cp.maxCap;
-                avgLoss += cp.lossRate;
+                totalPoleCap += (typeof cp.maxCap === 'number' && !isNaN(cp.maxCap)) ? cp.maxCap : 100;
+                avgLoss += (typeof cp.lossRate === 'number' && !isNaN(cp.lossRate)) ? cp.lossRate : 0;
             }
             avgLoss = compPoles.length > 0 ? avgLoss / compPoles.length : 0;
 
@@ -2064,71 +2073,84 @@ function gameLoop(timestamp) {
 }
 
 function updateActiveSimulation(dt) {
-    const beltMult = getUpgradeMult('belt_speed');
-    const mineMult = getUpgradeMult('mining_speed');
-    const smeltMult = getUpgradeMult('smelt_speed');
+    const rawBeltMult = getUpgradeMult('belt_speed');
+    const rawMineMult = getUpgradeMult('mining_speed');
+    const rawSmeltMult = getUpgradeMult('smelt_speed');
+    const beltMult = (typeof rawBeltMult === 'number' && !isNaN(rawBeltMult)) ? rawBeltMult : 1.0;
+    const mineMult = (typeof rawMineMult === 'number' && !isNaN(rawMineMult)) ? rawMineMult : 1.0;
+    const smeltMult = (typeof rawSmeltMult === 'number' && !isNaN(rawSmeltMult)) ? rawSmeltMult : 1.0;
 
-    // 1. Update Active Belts & Sorters
+    // 1. Update Active Belts & Sorters (個別の例外ハンドリングで安全保護)
     for (const k of Array.from(activeBeltKeys)) {
-        const [x, y] = k.split(',').map(Number);
-        const b = getBuilding(x, y);
-        if (!b || !b.item) {
-            activeBeltKeys.delete(k);
-            continue;
-        }
+        try {
+            const [x, y] = k.split(',').map(Number);
+            if (isNaN(x) || isNaN(y)) { activeBeltKeys.delete(k); continue; }
+            const b = getBuilding(x, y);
+            if (!b || !b.item) {
+                activeBeltKeys.delete(k);
+                continue;
+            }
 
-        if (b.type === 'belt' || b.type === 'fast_belt') {
-            updateBelt(x, y, b, dt, beltMult);
-        } else if (b.type === 'express_belt' || b.type === 'maglev_belt') {
-            const eff = getTilePowerEfficiency(x, y);
-            if (eff > 0) updateBelt(x, y, b, dt, eff * beltMult);
-        } else if (b.type === 'splitter') {
-            updateSplitter(x, y, b, dt * beltMult);
-        } else if (b.type === 'filter_sorter') {
-            const eff = getTilePowerEfficiency(x, y);
-            if (eff > 0) updateFilterSorter(x, y, b, dt * eff * beltMult);
-        } else if (b.type === 'tunnel') {
-            updateTunnel(x, y, b, dt * beltMult);
+            if (b.type === 'belt' || b.type === 'fast_belt') {
+                updateBelt(x, y, b, dt, beltMult);
+            } else if (b.type === 'express_belt' || b.type === 'maglev_belt') {
+                const eff = getTilePowerEfficiency(x, y);
+                if (eff > 0) updateBelt(x, y, b, dt, eff * beltMult);
+            } else if (b.type === 'splitter') {
+                updateSplitter(x, y, b, dt * beltMult);
+            } else if (b.type === 'filter_sorter') {
+                const eff = getTilePowerEfficiency(x, y);
+                if (eff > 0) updateFilterSorter(x, y, b, dt * eff * beltMult);
+            } else if (b.type === 'tunnel') {
+                updateTunnel(x, y, b, dt * beltMult);
+            }
+        } catch (e) {
+            console.warn(`Belt simulation error at ${k}:`, e);
         }
     }
 
-    // 2. Update Active Machines
-    for (const k of activeMachineKeys) {
-        const [x, y] = k.split(',').map(Number);
-        const b = getBuilding(x, y);
-        if (!b) continue;
+    // 2. Update Active Machines (個別の例外ハンドリングで安全保護)
+    for (const k of Array.from(activeMachineKeys)) {
+        try {
+            const [x, y] = k.split(',').map(Number);
+            if (isNaN(x) || isNaN(y)) { activeMachineKeys.delete(k); continue; }
+            const b = getBuilding(x, y);
+            if (!b || !b.type) continue;
 
-        const def = BUILDINGS[b.type];
-        if (!def) continue;
+            const def = BUILDINGS[b.type];
+            if (!def) continue;
 
-        if (def.power < 0) {
-            const eff = getTilePowerEfficiency(x, y);
-            if (eff <= 0) continue;
-            const pDt = dt * eff;
+            if (def.power < 0) {
+                const eff = getTilePowerEfficiency(x, y);
+                if (eff <= 0) continue;
+                const pDt = dt * eff;
 
-            if (['miner', 'heavy_drill', 'laser_miner', 'omega_extractor'].includes(b.type)) {
-                updateMiner(x, y, b, pDt * mineMult);
-            } else if (b.type === 'water_pump') {
-                updateWaterPump(x, y, b, pDt * mineMult);
-            } else if (b.type === 'pumpjack') {
-                updatePumpjack(x, y, b, pDt * mineMult);
-            } else if (['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge', 'refinery', 'chem_plant', 'assembler', 'cnc_fab', 'semicon_fab', 'quantum_collider'].includes(b.type)) {
-                updateCrafter(x, y, b, pDt * smeltMult);
-            } else if (b.type === 'compressor') {
-                updateCompressor(x, y, b, pDt * smeltMult, 10);
-            } else if (b.type === 'hyper_compressor') {
-                updateCompressor(x, y, b, pDt * smeltMult, 100);
-            } else if (b.type === 'decompressor') {
-                updateDecompressor(x, y, b, pDt * smeltMult);
-            } else if (b.type === 'buffer_silo') {
-                updateBufferSilo(x, y, b);
-            } else if (b.type === 'hub_extractor') {
-                updateHubExtractor(x, y, b, pDt * beltMult, false);
-            } else if (b.type === 'quantum_extractor') {
-                updateHubExtractor(x, y, b, pDt * beltMult, true);
-            } else if (b.type === 'lab') {
-                updateLab(x, y, b, pDt);
+                if (['miner', 'heavy_drill', 'laser_miner', 'omega_extractor'].includes(b.type)) {
+                    updateMiner(x, y, b, pDt * mineMult);
+                } else if (b.type === 'water_pump') {
+                    updateWaterPump(x, y, b, pDt * mineMult);
+                } else if (b.type === 'pumpjack') {
+                    updatePumpjack(x, y, b, pDt * mineMult);
+                } else if (['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge', 'refinery', 'chem_plant', 'assembler', 'cnc_fab', 'semicon_fab', 'quantum_collider'].includes(b.type)) {
+                    updateCrafter(x, y, b, pDt * smeltMult);
+                } else if (b.type === 'compressor') {
+                    updateCompressor(x, y, b, pDt * smeltMult, 10);
+                } else if (b.type === 'hyper_compressor') {
+                    updateCompressor(x, y, b, pDt * smeltMult, 100);
+                } else if (b.type === 'decompressor') {
+                    updateDecompressor(x, y, b, pDt * smeltMult);
+                } else if (b.type === 'buffer_silo') {
+                    updateBufferSilo(x, y, b);
+                } else if (b.type === 'hub_extractor') {
+                    updateHubExtractor(x, y, b, pDt * beltMult, false);
+                } else if (b.type === 'quantum_extractor') {
+                    updateHubExtractor(x, y, b, pDt * beltMult, true);
+                } else if (b.type === 'lab') {
+                    updateLab(x, y, b, pDt);
+                }
             }
+        } catch (e) {
+            console.warn(`Machine simulation error at ${k}:`, e);
         }
     }
 }
@@ -2722,18 +2744,22 @@ function drawGame(timestamp) {
         // 3. Central 2x2 HUB
         drawHubBuilding(HUB_X * TILE_PX, HUB_Y * TILE_PX, timestamp);
 
-        // 4. Items Moving on Belts
+        // 4. Items Moving on Belts (個別エラーガード付き)
         for (let y = startY; y <= endY; y++) {
             for (let x = startX; x <= endX; x++) {
-                const b = getBuilding(x, y);
-                if (!b || !b.item) continue;
-                const dirIdx = typeof b.dir === 'number' ? (b.dir % 4 + 4) % 4 : 0;
-                const d = DIRS[dirIdx] || DIRS[0];
-                const progress = typeof b.progress === 'number' && !isNaN(b.progress) ? b.progress : 0;
-                const offset = (progress - 0.5) * TILE_PX * 0.85;
-                const ix = x * TILE_PX + TILE_PX / 2 + d.dx * offset;
-                const iy = y * TILE_PX + TILE_PX / 2 + d.dy * offset;
-                drawItemIcon(ix, iy, b.item, 9.5);
+                try {
+                    const b = getBuilding(x, y);
+                    if (!b || !b.item) continue;
+                    const dirIdx = typeof b.dir === 'number' && !isNaN(b.dir) ? (b.dir % 4 + 4) % 4 : 0;
+                    const d = DIRS[dirIdx] || DIRS[0];
+                    const progress = typeof b.progress === 'number' && !isNaN(b.progress) ? b.progress : 0;
+                    const offset = (progress - 0.5) * TILE_PX * 0.85;
+                    const ix = x * TILE_PX + TILE_PX / 2 + d.dx * offset;
+                    const iy = y * TILE_PX + TILE_PX / 2 + d.dy * offset;
+                    drawItemIcon(ix, iy, b.item, 9.5);
+                } catch (e) {
+                    // Item render skip on corrupted tile
+                }
             }
         }
 
@@ -4676,9 +4702,17 @@ function applyLoadedSaveObject(data) {
         if (!gameState.autoSell) gameState.autoSell = {};
         if (!gameState.craftedMachines) gameState.craftedMachines = {};
 
+        // アップグレード値の徹底サニタイズ（NaN防止）
         if (!gameState.upgrades) {
             gameState.upgrades = { mining_speed: 0, smelt_speed: 0, belt_speed: 0, power_output: 0, market_value: 0, lab_efficiency: 0 };
+        } else {
+            for (const k of ['mining_speed', 'smelt_speed', 'belt_speed', 'power_output', 'market_value', 'lab_efficiency']) {
+                if (typeof gameState.upgrades[k] !== 'number' || isNaN(gameState.upgrades[k])) {
+                    gameState.upgrades[k] = 0;
+                }
+            }
         }
+
         if (!gameState.discoveredItems) {
             gameState.discoveredItems = { iron_ore: true, copper_ore: true, coal: true, stone: true, water_drum: true, biomass: true };
         }
@@ -4692,32 +4726,38 @@ function applyLoadedSaveObject(data) {
         placeHubTiles();
         for (const entry of data.sparseBuildings) {
             if (!Array.isArray(entry) || entry.length < 3) continue;
-            const x = entry[0];
-            const y = entry[1];
+            const x = Number(entry[0]);
+            const y = Number(entry[1]);
             const rawB = entry[2];
 
-            if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE && rawB) {
+            if (!isNaN(x) && !isNaN(y) && x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE && rawB) {
                 const bType = rawB.t !== undefined ? rawB.t : rawB.type;
                 if (!bType || !BUILDINGS[bType]) continue; // Validate machine definition exists!
 
+                const rawDir = typeof (rawB.d !== undefined ? rawB.d : rawB.dir) === 'number' ? (rawB.d !== undefined ? rawB.d : rawB.dir) : 0;
+                const rawProg = typeof (rawB.p !== undefined ? rawB.p : rawB.progress) === 'number' ? (rawB.p !== undefined ? rawB.p : rawB.progress) : 0;
+                const rawFuel = typeof (rawB.ft !== undefined ? rawB.ft : rawB.fuelTimer) === 'number' ? (rawB.ft !== undefined ? rawB.ft : rawB.fuelTimer) : 0;
+                const rawWater = typeof (rawB.wt !== undefined ? rawB.wt : rawB.waterBonusTimer) === 'number' ? (rawB.wt !== undefined ? rawB.wt : rawB.waterBonusTimer) : 0;
+                const rawUnpackQ = typeof (rawB.uq !== undefined ? rawB.uq : rawB.unpackQueue) === 'number' ? (rawB.uq !== undefined ? rawB.uq : rawB.unpackQueue) : 0;
+                const rawBat = typeof (rawB.bc !== undefined ? rawB.bc : rawB.batteryCharge) === 'number' ? (rawB.bc !== undefined ? rawB.bc : rawB.batteryCharge) : 0;
+
                 let bObj = {
                     type: bType,
-                    dir: Math.max(0, Math.min(3, typeof (rawB.d !== undefined ? rawB.d : rawB.dir) === 'number' ? (rawB.d !== undefined ? rawB.d : rawB.dir) : 0)),
+                    dir: Math.max(0, Math.min(3, isNaN(rawDir) ? 0 : rawDir)),
                     item: rawB.i || rawB.item || null,
-                    progress: Math.max(0, Math.min(1, typeof (rawB.p !== undefined ? rawB.p : rawB.progress) === 'number' && !isNaN(rawB.p !== undefined ? rawB.p : rawB.progress) ? (rawB.p !== undefined ? rawB.p : rawB.progress) : 0)),
-                    inputBuffer: rawB.ib || rawB.inputBuffer || {},
+                    progress: isNaN(rawProg) ? 0 : Math.max(0, Math.min(1, rawProg)),
+                    inputBuffer: (rawB.ib || rawB.inputBuffer) && typeof (rawB.ib || rawB.inputBuffer) === 'object' ? (rawB.ib || rawB.inputBuffer) : {},
                     outputItem: rawB.o || rawB.outputItem || null,
                     recipe: rawB.r || rawB.recipe || (gameState.selectedRecipe && gameState.selectedRecipe[bType]) || null,
                     filterItem: rawB.f || rawB.filterItem || gameState.selectedFilter || 'iron_plate',
-                    fuelTimer: typeof (rawB.ft !== undefined ? rawB.ft : rawB.fuelTimer) === 'number' ? (rawB.ft !== undefined ? rawB.ft : rawB.fuelTimer) : 0,
-                    waterBonusTimer: typeof (rawB.wt !== undefined ? rawB.wt : rawB.waterBonusTimer) === 'number' ? (rawB.wt !== undefined ? rawB.wt : rawB.waterBonusTimer) : 0,
+                    fuelTimer: isNaN(rawFuel) ? 0 : Math.max(0, rawFuel),
+                    waterBonusTimer: isNaN(rawWater) ? 0 : Math.max(0, rawWater),
                     compressTarget: rawB.ct || rawB.compressTarget || null,
                     unpackItem: rawB.ui || rawB.unpackItem || null,
-                    unpackQueue: typeof (rawB.uq !== undefined ? rawB.uq : rawB.unpackQueue) === 'number' ? (rawB.uq !== undefined ? rawB.uq : rawB.unpackQueue) : 0,
-                    batteryCharge: typeof (rawB.bc !== undefined ? rawB.bc : rawB.batteryCharge) === 'number' ? (rawB.bc !== undefined ? rawB.bc : rawB.batteryCharge) : 0
+                    unpackQueue: isNaN(rawUnpackQ) ? 0 : Math.max(0, rawUnpackQ),
+                    batteryCharge: isNaN(rawBat) ? 0 : Math.max(0, rawBat)
                 };
                 setBuilding(x, y, bObj);
-                registerBuildingInHash(x, y, bObj);
             }
         }
         rebuildSpatialHashes();
