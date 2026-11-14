@@ -866,6 +866,19 @@ const RECIPES = {
 };
 
 // --- 4. ALL 46 BUILDINGS (REBALANCED POWER OUTPUTS!) ---
+// 鉱石の種類に応じた消費電力倍率（高級・硬質鉱石ほど大電力が必要）
+const ORE_POWER_MULT = {
+    iron_ore: 1.0, copper_ore: 1.0, coal: 1.0, stone: 1.0, biomass: 1.0, limestone: 1.1,
+    quartz: 1.2, rubber_sap: 1.2, bauxite: 1.3, gold_ore: 1.4, sulfur: 1.4,
+    lithium: 1.5, cobalt_ore: 1.6, fluorite: 1.6, crude_oil: 1.5, natural_gas: 1.5,
+    tungsten_ore: 2.0, titanium_ore: 2.2, rare_earth: 2.5, uranium_ore: 3.0,
+    helium3: 2.8, iridium_ore: 3.2, dark_matter: 3.8, neutronium_ore: 4.5
+};
+
+function getOrePowerMult(resType) {
+    return ORE_POWER_MULT[resType] || 1.0;
+}
+
 const BUILDINGS = {
     // 1. Logistics & HUB Withdrawal (10)
     belt: {
@@ -926,19 +939,19 @@ const BUILDINGS = {
     // 3. Mining, Extraction & Compression (10)
     miner: {
         id: 'miner', name: '電動採掘機', cat: 'mining', cost: 80, power: -25, icon: 'fa-bore-hole', color: '#f59e0b', tier: 1,
-        desc: '鉱床の上で自動採掘（送電網接続が必要 / -25kW）'
+        desc: '鉱床の上で自動採掘（鉱石の種類で消費電力変動 / 基本-25kW）'
     },
     heavy_drill: {
         id: 'heavy_drill', name: '大型重採掘ドリル', cat: 'mining', cost: 0, craftMats: { steel: 3, gear: 4, motor: 1 }, power: -65, icon: 'fa-hammer', color: '#fb923c', tier: 3,
-        desc: '【TIER 3 製作】2.2倍速で鉱石を大量採掘 (-65kW)'
+        desc: '【TIER 3 製作】2.2倍速で鉱石を大量採掘（鉱石で電力変動 / 基本-65kW）'
     },
     laser_miner: {
         id: 'laser_miner', name: 'レーザー深層採掘機', cat: 'mining', cost: 0, craftMats: { cnc_frame: 2, glass: 3, adv_processor: 1 }, power: -140, icon: 'fa-crosshairs', color: '#f43f5e', tier: 6,
-        desc: '【TIER 6 製作】3.6倍速で超高速採掘 (-140kW)'
+        desc: '【TIER 6 製作】3.6倍速で超高速採掘（鉱石で電力変動 / 基本-140kW）'
     },
     omega_extractor: {
         id: 'omega_extractor', name: '軌道プラズマ採掘機', cat: 'mining', cost: 0, craftMats: { iridium_alloy: 4, quantum_chip: 2, superconductor: 2 }, power: -320, icon: 'fa-satellite-dish', color: '#c084fc', tier: 10,
-        desc: '【TIER 10 製作】7.5倍速の圧倒的速度で鉱脈を掘り尽くす究極採掘機 (-320kW)'
+        desc: '【TIER 10 製作】7.5倍速で掘り尽くす究極採掘機（鉱石で電力変動 / 基本-320kW）'
     },
     water_pump: {
         id: 'water_pump', name: '揚水ポンプ(冷却水)', cat: 'mining', cost: 60, power: -15, icon: 'fa-water', color: '#38bdf8', tier: 1,
@@ -967,8 +980,8 @@ const BUILDINGS = {
 
     // 4. Power Generation & Storage (10) - REBALANCED OUTPUTS (No longer overpowered!)
     wind_turbine: {
-        id: 'wind_turbine', name: '小型風力発電機', cat: 'power', cost: 110, power: 15, icon: 'fa-fan', color: '#10b981', tier: 1,
-        desc: '燃料不要の補助発電機 (+15kW)。2台建てるか火力発電と併用しよう！'
+        id: 'wind_turbine', name: '小型風力発電機', cat: 'power', cost: 140, power: 5, icon: 'fa-fan', color: '#10b981', tier: 1,
+        desc: '燃料不要の極微小補助発電機 (+5kW)。風力だけに依存せず、早期に火力発電所を建てるのが鍵！'
     },
     coal_gen: {
         id: 'coal_gen', name: '火力発電機', cat: 'power', cost: 160, power: 65, icon: 'fa-fire-flame-curved', color: '#f97316', tier: 1,
@@ -1076,57 +1089,57 @@ const BUILDINGS = {
     }
 };
 
-// --- 5. CAPITAL INVESTMENTS (ALL PRICES MULTIPLIED BY 10x!) ---
+// --- 5. CAPITAL INVESTMENTS (SUPER-EXPONENTIAL PRICE ESCALATION!) ---
 const CAPITAL_UPGRADES = {
     mining_speed: {
         id: 'mining_speed', name: '採掘・抽出ドリル出力強化', icon: 'fa-bore-hole', color: '#f59e0b',
-        baseCost: 3000, costMult: 1.85, maxLv: 15, bonusPerLv: 0.20,
+        baseCost: 5000, costMult: 3.8, maxLv: 15, bonusPerLv: 0.20,
         desc: '全採掘機・ポンプジャックの採掘スピードが1レベルごとに +20% 上昇！'
     },
     smelt_speed: {
         id: 'smelt_speed', name: '精錬・加工プラント高速化', icon: 'fa-industry', color: '#3b82f6',
-        baseCost: 3500, costMult: 1.85, maxLv: 15, bonusPerLv: 0.20,
+        baseCost: 6000, costMult: 3.8, maxLv: 15, bonusPerLv: 0.20,
         desc: '全溶鉱炉・組立機・化学プラント等の製造スピードが1レベルごとに +20% 上昇！'
     },
     belt_speed: {
         id: 'belt_speed', name: 'コンベア磁気ベアリング強化', icon: 'fa-angles-up', color: '#eab308',
-        baseCost: 2800, costMult: 1.8, maxLv: 12, bonusPerLv: 0.15,
+        baseCost: 4500, costMult: 3.5, maxLv: 12, bonusPerLv: 0.15,
         desc: '全コンベア・分配器・引出ポートの輸送スピードが1レベルごとに +15% 上昇！'
     },
     power_output: {
         id: 'power_output', name: '発電タービン超電導化', icon: 'fa-bolt', color: '#10b981',
-        baseCost: 4000, costMult: 1.9, maxLv: 15, bonusPerLv: 0.10,
+        baseCost: 7500, costMult: 4.2, maxLv: 15, bonusPerLv: 0.10,
         desc: 'すべての発電機の発電出力(kW)と電柱容量上限が1レベルごとに +10% 上昇！'
     },
     market_value: {
         id: 'market_value', name: '惑星間貿易関税優遇', icon: 'fa-sack-dollar', color: '#facc15',
-        baseCost: 5000, costMult: 2.0, maxLv: 15, bonusPerLv: 0.15,
+        baseCost: 8500, costMult: 4.5, maxLv: 15, bonusPerLv: 0.15,
         desc: 'HUBおよび換金用Hubでの全アイテム売却価格が1レベルごとに +15% 上昇！'
     },
     lab_efficiency: {
         id: 'lab_efficiency', name: '量子ラボ解析ブースト', icon: 'fa-flask', color: '#ec4899',
-        baseCost: 4500, costMult: 1.95, maxLv: 12, bonusPerLv: 0.25,
+        baseCost: 8000, costMult: 4.0, maxLv: 12, bonusPerLv: 0.25,
         desc: 'ラボでのサイエンスパック解析速度と獲得RPが1レベルごとに +25% 上昇！'
     }
 };
 
-// --- 6. 15-STAGE TECH TREE ---
+// --- 6. 15-STAGE TECH TREE (RP COST MULTIPLIED BY ~250x!) ---
 const TECH_TIERS = [
     { tier: 1, title: '① 基礎物流と保存用追加Hub (TIER 2 解放)', money: 220, rp: 0, mats: { iron_plate: 10, copper_plate: 10 }, unlocks: '保存用追加Hub / 高速コンベア / フィルター仕分機 / 高密度圧縮機(10倍) / 圧縮解凍機 / 鉄製中圧電柱 / 鋼材・電子基板' },
-    { tier: 2, title: '② 流体資源と重工業プラント (TIER 3 解放)', money: 550, rp: 12, mats: { brick: 20, steel: 10 }, unlocks: '大型重採掘ドリル / ポンプジャック / 石油精製塔 / 化学プラント / 高炉合金炉 / ソーラー・重油タービン' },
-    { tier: 3, title: '③ 換金用追加Hubと高圧変電所 (TIER 4 解放)', money: 1300, rp: 35, mats: { steel: 20, circuit: 15, water_drum: 10 }, unlocks: '換金用追加Hub(+25%売却) / 高圧変電所(3,500kW) / 超高速コンベア / 大型風力 / 精密CNC加工機 / アルミ・金' },
-    { tier: 4, title: '④ リチウム電池とシリコン半導体 (TIER 5 解放)', money: 2600, rp: 75, mats: { aluminum: 20, gold_ingot: 10, motor: 10 }, unlocks: '大容量蓄電池 / 高効率ソーラー / 電気アーク炉 / シリコンウエハー / コバルト合金 / 高密度バッテリー / 青サイエンス' },
-    { tier: 5, title: '⑤ 遠隔ワープ引出ポートと100倍超圧縮 (TIER 6 解放)', money: 5000, rp: 135, mats: { silicon_wafer: 20, battery: 15, sci_blue: 10 }, unlocks: '遠隔ワープ引出ポート / 超高密度圧縮機(100倍) / レーザー深層採掘機 / 半導体ファブ / チタン合金・グラフェン' },
-    { tier: 6, title: '⑥ タングステン超硬合金と自律AI (TIER 7 解放)', money: 8800, rp: 210, mats: { cnc_frame: 15, titanium_alloy: 15, adv_processor: 10 }, unlocks: 'タングステン鋼 / カーボンナノ管 / 自律AIコア' },
-    { tier: 7, title: '⑦ 統合オムニHubと原子力・超電導網 (TIER 8 解放)', money: 15000, rp: 320, mats: { tungsten_carb: 15, carbon_nano: 10, ai_core: 5 }, unlocks: '統合オムニHub(+50%換金・発電) / 原子力発電機 / 超電導送電塔 / リニア超電導コンベア / 核燃料棒 / 紫サイエンス' },
-    { tier: 8, title: '⑧ 量子テレポーターと量子チップ (TIER 9 解放)', money: 24000, rp: 480, mats: { superconductor: 15, sci_purple: 15, nuclear_rod: 10 }, unlocks: '量子テレポーター / 量子チップ / ロケット燃料' },
-    { tier: 9, title: '⑨ 核融合エネルギー炉と軌道プラズマ採掘 (TIER 10 解放)', money: 38000, rp: 680, mats: { quantum_chip: 15, iridium_alloy: 10, fusion_cell: 10 }, unlocks: '核融合リアクター(+3,200kW) / 軌道プラズマ採掘機 / イリジウム超合金 / 重水素融合セル' },
-    { tier: 10, title: '⑩ ダイソン球メガストラクチャー (TIER 11 解放)', money: 56000, rp: 940, mats: { dyson_part: 10, sci_gold: 15, rocket_fuel: 15 }, unlocks: '軌道マイクロ波送電塔 / ダイソン球フレーム / 金サイエンス' },
-    { tier: 11, title: '⑪ 反物質対消滅炉と超高温プラズマ炉 (TIER 12 解放)', money: 85000, rp: 1350, mats: { dyson_part: 15, antimatter_cell: 10, sci_gold: 20 }, unlocks: '反物質対消滅炉(+12,000kW) / 超高温プラズマ炉 / 反物質カプセル' },
-    { tier: 12, title: '⑫ 量子コライダーと特異点工学 (TIER 13 解放)', money: 130000, rp: 1900, mats: { neutron_plate: 15, singularity_core: 5, sci_white: 10 }, unlocks: '量子コライダー加速器 / 縮退ニュートロン板 / 特異点コア / 白オメガサイエンス' },
-    { tier: 13, title: '⑬ オメガ銀河キューブ創成 (TIER 14 解放)', money: 200000, rp: 2700, mats: { singularity_core: 10, omega_matrix: 2, sci_white: 20 }, unlocks: 'オメガ銀河キューブ製造解放' },
-    { tier: 14, title: '⑭ 惑星間ワープゲート計画 (TIER 15 解放)', money: 320000, rp: 3800, mats: { omega_matrix: 5, sci_white: 50 }, unlocks: '全施設オーバークロック極限解放' },
-    { tier: 15, title: '⑮ オメガスケール完全制覇', money: 500000, rp: 5500, mats: {}, unlocks: '2000×2000 銀河開拓マスター称号' }
+    { tier: 2, title: '② 流体資源と重工業プラント (TIER 3 解放)', money: 550, rp: 3000, mats: { brick: 20, steel: 10 }, unlocks: '大型重採掘ドリル / ポンプジャック / 石油精製塔 / 化学プラント / 高炉合金炉 / ソーラー・重油タービン' },
+    { tier: 3, title: '③ 換金用追加Hubと高圧変電所 (TIER 4 解放)', money: 1300, rp: 8750, mats: { steel: 20, circuit: 15, water_drum: 10 }, unlocks: '換金用追加Hub(+25%売却) / 高圧変電所(3,500kW) / 超高速コンベア / 大型風力 / 精密CNC加工機 / アルミ・金' },
+    { tier: 4, title: '④ リチウム電池とシリコン半導体 (TIER 5 解放)', money: 2600, rp: 18750, mats: { aluminum: 20, gold_ingot: 10, motor: 10 }, unlocks: '大容量蓄電池 / 高効率ソーラー / 電気アーク炉 / シリコンウエハー / コバルト合金 / 高密度バッテリー / 青サイエンス' },
+    { tier: 5, title: '⑤ 遠隔ワープ引出ポートと100倍超圧縮 (TIER 6 解放)', money: 5000, rp: 33750, mats: { silicon_wafer: 20, battery: 15, sci_blue: 10 }, unlocks: '遠隔ワープ引出ポート / 超高密度圧縮機(100倍) / レーザー深層採掘機 / 半導体ファブ / チタン合金・グラフェン' },
+    { tier: 6, title: '⑥ タングステン超硬合金と自律AI (TIER 7 解放)', money: 8800, rp: 52500, mats: { cnc_frame: 15, titanium_alloy: 15, adv_processor: 10 }, unlocks: 'タングステン鋼 / カーボンナノ管 / 自律AIコア' },
+    { tier: 7, title: '⑦ 統合オムニHubと原子力・超電導網 (TIER 8 解放)', money: 15000, rp: 80000, mats: { tungsten_carb: 15, carbon_nano: 10, ai_core: 5 }, unlocks: '統合オムニHub(+50%換金・発電) / 原子力発電機 / 超電導送電塔 / リニア超電導コンベア / 核燃料棒 / 紫サイエンス' },
+    { tier: 8, title: '⑧ 量子テレポーターと量子チップ (TIER 9 解放)', money: 24000, rp: 120000, mats: { superconductor: 15, sci_purple: 15, nuclear_rod: 10 }, unlocks: '量子テレポーター / 量子チップ / ロケット燃料' },
+    { tier: 9, title: '⑨ 核融合エネルギー炉と軌道プラズマ採掘 (TIER 10 解放)', money: 38000, rp: 170000, mats: { quantum_chip: 15, iridium_alloy: 10, fusion_cell: 10 }, unlocks: '核融合リアクター(+3,200kW) / 軌道プラズマ採掘機 / イリジウム超合金 / 重水素融合セル' },
+    { tier: 10, title: '⑩ ダイソン球メガストラクチャー (TIER 11 解放)', money: 56000, rp: 235000, mats: { dyson_part: 10, sci_gold: 15, rocket_fuel: 15 }, unlocks: '軌道マイクロ波送電塔 / ダイソン球フレーム / 金サイエンス' },
+    { tier: 11, title: '⑪ 反物質対消滅炉と超高温プラズマ炉 (TIER 12 解放)', money: 85000, rp: 337500, mats: { dyson_part: 15, antimatter_cell: 10, sci_gold: 20 }, unlocks: '反物質対消滅炉(+12,000kW) / 超高温プラズマ炉 / 反物質カプセル' },
+    { tier: 12, title: '⑫ 量子コライダーと特異点工学 (TIER 13 解放)', money: 130000, rp: 475000, mats: { neutron_plate: 15, singularity_core: 5, sci_white: 10 }, unlocks: '量子コライダー加速器 / 縮退ニュートロン板 / 特異点コア / 白オメガサイエンス' },
+    { tier: 13, title: '⑬ オメガ銀河キューブ創成 (TIER 14 解放)', money: 200000, rp: 675000, mats: { singularity_core: 10, omega_matrix: 2, sci_white: 20 }, unlocks: 'オメガ銀河キューブ製造解放' },
+    { tier: 14, title: '⑭ 惑星間ワープゲート計画 (TIER 15 解放)', money: 320000, rp: 950000, mats: { omega_matrix: 5, sci_white: 50 }, unlocks: '全施設オーバークロック極限解放' },
+    { tier: 15, title: '⑮ オメガスケール完全制覇', money: 500000, rp: 1375000, mats: {}, unlocks: '2000×2000 銀河開拓マスター称号' }
 ];
 
 // --- 7. 8-STEP KIND TUTORIAL (INCLUDES RP EARNING TUTORIAL!) ---
@@ -1915,7 +1928,15 @@ function updatePowerNetworks(dt) {
             if (def.power < 0) {
                 const isWorking = (b.progress > 0 || b.outputItem !== null || b.item !== null || ['water_pump', 'storage_hub', 'trade_hub', 'hub_extractor', 'quantum_extractor'].includes(b.type));
                 const factor = isWorking ? 1.0 : 0.25;
-                demand += Math.ceil(Math.abs(def.power) * factor);
+                let baseKw = Math.abs(def.power);
+
+                // 採掘機の場合、対象の鉱石の種類に応じて消費電力が変動！
+                if (['miner', 'heavy_drill', 'laser_miner', 'omega_extractor'].includes(b.type)) {
+                    const oreType = getResourceAt(dev.x, dev.y);
+                    if (oreType) baseKw *= getOrePowerMult(oreType);
+                }
+
+                demand += Math.ceil(baseKw * factor);
             } else if (def.power > 0) {
                 if (b.type === 'wind_turbine' || b.type === 'large_wind' || b.type === 'omni_hub') {
                     rawSupply += Math.round(def.power * pwrMult);
@@ -2893,17 +2914,33 @@ function drawResourceTile(px, py, resType) {
         ctx.strokeStyle = item.border;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.ellipse(px + 25, py + 25, 16, 11, 0.3, 0, Math.PI * 2);
+        ctx.ellipse(px + 25, py + 21, 15, 10, 0.3, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
     } else {
         ctx.fillStyle = item.color;
         ctx.strokeStyle = item.border;
         ctx.lineWidth = 1.4;
-        const pts = [[14, 15, 4.8], [34, 17, 4.3], [21, 33, 5.6], [36, 35, 4.0]];
+        const pts = [[14, 13, 4.8], [34, 15, 4.3], [21, 28, 5.2], [36, 30, 4.0]];
         for (const [ox, oy, r] of pts) {
             ctx.beginPath(); ctx.arc(px + ox, py + oy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         }
+    }
+
+    // 掘らなくても何鉱石か軽く表示するテキストラベル（スタイリッシュな軽量UI）
+    if (camera.zoom > 0.42) {
+        ctx.font = '800 8.5px "M PLUS Rounded 1c", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const labelText = item.name;
+        const textWidth = ctx.measureText(labelText).width;
+        
+        ctx.fillStyle = 'rgba(3, 7, 18, 0.75)';
+        ctx.fillRect(px + 25 - textWidth / 2 - 2, py + 36, textWidth + 4, 11);
+        
+        ctx.fillStyle = item.color;
+        ctx.fillText(labelText, px + 25, py + 41.5);
     }
     ctx.restore();
 }
@@ -3206,12 +3243,28 @@ function openWideMap() {
     renderBookmarkList();
 }
 
+function removeMapBookmark(index) {
+    if (index >= 0 && index < gameState.bookmarks.length) {
+        const removed = gameState.bookmarks.splice(index, 1)[0];
+        renderBookmarkList();
+        showToast(`ピン「${removed.name}」を削除しました`, 'amber');
+        saveGameData(true);
+    }
+}
+
 function renderBookmarkList() {
     const list = document.getElementById('bookmark-list');
-    list.innerHTML = gameState.bookmarks.map((bm) => `
-        <button onclick="jumpToCoord(${bm.x}, ${bm.y}); closeModal('wideMapModal');" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-cyan-300 text-[10px] font-bold px-2.5 py-1 rounded-xl flex items-center gap-1">
-            <i class="fas fa-map-marker-alt text-rose-400"></i> ${bm.name} (${bm.x},${bm.y})
-        </button>
+    list.innerHTML = gameState.bookmarks.map((bm, idx) => `
+        <div class="inline-flex items-center bg-slate-800 border border-slate-600 rounded-xl overflow-hidden text-[10px] font-bold">
+            <button onclick="jumpToCoord(${bm.x}, ${bm.y}); closeModal('wideMapModal');" class="hover:bg-slate-700 text-cyan-300 px-2.5 py-1 flex items-center gap-1">
+                <i class="fas fa-map-marker-alt text-rose-400"></i> ${bm.name} (${bm.x},${bm.y})
+            </button>
+            ${gameState.bookmarks.length > 1 ? `
+                <button onclick="removeMapBookmark(${idx})" class="hover:bg-rose-900 text-rose-400 px-1.5 py-1 border-l border-slate-700" title="ピンを削除">
+                    <i class="fas fa-times"></i>
+                </button>
+            ` : ''}
+        </div>
     `).join('');
 }
 
@@ -4428,7 +4481,8 @@ function renderTechModal() {
         const matBadges = (t.mats && Object.keys(t.mats).length > 0) ? Object.entries(t.mats).map(([mid, req]) => {
             const have = gameState.inventory[mid] || 0;
             const ok = have >= req;
-            const itemName = getItemDisplayName(mid);
+            // 研究に必要な素材は名前だけわかるように表示（未発見でも名前を表示）
+            const itemName = BASE_ITEMS[mid]?.name || mid;
             return `<span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${
                 ok ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300' : 'bg-rose-950/80 border-rose-500/50 text-rose-300'
             }">${itemName}: ${have}/${req}</span>`;
