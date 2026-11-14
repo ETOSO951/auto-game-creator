@@ -1553,17 +1553,18 @@ async function startGame(loadSave) {
         resetStateToFresh(tutEnabled);
         placeHubTiles();
         rebuildPowerNetworks();
+        resetCamera();
         saveGameData(true);
     }
 
     document.getElementById('title-screen').classList.add('hidden');
     document.getElementById('game-container').classList.remove('hidden');
 
-    resetCamera();
     setBuildCategory(gameState.activeCat);
     updateContextPanel();
     updateTutorialUI();
     updateHUD();
+    drawMinimap();
 
     lastTime = performance.now();
     if (!isGameLoopRunning) {
@@ -1722,97 +1723,107 @@ function rebuildPowerNetworks() {
     tileNetworkMap.clear();
     powerWires = [];
 
-    const poles = [];
-    const devices = [];
-    const powerMult = getUpgradeMult('power_output');
+    try {
+        const poles = [];
+        const devices = [];
+        const powerMult = getUpgradeMult('power_output');
 
-    for (const k of powerNodeKeys) {
-        const [x, y] = k.split(',').map(Number);
-        const b = getBuilding(x, y);
-        if (!b) continue;
-        const def = BUILDINGS[b.type];
-        if (!def) continue;
-        if (def.poleRange) {
-            poles.push({ x, y, k, range: def.poleRange, maxCap: Math.round(def.maxCap * powerMult), lossRate: def.lossRate, b, def });
+        // Cleanup invalid keys
+        const invalidKeys = [];
+        for (const k of powerNodeKeys) {
+            const [x, y] = k.split(',').map(Number);
+            if (isNaN(x) || isNaN(y)) { invalidKeys.push(k); continue; }
+            const b = getBuilding(x, y);
+            if (!b || !b.type) { invalidKeys.push(k); continue; }
+            const def = BUILDINGS[b.type];
+            if (!def) { invalidKeys.push(k); continue; }
+
+            if (def.poleRange) {
+                const maxCap = Math.round((def.maxCap || 100) * powerMult);
+                poles.push({ x, y, k, range: def.poleRange, maxCap, lossRate: def.lossRate || 0, b, def });
+            }
+            if (def.power !== 0 || b.type === 'battery_bank') {
+                devices.push({ x, y, k, b, def });
+            }
         }
-        if (def.power !== 0 || b.type === 'battery_bank') {
-            devices.push({ x, y, k, b, def });
-        }
-    }
+        for (const ik of invalidKeys) powerNodeKeys.delete(ik);
 
-    const visitedPoles = new Set();
-    let netCounter = 1;
+        const visitedPoles = new Set();
+        let netCounter = 1;
 
-    for (const p of poles) {
-        if (visitedPoles.has(p.k)) continue;
+        for (const p of poles) {
+            if (visitedPoles.has(p.k)) continue;
 
-        const compPoles = [];
-        const queue = [p];
-        visitedPoles.add(p.k);
+            const compPoles = [];
+            const queue = [p];
+            visitedPoles.add(p.k);
 
-        while (queue.length > 0) {
-            const curr = queue.shift();
-            compPoles.push(curr);
+            while (queue.length > 0) {
+                const curr = queue.shift();
+                compPoles.push(curr);
 
-            for (const other of poles) {
-                if (curr.k === other.k) continue;
-                const dist = Math.max(Math.abs(curr.x - other.x), Math.abs(curr.y - other.y));
-                const maxLink = Math.max(curr.range, other.range) + 2;
-                if (dist <= maxLink) {
-                    if (curr.k < other.k) {
-                        powerWires.push([curr.x, curr.y, other.x, other.y, netCounter]);
-                    }
-                    if (!visitedPoles.has(other.k)) {
-                        visitedPoles.add(other.k);
-                        queue.push(other);
+                for (const other of poles) {
+                    if (curr.k === other.k) continue;
+                    const dist = Math.max(Math.abs(curr.x - other.x), Math.abs(curr.y - other.y));
+                    const maxLink = Math.max(curr.range, other.range) + 2;
+                    if (dist <= maxLink) {
+                        if (curr.k < other.k) {
+                            powerWires.push([curr.x, curr.y, other.x, other.y, netCounter]);
+                        }
+                        if (!visitedPoles.has(other.k)) {
+                            visitedPoles.add(other.k);
+                            queue.push(other);
+                        }
                     }
                 }
             }
-        }
 
-        let totalPoleCap = 0;
-        let avgLoss = 0;
-        for (const cp of compPoles) {
-            totalPoleCap += cp.maxCap;
-            avgLoss += cp.lossRate;
-        }
-        avgLoss = compPoles.length > 0 ? avgLoss / compPoles.length : 0;
-
-        const net = {
-            id: netCounter++,
-            poles: compPoles,
-            devices: [],
-            supply: 0,
-            rawSupply: 0,
-            demand: 0,
-            maxCapacity: totalPoleCap,
-            lossRate: avgLoss,
-            overloaded: false,
-            blackout: false,
-            efficiency: 1.0,
-            batteryStored: 0,
-            batteryCount: 0
-        };
-
-        for (const cp of compPoles) {
-            tileNetworkMap.set(cp.k, net.id);
-        }
-
-        for (const dev of devices) {
+            let totalPoleCap = 0;
+            let avgLoss = 0;
             for (const cp of compPoles) {
-                const dist = Math.max(Math.abs(dev.x - cp.x), Math.abs(dev.y - cp.y));
-                if (dist <= cp.range) {
-                    tileNetworkMap.set(dev.k, net.id);
-                    net.devices.push(dev);
-                    if (dev.k !== cp.k) {
-                        powerWires.push([cp.x, cp.y, dev.x, dev.y, net.id]);
+                totalPoleCap += cp.maxCap;
+                avgLoss += cp.lossRate;
+            }
+            avgLoss = compPoles.length > 0 ? avgLoss / compPoles.length : 0;
+
+            const net = {
+                id: netCounter++,
+                poles: compPoles,
+                devices: [],
+                supply: 0,
+                rawSupply: 0,
+                demand: 0,
+                maxCapacity: totalPoleCap,
+                lossRate: avgLoss,
+                overloaded: false,
+                blackout: false,
+                efficiency: 1.0,
+                batteryStored: 0,
+                batteryCount: 0
+            };
+
+            for (const cp of compPoles) {
+                tileNetworkMap.set(cp.k, net.id);
+            }
+
+            for (const dev of devices) {
+                for (const cp of compPoles) {
+                    const dist = Math.max(Math.abs(dev.x - cp.x), Math.abs(dev.y - cp.y));
+                    if (dist <= cp.range) {
+                        tileNetworkMap.set(dev.k, net.id);
+                        net.devices.push(dev);
+                        if (dev.k !== cp.k) {
+                            powerWires.push([cp.x, cp.y, dev.x, dev.y, net.id]);
+                        }
+                        break;
                     }
-                    break;
                 }
             }
-        }
 
-        powerNetworks.push(net);
+            powerNetworks.push(net);
+        }
+    } catch (err) {
+        console.error('rebuildPowerNetworks error guarded:', err);
     }
 }
 
@@ -4562,14 +4573,15 @@ function hasSaveData() {
 function buildSavePayload() {
     const sparseBuildings = [];
     for (const [k, b] of buildingsMap.entries()) {
-        if (b && b.type !== 'hub') {
+        if (b && b.type !== 'hub' && BUILDINGS[b.type]) {
             const [x, y] = k.split(',').map(Number);
             // Ultra-compact serialization to avoid LocalStorage / IndexedDB Quota Exceeded
-            const compact = { t: b.type, d: b.dir };
+            const compact = { t: b.type };
+            if (b.dir) compact.d = b.dir;
             if (b.item) compact.i = b.item;
             if (b.progress) compact.p = Math.round(b.progress * 100) / 100;
             if (b.recipe) compact.r = b.recipe;
-            if (b.filterItem) compact.f = b.filterItem;
+            if (b.filterItem && b.filterItem !== 'iron_plate') compact.f = b.filterItem;
             if (b.fuelTimer) compact.ft = Math.round(b.fuelTimer * 10) / 10;
             if (b.waterBonusTimer) compact.wt = Math.round(b.waterBonusTimer * 10) / 10;
             if (b.compressTarget) compact.ct = b.compressTarget;
@@ -4588,9 +4600,10 @@ function buildSavePayload() {
             sparseBuildings.push([x, y, compact]);
         }
     }
+    const stateCopy = { ...gameState, camX: camera.x, camY: camera.y, camZoom: camera.zoom };
     const now = new Date();
     const savedAt = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    return JSON.stringify({ gameState, sparseBuildings, savedAt });
+    return JSON.stringify({ gameState: stateCopy, sparseBuildings, savedAt });
 }
 
 function saveGameData(isAuto = false) {
@@ -4671,6 +4684,11 @@ function applyLoadedSaveObject(data) {
         }
         if (!gameState.discoveredBuildings) gameState.discoveredBuildings = {};
 
+        // Restore Camera Position if valid
+        if (typeof gameState.camX === 'number' && !isNaN(gameState.camX)) camera.x = gameState.camX;
+        if (typeof gameState.camY === 'number' && !isNaN(gameState.camY)) camera.y = gameState.camY;
+        if (typeof gameState.camZoom === 'number' && !isNaN(gameState.camZoom) && gameState.camZoom > 0) camera.zoom = gameState.camZoom;
+
         placeHubTiles();
         for (const entry of data.sparseBuildings) {
             if (!Array.isArray(entry) || entry.length < 3) continue;
@@ -4679,30 +4697,25 @@ function applyLoadedSaveObject(data) {
             const rawB = entry[2];
 
             if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE && rawB) {
-                let bObj;
-                if (rawB.t !== undefined) {
-                    bObj = {
-                        type: rawB.t,
-                        dir: typeof rawB.d === 'number' ? rawB.d : 0,
-                        item: rawB.i || null,
-                        progress: typeof rawB.p === 'number' && !isNaN(rawB.p) ? rawB.p : 0,
-                        inputBuffer: rawB.ib || {},
-                        outputItem: rawB.o || null,
-                        recipe: rawB.r || (gameState.selectedRecipe && gameState.selectedRecipe[rawB.t]) || null,
-                        filterItem: rawB.f || gameState.selectedFilter || 'iron_plate',
-                        fuelTimer: typeof rawB.ft === 'number' ? rawB.ft : 0,
-                        waterBonusTimer: typeof rawB.wt === 'number' ? rawB.wt : 0,
-                        compressTarget: rawB.ct || null,
-                        unpackItem: rawB.ui || null,
-                        unpackQueue: typeof rawB.uq === 'number' ? rawB.uq : 0,
-                        batteryCharge: typeof rawB.bc === 'number' ? rawB.bc : 0
-                    };
-                } else {
-                    bObj = rawB;
-                    if (!bObj.inputBuffer) bObj.inputBuffer = {};
-                    if (typeof bObj.dir !== 'number') bObj.dir = 0;
-                    if (typeof bObj.progress !== 'number' || isNaN(bObj.progress)) bObj.progress = 0;
-                }
+                const bType = rawB.t !== undefined ? rawB.t : rawB.type;
+                if (!bType || !BUILDINGS[bType]) continue; // Validate machine definition exists!
+
+                let bObj = {
+                    type: bType,
+                    dir: Math.max(0, Math.min(3, typeof (rawB.d !== undefined ? rawB.d : rawB.dir) === 'number' ? (rawB.d !== undefined ? rawB.d : rawB.dir) : 0)),
+                    item: rawB.i || rawB.item || null,
+                    progress: Math.max(0, Math.min(1, typeof (rawB.p !== undefined ? rawB.p : rawB.progress) === 'number' && !isNaN(rawB.p !== undefined ? rawB.p : rawB.progress) ? (rawB.p !== undefined ? rawB.p : rawB.progress) : 0)),
+                    inputBuffer: rawB.ib || rawB.inputBuffer || {},
+                    outputItem: rawB.o || rawB.outputItem || null,
+                    recipe: rawB.r || rawB.recipe || (gameState.selectedRecipe && gameState.selectedRecipe[bType]) || null,
+                    filterItem: rawB.f || rawB.filterItem || gameState.selectedFilter || 'iron_plate',
+                    fuelTimer: typeof (rawB.ft !== undefined ? rawB.ft : rawB.fuelTimer) === 'number' ? (rawB.ft !== undefined ? rawB.ft : rawB.fuelTimer) : 0,
+                    waterBonusTimer: typeof (rawB.wt !== undefined ? rawB.wt : rawB.waterBonusTimer) === 'number' ? (rawB.wt !== undefined ? rawB.wt : rawB.waterBonusTimer) : 0,
+                    compressTarget: rawB.ct || rawB.compressTarget || null,
+                    unpackItem: rawB.ui || rawB.unpackItem || null,
+                    unpackQueue: typeof (rawB.uq !== undefined ? rawB.uq : rawB.unpackQueue) === 'number' ? (rawB.uq !== undefined ? rawB.uq : rawB.unpackQueue) : 0,
+                    batteryCharge: typeof (rawB.bc !== undefined ? rawB.bc : rawB.batteryCharge) === 'number' ? (rawB.bc !== undefined ? rawB.bc : rawB.batteryCharge) : 0
+                };
                 setBuilding(x, y, bObj);
                 registerBuildingInHash(x, y, bObj);
             }
@@ -4748,6 +4761,7 @@ async function manualLoadFromMenu() {
         updateContextPanel();
         updateTutorialUI();
         updateHUD();
+        drawMinimap();
         closeModal('menuModal');
         SoundFX.play('research');
         showToast('📂 保存データをロードしました！', 'emerald');
