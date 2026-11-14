@@ -329,7 +329,12 @@
                 <!-- Buffer / Grid status when inspecting existing machine -->
                 <div id="ctx-buffer-info" class="hidden mt-1 pt-1 border-t border-slate-800 text-[10px] text-slate-300 flex items-center justify-between gap-2">
                     <span id="ctx-buffer-text" class="truncate">内部在庫: なし</span>
-                    <span id="ctx-status-badge" class="font-bold text-emerald-400 shrink-0">稼働中</span>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button id="ctx-clear-buf-btn" onclick="clearInspectedBuffer()" class="bg-amber-950/80 hover:bg-amber-900 border border-amber-500/40 text-amber-300 text-[9px] font-bold px-1.5 py-0.5 rounded-lg active:scale-90" title="詰まり解消：内部バッファ・搬送アイテムを消去">
+                            詰まりパージ
+                        </button>
+                        <span id="ctx-status-badge" class="font-bold text-emerald-400 shrink-0">稼働中</span>
+                    </div>
                 </div>
 
                 <!-- Recipe Selector inside Context Panel -->
@@ -1142,11 +1147,11 @@ const TECH_TIERS = [
     { tier: 7, title: '⑦ 統合オムニHubと原子力・超電導網 (TIER 8 解放)', money: 15000, rp: 80000, mats: { tungsten_carb: 15, carbon_nano: 10, ai_core: 5 }, unlocks: '統合オムニHub(+50%換金・発電) / 原子力発電機 / 超電導送電塔 / リニア超電導コンベア / 核燃料棒 / 紫サイエンス' },
     { tier: 8, title: '⑧ 量子テレポーターと量子チップ (TIER 9 解放)', money: 24000, rp: 120000, mats: { superconductor: 15, sci_purple: 15, nuclear_rod: 10 }, unlocks: '量子テレポーター / 量子チップ / ロケット燃料' },
     { tier: 9, title: '⑨ 核融合エネルギー炉と軌道プラズマ採掘 (TIER 10 解放)', money: 38000, rp: 170000, mats: { quantum_chip: 15, iridium_alloy: 10, fusion_cell: 10 }, unlocks: '核融合リアクター(+3,200kW) / 軌道プラズマ採掘機 / イリジウム超合金 / 重水素融合セル' },
-    { tier: 10, title: '⑩ ダイソン球メガストラクチャー (TIER 11 解放)', money: 56000, rp: 235000, mats: { dyson_part: 10, sci_gold: 15, rocket_fuel: 15 }, unlocks: '軌道マイクロ波送電塔 / ダイソン球フレーム / 金サイエンス / オメガ超分子カタリスト(新高効率加工)' },
-    { tier: 11, title: '⑪ 反物質対消滅炉と超高温プラズマ炉 (TIER 12 解放)', money: 85000, rp: 337500, mats: { dyson_part: 15, antimatter_cell: 10, sci_gold: 20 }, unlocks: '反物質対消滅炉(+12,000kW) / 超高温プラズマ炉 / 反物質カプセル' },
-    { tier: 12, title: '⑫ 量子コライダーと特異点工学 (TIER 13 解放)', money: 130000, rp: 475000, mats: { neutron_plate: 15, singularity_core: 5, sci_white: 10 }, unlocks: '量子コライダー加速器 / 縮退ニュートロン板 / 特異点コア / 白オメガサイエンス' },
-    { tier: 13, title: '⑬ オメガ銀河キューブ創成 (TIER 14 解放)', money: 200000, rp: 675000, mats: { singularity_core: 10, omega_matrix: 2, sci_white: 20 }, unlocks: 'オメガ銀河キューブ製造解放' },
-    { tier: 14, title: '⑭ 惑星間ワープゲート計画 (TIER 15 解放)', money: 320000, rp: 950000, mats: { omega_matrix: 5, sci_white: 50 }, unlocks: '全施設オーバークロック極限解放' },
+    { tier: 10, title: '⑩ ダイソン球メガストラクチャー (TIER 11 解放)', money: 56000, rp: 235000, mats: { iridium_alloy: 15, sci_gold: 15, rocket_fuel: 15 }, unlocks: '軌道マイクロ波送電塔 / ダイソン球フレーム / 金サイエンス / オメガ超分子カタリスト(新高効率加工)' },
+    { tier: 11, title: '⑪ 反物質対消滅炉と超高温プラズマ炉 (TIER 12 解放)', money: 85000, rp: 337500, mats: { dyson_part: 10, sci_gold: 25, quantum_chip: 20 }, unlocks: '反物質対消滅炉(+12,000kW) / 超高温プラズマ炉 / 反物質カプセル' },
+    { tier: 12, title: '⑫ 量子コライダーと特異点工学 (TIER 13 解放)', money: 130000, rp: 475000, mats: { antimatter_cell: 10, dyson_part: 15, sci_purple: 30 }, unlocks: '量子コライダー加速器 / 縮退ニュートロン板 / 特異点コア / 白オメガサイエンス' },
+    { tier: 13, title: '⑬ オメガ銀河キューブ創成 (TIER 14 解放)', money: 200000, rp: 675000, mats: { neutron_plate: 15, singularity_core: 5, sci_white: 10 }, unlocks: 'オメガ銀河キューブ製造解放' },
+    { tier: 14, title: '⑭ 惑星間ワープゲート計画 (TIER 15 解放)', money: 320000, rp: 950000, mats: { omega_matrix: 3, singularity_core: 10, sci_white: 30 }, unlocks: '全施設オーバークロック極限解放' },
     { tier: 15, title: '⑮ オメガスケール完全制覇', money: 500000, rp: 1375000, mats: {}, unlocks: '2000×2000 銀河開拓マスター称号' }
 ];
 
@@ -2294,7 +2299,18 @@ function canAcceptItem(tx, ty, itemType) {
         const rec = RECIPES[target.recipe];
         if (!rec) return false;
         if (rec.inputs[itemType]) {
-            return (target.inputBuffer[itemType] || 0) < rec.inputs[itemType] * 3;
+            const current = target.inputBuffer[itemType] || 0;
+            const maxCapMultiplier = target.type === 'hyper_synthesizer' ? 5 : 4;
+            if (current >= rec.inputs[itemType] * maxCapMultiplier) return false;
+            
+            const inputKeys = Object.keys(rec.inputs);
+            if (inputKeys.length > 1) {
+                const otherMin = Math.min(...inputKeys.filter(k => k !== itemType).map(k => target.inputBuffer[k] || 0));
+                if (current - otherMin > rec.inputs[itemType] * 3) {
+                    return false;
+                }
+            }
+            return true;
         }
         return false;
     }
@@ -3746,6 +3762,9 @@ function renderInvestModal() {
     const scanCost = 6000;
     const rpBuyCost = 15000;
     const rpBuyGain = 1000;
+    const curTierData = TECH_TIERS[gameState.tier - 1];
+    const bundleCost = Math.round(15000 * Math.pow(1.35, gameState.tier - 1));
+
     html += `
         <div class="pt-2 border-t border-slate-800 space-y-2">
             <div class="text-[11px] font-extrabold text-cyan-300 flex items-center gap-1">
@@ -3765,25 +3784,28 @@ function renderInvestModal() {
 
             <div class="bg-indigo-950/60 border border-indigo-500/40 p-2.5 rounded-2xl mb-2 flex items-center justify-between">
                 <div>
-                    <div class="font-extrabold text-amber-300 text-xs"><i class="fas fa-life-ring mr-1"></i>詰み防止: TIER進行用素材一括緊急調達</div>
-                    <div class="text-[10px] text-slate-300 mt-0.5">現在TIERの解放に必要な不足素材を資金で自動補充します</div>
+                    <div class="font-extrabold text-amber-300 text-xs"><i class="fas fa-life-ring mr-1"></i>詰み防止: TIER ${gameState.tier} 研究素材一括調達</div>
+                    <div class="text-[10px] text-slate-300 mt-0.5">現在TIERの要求素材を資金で自動補充します (${curTierData?.mats && Object.keys(curTierData.mats).length > 0 ? '一括納品' : '必要素材なし'})</div>
                 </div>
-                <button onclick="buyTierEmergencyBundle()" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-extrabold text-[10px] px-3 py-2 rounded-xl shadow shrink-0">
-                    一括調達 ($25,000)
+                <button onclick="buyTierEmergencyBundle()" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-extrabold text-[10px] px-3 py-2 rounded-xl shadow shrink-0 ${(!curTierData?.mats || Object.keys(curTierData.mats).length === 0) ? 'opacity-50 pointer-events-none' : ''}">
+                    一括調達 ($${bundleCost.toLocaleString()})
                 </button>
             </div>
-            <div class="text-[10px] text-slate-400">▼ 発見済み素材の緊急買い付け（×10個パックをHUB倉庫へ即時納品）</div>
+            <div class="text-[10px] text-slate-400">▼ 現在のTier（T${gameState.tier}以下）で製造・入手可能な素材の緊急調達（×10個パック）</div>
             <div class="grid grid-cols-2 gap-1.5">
     `;
 
     for (const item of Object.values(BASE_ITEMS)) {
-        if (!isItemDiscovered(item.id) || item.id.startsWith('sci_')) continue;
-        const packCost = item.price * 10 * 30; // 10x price increase as requested!
+        if (item.tier > gameState.tier || item.id.startsWith('sci_')) continue;
+        const known = isItemDiscovered(item.id);
+        const packCost = Math.round(item.price * 10 * 25);
+        const dispName = known ? item.name : `${item.name} (未発見)`;
+        
         html += `
             <button onclick="buyMaterialPack('${item.id}')" class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 rounded-xl p-2 flex items-center justify-between active:scale-95">
                 <div class="flex items-center gap-1.5 min-w-0">
-                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${item.color}"></span>
-                    <span class="text-[10px] font-bold text-white truncate">${item.name}×10</span>
+                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${known ? item.color : '#64748b'}"></span>
+                    <span class="text-[10px] font-bold text-white truncate">${dispName}×10</span>
                 </div>
                 <span class="text-[10px] font-extrabold text-amber-300 shrink-0">$${packCost.toLocaleString()}</span>
             </button>
@@ -3855,25 +3877,28 @@ function runSatelliteScan() {
 }
 
 function buyTierEmergencyBundle() {
-    const cost = 25000;
-    if (gameState.money < cost) {
-        showToast('資金が足りません！（必要: $25,000）', 'rose');
-        return;
-    }
     const t = TECH_TIERS[gameState.tier - 1];
-    if (!t || !t.mats) {
+    if (!t || !t.mats || Object.keys(t.mats).length === 0) {
         showToast('現在調達すべき研究素材はありません', 'amber');
         return;
     }
+
+    const cost = Math.round(15000 * Math.pow(1.35, gameState.tier - 1));
+    if (gameState.money < cost) {
+        showToast(`資金が足りません！（必要: $${cost.toLocaleString()}）`, 'rose');
+        return;
+    }
+
     gameState.money -= cost;
     for (const [mid, req] of Object.entries(t.mats)) {
         gameState.inventory[mid] = (gameState.inventory[mid] || 0) + req;
         discoverItem(mid);
     }
     SoundFX.play('coin');
-    showToast('🛡️ 詰み防止救済: 現在のTIER研究に必要な全素材をHUB倉庫に緊急調達しました！', 'emerald');
+    showToast(`🛡️ 詰み防止救済: TIER ${gameState.tier} の研究に必要な全素材をHUB倉庫に緊急調達しました！`, 'emerald');
     renderInvestModal();
     updateHUD();
+    saveGameData(true);
 }
 
 function buyMaterialPack(itemId) {
@@ -4174,6 +4199,22 @@ function updateContextPanel() {
     } else {
         fltContainer.classList.add('hidden');
     }
+}
+
+function clearInspectedBuffer() {
+    if (!gameState.inspectedTile) return;
+    const b = getBuilding(gameState.inspectedTile.x, gameState.inspectedTile.y);
+    if (!b) return;
+    b.inputBuffer = {};
+    b.item = null;
+    b.outputItem = null;
+    b.progress = 0;
+    b.compressTarget = null;
+    b.unpackItem = null;
+    b.unpackQueue = 0;
+    SoundFX.play('delete');
+    showToast('🧹 内部バッファ・詰まりアイテムをパージしました！', 'amber');
+    updateContextPanel();
 }
 
 function demolishInspected() {
