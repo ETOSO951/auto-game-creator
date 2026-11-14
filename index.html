@@ -808,21 +808,21 @@ const RECIPES = {
     smelt_glass:    { id: 'smelt_glass',    name: '強化ガラス',       machine: 'furnace', inputs: { quartz: 1 },         output: 'glass',         time: 1.4, tier: 2 },
     smelt_rubber:   { id: 'smelt_rubber',   name: '合成ゴム',         machine: 'furnace', inputs: { rubber_sap: 1 },     output: 'rubber',        time: 1.4, tier: 2 },
     smelt_steel:    { id: 'smelt_steel',    name: '鋼材精錬',         machine: 'furnace', inputs: { iron_plate: 2, coal: 1 }, output: 'steel',    time: 1.8, tier: 1 },
-    smelt_alum:     { id: 'smelt_alum',     name: 'アルミ板',         machine: 'furnace', inputs: { bauxite: 1 },        output: 'aluminum',      time: 1.6, tier: 4 },
-    smelt_gold:     { id: 'smelt_gold',     name: '金インゴット',     machine: 'furnace', inputs: { gold_ore: 1 },       output: 'gold_ingot',    time: 1.6, tier: 4 },
-    smelt_cobalt:   { id: 'smelt_cobalt',   name: 'コバルト合金板',   machine: 'furnace', inputs: { cobalt_ore: 1 },     output: 'cobalt_ingot',  time: 1.6, tier: 5 },
+    smelt_alum:     { id: 'smelt_alum',     name: 'アルミ板',         machine: 'furnace', inputs: { bauxite: 1 },        output: 'aluminum',      time: 1.6, tier: 3 },
+    smelt_gold:     { id: 'smelt_gold',     name: '金インゴット',     machine: 'furnace', inputs: { gold_ore: 1 },       output: 'gold_ingot',    time: 1.6, tier: 3 },
+    smelt_cobalt:   { id: 'smelt_cobalt',   name: 'コバルト合金板',   machine: 'furnace', inputs: { cobalt_ore: 1 },     output: 'cobalt_ingot',  time: 1.6, tier: 4 },
 
     // Blast Alloy Furnace
     blast_steel:    { id: 'blast_steel',    name: '高炉高速鋼材',     machine: 'blast_furnace', inputs: { iron_ore: 2, coal: 1 }, output: 'steel',    time: 1.0, tier: 3 },
-    blast_titanium: { id: 'blast_titanium', name: 'チタン合金',       machine: 'blast_furnace', inputs: { titanium_ore: 2, aluminum: 1 }, output: 'titanium_alloy', time: 2.0, tier: 6 },
-    blast_tungsten: { id: 'blast_tungsten', name: 'タングステン鋼',   machine: 'blast_furnace', inputs: { tungsten_ore: 2, steel: 1 }, output: 'tungsten_carb', time: 2.2, tier: 7 },
+    blast_titanium: { id: 'blast_titanium', name: 'チタン合金',       machine: 'blast_furnace', inputs: { titanium_ore: 2, aluminum: 1 }, output: 'titanium_alloy', time: 2.0, tier: 5 },
+    blast_tungsten: { id: 'blast_tungsten', name: 'タングステン鋼',   machine: 'blast_furnace', inputs: { tungsten_ore: 2, steel: 1 }, output: 'tungsten_carb', time: 2.2, tier: 6 },
     blast_iridium:  { id: 'blast_iridium',  name: 'イリジウム超合金', machine: 'blast_furnace', inputs: { iridium_ore: 2, titanium_alloy: 1 }, output: 'iridium_alloy', time: 2.4, tier: 8 },
 
     // Electric Arc Furnace
-    arc_silicon:    { id: 'arc_silicon',    name: 'シリコンウエハー', machine: 'arc_furnace', inputs: { quartz: 2, coal: 1 }, output: 'silicon_wafer', time: 1.8, tier: 5 },
-    arc_graphene:   { id: 'arc_graphene',   name: 'グラフェンシート', machine: 'arc_furnace', inputs: { coal: 3, quartz: 1 }, output: 'graphene', time: 1.6, tier: 6 },
+    arc_silicon:    { id: 'arc_silicon',    name: 'シリコンウエハー', machine: 'arc_furnace', inputs: { quartz: 2, coal: 1 }, output: 'silicon_wafer', time: 1.8, tier: 4 },
+    arc_graphene:   { id: 'arc_graphene',   name: 'グラフェンシート', machine: 'arc_furnace', inputs: { coal: 3, quartz: 1 }, output: 'graphene', time: 1.6, tier: 5 },
     arc_supercond:  { id: 'arc_supercond',  name: '超電導コイル',     machine: 'arc_furnace', inputs: { titanium_alloy: 1, rare_earth: 1, wire: 4 }, output: 'superconductor', time: 2.4, tier: 7 },
-    arc_nuclear:    { id: 'arc_nuclear',    name: '核燃料棒',         machine: 'arc_furnace', inputs: { uranium_ore: 2, steel: 1 }, output: 'nuclear_rod', time: 2.8, tier: 8 },
+    arc_nuclear:    { id: 'arc_nuclear',    name: '核燃料棒',         machine: 'arc_furnace', inputs: { uranium_ore: 2, steel: 1 }, output: 'nuclear_rod', time: 2.8, tier: 7 },
 
     // Plasma Forge
     plasma_neutron: { id: 'plasma_neutron', name: '縮退ニュートロン板',machine: 'plasma_forge', inputs: { neutronium_ore: 2, iridium_alloy: 1 }, output: 'neutron_plate', time: 2.5, tier: 11 },
@@ -830,14 +830,14 @@ const RECIPES = {
 
     // Oil Refinery
     ref_heavy:      { id: 'ref_heavy',      name: '原油分留(精製重油)',machine: 'refinery',   inputs: { crude_oil: 2, water_drum: 1 }, output: 'heavy_oil', time: 1.6, tier: 3 },
-    ref_rocket:     { id: 'ref_rocket',     name: 'ロケット燃料精製', machine: 'refinery',    inputs: { heavy_oil: 2, natural_gas: 1 }, output: 'rocket_fuel', time: 2.2, tier: 9 },
+    ref_rocket:     { id: 'ref_rocket',     name: 'ロケット燃料精製', machine: 'refinery',    inputs: { heavy_oil: 2, natural_gas: 1 }, output: 'rocket_fuel', time: 2.2, tier: 8 },
 
     // Chemical Plant
     chem_plastic:   { id: 'chem_plastic',   name: 'プラスチック',     machine: 'chem_plant', inputs: { crude_oil: 1, coal: 1 }, output: 'plastic',     time: 1.6, tier: 3 },
     chem_acid:      { id: 'chem_acid',      name: '硫酸精製',         machine: 'chem_plant', inputs: { sulfur: 2, water_drum: 1 }, output: 'sulfuric_acid', time: 1.7, tier: 3 },
-    chem_battery:   { id: 'chem_battery',   name: '高密度バッテリー', machine: 'chem_plant', inputs: { lithium: 1, sulfuric_acid: 1, copper_plate: 1 }, output: 'battery', time: 2.0, tier: 5 },
-    chem_nano:      { id: 'chem_nano',      name: 'カーボンナノ管',   machine: 'chem_plant', inputs: { graphene: 2, sulfuric_acid: 1 }, output: 'carbon_nano', time: 2.0, tier: 7 },
-    chem_fusion:    { id: 'chem_fusion',    name: '重水素融合セル',   machine: 'chem_plant', inputs: { water_drum: 3, lithium: 2, helium3: 1 }, output: 'fusion_cell', time: 2.6, tier: 9 },
+    chem_battery:   { id: 'chem_battery',   name: '高密度バッテリー', machine: 'chem_plant', inputs: { lithium: 1, sulfuric_acid: 1, copper_plate: 1 }, output: 'battery', time: 2.0, tier: 4 },
+    chem_nano:      { id: 'chem_nano',      name: 'カーボンナノ管',   machine: 'chem_plant', inputs: { graphene: 2, sulfuric_acid: 1 }, output: 'carbon_nano', time: 2.0, tier: 6 },
+    chem_fusion:    { id: 'chem_fusion',    name: '重水素融合セル',   machine: 'chem_plant', inputs: { water_drum: 3, lithium: 2, helium3: 1 }, output: 'fusion_cell', time: 2.6, tier: 8 },
 
     // Assembler
     craft_gear:     { id: 'craft_gear',     name: '歯車',             machine: 'assembler', inputs: { iron_plate: 2 },     output: 'gear',          time: 1.1, tier: 1 },
@@ -849,27 +849,27 @@ const RECIPES = {
 
     // Precision CNC Fabricator
     cnc_frame:      { id: 'cnc_frame',      name: '精密機械フレーム', machine: 'cnc_fab',   inputs: { steel: 2, aluminum: 2, gear: 2 }, output: 'cnc_frame', time: 2.0, tier: 4 },
-    cnc_ai:         { id: 'cnc_ai',         name: '自律AIコア',       machine: 'cnc_fab',   inputs: { adv_processor: 1, cobalt_ingot: 2, carbon_nano: 1 }, output: 'ai_core', time: 2.2, tier: 7 },
-    cnc_sciblue:    { id: 'cnc_sciblue',    name: '青サイエンス(RP用)',machine: 'cnc_fab',   inputs: { battery: 1, motor: 1, cnc_frame: 1 }, output: 'sci_blue', time: 2.2, tier: 5 },
+    cnc_ai:         { id: 'cnc_ai',         name: '自律AIコア',       machine: 'cnc_fab',   inputs: { adv_processor: 1, cobalt_ingot: 2, carbon_nano: 1 }, output: 'ai_core', time: 2.2, tier: 6 },
+    cnc_sciblue:    { id: 'cnc_sciblue',    name: '青サイエンス(RP用)',machine: 'cnc_fab',   inputs: { battery: 1, motor: 1, cnc_frame: 1 }, output: 'sci_blue', time: 2.2, tier: 4 },
 
     // Semi-Conductor Fab
-    semi_proc:      { id: 'semi_proc',      name: '高度プロセッサ',   machine: 'semicon_fab', inputs: { circuit: 2, silicon_wafer: 1, gold_ingot: 1 }, output: 'adv_processor', time: 2.0, tier: 6 },
+    semi_proc:      { id: 'semi_proc',      name: '高度プロセッサ',   machine: 'semicon_fab', inputs: { circuit: 2, silicon_wafer: 1, gold_ingot: 1 }, output: 'adv_processor', time: 2.0, tier: 5 },
     semi_quantum:   { id: 'semi_quantum',   name: '量子チップ',       machine: 'semicon_fab', inputs: { adv_processor: 2, rare_earth: 1, iridium_ore: 1 }, output: 'quantum_chip', time: 2.8, tier: 8 },
     semi_scipurp:   { id: 'semi_scipurp',   name: '紫サイエンス(RP用)',machine: 'semicon_fab', inputs: { adv_processor: 1, titanium_alloy: 1 }, output: 'sci_purple', time: 7 },
     semi_scigold:   { id: 'semi_scigold',   name: '金サイエンス(RP用)',machine: 'semicon_fab', inputs: { quantum_chip: 1, iridium_alloy: 1 }, output: 'sci_gold', time: 2.8, tier: 9 },
-    semi_dyson:     { id: 'semi_dyson',     name: 'ダイソン球フレーム',machine: 'semicon_fab', inputs: { quantum_chip: 1, titanium_alloy: 2, rocket_fuel: 2 }, output: 'dyson_part', time: 3.6, tier: 10 },
+    semi_dyson:     { id: 'semi_dyson',     name: 'ダイソン球フレーム',machine: 'semicon_fab', inputs: { quantum_chip: 1, titanium_alloy: 2, rocket_fuel: 2 }, output: 'dyson_part', time: 3.6, tier: 9 },
 
     // Hyper Assembler (Tier 14 High-Efficiency Manufacturing)
-    hyper_gear:     { id: 'hyper_gear',     name: 'ハイパー高速歯車', machine: 'hyper_assembler', inputs: { iron_plate: 2 }, output: 'gear', time: 0.3, tier: 14 },
-    hyper_circuit:  { id: 'hyper_circuit',  name: 'ハイパー高速電子基板', machine: 'hyper_assembler', inputs: { iron_plate: 1, wire: 2 }, output: 'circuit', time: 0.4, tier: 14 },
-    hyper_scipink:  { id: 'hyper_scipink',  name: 'ハイパー統合白オメガサイエンス', machine: 'hyper_assembler', inputs: { sci_gold: 1, quantum_chip: 1 }, output: 'sci_white', time: 1.0, tier: 14 },
+    hyper_gear:     { id: 'hyper_gear',     name: 'ハイパー高速歯車', machine: 'hyper_assembler', inputs: { iron_plate: 2 }, output: 'gear', time: 0.2, tier: 14 },
+    hyper_circuit:  { id: 'hyper_circuit',  name: 'ハイパー高速電子基板', machine: 'hyper_assembler', inputs: { iron_plate: 1, wire: 2 }, output: 'circuit', time: 0.25, tier: 14 },
+    hyper_scipink:  { id: 'hyper_scipink',  name: 'ハイパー統合白オメガサイエンス', machine: 'hyper_assembler', inputs: { sci_gold: 1, quantum_chip: 1 }, output: 'sci_white', time: 0.8, tier: 14 },
 
     // Quantum Matrix Collider & Singularity Forge (Tier 11+)
     col_singularity:{ id: 'col_singularity',name: '特異点コア',       machine: 'quantum_collider', inputs: { antimatter_cell: 1, neutron_plate: 1, dyson_part: 1 }, output: 'singularity_core', time: 3.5, tier: 11 },
-    col_omega:      { id: 'col_omega',      name: 'オメガ銀河キューブ',machine: 'quantum_collider', inputs: { singularity_core: 1, quantum_chip: 2, fusion_cell: 2 }, output: 'omega_matrix', time: 4.5, tier: 13 },
+    col_omega:      { id: 'col_omega',      name: 'オメガ銀河キューブ',machine: 'quantum_collider', inputs: { singularity_core: 1, quantum_chip: 2, fusion_cell: 2 }, output: 'omega_matrix', time: 4.5, tier: 12 },
     col_sciwhite:   { id: 'col_sciwhite',   name: '白オメガサイエンス',machine: 'quantum_collider', inputs: { dyson_part: 1, antimatter_cell: 1 }, output: 'sci_white', time: 3.2, tier: 11 },
-    forge_omega:    { id: 'forge_omega',    name: '特異点瞬時キューブ精錬', machine: 'singularity_forge', inputs: { singularity_core: 1, quantum_chip: 1 }, output: 'omega_matrix', time: 0.8, tier: 15 },
-    forge_sciwhite: { id: 'forge_sciwhite', name: '特異点極限白サイエンス', machine: 'singularity_forge', inputs: { dyson_part: 1 }, output: 'sci_white', time: 0.5, tier: 15 }
+    forge_omega:    { id: 'forge_omega',    name: '特異点瞬時キューブ精錬', machine: 'singularity_forge', inputs: { singularity_core: 1, quantum_chip: 1 }, output: 'omega_matrix', time: 0.5, tier: 15 },
+    forge_sciwhite: { id: 'forge_sciwhite', name: '特異点極限白サイエンス', machine: 'singularity_forge', inputs: { dyson_part: 1 }, output: 'sci_white', time: 0.3, tier: 15 }
 };
 
 // --- 4. ALL 46 BUILDINGS (REBALANCED POWER OUTPUTS!) ---
@@ -1148,21 +1148,21 @@ const CAPITAL_UPGRADES = {
 
 // --- 6. 15-STAGE TECH TREE (HIGH RESEARCH FUNDS & REBALANCED DEPENDENCIES!) ---
 const TECH_TIERS = [
-    { tier: 1, title: '① 基礎物流と保存用追加Hub (TIER 2 解放)', money: 1500, rp: 0, mats: { iron_plate: 10, copper_plate: 10 }, unlocks: '保存用追加Hub / 高速コンベア / フィルター仕分機 / 高密度圧縮機(10倍) / 圧縮解凍機 / 鉄製中圧電柱 / 鋼材・電子基板' },
-    { tier: 2, title: '② 流体資源と重工業プラント (TIER 3 解放)', money: 6500, rp: 3000, mats: { brick: 20, steel: 10 }, unlocks: '大型重採掘ドリル / ポンプジャック / 石油精製塔 / 化学プラント / 高炉合金炉 / ソーラー・重油タービン' },
-    { tier: 3, title: '③ 換金用追加Hubと高圧変電所 (TIER 4 解放)', money: 25000, rp: 8750, mats: { steel: 20, circuit: 15, water_drum: 10 }, unlocks: '換金用追加Hub(+25%売却) / 高圧変電所(3,500kW) / 超高速コンベア / 大型風力 / 精密CNC加工機 / アルミ・金' },
-    { tier: 4, title: '④ リチウム電池とシリコン半導体 (TIER 5 解放)', money: 85000, rp: 18750, mats: { aluminum: 20, gold_ingot: 10, motor: 10 }, unlocks: '大容量蓄電池 / 高効率ソーラー / 電気アーク炉 / シリコンウエハー / コバルト合金 / 高密度バッテリー / 青サイエンス' },
-    { tier: 5, title: '⑤ 遠隔ワープ引出ポートと100倍超圧縮 (TIER 6 解放)', money: 250000, rp: 33750, mats: { silicon_wafer: 20, battery: 15, sci_blue: 10 }, unlocks: '遠隔ワープ引出ポート / 超高密度圧縮機(100倍) / レーザー深層採掘機 / 半導体ファブ / チタン合金・グラフェン' },
-    { tier: 6, title: '⑥ タングステン超硬合金と自律AI (TIER 7 解放)', money: 750000, rp: 52500, mats: { cnc_frame: 15, titanium_alloy: 15, adv_processor: 10 }, unlocks: 'タングステン鋼 / カーボンナノ管 / 自律AIコア' },
-    { tier: 7, title: '⑦ 統合オムニHubと原子力・超電導網 (TIER 8 解放)', money: 2200000, rp: 80000, mats: { tungsten_carb: 15, carbon_nano: 10, ai_core: 5 }, unlocks: '統合オムニHub(+50%換金・発電) / 原子力発電機 / 超電導送電塔 / リニア超電導コンベア / 核燃料棒 / 紫サイエンス' },
-    { tier: 8, title: '⑧ 量子テレポーターと量子チップ (TIER 9 解放)', money: 5500000, rp: 120000, mats: { superconductor: 15, sci_purple: 15, nuclear_rod: 10 }, unlocks: '量子テレポーター / 量子チップ / ロケット燃料' },
-    { tier: 9, title: '⑨ 核融合エネルギー炉と軌道プラズマ採掘 (TIER 10 解放)', money: 15000000, rp: 170000, mats: { quantum_chip: 15, titanium_alloy: 15, fusion_cell: 10 }, unlocks: '核融合リアクター(+3,200kW) / 軌道プラズマ採掘機 / イリジウム超合金 / 重水素融合セル / 金サイエンス' },
-    { tier: 10, title: '⑩ ダイソン球メガストラクチャー (TIER 11 解放)', money: 45000000, rp: 235000, mats: { dyson_part: 10, sci_gold: 15, rocket_fuel: 15 }, unlocks: '軌道マイクロ波送電塔 / ダイソン球フレーム / 超高温プラズマ炉' },
-    { tier: 11, title: '⑪ 反物質対消滅炉と量子コライダー (TIER 12 解放)', money: 120000000, rp: 337500, mats: { dyson_part: 15, antimatter_cell: 10, sci_gold: 20 }, unlocks: '反物質対消滅炉(+12,000kW) / 量子コライダー加速器 / 反物質カプセル / 特異点コア / 白オメガサイエンス' },
-    { tier: 12, title: '⑫ 特異点工学と縮退ニュートロン板 (TIER 13 解放)', money: 350000000, rp: 475000, mats: { neutron_plate: 15, antimatter_cell: 15, sci_gold: 25 }, unlocks: '縮退ニュートロン板製造解放 / オメガ銀河キューブ基礎技術' },
-    { tier: 13, title: '⑬ オメガ銀河キューブ創成 (TIER 14 解放)', money: 1000000000, rp: 675000, mats: { singularity_core: 5, dyson_part: 15, sci_white: 20 }, unlocks: 'オメガ銀河キューブ製造解放 / ハイパー量子加工技術' },
-    { tier: 14, title: '⑭ オメガ超次元加工プラント (TIER 15 解放)', money: 3000000000, rp: 950000, mats: { omega_matrix: 5, sci_white: 50 }, unlocks: 'ハイパー量子自動組立機 / オメガ超次元精錬炉' },
-    { tier: 15, title: '⑮ 銀河創生オメガ神殿 (TIER 15 究極極限施設)', money: 10000000000, rp: 1375000, mats: { omega_matrix: 25, sci_white: 150 }, unlocks: 'オメガ銀河万能Hub(+100%換金・無限発電) / 特異点創成プラント / 銀河開拓マスター称号' }
+    { tier: 1, title: '① 基礎物流と保存用追加Hub (TIER 2 解放)', money: 15000, rp: 0, mats: { iron_plate: 10, copper_plate: 10 }, unlocks: '保存用追加Hub / 高速コンベア / フィルター仕分機 / 高密度圧縮機(10倍) / 圧縮解凍機 / 鉄製中圧電柱 / 鋼材・電子基板' },
+    { tier: 2, title: '② 流体資源と重工業プラント (TIER 3 解放)', money: 85000, rp: 3000, mats: { brick: 20, steel: 10 }, unlocks: '大型重採掘ドリル / ポンプジャック / 石油精製塔 / 化学プラント / 高炉合金炉 / ソーラー・重油タービン' },
+    { tier: 3, title: '③ 換金用追加Hubと高圧変電所 (TIER 4 解放)', money: 450000, rp: 8750, mats: { steel: 20, circuit: 15, water_drum: 10 }, unlocks: '換金用追加Hub(+25%売却) / 高圧変電所(3,500kW) / 超高速コンベア / 大型風力 / 精密CNC加工機 / アルミ・金' },
+    { tier: 4, title: '④ リチウム電池とシリコン半導体 (TIER 5 解放)', money: 1800000, rp: 18750, mats: { aluminum: 20, gold_ingot: 10, motor: 10 }, unlocks: '大容量蓄電池 / 高効率ソーラー / 電気アーク炉 / シリコンウエハー / コバルト合金 / 高密度バッテリー / 青サイエンス' },
+    { tier: 5, title: '⑤ 遠隔ワープ引出ポートと100倍超圧縮 (TIER 6 解放)', money: 6500000, rp: 33750, mats: { silicon_wafer: 20, battery: 15, sci_blue: 10 }, unlocks: '遠隔ワープ引出ポート / 超高密度圧縮機(100倍) / レーザー深層採掘機 / 半導体ファブ / チタン合金・グラフェン' },
+    { tier: 6, title: '⑥ タングステン超硬合金と自律AI (TIER 7 解放)', money: 25000000, rp: 52500, mats: { cnc_frame: 15, titanium_alloy: 15, adv_processor: 10 }, unlocks: 'タングステン鋼 / カーボンナノ管 / 自律AIコア' },
+    { tier: 7, title: '⑦ 統合オムニHubと原子力・超電導網 (TIER 8 解放)', money: 95000000, rp: 80000, mats: { tungsten_carb: 15, carbon_nano: 10, ai_core: 5 }, unlocks: '統合オムニHub(+50%換金・発電) / 原子力発電機 / 超電導送電塔 / リニア超電導コンベア / 核燃料棒 / 紫サイエンス' },
+    { tier: 8, title: '⑧ 量子テレポーターと量子チップ (TIER 9 解放)', money: 350000000, rp: 120000, mats: { superconductor: 15, sci_purple: 15, nuclear_rod: 10 }, unlocks: '量子テレポーター / 量子チップ / ロケット燃料' },
+    { tier: 9, title: '⑨ 核融合エネルギー炉と軌道プラズマ採掘 (TIER 10 解放)', money: 1200000000, rp: 170000, mats: { quantum_chip: 15, titanium_alloy: 15, fusion_cell: 10 }, unlocks: '核融合リアクター(+3,200kW) / 軌道プラズマ採掘機 / イリジウム超合金 / 重水素融合セル / 金サイエンス' },
+    { tier: 10, title: '⑩ ダイソン球メガストラクチャー (TIER 11 解放)', money: 4500000000, rp: 235000, mats: { dyson_part: 10, sci_gold: 15, rocket_fuel: 15 }, unlocks: '軌道マイクロ波送電塔 / ダイソン球フレーム / 超高温プラズマ炉' },
+    { tier: 11, title: '⑪ 反物質対消滅炉と量子コライダー (TIER 12 解放)', money: 18000000000, rp: 337500, mats: { dyson_part: 15, antimatter_cell: 10, sci_gold: 20 }, unlocks: '反物質対消滅炉(+12,000kW) / 量子コライダー加速器 / 反物質カプセル / 特異点コア / 白オメガサイエンス' },
+    { tier: 12, title: '⑫ 特異点工学と縮退ニュートロン板 (TIER 13 解放)', money: 65000000000, rp: 475000, mats: { neutron_plate: 15, antimatter_cell: 15, sci_gold: 25 }, unlocks: '縮退ニュートロン板製造解放 / オメガ銀河キューブ基礎技術' },
+    { tier: 13, title: '⑬ オメガ銀河キューブ創成 (TIER 14 解放)', money: 250000000000, rp: 675000, mats: { singularity_core: 5, dyson_part: 15, sci_white: 20 }, unlocks: 'オメガ銀河キューブ製造解放 / ハイパー量子加工技術' },
+    { tier: 14, title: '⑭ オメガ超次元加工プラント (TIER 15 解放)', money: 900000000000, rp: 950000, mats: { omega_matrix: 5, sci_white: 50 }, unlocks: 'ハイパー量子自動組立機 / オメガ超次元精錬炉' },
+    { tier: 15, title: '⑮ 銀河創生オメガ神殿 (TIER 15 究極極限施設)', money: 3500000000000, rp: 1375000, mats: { omega_matrix: 25, sci_white: 150 }, unlocks: 'オメガ銀河万能Hub(+100%換金・無限発電) / 特異点創成プラント / 銀河開拓マスター称号' }
 ];
 
 // --- 7. 8-STEP KIND TUTORIAL (INCLUDES RP EARNING TUTORIAL!) ---
@@ -1703,7 +1703,10 @@ function registerBuildingInHash(x, y, b) {
     }
 
     if (['belt', 'fast_belt', 'express_belt', 'maglev_belt', 'splitter', 'filter_sorter', 'tunnel'].includes(b.type)) {
-        activeBeltKeys.add(k);
+        // ロード時にアイテムが乗っているベルトや動作可能なベルトを確実に登録
+        if (b.item !== null || b.type === 'splitter' || b.type === 'filter_sorter' || b.type === 'tunnel') {
+            activeBeltKeys.add(k);
+        }
     } else {
         activeMachineKeys.add(k);
     }
@@ -1729,6 +1732,7 @@ function rebuildSpatialHashes() {
     subHubKeys.clear();
     for (const [k, b] of buildingsMap.entries()) {
         const [x, y] = k.split(',').map(Number);
+        if (!b) continue;
         registerBuildingInHash(x, y, b);
     }
 }
