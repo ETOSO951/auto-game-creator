@@ -1365,7 +1365,9 @@ window.onload = () => {
         }
     });
     setupInputHandlers();
-    refreshTitleLoadButton();
+    initIndexedDBSave(() => {
+        refreshTitleLoadButton();
+    });
     startTitleAnimation();
 };
 
@@ -2017,10 +2019,14 @@ function gameLoop(timestamp) {
         camera.vy *= 0.88;
     }
 
-    updatePowerNetworks(dt);
-    updateActiveSimulation(dt);
-    updateEffects(dt);
-    drawGame(timestamp);
+    try {
+        updatePowerNetworks(dt);
+        updateActiveSimulation(dt);
+        updateEffects(dt);
+        drawGame(timestamp);
+    } catch (err) {
+        console.error('Simulation loop error guarded:', err);
+    }
 
     uiSyncTimer += dt;
     if (uiSyncTimer >= 0.25) {
@@ -4423,8 +4429,40 @@ let memorySaveFallback = null;
 // IndexedDB Helper for Large Save Storage Support
 const DB_NAME = 'PF6SaveDB';
 const DB_STORE = 'saves';
+let indexedDbSaveCache = null;
+
+function initIndexedDBSave(callback) {
+    if (!window.indexedDB) {
+        if (callback) callback();
+        return;
+    }
+    try {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE);
+        };
+        req.onsuccess = (e) => {
+            const db = e.target.result;
+            const tx = db.transaction(DB_STORE, 'readonly');
+            const getReq = tx.objectStore(DB_STORE).get(SAVE_KEY);
+            getReq.onsuccess = () => {
+                if (getReq.result) {
+                    indexedDbSaveCache = getReq.result;
+                    memorySaveFallback = getReq.result;
+                }
+                if (callback) callback();
+            };
+            getReq.onerror = () => { if (callback) callback(); };
+        };
+        req.onerror = () => { if (callback) callback(); };
+    } catch(e) {
+        if (callback) callback();
+    }
+}
 
 function saveToIndexedDB(jsonStr) {
+    indexedDbSaveCache = jsonStr;
     if (!window.indexedDB) return;
     try {
         const req = indexedDB.open(DB_NAME, 1);
@@ -4441,6 +4479,7 @@ function saveToIndexedDB(jsonStr) {
 }
 
 function getRawSaveString() {
+    if (indexedDbSaveCache) return indexedDbSaveCache;
     try {
         const ls = localStorage.getItem(SAVE_KEY);
         if (ls) return ls;
@@ -4459,6 +4498,7 @@ function getRawSaveString() {
 
 function setRawSaveString(jsonStr) {
     memorySaveFallback = jsonStr;
+    indexedDbSaveCache = jsonStr;
     try { localStorage.setItem(SAVE_KEY, jsonStr); } catch (e) {}
     try { sessionStorage.setItem(SAVE_KEY, jsonStr); } catch (e) {}
     try { window.name = 'PF6_SAVE:' + jsonStr; } catch (e) {}
@@ -4467,6 +4507,7 @@ function setRawSaveString(jsonStr) {
 
 function clearRawSaveString() {
     memorySaveFallback = null;
+    indexedDbSaveCache = null;
     try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
     try { sessionStorage.removeItem(SAVE_KEY); } catch (e) {}
     try {
@@ -4493,10 +4534,10 @@ function buildSavePayload() {
     for (const [k, b] of buildingsMap.entries()) {
         if (b && b.type !== 'hub') {
             const [x, y] = k.split(',').map(Number);
-            // Ultra-compact serialization to avoid LocalStorage Quota Exceeded
+            // Ultra-compact serialization to avoid LocalStorage / IndexedDB Quota Exceeded
             const compact = { t: b.type, d: b.dir };
             if (b.item) compact.i = b.item;
-            if (b.progress) compact.p = Math.round(b.progress * 1000) / 1000;
+            if (b.progress) compact.p = Math.round(b.progress * 100) / 100;
             if (b.recipe) compact.r = b.recipe;
             if (b.filterItem) compact.f = b.filterItem;
             if (b.fuelTimer) compact.ft = Math.round(b.fuelTimer * 10) / 10;
@@ -4533,7 +4574,9 @@ function saveGameData(isAuto = false) {
             badge.textContent = `保存済 ${timeStr}`;
         }
         refreshTitleLoadButton();
-    } catch (e) {}
+    } catch (e) {
+        console.error('Save failed:', e);
+    }
 }
 
 function manualSave() {
@@ -4545,55 +4588,70 @@ function manualSave() {
 function applyLoadedSaveObject(data) {
     if (!data || !data.gameState || !Array.isArray(data.sparseBuildings)) return false;
 
-    buildingsMap.clear();
-    activeMachineKeys.clear();
-    activeBeltKeys.clear();
-    powerNodeKeys.clear();
-    subHubKeys.clear();
+    try {
+        buildingsMap.clear();
+        activeMachineKeys.clear();
+        activeBeltKeys.clear();
+        powerNodeKeys.clear();
+        subHubKeys.clear();
 
-    gameState = Object.assign(gameState, data.gameState);
-    if (!gameState.upgrades) {
-        gameState.upgrades = { mining_speed: 0, smelt_speed: 0, belt_speed: 0, power_output: 0, market_value: 0, lab_efficiency: 0 };
-    }
-    if (!gameState.discoveredItems) {
-        gameState.discoveredItems = { iron_ore: true, copper_ore: true, coal: true, stone: true, water_drum: true, biomass: true };
-    }
-    if (!gameState.discoveredBuildings) gameState.discoveredBuildings = {};
+        gameState = Object.assign(gameState, data.gameState);
+        if (typeof gameState.money !== 'number' || isNaN(gameState.money)) gameState.money = 800;
+        if (typeof gameState.rp !== 'number' || isNaN(gameState.rp)) gameState.rp = 0;
+        if (typeof gameState.tier !== 'number' || isNaN(gameState.tier)) gameState.tier = 1;
+        if (!gameState.inventory) gameState.inventory = {};
+        if (!gameState.autoSell) gameState.autoSell = {};
+        if (!gameState.craftedMachines) gameState.craftedMachines = {};
 
-    placeHubTiles();
-    for (const entry of data.sparseBuildings) {
-        const x = entry[0];
-        const y = entry[1];
-        const rawB = entry[2];
-
-        if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
-            let bObj;
-            if (rawB.t !== undefined) {
-                // Decompress compact building object
-                bObj = {
-                    type: rawB.t,
-                    dir: rawB.d || 0,
-                    item: rawB.i || null,
-                    progress: rawB.p || 0,
-                    inputBuffer: rawB.ib || {},
-                    outputItem: rawB.o || null,
-                    recipe: rawB.r || gameState.selectedRecipe[rawB.t] || null,
-                    filterItem: rawB.f || gameState.selectedFilter || 'iron_plate',
-                    fuelTimer: rawB.ft || 0,
-                    waterBonusTimer: rawB.wt || 0,
-                    compressTarget: rawB.ct || null,
-                    unpackItem: rawB.ui || null,
-                    unpackQueue: rawB.uq || 0,
-                    batteryCharge: rawB.bc || 0
-                };
-            } else {
-                bObj = rawB;
-                if (!bObj.inputBuffer) bObj.inputBuffer = {};
-            }
-            setBuilding(x, y, bObj);
+        if (!gameState.upgrades) {
+            gameState.upgrades = { mining_speed: 0, smelt_speed: 0, belt_speed: 0, power_output: 0, market_value: 0, lab_efficiency: 0 };
         }
+        if (!gameState.discoveredItems) {
+            gameState.discoveredItems = { iron_ore: true, copper_ore: true, coal: true, stone: true, water_drum: true, biomass: true };
+        }
+        if (!gameState.discoveredBuildings) gameState.discoveredBuildings = {};
+
+        placeHubTiles();
+        for (const entry of data.sparseBuildings) {
+            if (!Array.isArray(entry) || entry.length < 3) continue;
+            const x = entry[0];
+            const y = entry[1];
+            const rawB = entry[2];
+
+            if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE && rawB) {
+                let bObj;
+                if (rawB.t !== undefined) {
+                    bObj = {
+                        type: rawB.t,
+                        dir: rawB.d || 0,
+                        item: rawB.i || null,
+                        progress: rawB.p || 0,
+                        inputBuffer: rawB.ib || {},
+                        outputItem: rawB.o || null,
+                        recipe: rawB.r || gameState.selectedRecipe[rawB.t] || null,
+                        filterItem: rawB.f || gameState.selectedFilter || 'iron_plate',
+                        fuelTimer: rawB.ft || 0,
+                        waterBonusTimer: rawB.wt || 0,
+                        compressTarget: rawB.ct || null,
+                        unpackItem: rawB.ui || null,
+                        unpackQueue: rawB.uq || 0,
+                        batteryCharge: rawB.bc || 0
+                    };
+                } else {
+                    bObj = rawB;
+                    if (!bObj.inputBuffer) bObj.inputBuffer = {};
+                }
+                setBuilding(x, y, bObj);
+                registerBuildingInHash(x, y, bObj);
+            }
+        }
+        rebuildSpatialHashes();
+        rebuildPowerNetworks();
+        return true;
+    } catch (err) {
+        console.error('Failed to apply save:', err);
+        return false;
     }
-    return true;
 }
 
 function loadGameData() {
