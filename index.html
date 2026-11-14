@@ -3736,7 +3736,8 @@ function renderInvestModal() {
 
     // Satellite Scanner & RP Grant & Emergency Material Market (All 10x Prices!)
     const scanCost = 6000;
-    const rpBuyCost = 4000;
+    const rpBuyCost = 15000;
+    const rpBuyGain = 1000;
     html += `
         <div class="pt-2 border-t border-slate-800 space-y-2">
             <div class="text-[11px] font-extrabold text-cyan-300 flex items-center gap-1">
@@ -3746,7 +3747,7 @@ function renderInvestModal() {
             <div class="grid grid-cols-2 gap-2">
                 <button onclick="buyRpWithMoney()" class="bg-indigo-950/90 hover:bg-indigo-900 border border-indigo-500/50 p-2.5 rounded-2xl text-left active:scale-95">
                     <div class="font-extrabold text-pink-300 text-xs"><i class="fas fa-flask mr-1"></i>外部研究データ購入</div>
-                    <div class="text-[10px] text-slate-300 mt-0.5">資金 $${rpBuyCost.toLocaleString()} で <b>+15 RP</b> を即時獲得</div>
+                    <div class="text-[10px] text-slate-300 mt-0.5">資金 $${rpBuyCost.toLocaleString()} で <b>+${rpBuyGain.toLocaleString()} RP</b> を即時獲得</div>
                 </button>
                 <button onclick="runSatelliteScan()" class="bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/50 p-2.5 rounded-2xl text-left active:scale-95">
                     <div class="font-extrabold text-cyan-300 text-xs"><i class="fas fa-satellite-dish mr-1"></i>資源探査衛星スキャン</div>
@@ -3799,15 +3800,16 @@ function buyCapitalUpgrade(upgId) {
 }
 
 function buyRpWithMoney() {
-    const cost = 4000;
+    const cost = 15000;
+    const gain = 1000;
     if (gameState.money < cost) {
-        showToast('資金が足りません！（必要: $4,000）', 'rose');
+        showToast(`資金が足りません！（必要: $${cost.toLocaleString()}）`, 'rose');
         return;
     }
     gameState.money -= cost;
-    gameState.rp += 15;
+    gameState.rp += gain;
     SoundFX.play('research');
-    showToast('🧪 研究データ購入完了！ +15 RP', 'sky');
+    showToast(`🧪 研究データ購入完了！ +${gain.toLocaleString()} RP`, 'sky');
     renderInvestModal();
     updateHUD();
 }
@@ -3974,14 +3976,27 @@ function updateContextPanel() {
     titleEl.textContent = targetB ? `${def.name} (設置済み)` : getBuildingDisplayName(def.id);
     descEl.textContent = known ? def.desc : `研究 TIER ${def.tier} で解放される未知の施設です。`;
 
+    let calcPower = def.power;
+    let powerSuffix = '';
+    if (targetB && ['miner', 'heavy_drill', 'laser_miner', 'omega_extractor'].includes(def.id)) {
+        const oreType = getResourceAt(gameState.inspectedTile.x, gameState.inspectedTile.y);
+        if (oreType) {
+            const mult = getOrePowerMult(oreType);
+            calcPower = -Math.ceil(Math.abs(def.power) * mult);
+            if (mult !== 1.0) {
+                powerSuffix = ` (x${mult})`;
+            }
+        }
+    }
+
     if (def.poleRange) {
         powerTag.textContent = `範囲${def.poleRange}マス / 上限${def.maxCap}kW`;
         powerTag.className = 'text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-600/40 shrink-0';
-    } else if (def.power > 0) {
-        powerTag.textContent = `+${def.power} kW`;
+    } else if (calcPower > 0) {
+        powerTag.textContent = `+${calcPower} kW`;
         powerTag.className = 'text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-600/40 shrink-0';
-    } else if (def.power < 0) {
-        powerTag.textContent = `${def.power} kW`;
+    } else if (calcPower < 0) {
+        powerTag.textContent = `${calcPower} kW${powerSuffix}`;
         powerTag.className = 'text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600/40 shrink-0';
     } else {
         powerTag.textContent = '電力不要';
@@ -4523,7 +4538,7 @@ function unlockNextTier() {
     if (t.mats) {
         for (const [mid, req] of Object.entries(t.mats)) {
             if ((gameState.inventory[mid] || 0) < req) {
-                const itemName = getItemDisplayName(mid);
+                const itemName = BASE_ITEMS[mid]?.name || mid;
                 showToast(`HUB共有倉庫の「${itemName}」が足りません！（必要: ${req}個）`, 'rose');
                 return;
             }
