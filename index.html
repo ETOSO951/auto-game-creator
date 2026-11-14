@@ -721,7 +721,7 @@ const BASE_ITEMS = {
     copper_plate:  { id: 'copper_plate',  name: '銅板',             price: 5,    color: '#fdba74', border: '#ea580c', shape: 'plate',   tier: 1, compressible: true },
     brick:         { id: 'brick',         name: 'レンガ',           price: 6,    color: '#a8a29e', border: '#57534e', shape: 'plate',   tier: 1, compressible: true },
     cement:        { id: 'cement',        name: 'セメント',         price: 9,    color: '#d4d4d8', border: '#52525b', shape: 'plate',   tier: 2, compressible: true },
-    steel:         { id: 'steel',         name: '鋼材',             price: 18,   color: '#64748b', border: '#cbd5e1', shape: 'beam',    tier: 2, compressible: true },
+    steel:         { id: 'steel',         name: '鋼材',             price: 18,   color: '#64748b', border: '#cbd5e1', shape: 'beam',    tier: 1, compressible: true },
     glass:         { id: 'glass',         name: '強化ガラス',       price: 14,   color: '#bae6fd', border: '#0284c7', shape: 'plate',   tier: 2, compressible: true },
     rubber:        { id: 'rubber',        name: '合成ゴム',         price: 13,   color: '#3f6212', border: '#bef264', shape: 'plate',   tier: 2, compressible: true },
     heavy_oil:     { id: 'heavy_oil',     name: '精製重油',         price: 16,   color: '#7c2d12', border: '#fb923c', shape: 'barrel',  tier: 3, compressible: true },
@@ -807,7 +807,7 @@ const RECIPES = {
     smelt_cement:   { id: 'smelt_cement',   name: 'セメント',         machine: 'furnace', inputs: { limestone: 2 },      output: 'cement',        time: 1.5, tier: 2 },
     smelt_glass:    { id: 'smelt_glass',    name: '強化ガラス',       machine: 'furnace', inputs: { quartz: 1 },         output: 'glass',         time: 1.4, tier: 2 },
     smelt_rubber:   { id: 'smelt_rubber',   name: '合成ゴム',         machine: 'furnace', inputs: { rubber_sap: 1 },     output: 'rubber',        time: 1.4, tier: 2 },
-    smelt_steel:    { id: 'smelt_steel',    name: '鋼材精錬',         machine: 'furnace', inputs: { iron_plate: 2, coal: 1 }, output: 'steel',    time: 1.8, tier: 2 },
+    smelt_steel:    { id: 'smelt_steel',    name: '鋼材精錬',         machine: 'furnace', inputs: { iron_plate: 2, coal: 1 }, output: 'steel',    time: 1.8, tier: 1 },
     smelt_alum:     { id: 'smelt_alum',     name: 'アルミ板',         machine: 'furnace', inputs: { bauxite: 1 },        output: 'aluminum',      time: 1.6, tier: 4 },
     smelt_gold:     { id: 'smelt_gold',     name: '金インゴット',     machine: 'furnace', inputs: { gold_ore: 1 },       output: 'gold_ingot',    time: 1.6, tier: 4 },
     smelt_cobalt:   { id: 'smelt_cobalt',   name: 'コバルト合金板',   machine: 'furnace', inputs: { cobalt_ore: 1 },     output: 'cobalt_ingot',  time: 1.6, tier: 5 },
@@ -842,7 +842,7 @@ const RECIPES = {
     // Assembler
     craft_gear:     { id: 'craft_gear',     name: '歯車',             machine: 'assembler', inputs: { iron_plate: 2 },     output: 'gear',          time: 1.1, tier: 1 },
     craft_wire:     { id: 'craft_wire',     name: '銅線',             machine: 'assembler', inputs: { copper_plate: 1 },   output: 'wire',          time: 1.0, tier: 1 },
-    craft_circuit:  { id: 'craft_circuit',  name: '電子基板',         machine: 'assembler', inputs: { iron_plate: 1, wire: 2 }, output: 'circuit',  time: 1.5, tier: 2 },
+    craft_circuit:  { id: 'craft_circuit',  name: '電子基板',         machine: 'assembler', inputs: { iron_plate: 1, wire: 2 }, output: 'circuit',  time: 1.5, tier: 1 },
     craft_motor:    { id: 'craft_motor',    name: '電動モーター',     machine: 'assembler', inputs: { steel: 1, gear: 2, wire: 2 }, output: 'motor',    time: 1.8, tier: 3 },
     craft_scired:   { id: 'craft_scired',   name: '赤サイエンス(RP用)',machine: 'assembler', inputs: { copper_plate: 1, gear: 1 }, output: 'sci_red',  time: 1.6, tier: 1 },
     craft_scigreen: { id: 'craft_scigreen', name: '緑サイエンス(RP用)',machine: 'assembler', inputs: { circuit: 1, rubber: 1 }, output: 'sci_green',   time: 1.8, tier: 3 },
@@ -864,10 +864,12 @@ const RECIPES = {
     hyper_circuit:  { id: 'hyper_circuit',  name: 'ハイパー高速電子基板', machine: 'hyper_assembler', inputs: { iron_plate: 1, wire: 2 }, output: 'circuit', time: 0.4, tier: 14 },
     hyper_scipink:  { id: 'hyper_scipink',  name: 'ハイパー統合白オメガサイエンス', machine: 'hyper_assembler', inputs: { sci_gold: 1, quantum_chip: 1 }, output: 'sci_white', time: 1.0, tier: 14 },
 
-    // Quantum Matrix Collider (Tier 11+)
-    col_singularity:{ id: 'col_singularity',name: '特異点コア',       machine: 'quantum_collider', inputs: { antimatter_cell: 1, neutron_plate: 1, dyson_part: 1 }, output: 'singularity_core', time: 3.5, tier: 12 },
+    // Quantum Matrix Collider & Singularity Forge (Tier 11+)
+    col_singularity:{ id: 'col_singularity',name: '特異点コア',       machine: 'quantum_collider', inputs: { antimatter_cell: 1, neutron_plate: 1, dyson_part: 1 }, output: 'singularity_core', time: 3.5, tier: 11 },
     col_omega:      { id: 'col_omega',      name: 'オメガ銀河キューブ',machine: 'quantum_collider', inputs: { singularity_core: 1, quantum_chip: 2, fusion_cell: 2 }, output: 'omega_matrix', time: 4.5, tier: 13 },
-    col_sciwhite:   { id: 'col_sciwhite',   name: '白オメガサイエンス',machine: 'quantum_collider', inputs: { dyson_part: 1, antimatter_cell: 1 }, output: 'sci_white', time: 3.2, tier: 11 }
+    col_sciwhite:   { id: 'col_sciwhite',   name: '白オメガサイエンス',machine: 'quantum_collider', inputs: { dyson_part: 1, antimatter_cell: 1 }, output: 'sci_white', time: 3.2, tier: 11 },
+    forge_omega:    { id: 'forge_omega',    name: '特異点瞬時キューブ精錬', machine: 'singularity_forge', inputs: { singularity_core: 1, quantum_chip: 1 }, output: 'omega_matrix', time: 0.8, tier: 15 },
+    forge_sciwhite: { id: 'forge_sciwhite', name: '特異点極限白サイエンス', machine: 'singularity_forge', inputs: { dyson_part: 1 }, output: 'sci_white', time: 0.5, tier: 15 }
 };
 
 // --- 4. ALL 46 BUILDINGS (REBALANCED POWER OUTPUTS!) ---
@@ -939,6 +941,10 @@ const BUILDINGS = {
     omni_hub: {
         id: 'omni_hub', name: '統合オムニHub(+50%・発電)', cat: 'hubs', cost: 0, craftMats: { titanium_alloy: 30, adv_processor: 15, superconductor: 10, cnc_frame: 20 }, power: 180, poleRange: 10, maxCap: 5000, lossRate: 0, icon: 'fa-building-shield', color: '#f43f5e', tier: 8,
         desc: '【TIER 8 超大型建設】自動売却ON時は+50%高値換金、OFF時は倉庫保存！さらに+180kW発電＆送電網を展開！'
+    },
+    omega_subhub: {
+        id: 'omega_subhub', name: 'オメガ銀河万能Hub(+100%・無限発電)', cat: 'hubs', cost: 0, craftMats: { omega_matrix: 10, singularity_core: 5, superconductor: 20 }, power: 50000, poleRange: 40, maxCap: 999999, lossRate: 0, icon: 'fa-crown', color: '#facc15', tier: 15,
+        desc: '【TIER 15 最終施設】搬入素材を+100%倍額換金または倉庫直結保存！さらに+50,000kW爆速発電＆範囲40マスの銀河送電ドーム！'
     },
 
     // 3. Mining, Extraction & Compression (10)
@@ -1096,6 +1102,10 @@ const BUILDINGS = {
         id: 'omega_forge', name: 'オメガ超次元精錬炉', cat: 'production', cost: 0, craftMats: { singularity_core: 2, iridium_alloy: 6, superconductor: 6 }, power: -800, icon: 'fa-volcano', color: '#facc15', tier: 14,
         desc: '【TIER 14 最終機械】全精錬レシピを4.0倍の極限スピードで一気に処理する全自動超次元精錬炉！ (-800kW)'
     },
+    singularity_forge: {
+        id: 'singularity_forge', name: '特異点創成プラント', cat: 'production', cost: 0, craftMats: { omega_matrix: 5, singularity_core: 8, quantum_chip: 15 }, power: -2500, icon: 'fa-meteor', color: '#c084fc', tier: 15,
+        desc: '【TIER 15 最終機械】銀河キューブや白サイエンスを0.5〜0.8秒で極限製造する特異点創成機！ (-2,500kW)'
+    },
     lab: {
         id: 'lab', name: '量子研究所(ラボ)', cat: 'production', cost: 140, power: -45, icon: 'fa-microscope', color: '#ec4899', tier: 1,
         desc: '自動組立機で作った「赤サイエンス」等を搬入して研究ポイント(RP)を生成 (-45kW)'
@@ -1136,23 +1146,23 @@ const CAPITAL_UPGRADES = {
     }
 };
 
-// --- 6. 15-STAGE TECH TREE (HIGH RESEARCH FUNDS & SMOOTH PROGRESSION!) ---
+// --- 6. 15-STAGE TECH TREE (HIGH RESEARCH FUNDS & REBALANCED DEPENDENCIES!) ---
 const TECH_TIERS = [
-    { tier: 1, title: '① 基礎物流と保存用追加Hub (TIER 2 解放)', money: 850, rp: 0, mats: { iron_plate: 10, copper_plate: 10 }, unlocks: '保存用追加Hub / 高速コンベア / フィルター仕分機 / 高密度圧縮機(10倍) / 圧縮解凍機 / 鉄製中圧電柱 / 鋼材・電子基板' },
-    { tier: 2, title: '② 流体資源と重工業プラント (TIER 3 解放)', money: 2800, rp: 3000, mats: { brick: 20, steel: 10 }, unlocks: '大型重採掘ドリル / ポンプジャック / 石油精製塔 / 化学プラント / 高炉合金炉 / ソーラー・重油タービン' },
-    { tier: 3, title: '③ 換金用追加Hubと高圧変電所 (TIER 4 解放)', money: 7500, rp: 8750, mats: { steel: 20, circuit: 15, water_drum: 10 }, unlocks: '換金用追加Hub(+25%売却) / 高圧変電所(3,500kW) / 超高速コンベア / 大型風力 / 精密CNC加工機 / アルミ・金' },
-    { tier: 4, title: '④ リチウム電池とシリコン半導体 (TIER 5 解放)', money: 18000, rp: 18750, mats: { aluminum: 20, gold_ingot: 10, motor: 10 }, unlocks: '大容量蓄電池 / 高効率ソーラー / 電気アーク炉 / シリコンウエハー / コバルト合金 / 高密度バッテリー / 青サイエンス' },
-    { tier: 5, title: '⑤ 遠隔ワープ引出ポートと100倍超圧縮 (TIER 6 解放)', money: 38000, rp: 33750, mats: { silicon_wafer: 20, battery: 15, sci_blue: 10 }, unlocks: '遠隔ワープ引出ポート / 超高密度圧縮機(100倍) / レーザー深層採掘機 / 半導体ファブ / チタン合金・グラフェン' },
-    { tier: 6, title: '⑥ タングステン超硬合金と自律AI (TIER 7 解放)', money: 75000, rp: 52500, mats: { cnc_frame: 15, titanium_alloy: 15, adv_processor: 10 }, unlocks: 'タングステン鋼 / カーボンナノ管 / 自律AIコア' },
-    { tier: 7, title: '⑦ 統合オムニHubと原子力・超電導網 (TIER 8 解放)', money: 150000, rp: 80000, mats: { tungsten_carb: 15, carbon_nano: 10, ai_core: 5 }, unlocks: '統合オムニHub(+50%換金・発電) / 原子力発電機 / 超電導送電塔 / リニア超電導コンベア / 核燃料棒 / 紫サイエンス' },
-    { tier: 8, title: '⑧ 量子テレポーターと量子チップ (TIER 9 解放)', money: 280000, rp: 120000, mats: { superconductor: 15, sci_purple: 15, nuclear_rod: 10 }, unlocks: '量子テレポーター / 量子チップ / ロケット燃料' },
-    { tier: 9, title: '⑨ 核融合エネルギー炉と軌道プラズマ採掘 (TIER 10 解放)', money: 520000, rp: 170000, mats: { quantum_chip: 15, titanium_alloy: 15, fusion_cell: 10 }, unlocks: '核融合リアクター(+3,200kW) / 軌道プラズマ採掘機 / イリジウム超合金 / 重水素融合セル / 金サイエンス' },
-    { tier: 10, title: '⑩ ダイソン球メガストラクチャー (TIER 11 解放)', money: 950000, rp: 235000, mats: { dyson_part: 10, sci_gold: 15, rocket_fuel: 15 }, unlocks: '軌道マイクロ波送電塔 / ダイソン球フレーム / 超高温プラズマ炉' },
-    { tier: 11, title: '⑪ 反物質対消滅炉と量子コライダー (TIER 12 解放)', money: 1800000, rp: 337500, mats: { dyson_part: 15, antimatter_cell: 10, sci_gold: 20 }, unlocks: '反物質対消滅炉(+12,000kW) / 量子コライダー加速器 / 反物質カプセル' },
-    { tier: 12, title: '⑫ 特異点工学と縮退ニュートロン板 (TIER 13 解放)', money: 3200000, rp: 475000, mats: { neutron_plate: 15, singularity_core: 5, sci_white: 10 }, unlocks: '縮退ニュートロン板 / 特異点コア / 白オメガサイエンス' },
-    { tier: 13, title: '⑬ オメガ銀河キューブ創成 (TIER 14 解放)', money: 5500000, rp: 675000, mats: { singularity_core: 10, omega_matrix: 2, sci_white: 20 }, unlocks: 'オメガ銀河キューブ製造解放 / ハイパー量子加工技術' },
-    { tier: 14, title: '⑭ オメガ超次元加工プラント (TIER 15 解放)', money: 9800000, rp: 950000, mats: { omega_matrix: 5, sci_white: 50 }, unlocks: 'ハイパー量子自動組立機 / オメガ超次元精錬炉' },
-    { tier: 15, title: '⑮ オメガスケール完全制覇', money: 18000000, rp: 1375000, mats: {}, unlocks: '2000×2000 銀河開拓マスター称号' }
+    { tier: 1, title: '① 基礎物流と保存用追加Hub (TIER 2 解放)', money: 1500, rp: 0, mats: { iron_plate: 10, copper_plate: 10 }, unlocks: '保存用追加Hub / 高速コンベア / フィルター仕分機 / 高密度圧縮機(10倍) / 圧縮解凍機 / 鉄製中圧電柱 / 鋼材・電子基板' },
+    { tier: 2, title: '② 流体資源と重工業プラント (TIER 3 解放)', money: 6500, rp: 3000, mats: { brick: 20, steel: 10 }, unlocks: '大型重採掘ドリル / ポンプジャック / 石油精製塔 / 化学プラント / 高炉合金炉 / ソーラー・重油タービン' },
+    { tier: 3, title: '③ 換金用追加Hubと高圧変電所 (TIER 4 解放)', money: 25000, rp: 8750, mats: { steel: 20, circuit: 15, water_drum: 10 }, unlocks: '換金用追加Hub(+25%売却) / 高圧変電所(3,500kW) / 超高速コンベア / 大型風力 / 精密CNC加工機 / アルミ・金' },
+    { tier: 4, title: '④ リチウム電池とシリコン半導体 (TIER 5 解放)', money: 85000, rp: 18750, mats: { aluminum: 20, gold_ingot: 10, motor: 10 }, unlocks: '大容量蓄電池 / 高効率ソーラー / 電気アーク炉 / シリコンウエハー / コバルト合金 / 高密度バッテリー / 青サイエンス' },
+    { tier: 5, title: '⑤ 遠隔ワープ引出ポートと100倍超圧縮 (TIER 6 解放)', money: 250000, rp: 33750, mats: { silicon_wafer: 20, battery: 15, sci_blue: 10 }, unlocks: '遠隔ワープ引出ポート / 超高密度圧縮機(100倍) / レーザー深層採掘機 / 半導体ファブ / チタン合金・グラフェン' },
+    { tier: 6, title: '⑥ タングステン超硬合金と自律AI (TIER 7 解放)', money: 750000, rp: 52500, mats: { cnc_frame: 15, titanium_alloy: 15, adv_processor: 10 }, unlocks: 'タングステン鋼 / カーボンナノ管 / 自律AIコア' },
+    { tier: 7, title: '⑦ 統合オムニHubと原子力・超電導網 (TIER 8 解放)', money: 2200000, rp: 80000, mats: { tungsten_carb: 15, carbon_nano: 10, ai_core: 5 }, unlocks: '統合オムニHub(+50%換金・発電) / 原子力発電機 / 超電導送電塔 / リニア超電導コンベア / 核燃料棒 / 紫サイエンス' },
+    { tier: 8, title: '⑧ 量子テレポーターと量子チップ (TIER 9 解放)', money: 5500000, rp: 120000, mats: { superconductor: 15, sci_purple: 15, nuclear_rod: 10 }, unlocks: '量子テレポーター / 量子チップ / ロケット燃料' },
+    { tier: 9, title: '⑨ 核融合エネルギー炉と軌道プラズマ採掘 (TIER 10 解放)', money: 15000000, rp: 170000, mats: { quantum_chip: 15, titanium_alloy: 15, fusion_cell: 10 }, unlocks: '核融合リアクター(+3,200kW) / 軌道プラズマ採掘機 / イリジウム超合金 / 重水素融合セル / 金サイエンス' },
+    { tier: 10, title: '⑩ ダイソン球メガストラクチャー (TIER 11 解放)', money: 45000000, rp: 235000, mats: { dyson_part: 10, sci_gold: 15, rocket_fuel: 15 }, unlocks: '軌道マイクロ波送電塔 / ダイソン球フレーム / 超高温プラズマ炉' },
+    { tier: 11, title: '⑪ 反物質対消滅炉と量子コライダー (TIER 12 解放)', money: 120000000, rp: 337500, mats: { dyson_part: 15, antimatter_cell: 10, sci_gold: 20 }, unlocks: '反物質対消滅炉(+12,000kW) / 量子コライダー加速器 / 反物質カプセル / 特異点コア / 白オメガサイエンス' },
+    { tier: 12, title: '⑫ 特異点工学と縮退ニュートロン板 (TIER 13 解放)', money: 350000000, rp: 475000, mats: { neutron_plate: 15, antimatter_cell: 15, sci_gold: 25 }, unlocks: '縮退ニュートロン板製造解放 / オメガ銀河キューブ基礎技術' },
+    { tier: 13, title: '⑬ オメガ銀河キューブ創成 (TIER 14 解放)', money: 1000000000, rp: 675000, mats: { singularity_core: 5, dyson_part: 15, sci_white: 20 }, unlocks: 'オメガ銀河キューブ製造解放 / ハイパー量子加工技術' },
+    { tier: 14, title: '⑭ オメガ超次元加工プラント (TIER 15 解放)', money: 3000000000, rp: 950000, mats: { omega_matrix: 5, sci_white: 50 }, unlocks: 'ハイパー量子自動組立機 / オメガ超次元精錬炉' },
+    { tier: 15, title: '⑮ 銀河創生オメガ神殿 (TIER 15 究極極限施設)', money: 10000000000, rp: 1375000, mats: { omega_matrix: 25, sci_white: 150 }, unlocks: 'オメガ銀河万能Hub(+100%換金・無限発電) / 特異点創成プラント / 銀河開拓マスター称号' }
 ];
 
 // --- 7. 8-STEP KIND TUTORIAL (INCLUDES RP EARNING TUTORIAL!) ---
@@ -1674,7 +1684,7 @@ function placeHubTiles() {
 function isHubLikeTile(x, y) {
     const b = getBuilding(x, y);
     if (!b) return false;
-    return ['hub', 'storage_hub', 'trade_hub', 'omni_hub'].includes(b.type);
+    return ['hub', 'storage_hub', 'trade_hub', 'omni_hub', 'omega_subhub'].includes(b.type);
 }
 
 function isAdjacentToAnyHub(x, y) {
@@ -1688,12 +1698,12 @@ function registerBuildingInHash(x, y, b) {
     const k = posKey(x, y);
     if (!b || b.type === 'hub') return;
 
-    if (['storage_hub', 'trade_hub', 'omni_hub'].includes(b.type)) {
+    if (['storage_hub', 'trade_hub', 'omni_hub', 'omega_subhub'].includes(b.type)) {
         subHubKeys.add(k);
     }
 
     if (['belt', 'fast_belt', 'express_belt', 'maglev_belt', 'splitter', 'filter_sorter', 'tunnel'].includes(b.type)) {
-        if (b.item) activeBeltKeys.add(k);
+        activeBeltKeys.add(k);
     } else {
         activeMachineKeys.add(k);
     }
@@ -1719,9 +1729,6 @@ function rebuildSpatialHashes() {
     subHubKeys.clear();
     for (const [k, b] of buildingsMap.entries()) {
         const [x, y] = k.split(',').map(Number);
-        if (b && ['belt', 'fast_belt', 'express_belt', 'maglev_belt', 'splitter', 'filter_sorter', 'tunnel'].includes(b.type)) {
-            activeBeltKeys.add(k);
-        }
         registerBuildingInHash(x, y, b);
     }
 }
@@ -2215,7 +2222,7 @@ function updateActiveSimulation(dt) {
                     updateWaterPump(x, y, b, pDt * mineMult);
                 } else if (b.type === 'pumpjack') {
                     updatePumpjack(x, y, b, pDt * mineMult);
-                } else if (['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge', 'refinery', 'chem_plant', 'assembler', 'cnc_fab', 'semicon_fab', 'quantum_collider'].includes(b.type)) {
+                } else if (['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge', 'refinery', 'chem_plant', 'assembler', 'cnc_fab', 'semicon_fab', 'quantum_collider', 'hyper_assembler', 'omega_forge', 'singularity_forge'].includes(b.type)) {
                     updateCrafter(x, y, b, pDt * smeltMult);
                 } else if (b.type === 'compressor') {
                     updateCompressor(x, y, b, pDt * smeltMult, 10);
@@ -2338,6 +2345,11 @@ function handleHubDelivery(tx, ty, itemType, hubMode) {
         hubPriceBonus = 1.0;
     }
 
+    if (hubMode === 'omega_subhub') {
+        shouldSell = !!gameState.autoSell[baseId];
+        hubPriceBonus = 2.0;
+    }
+
     if (shouldSell) {
         const earned = Math.round(item.price * marketMult * hubPriceBonus);
         gameState.money += earned;
@@ -2413,7 +2425,6 @@ function updateBelt(x, y, b, dt, mult) {
             pushItemToTile(x + d.dx, y + d.dy, b.item);
             b.item = null;
             b.progress = 0;
-            activeBeltKeys.delete(posKey(x, y));
         }
     }
 }
@@ -3009,7 +3020,7 @@ function drawMachineTile(px, py, gx, gy, b, timestamp) {
         ctx.translate(px + TILE_PX / 2, py + TILE_PX / 2);
 
         // Sub-Hub Special Rendering
-        if (['storage_hub', 'trade_hub', 'omni_hub'].includes(b.type)) {
+        if (['storage_hub', 'trade_hub', 'omni_hub', 'omega_subhub'].includes(b.type)) {
             ctx.fillStyle = '#0f172a';
             ctx.strokeStyle = def.color;
             ctx.lineWidth = 3;
@@ -3025,11 +3036,11 @@ function drawMachineTile(px, py, gx, gy, b, timestamp) {
             ctx.fillStyle = '#fff';
             ctx.font = '900 8px "Orbitron", sans-serif';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            const label = b.type === 'trade_hub' ? '$HUB' : b.type === 'storage_hub' ? '保管HUB' : 'OMNI';
+            const label = b.type === 'trade_hub' ? '$HUB' : b.type === 'storage_hub' ? '保管HUB' : b.type === 'omni_hub' ? 'OMNI' : 'OMEGA';
             ctx.fillText(label, 0, -2);
             ctx.font = '700 7px sans-serif';
             ctx.fillStyle = def.color;
-            ctx.fillText(b.type === 'trade_hub' ? '+25%' : b.type === 'storage_hub' ? '倉庫直結' : '+50%⚡', 0, 8);
+            ctx.fillText(b.type === 'trade_hub' ? '+25%' : b.type === 'storage_hub' ? '倉庫直結' : b.type === 'omni_hub' ? '+50%⚡' : '+100%👑', 0, 8);
             return;
         }
 
