@@ -1703,7 +1703,9 @@ function registerBuildingInHash(x, y, b) {
     }
 
     if (['belt', 'fast_belt', 'express_belt', 'maglev_belt', 'splitter', 'filter_sorter', 'tunnel'].includes(b.type)) {
-        activeBeltKeys.add(k);
+        if (b.item || (typeof b.progress === 'number' && b.progress > 0)) {
+            activeBeltKeys.add(k);
+        }
     } else {
         activeMachineKeys.add(k);
     }
@@ -1731,31 +1733,11 @@ function rebuildSpatialHashes() {
         const [x, y] = k.split(',').map(Number);
         if (!b || !Number.isFinite(x) || !Number.isFinite(y)) continue;
         registerBuildingInHash(x, y, b);
-        if (['belt', 'fast_belt', 'express_belt', 'maglev_belt', 'splitter', 'filter_sorter', 'tunnel'].includes(b.type)) {
-            if (b.item) activeBeltKeys.add(k);
-        } else if (b.type !== 'hub') {
-            activeMachineKeys.add(k);
-        }
     }
 }
 
 function restoreAllActiveStatesOnLoad() {
-    for (const [k, b] of buildingsMap.entries()) {
-        if (!b || b.type === 'hub') continue;
-        const [x, y] = k.split(',').map(Number);
-        if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-
-        if (['belt', 'fast_belt', 'express_belt', 'maglev_belt', 'splitter', 'filter_sorter', 'tunnel'].includes(b.type)) {
-            if (b.item) activeBeltKeys.add(k);
-        } else {
-            activeMachineKeys.add(k);
-        }
-
-        const def = BUILDINGS[b.type];
-        if (def && (def.poleRange || def.power !== 0 || b.type === 'battery_bank')) {
-            powerNodeKeys.add(k);
-        }
-    }
+    rebuildSpatialHashes();
 }
 
 function createBuildingObj(type, dir) {
@@ -2563,7 +2545,9 @@ function updateCrafter(x, y, b, dt) {
             quantum_collider: 'col_singularity', hyper_assembler: 'hyper_gear', omega_forge: 'forge_omega',
             singularity_forge: 'forge_sciwhite'
         };
-        b.recipe = defaultRecs[b.type] || null;
+        b.recipe = (gameState.selectedRecipe && gameState.selectedRecipe[b.type] && RECIPES[gameState.selectedRecipe[b.type]])
+            ? gameState.selectedRecipe[b.type]
+            : (defaultRecs[b.type] || null);
     }
 
     const rec = RECIPES[b.recipe];
@@ -4946,16 +4930,39 @@ function applyLoadedSaveObject(data) {
                 const rawUnpackQ = typeof (rawB.uq !== undefined ? rawB.uq : rawB.unpackQueue) === 'number' ? (rawB.uq !== undefined ? rawB.uq : rawB.unpackQueue) : 0;
                 const rawBat = typeof (rawB.bc !== undefined ? rawB.bc : rawB.batteryCharge) === 'number' ? (rawB.bc !== undefined ? rawB.bc : rawB.batteryCharge) : 0;
 
+                const rawIb = rawB.ib || rawB.inputBuffer;
+                const cleanIb = {};
+                if (rawIb && typeof rawIb === 'object') {
+                    for (const [ik, iv] of Object.entries(rawIb)) {
+                        const numV = Number(iv);
+                        if (Number.isFinite(numV) && numV > 0) {
+                            cleanIb[ik] = Math.floor(numV);
+                        }
+                    }
+                }
+
+                const savedRecipe = rawB.r || rawB.recipe;
+                const defaultRecs = {
+                    furnace: 'smelt_iron', blast_furnace: 'blast_steel', arc_furnace: 'arc_silicon',
+                    plasma_forge: 'plasma_anti', refinery: 'ref_heavy', chem_plant: 'chem_plastic',
+                    assembler: 'craft_gear', cnc_fab: 'cnc_frame', semicon_fab: 'semi_proc',
+                    quantum_collider: 'col_singularity', hyper_assembler: 'hyper_gear', omega_forge: 'forge_omega',
+                    singularity_forge: 'forge_sciwhite'
+                };
+                const validRecipe = (savedRecipe && RECIPES[savedRecipe])
+                    ? savedRecipe
+                    : (defaultRecs[bType] || null);
+
                 let bObj = {
                     type: bType,
                     dir: Math.max(0, Math.min(3, !Number.isFinite(rawDir) ? 0 : rawDir)),
                     item: rawB.i || rawB.item || null,
                     progress: !Number.isFinite(rawProg) ? 0 : Math.max(0, Math.min(1, rawProg)),
-                    inputBuffer: (rawB.ib || rawB.inputBuffer) && typeof (rawB.ib || rawB.inputBuffer) === 'object' ? (rawB.ib || rawB.inputBuffer) : {},
+                    inputBuffer: cleanIb,
                     outputItem: rawB.o || rawB.outputItem || null,
-                    recipe: rawB.r || rawB.recipe || (gameState.selectedRecipe && gameState.selectedRecipe[bType]) || null,
+                    recipe: validRecipe,
                     filterItem: rawB.f || rawB.filterItem || gameState.selectedFilter || 'iron_plate',
-                    splitIndex: typeof rawB.si === 'number' ? rawB.si : (typeof rawB.splitIndex === 'number' ? rawB.splitIndex : 0),
+                    splitIndex: typeof rawB.si === 'number' && Number.isFinite(rawB.si) ? rawB.si : (typeof rawB.splitIndex === 'number' && Number.isFinite(rawB.splitIndex) ? rawB.splitIndex : 0),
                     fuelTimer: !Number.isFinite(rawFuel) ? 0 : Math.max(0, rawFuel),
                     waterBonusTimer: !Number.isFinite(rawWater) ? 0 : Math.max(0, rawWater),
                     compressTarget: rawB.ct || rawB.compressTarget || null,
