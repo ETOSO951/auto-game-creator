@@ -1584,11 +1584,13 @@ async function startGame(loadSave) {
     if (loadedOk) {
         rebuildSpatialHashes();
         rebuildPowerNetworks();
+        updatePowerNetworks(0.016);
         showToast('📂 セーブデータをロードしました！', 'emerald');
     } else {
         resetStateToFresh(tutEnabled);
         placeHubTiles();
         rebuildPowerNetworks();
+        updatePowerNetworks(0.016);
         resetCamera();
         saveGameData(true);
     }
@@ -1703,7 +1705,7 @@ function registerBuildingInHash(x, y, b) {
     }
 
     if (['belt', 'fast_belt', 'express_belt', 'maglev_belt', 'splitter', 'filter_sorter', 'tunnel'].includes(b.type)) {
-        if (b.item || (typeof b.progress === 'number' && b.progress > 0)) {
+        if (b.item || ['splitter', 'filter_sorter', 'tunnel'].includes(b.type) || (typeof b.progress === 'number' && b.progress > 0)) {
             activeBeltKeys.add(k);
         }
     } else {
@@ -4951,6 +4953,8 @@ function applyLoadedSaveObject(data) {
                 };
                 const validRecipe = (savedRecipe && RECIPES[savedRecipe])
                     ? savedRecipe
+                    : (gameState.selectedRecipe && gameState.selectedRecipe[bType] && RECIPES[gameState.selectedRecipe[bType]])
+                    ? gameState.selectedRecipe[bType]
                     : (defaultRecs[bType] || null);
 
                 let bObj = {
@@ -4958,7 +4962,7 @@ function applyLoadedSaveObject(data) {
                     dir: Math.max(0, Math.min(3, !Number.isFinite(rawDir) ? 0 : rawDir)),
                     item: rawB.i || rawB.item || null,
                     progress: !Number.isFinite(rawProg) ? 0 : Math.max(0, Math.min(1, rawProg)),
-                    inputBuffer: cleanIb,
+                    inputBuffer: cleanIb || {},
                     outputItem: rawB.o || rawB.outputItem || null,
                     recipe: validRecipe,
                     filterItem: rawB.f || rawB.filterItem || gameState.selectedFilter || 'iron_plate',
@@ -4976,6 +4980,7 @@ function applyLoadedSaveObject(data) {
         rebuildSpatialHashes();
         restoreAllActiveStatesOnLoad();
         rebuildPowerNetworks();
+        updatePowerNetworks(0.016);
         return true;
     } catch (err) {
         console.error('Failed to apply save:', err);
@@ -4984,6 +4989,7 @@ function applyLoadedSaveObject(data) {
         rebuildSpatialHashes();
         restoreAllActiveStatesOnLoad();
         rebuildPowerNetworks();
+        updatePowerNetworks(0.016);
         resetCamera();
         return false;
     }
@@ -5017,6 +5023,7 @@ async function manualLoadFromMenu() {
     if (ok) {
         rebuildSpatialHashes();
         rebuildPowerNetworks();
+        updatePowerNetworks(0.016);
         renderToolbar();
         updateContextPanel();
         updateTutorialUI();
