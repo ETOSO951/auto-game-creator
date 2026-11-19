@@ -535,6 +535,14 @@
         maxLevel: 5,
         baseCost: 35,
         costMult: 1.5
+      },
+      hover: {
+        name: 'ウィングスラスター',
+        icon: '🕊️',
+        desc: 'ジャンプ長押しで空中を滑空（ホバー）可能に！',
+        maxLevel: 5,
+        baseCost: 60,
+        costMult: 1.8
       }
     };
 
@@ -546,9 +554,9 @@
         desc: '一定時間、動く床・レーザー・崩落ブロックの速度を35%に減速！',
         unlockCost: 0,
         upgradeCost: 70,
-        maxLevel: 3,
-        baseDuration: 4.5, // seconds
-        baseCooldown: 10.0
+        maxLevel: 5,
+        baseDuration: 5.0,
+        baseCooldown: 9.5
       },
       shield: {
         id: 'shield',
@@ -557,9 +565,9 @@
         desc: 'トゲやレーザーのダメージを1回無効化し、上空へ緊急跳躍！',
         unlockCost: 90,
         upgradeCost: 80,
-        maxLevel: 3,
-        baseDuration: 8.0,
-        baseCooldown: 11.0
+        maxLevel: 5,
+        baseDuration: 9.0,
+        baseCooldown: 10.5
       },
       boost: {
         id: 'boost',
@@ -568,9 +576,20 @@
         desc: '斜め上へ高速飛翔し、短時間スピード＆ジャンプ力が大幅上昇！',
         unlockCost: 120,
         upgradeCost: 90,
-        maxLevel: 3,
-        baseDuration: 3.5,
-        baseCooldown: 9.0
+        maxLevel: 5,
+        baseDuration: 4.0,
+        baseCooldown: 8.5
+      },
+      phantom: {
+        id: 'phantom',
+        name: 'ファントムシフト (時間停止)',
+        icon: '✨',
+        desc: '一定時間周囲を完全に停止させ、罠をすり抜けて超高速ダッシュ！',
+        unlockCost: 160,
+        upgradeCost: 110,
+        maxLevel: 5,
+        baseDuration: 3.0,
+        baseCooldown: 12.0
       }
     };
 
@@ -625,44 +644,40 @@
         name: 'STAGE 1: 蒼空のスタートライン',
         subtitle: '基本ジャンプ・バウンスパッド・ダッシュリングをマスターしよう！',
         theme: { bgTop: '#0284c7', bgBottom: '#e0f2fe', accent: '#38bdf8' },
-        targetS: 22.0,
-        targetA: 30.0,
-        targetB: 42.0,
+        targetS: 25.0,
+        targetA: 35.0,
+        targetB: 48.0,
         build: () => {
           const platforms = [
-            { x: 0, y: 400, w: 360, h: 40, type: 'solid' },
-            { x: 430, y: 360, w: 160, h: 28, type: 'solid' },
-            { x: 660, y: 320, w: 160, h: 28, type: 'solid' },
-            // Bounce pad jump to upper terrace
-            { x: 760, y: 304, w: 48, h: 16, type: 'bounce', power: -16.5 },
-            { x: 890, y: 170, w: 230, h: 28, type: 'solid' },
-            // Moving platform across gap
-            { x: 1180, y: 180, w: 120, h: 24, type: 'moving', dx: 180, dy: 0, speed: 2.0 },
-            // Checkpoint 1 Island
-            { x: 1540, y: 220, w: 220, h: 32, type: 'solid' },
-            // Wall kick chimney
-            { x: 1830, y: 100, w: 32, h: 260, type: 'solid' },
-            { x: 1990, y: 40, w: 32, h: 280, type: 'solid' },
-            { x: 1990, y: 40, w: 240, h: 28, type: 'solid' },
-            // Dash ring sprint section
-            { x: 2480, y: 120, w: 180, h: 28, type: 'solid' },
-            { x: 2740, y: 120, w: 300, h: 36, type: 'solid' }
+            { x: 0, y: 400, w: 420, h: 40, type: 'solid' },
+            { x: 490, y: 350, w: 200, h: 28, type: 'solid' },
+            { x: 750, y: 300, w: 180, h: 28, type: 'solid' },
+            { x: 970, y: 284, w: 48, h: 16, type: 'bounce', power: -17.0 },
+            { x: 1120, y: 150, w: 280, h: 28, type: 'solid' },
+            { x: 1480, y: 160, w: 150, h: 24, type: 'moving', dx: 220, dy: 0, speed: 2.2 },
+            { x: 1850, y: 200, w: 250, h: 32, type: 'solid' },
+            { x: 2180, y: 80, w: 32, h: 320, type: 'solid' },
+            { x: 2360, y: 20, w: 32, h: 350, type: 'solid' },
+            { x: 2360, y: 20, w: 300, h: 28, type: 'solid' },
+            { x: 2900, y: 100, w: 220, h: 28, type: 'solid' },
+            { x: 3220, y: 100, w: 400, h: 36, type: 'solid' }
           ];
           const coins = [
-            { x: 480, y: 315 }, { x: 530, y: 315 },
-            { x: 780, y: 210 }, { x: 820, y: 150 },
-            { x: 1240, y: 135 }, { x: 1330, y: 135 },
-            { x: 1910, y: 240 }, { x: 1910, y: 160 }, { x: 1910, y: 80 },
-            { x: 2320, y: 70 }, { x: 2390, y: 70 }, { x: 2560, y: 75 }
+            { x: 550, y: 305 }, { x: 620, y: 305 },
+            { x: 1000, y: 190 }, { x: 1040, y: 120 },
+            { x: 1550, y: 110 }, { x: 1680, y: 110 },
+            { x: 2270, y: 260 }, { x: 2270, y: 160 }, { x: 2270, y: 70 },
+            { x: 2750, y: 50 }, { x: 2820, y: 50 }, { x: 3010, y: 55 }
           ];
           const rings = [
-            { x: 2300, y: 75, vx: 13.5, vy: -3.5 }
+            { x: 2720, y: 60, vx: 14.0, vy: -3.8 }
           ];
           const hazards = [
-            { x: 960, y: 154, w: 48, h: 16, type: 'spike' }
+            { x: 1220, y: 134, w: 56, h: 16, type: 'spike' },
+            { x: 3050, y: 84, w: 48, h: 16, type: 'spike' }
           ];
-          const checkpoints = [{ x: 1620, y: 164 }];
-          const goal = { x: 2940, y: 40 };
+          const checkpoints = [{ x: 1950, y: 144 }];
+          const goal = { x: 3440, y: 20 };
           return { platforms, coins, rings, hazards, winds: [], checkpoints, goal };
         }
       },
@@ -671,42 +686,40 @@
         name: 'STAGE 2: 崩落の遺跡と風の谷',
         subtitle: '乗ると崩れるブロックと上昇気流の風を読み切って駆け抜けろ！',
         theme: { bgTop: '#065f46', bgBottom: '#d1fae5', accent: '#34d399' },
-        targetS: 26.0,
-        targetA: 36.0,
-        targetB: 50.0,
+        targetS: 32.0,
+        targetA: 44.0,
+        targetB: 60.0,
         build: () => {
           const platforms = [
-            { x: 0, y: 400, w: 280, h: 40, type: 'solid' },
-            // Crumbling bridge
-            { x: 350, y: 380, w: 95, h: 24, type: 'crumble' },
-            { x: 500, y: 350, w: 95, h: 24, type: 'crumble' },
-            { x: 650, y: 320, w: 95, h: 24, type: 'crumble' },
-            { x: 810, y: 320, w: 180, h: 30, type: 'solid' },
-            // Wind valley + high platforms
-            { x: 1230, y: 180, w: 160, h: 26, type: 'oneway' },
-            { x: 1460, y: 140, w: 110, h: 24, type: 'crumble' },
-            { x: 1640, y: 180, w: 220, h: 32, type: 'solid' }, // Checkpoint
-            // Vertical moving & crumble combo
-            { x: 1940, y: 240, w: 110, h: 24, type: 'moving', dx: 0, dy: -150, speed: 2.3 },
-            { x: 2130, y: 110, w: 100, h: 24, type: 'crumble' },
-            { x: 2300, y: 110, w: 100, h: 24, type: 'crumble' },
-            { x: 2480, y: 220, w: 90, h: 20, type: 'bounce', power: -17 },
-            { x: 2680, y: 90, w: 280, h: 36, type: 'solid' }
+            { x: 0, y: 400, w: 320, h: 40, type: 'solid' },
+            { x: 390, y: 380, w: 100, h: 24, type: 'crumble' },
+            { x: 560, y: 350, w: 100, h: 24, type: 'crumble' },
+            { x: 730, y: 320, w: 100, h: 24, type: 'crumble' },
+            { x: 910, y: 310, w: 220, h: 30, type: 'solid' },
+            { x: 1350, y: 160, w: 180, h: 26, type: 'oneway' },
+            { x: 1610, y: 120, w: 120, h: 24, type: 'crumble' },
+            { x: 1810, y: 170, w: 250, h: 32, type: 'solid' },
+            { x: 2140, y: 260, w: 120, h: 24, type: 'moving', dx: 0, dy: -180, speed: 2.5 },
+            { x: 2360, y: 90, w: 110, h: 24, type: 'crumble' },
+            { x: 2560, y: 90, w: 110, h: 24, type: 'crumble' },
+            { x: 2780, y: 210, w: 90, h: 20, type: 'bounce', power: -17.5 },
+            { x: 3010, y: 80, w: 350, h: 36, type: 'solid' }
           ];
           const winds = [
-            { x: 1040, y: 120, w: 130, h: 320, forceY: -0.68 }
+            { x: 1160, y: 100, w: 150, h: 340, forceY: -0.72 }
           ];
           const coins = [
-            { x: 395, y: 335 }, { x: 545, y: 305 }, { x: 695, y: 275 },
-            { x: 1105, y: 300 }, { x: 1105, y: 220 }, { x: 1105, y: 140 },
-            { x: 1515, y: 95 }, { x: 2180, y: 65 }, { x: 2350, y: 65 },
-            { x: 2580, y: 80 }, { x: 2750, y: 45 }
+            { x: 440, y: 335 }, { x: 610, y: 305 }, { x: 780, y: 275 },
+            { x: 1240, y: 290 }, { x: 1240, y: 200 }, { x: 1240, y: 110 },
+            { x: 1670, y: 75 }, { x: 2190, y: 100 }, { x: 2410, y: 45 },
+            { x: 2610, y: 45 }, { x: 2910, y: 80 }, { x: 3180, y: 35 }
           ];
           const hazards = [
-            { x: 870, y: 304, w: 45, h: 16, type: 'spike' }
+            { x: 990, y: 294, w: 56, h: 16, type: 'spike' },
+            { x: 3120, y: 64, w: 48, h: 16, type: 'spike' }
           ];
-          const checkpoints = [{ x: 1720, y: 124 }];
-          const goal = { x: 2870, y: 10 };
+          const checkpoints = [{ x: 1910, y: 114 }];
+          const goal = { x: 3240, y: 10 };
           return { platforms, coins, rings: [], hazards, winds, checkpoints, goal };
         }
       },
@@ -715,45 +728,41 @@
         name: 'STAGE 3: 氷結ベルトコンベア工場',
         subtitle: 'ツルツル滑る氷床と高速コンベア、周期レーザーを突破せよ！',
         theme: { bgTop: '#1e1b4b', bgBottom: '#bae6fd', accent: '#60a5fa' },
-        targetS: 30.0,
-        targetA: 42.0,
-        targetB: 55.0,
+        targetS: 35.0,
+        targetA: 48.0,
+        targetB: 65.0,
         build: () => {
           const platforms = [
-            { x: 0, y: 400, w: 250, h: 40, type: 'solid' },
-            // Ice slide section
-            { x: 320, y: 400, w: 280, h: 28, type: 'ice' },
-            { x: 670, y: 350, w: 240, h: 28, type: 'ice' },
-            // Conveyor belt pushing back & forward
-            { x: 980, y: 290, w: 240, h: 26, type: 'conveyor', speed: -2.8 },
-            { x: 1290, y: 230, w: 240, h: 26, type: 'conveyor', speed: 3.6 },
-            // Checkpoint platform
-            { x: 1620, y: 230, w: 220, h: 32, type: 'solid' },
-            // Ice + Laser + Bounce gauntlet
-            { x: 1920, y: 260, w: 220, h: 28, type: 'ice' },
-            { x: 2210, y: 210, w: 220, h: 26, type: 'conveyor', speed: -3.2 },
-            { x: 2500, y: 260, w: 56, h: 18, type: 'bounce', power: -16.5 },
-            { x: 2650, y: 110, w: 250, h: 28, type: 'ice' },
-            { x: 2970, y: 110, w: 260, h: 36, type: 'solid' }
+            { x: 0, y: 400, w: 280, h: 40, type: 'solid' },
+            { x: 350, y: 400, w: 320, h: 28, type: 'ice' },
+            { x: 740, y: 340, w: 280, h: 28, type: 'ice' },
+            { x: 1090, y: 280, w: 280, h: 26, type: 'conveyor', speed: -3.2 },
+            { x: 1440, y: 220, w: 280, h: 26, type: 'conveyor', speed: 3.8 },
+            { x: 1790, y: 220, w: 250, h: 32, type: 'solid' },
+            { x: 2110, y: 260, w: 260, h: 28, type: 'ice' },
+            { x: 2440, y: 200, w: 260, h: 26, type: 'conveyor', speed: -3.6 },
+            { x: 2770, y: 260, w: 56, h: 18, type: 'bounce', power: -17.0 },
+            { x: 2950, y: 100, w: 300, h: 28, type: 'ice' },
+            { x: 3320, y: 100, w: 350, h: 36, type: 'solid' }
           ];
           const hazards = [
-            { x: 450, y: 384, w: 44, h: 16, type: 'spike' },
-            { x: 1080, y: 150, w: 18, h: 140, type: 'laser', period: 140, offset: 0 },
-            { x: 2020, y: 120, w: 18, h: 140, type: 'laser', period: 120, offset: 60 },
-            { x: 2760, y: 94, w: 48, h: 16, type: 'spike' }
+            { x: 490, y: 384, w: 48, h: 16, type: 'spike' },
+            { x: 1200, y: 140, w: 18, h: 140, type: 'laser', period: 130, offset: 0 },
+            { x: 2240, y: 110, w: 18, h: 150, type: 'laser', period: 110, offset: 50 },
+            { x: 3080, y: 84, w: 48, h: 16, type: 'spike' }
           ];
           const coins = [
-            { x: 400, y: 350 }, { x: 530, y: 350 },
-            { x: 780, y: 305 }, { x: 1100, y: 245 },
-            { x: 1400, y: 185 }, { x: 2020, y: 215 },
-            { x: 2310, y: 165 }, { x: 2580, y: 120 },
-            { x: 2780, y: 50 }, { x: 2840, y: 50 }
+            { x: 430, y: 350 }, { x: 590, y: 350 },
+            { x: 860, y: 295 }, { x: 1220, y: 235 },
+            { x: 1570, y: 175 }, { x: 2230, y: 215 },
+            { x: 2560, y: 155 }, { x: 2850, y: 120 },
+            { x: 3100, y: 45 }, { x: 3200, y: 45 }, { x: 3450, y: 40 }
           ];
           const rings = [
-            { x: 1560, y: 155, vx: 11, vy: -4 }
+            { x: 1720, y: 140, vx: 12.5, vy: -4.2 }
           ];
-          const checkpoints = [{ x: 1710, y: 174 }];
-          const goal = { x: 3140, y: 30 };
+          const checkpoints = [{ x: 1890, y: 164 }];
+          const goal = { x: 3520, y: 20 };
           return { platforms, coins, rings, hazards, winds: [], checkpoints, goal };
         }
       },
@@ -762,47 +771,42 @@
         name: 'STAGE 4: 紅蓮のレーザータワー',
         subtitle: '連続壁キックと空中ダッシュリングでレーザー要塞を駆け上がれ！',
         theme: { bgTop: '#450a0a', bgBottom: '#fecdd3', accent: '#fb7185' },
-        targetS: 33.0,
-        targetA: 45.0,
-        targetB: 60.0,
+        targetS: 38.0,
+        targetA: 52.0,
+        targetB: 72.0,
         build: () => {
           const platforms = [
-            { x: 0, y: 420, w: 260, h: 40, type: 'solid' },
-            // Vertical tower climb 1
-            { x: 320, y: 160, w: 30, h: 280, type: 'solid' },
-            { x: 490, y: 120, w: 30, h: 320, type: 'solid' },
-            { x: 490, y: 120, w: 220, h: 28, type: 'solid' },
-            // Crumble & Dash Ring chain
-            { x: 780, y: 150, w: 90, h: 22, type: 'crumble' },
-            { x: 1160, y: 180, w: 120, h: 24, type: 'moving', dx: 160, dy: 0, speed: 2.8 },
-            // Checkpoint 1
-            { x: 1520, y: 200, w: 220, h: 32, type: 'solid' },
-            // Fast conveyor & lasers
-            { x: 1820, y: 200, w: 260, h: 26, type: 'conveyor', speed: 4.0 },
-            { x: 2150, y: 260, w: 90, h: 22, type: 'crumble' },
-            { x: 2320, y: 310, w: 56, h: 18, type: 'bounce', power: -18.0 },
-            // Upper final stretch
-            { x: 2520, y: 120, w: 220, h: 26, type: 'ice' },
-            { x: 2820, y: 120, w: 300, h: 36, type: 'solid' }
+            { x: 0, y: 420, w: 300, h: 40, type: 'solid' },
+            { x: 360, y: 140, w: 32, h: 320, type: 'solid' },
+            { x: 550, y: 100, w: 32, h: 360, type: 'solid' },
+            { x: 550, y: 100, w: 260, h: 28, type: 'solid' },
+            { x: 880, y: 140, w: 100, h: 22, type: 'crumble' },
+            { x: 1290, y: 170, w: 140, h: 24, type: 'moving', dx: 180, dy: 0, speed: 3.2 },
+            { x: 1680, y: 190, w: 250, h: 32, type: 'solid' },
+            { x: 2020, y: 190, w: 300, h: 26, type: 'conveyor', speed: 4.2 },
+            { x: 2390, y: 250, w: 100, h: 22, type: 'crumble' },
+            { x: 2580, y: 300, w: 56, h: 18, type: 'bounce', power: -18.5 },
+            { x: 2800, y: 110, w: 260, h: 26, type: 'ice' },
+            { x: 3140, y: 110, w: 400, h: 36, type: 'solid' }
           ];
           const rings = [
-            { x: 960, y: 110, vx: 13.5, vy: -4.0 },
-            { x: 2430, y: 150, vx: 12.0, vy: -5.0 }
+            { x: 1080, y: 95, vx: 14.5, vy: -4.2 },
+            { x: 2710, y: 140, vx: 13.0, vy: -5.2 }
           ];
           const hazards = [
-            { x: 580, y: 104, w: 45, h: 16, type: 'spike' },
-            { x: 1900, y: 60, w: 18, h: 140, type: 'laser', period: 100, offset: 0 },
-            { x: 2010, y: 60, w: 18, h: 140, type: 'laser', period: 100, offset: 50 },
-            { x: 2630, y: 104, w: 45, h: 16, type: 'spike' }
+            { x: 650, y: 84, w: 48, h: 16, type: 'spike' },
+            { x: 2110, y: 40, w: 18, h: 150, type: 'laser', period: 95, offset: 0 },
+            { x: 2240, y: 40, w: 18, h: 150, type: 'laser', period: 95, offset: 45 },
+            { x: 2920, y: 94, w: 48, h: 16, type: 'spike' }
           ];
           const coins = [
-            { x: 405, y: 340 }, { x: 405, y: 250 }, { x: 405, y: 160 },
-            { x: 825, y: 105 }, { x: 1040, y: 90 },
-            { x: 1955, y: 155 }, { x: 2345, y: 240 },
-            { x: 2650, y: 60 }, { x: 2880, y: 75 }, { x: 2940, y: 75 }
+            { x: 455, y: 350 }, { x: 455, y: 250 }, { x: 455, y: 150 },
+            { x: 935, y: 90 }, { x: 1180, y: 75 },
+            { x: 2165, y: 140 }, { x: 2615, y: 220 },
+            { x: 2930, y: 50 }, { x: 3220, y: 65 }, { x: 3320, y: 65 }
           ];
-          const checkpoints = [{ x: 1610, y: 144 }];
-          const goal = { x: 3020, y: 40 };
+          const checkpoints = [{ x: 1780, y: 134 }];
+          const goal = { x: 3420, y: 30 };
           return { platforms, coins, rings, hazards, winds: [], checkpoints, goal };
         }
       },
@@ -811,52 +815,146 @@
         name: 'STAGE 5: 天空神殿・マスター試練',
         subtitle: '全ギミック総登場！強化したスキルとアクションで最速王者に輝け！',
         theme: { bgTop: '#311042', bgBottom: '#fef08a', accent: '#facc15' },
-        targetS: 38.0,
-        targetA: 52.0,
-        targetB: 70.0,
+        targetS: 42.0,
+        targetA: 58.0,
+        targetB: 78.0,
         build: () => {
           const platforms = [
-            { x: 0, y: 420, w: 240, h: 40, type: 'solid' },
-            { x: 300, y: 380, w: 180, h: 26, type: 'conveyor', speed: 3.8 },
-            { x: 550, y: 350, w: 90, h: 22, type: 'crumble' },
-            { x: 710, y: 320, w: 54, h: 18, type: 'bounce', power: -17.0 },
-            { x: 880, y: 170, w: 200, h: 26, type: 'ice' },
-            // Wind + Moving platform
-            { x: 1320, y: 150, w: 120, h: 24, type: 'moving', dx: 180, dy: 0, speed: 3.0 },
-            // Checkpoint 1
-            { x: 1700, y: 180, w: 220, h: 32, type: 'solid' },
-            // Wall kick & crumble gauntlet
-            { x: 2000, y: 40, w: 28, h: 260, type: 'solid' },
-            { x: 2150, y: 10, w: 28, h: 260, type: 'solid' },
-            { x: 2260, y: 120, w: 95, h: 22, type: 'crumble' },
-            { x: 2430, y: 120, w: 95, h: 22, type: 'crumble' },
-            // Final dash & conveyor sprint
-            { x: 2820, y: 180, w: 260, h: 26, type: 'conveyor', speed: -3.5 },
-            { x: 3150, y: 200, w: 56, h: 18, type: 'bounce', power: -17.5 },
-            { x: 3340, y: 80, w: 300, h: 38, type: 'solid' }
+            { x: 0, y: 420, w: 280, h: 40, type: 'solid' },
+            { x: 350, y: 380, w: 200, h: 26, type: 'conveyor', speed: 4.0 },
+            { x: 630, y: 340, w: 100, h: 22, type: 'crumble' },
+            { x: 810, y: 300, w: 56, h: 18, type: 'bounce', power: -17.5 },
+            { x: 990, y: 160, w: 240, h: 26, type: 'ice' },
+            { x: 1470, y: 140, w: 140, h: 24, type: 'moving', dx: 200, dy: 0, speed: 3.4 },
+            { x: 1900, y: 170, w: 250, h: 32, type: 'solid' },
+            { x: 2230, y: 30, w: 32, h: 280, type: 'solid' },
+            { x: 2400, y: 0, w: 32, h: 280, type: 'solid' },
+            { x: 2530, y: 110, w: 100, h: 22, type: 'crumble' },
+            { x: 2720, y: 110, w: 100, h: 22, type: 'crumble' },
+            { x: 3120, y: 170, w: 300, h: 26, type: 'conveyor', speed: -3.8 },
+            { x: 3500, y: 190, w: 56, h: 18, type: 'bounce', power: -18.0 },
+            { x: 3700, y: 70, w: 400, h: 38, type: 'solid' }
           ];
           const winds = [
-            { x: 1130, y: 60, w: 130, h: 320, forceY: -0.72 }
+            { x: 1260, y: 50, w: 150, h: 340, forceY: -0.76 }
           ];
           const rings = [
-            { x: 2620, y: 100, vx: 14.5, vy: -3.5 }
+            { x: 2910, y: 90, vx: 15.0, vy: -3.8 }
           ];
           const hazards = [
-            { x: 960, y: 154, w: 45, h: 16, type: 'spike' },
-            { x: 1450, y: 30, w: 18, h: 120, type: 'laser', period: 100, offset: 20 },
-            { x: 2920, y: 40, w: 18, h: 140, type: 'laser', period: 95, offset: 0 },
-            { x: 3020, y: 40, w: 18, h: 140, type: 'laser', period: 95, offset: 48 }
+            { x: 1080, y: 144, w: 48, h: 16, type: 'spike' },
+            { x: 1630, y: 20, w: 18, h: 130, type: 'laser', period: 95, offset: 20 },
+            { x: 3240, y: 30, w: 18, h: 140, type: 'laser', period: 90, offset: 0 },
+            { x: 3360, y: 30, w: 18, h: 140, type: 'laser', period: 90, offset: 45 }
           ];
           const coins = [
-            { x: 390, y: 335 }, { x: 595, y: 305 },
-            { x: 800, y: 190 }, { x: 980, y: 115 },
-            { x: 1195, y: 220 }, { x: 1195, y: 130 },
-            { x: 2075, y: 200 }, { x: 2075, y: 110 },
-            { x: 2305, y: 75 }, { x: 2475, y: 75 },
-            { x: 2720, y: 90 }, { x: 3250, y: 80 }, { x: 3420, y: 35 }
+            { x: 450, y: 335 }, { x: 680, y: 295 },
+            { x: 910, y: 180 }, { x: 1110, y: 105 },
+            { x: 1340, y: 210 }, { x: 1340, y: 120 },
+            { x: 2310, y: 190 }, { x: 2310, y: 100 },
+            { x: 2580, y: 65 }, { x: 2770, y: 65 },
+            { x: 3030, y: 80 }, { x: 3610, y: 70 }, { x: 3820, y: 25 }
           ];
-          const checkpoints = [{ x: 1790, y: 124 }];
-          const goal = { x: 3540, y: 0 };
+          const checkpoints = [{ x: 2000, y: 114 }];
+          const goal = { x: 3920, y: 10 };
+          return { platforms, coins, rings, hazards, winds, checkpoints, goal };
+        }
+      },
+      {
+        id: 6,
+        name: 'STAGE 6: ネオンサイバー・シンフォニー',
+        subtitle: '近未来の電脳空間。極限スピードとレーザーの網をかいくぐれ！',
+        theme: { bgTop: '#090d16', bgBottom: '#38bdf8', accent: '#f43f5e' },
+        targetS: 45.0,
+        targetA: 62.0,
+        targetB: 85.0,
+        build: () => {
+          const platforms = [
+            { x: 0, y: 400, w: 320, h: 40, type: 'solid' },
+            { x: 380, y: 350, w: 240, h: 26, type: 'conveyor', speed: 4.5 },
+            { x: 680, y: 290, w: 95, h: 22, type: 'crumble' },
+            { x: 840, y: 260, w: 56, h: 18, type: 'bounce', power: -18.0 },
+            { x: 1030, y: 120, w: 220, h: 28, type: 'ice' },
+            { x: 1360, y: 120, w: 32, h: 280, type: 'solid' },
+            { x: 1520, y: 80, w: 32, h: 320, type: 'solid' },
+            { x: 1720, y: 200, w: 250, h: 32, type: 'solid' },
+            { x: 2050, y: 160, w: 280, h: 26, type: 'conveyor', speed: -4.2 },
+            { x: 2410, y: 220, w: 95, h: 22, type: 'crumble' },
+            { x: 2600, y: 280, w: 56, h: 18, type: 'bounce', power: -18.5 },
+            { x: 2820, y: 100, w: 320, h: 28, type: 'ice' },
+            { x: 3240, y: 100, w: 450, h: 38, type: 'solid' }
+          ];
+          const winds = [
+            { x: 1820, y: 20, w: 140, h: 360, forceY: -0.80 }
+          ];
+          const rings = [
+            { x: 2710, y: 160, vx: 15.5, vy: -4.0 }
+          ];
+          const hazards = [
+            { x: 1120, y: 104, w: 48, h: 16, type: 'spike' },
+            { x: 1430, y: 30, w: 18, h: 150, type: 'laser', period: 85, offset: 0 },
+            { x: 2180, y: 20, w: 18, h: 150, type: 'laser', period: 85, offset: 40 },
+            { x: 2980, y: 84, w: 48, h: 16, type: 'spike' }
+          ];
+          const coins = [
+            { x: 470, y: 305 }, { x: 730, y: 245 },
+            { x: 1110, y: 65 }, { x: 1440, y: 180 }, { x: 1440, y: 90 },
+            { x: 2140, y: 110 }, { x: 2455, y: 175 },
+            { x: 2940, y: 45 }, { x: 3350, y: 40 }, { x: 3500, y: 40 }
+          ];
+          const checkpoints = [{ x: 1830, y: 144 }];
+          const goal = { x: 3600, y: 10 };
+          return { platforms, coins, rings, hazards, winds, checkpoints, goal };
+        }
+      },
+      {
+        id: 7,
+        name: 'STAGE 7: 天空のメガリス・アルティメット',
+        subtitle: '全最高難度ギミックの連続。真のアスレチックマスターへ捧ぐ最終関門！',
+        theme: { bgTop: '#18181b', bgBottom: '#f59e0b', accent: '#f59e0b' },
+        targetS: 50.0,
+        targetA: 70.0,
+        targetB: 95.0,
+        build: () => {
+          const platforms = [
+            { x: 0, y: 400, w: 300, h: 40, type: 'solid' },
+            { x: 360, y: 360, w: 180, h: 26, type: 'conveyor', speed: 4.8 },
+            { x: 600, y: 320, w: 90, h: 22, type: 'crumble' },
+            { x: 750, y: 280, w: 56, h: 18, type: 'bounce', power: -18.5 },
+            { x: 920, y: 140, w: 220, h: 26, type: 'ice' },
+            { x: 1260, y: 140, w: 130, h: 24, type: 'moving', dx: 220, dy: 0, speed: 3.8 },
+            { x: 1700, y: 180, w: 260, h: 32, type: 'solid' },
+            { x: 2040, y: 40, w: 28, h: 280, type: 'solid' },
+            { x: 2200, y: 10, w: 28, h: 280, type: 'solid' },
+            { x: 2330, y: 110, w: 90, h: 22, type: 'crumble' },
+            { x: 2520, y: 110, w: 90, h: 22, type: 'crumble' },
+            { x: 2900, y: 180, w: 280, h: 26, type: 'conveyor', speed: -4.5 },
+            { x: 3280, y: 210, w: 56, h: 18, type: 'bounce', power: -19.0 },
+            { x: 3480, y: 100, w: 300, h: 28, type: 'ice' },
+            { x: 3880, y: 80, w: 500, h: 40, type: 'solid' }
+          ];
+          const winds = [
+            { x: 1520, y: 30, w: 150, h: 360, forceY: -0.82 }
+          ];
+          const rings = [
+            { x: 3040, y: 110, vx: 16.0, vy: -4.2 }
+          ];
+          const hazards = [
+            { x: 1000, y: 124, w: 48, h: 16, type: 'spike' },
+            { x: 1450, y: 20, w: 18, h: 150, type: 'laser', period: 80, offset: 0 },
+            { x: 3020, y: 20, w: 18, h: 150, type: 'laser', period: 80, offset: 35 },
+            { x: 3140, y: 20, w: 18, h: 150, type: 'laser', period: 80, offset: 70 },
+            { x: 3620, y: 84, w: 48, h: 16, type: 'spike' }
+          ];
+          const coins = [
+            { x: 440, y: 315 }, { x: 640, y: 275 },
+            { x: 1010, y: 85 }, { x: 1320, y: 200 }, { x: 1320, y: 100 },
+            { x: 2110, y: 200 }, { x: 2110, y: 110 },
+            { x: 2375, y: 65 }, { x: 2565, y: 65 },
+            { x: 3010, y: 120 }, { x: 3610, y: 40 }, { x: 3980, y: 30 }, { x: 4120, y: 30 }
+          ];
+          const checkpoints = [{ x: 1800, y: 124 }];
+          const goal = { x: 4240, y: 10 };
           return { platforms, coins, rings, hazards, winds, checkpoints, goal };
         }
       }
@@ -1121,21 +1219,20 @@
 
       if (idx === 0) {
         game.platforms.push({
-          x: 0, y: 400, w: 380, h: 40, type: 'solid', origX: 0, origY: 400
+          x: 0, y: 400, w: 420, h: 40, type: 'solid', origX: 0, origY: 400
         });
-        game.endlessNextX = 440;
+        game.endlessNextX = 480;
         return;
       }
 
-      const difficulty = Math.min(1.0, idx / 18);
-      const pattern = idx % 6;
-      const baseY = 260 + Math.sin(idx * 0.9) * 90;
+      const difficulty = Math.min(1.0, idx / 25);
+      const pattern = idx % 12;
+      const baseY = 240 + Math.sin(idx * 0.7) * 110;
 
       if (pattern === 1) {
-        // Crumbling steps + bounce pad
         for (let i = 0; i < 3; i++) {
-          const px = startX + i * 155;
-          const py = baseY - i * 30;
+          const px = startX + i * 160;
+          const py = baseY - i * 35;
           game.platforms.push({
             x: px, y: py, w: 100, h: 24,
             type: i === 1 ? 'crumble' : 'solid',
@@ -1143,75 +1240,128 @@
           });
           game.coins.push({ x: px + 50, y: py - 42, collected: false });
         }
-        game.endlessNextX = startX + 490;
+        game.endlessNextX = startX + 520;
       } else if (pattern === 2) {
-        // Moving platform + Dash ring
         const px = startX + 40;
         game.platforms.push({
           x: px, y: baseY, w: 120, h: 24,
-          type: 'moving', dx: 140, dy: 0, speed: 2.0 + difficulty * 1.4,
+          type: 'moving', dx: 160, dy: 0, speed: 2.2 + difficulty * 1.6,
           origX: px, origY: baseY
         });
-        game.rings.push({ x: startX + 360, y: baseY - 60, vx: 13, vy: -4.2, cooldown: 0 });
-        game.coins.push({ x: startX + 360, y: baseY - 60, collected: false });
-        game.coins.push({ x: startX + 440, y: baseY - 90, collected: false });
-        game.endlessNextX = startX + 560;
+        game.rings.push({ x: startX + 380, y: baseY - 60, vx: 14, vy: -4.5, cooldown: 0 });
+        game.coins.push({ x: startX + 380, y: baseY - 60, collected: false });
+        game.coins.push({ x: startX + 460, y: baseY - 90, collected: false });
+        game.endlessNextX = startX + 580;
       } else if (pattern === 3) {
-        // Ice & Spike jump + Bounce
         const px = startX;
         game.platforms.push({
-          x: px, y: baseY + 30, w: 260, h: 28, type: 'ice', origX: px, origY: baseY + 30
+          x: px, y: baseY + 30, w: 280, h: 28, type: 'ice', origX: px, origY: baseY + 30
         });
         game.hazards.push({
-          x: px + 110, y: baseY + 14, w: 42, h: 16, type: 'spike'
+          x: px + 120, y: baseY + 14, w: 48, h: 16, type: 'spike'
         });
         game.platforms.push({
-          x: px + 320, y: baseY + 40, w: 54, h: 18, type: 'bounce', power: -16.8, origX: px + 320, origY: baseY + 40
+          x: px + 340, y: baseY + 40, w: 56, h: 18, type: 'bounce', power: -17.5, origX: px + 340, origY: baseY + 40
         });
-        game.coins.push({ x: px + 130, y: baseY - 35, collected: false });
-        game.coins.push({ x: px + 345, y: baseY - 60, collected: false });
-        game.endlessNextX = startX + 470;
+        game.coins.push({ x: px + 140, y: baseY - 35, collected: false });
+        game.coins.push({ x: px + 365, y: baseY - 65, collected: false });
+        game.endlessNextX = startX + 500;
       } else if (pattern === 4) {
-        // Conveyor & Periodic Laser
         const px = startX;
         game.platforms.push({
-          x: px, y: baseY, w: 250, h: 26,
-          type: 'conveyor', speed: (idx % 2 === 0 ? 3.2 : -3.0),
+          x: px, y: baseY, w: 280, h: 26,
+          type: 'conveyor', speed: (idx % 2 === 0 ? 3.6 : -3.4),
           origX: px, origY: baseY
         });
         game.hazards.push({
-          x: px + 120, y: baseY - 130, w: 18, h: 130,
-          type: 'laser', period: Math.max(85, 130 - Math.floor(difficulty * 35)), offset: 0
+          x: px + 130, y: baseY - 130, w: 18, h: 130,
+          type: 'laser', period: Math.max(75, 120 - Math.floor(difficulty * 40)), offset: 0
         });
-        game.coins.push({ x: px + 70, y: baseY - 40, collected: false });
-        game.coins.push({ x: px + 180, y: baseY - 40, collected: false });
-        game.endlessNextX = startX + 340;
+        game.coins.push({ x: px + 75, y: baseY - 40, collected: false });
+        game.coins.push({ x: px + 200, y: baseY - 40, collected: false });
+        game.endlessNextX = startX + 380;
       } else if (pattern === 5) {
-        // Wind updraft + high coin arc
         game.winds.push({
-          x: startX + 20, y: baseY - 140, w: 130, h: 300, forceY: -0.68
+          x: startX + 20, y: baseY - 150, w: 140, h: 320, forceY: -0.74
         });
         game.platforms.push({
-          x: startX + 210, y: baseY - 70, w: 170, h: 28, type: 'solid', origX: startX + 210, origY: baseY - 70
+          x: startX + 220, y: baseY - 70, w: 180, h: 28, type: 'solid', origX: startX + 220, origY: baseY - 70
         });
-        game.coins.push({ x: startX + 85, y: baseY - 20, collected: false });
-        game.coins.push({ x: startX + 85, y: baseY - 90, collected: false });
-        game.coins.push({ x: startX + 295, y: baseY - 115, collected: false });
+        game.coins.push({ x: startX + 90, y: baseY - 20, collected: false });
+        game.coins.push({ x: startX + 90, y: baseY - 90, collected: false });
+        game.coins.push({ x: startX + 310, y: baseY - 115, collected: false });
+        game.endlessNextX = startX + 480;
+      } else if (pattern === 6) {
+        game.platforms.push({
+          x: startX + 30, y: baseY - 120, w: 28, h: 240, type: 'solid', origX: startX + 30, origY: baseY - 120
+        });
+        game.platforms.push({
+          x: startX + 180, y: baseY - 160, w: 28, h: 240, type: 'solid', origX: startX + 180, origY: baseY - 160
+        });
+        game.platforms.push({
+          x: startX + 180, y: baseY - 160, w: 200, h: 28, type: 'solid', origX: startX + 180, origY: baseY - 160
+        });
+        game.coins.push({ x: startX + 105, y: baseY - 30, collected: false });
+        game.coins.push({ x: startX + 105, y: baseY - 120, collected: false });
+        game.endlessNextX = startX + 450;
+      } else if (pattern === 7) {
+        // Double Dash Ring Gauntlet
+        game.platforms.push({
+          x: startX, y: baseY + 20, w: 140, h: 26, type: 'solid', origX: startX, origY: baseY + 20
+        });
+        game.rings.push({ x: startX + 220, y: baseY - 40, vx: 14, vy: -4.0, cooldown: 0 });
+        game.rings.push({ x: startX + 380, y: baseY - 80, vx: 15, vy: -3.5, cooldown: 0 });
+        game.coins.push({ x: startX + 220, y: baseY - 40, collected: false });
+        game.coins.push({ x: startX + 380, y: baseY - 80, collected: false });
+        game.endlessNextX = startX + 520;
+      } else if (pattern === 8) {
+        // Triple crumble bridge
+        for (let i = 0; i < 4; i++) {
+          const px = startX + i * 110;
+          game.platforms.push({
+            x: px, y: baseY + (i % 2 === 0 ? 0 : -20), w: 90, h: 22,
+            type: 'crumble', origX: px, origY: baseY, state: 'idle', timer: 0
+          });
+          game.coins.push({ x: px + 45, y: baseY - 45, collected: false });
+        }
+        game.endlessNextX = startX + 500;
+      } else if (pattern === 9) {
+        // Moving platform + dual lasers
+        const px = startX + 30;
+        game.platforms.push({
+          x: px, y: baseY, w: 140, h: 26,
+          type: 'moving', dx: 0, dy: -120, speed: 2.8,
+          origX: px, origY: baseY
+        });
+        game.hazards.push({
+          x: px + 220, y: baseY - 140, w: 18, h: 140,
+          type: 'laser', period: 90, offset: 0
+        });
+        game.coins.push({ x: px + 70, y: baseY - 50, collected: false });
+        game.coins.push({ x: px + 220, y: baseY - 70, collected: false });
         game.endlessNextX = startX + 460;
+      } else if (pattern === 10) {
+        // Ice slide + spike gap
+        game.platforms.push({
+          x: startX, y: baseY + 20, w: 320, h: 28, type: 'ice', origX: startX, origY: baseY + 20
+        });
+        game.hazards.push({
+          x: startX + 130, y: baseY + 4, w: 60, h: 16, type: 'spike'
+        });
+        game.platforms.push({
+          x: startX + 380, y: baseY - 20, w: 56, h: 18, type: 'bounce', power: -18.0, origX: startX + 380, origY: baseY - 20
+        });
+        game.coins.push({ x: startX + 160, y: baseY - 40, collected: false });
+        game.coins.push({ x: startX + 400, y: baseY - 80, collected: false });
+        game.endlessNextX = startX + 510;
       } else {
-        // Wall kick twin pillars
+        // High Speed Conveyor sprint
         game.platforms.push({
-          x: startX + 30, y: baseY - 110, w: 28, h: 220, type: 'solid', origX: startX + 30, origY: baseY - 110
+          x: startX, y: baseY, w: 340, h: 28, type: 'conveyor', speed: 5.0, origX: startX, origY: baseY
         });
-        game.platforms.push({
-          x: startX + 170, y: baseY - 150, w: 28, h: 220, type: 'solid', origX: startX + 170, origY: baseY - 150
-        });
-        game.platforms.push({
-          x: startX + 170, y: baseY - 150, w: 180, h: 28, type: 'solid', origX: startX + 170, origY: baseY - 150
-        });
-        game.coins.push({ x: startX + 100, y: baseY - 30, collected: false });
-        game.coins.push({ x: startX + 100, y: baseY - 110, collected: false });
-        game.endlessNextX = startX + 430;
+        game.coins.push({ x: startX + 100, y: baseY - 40, collected: false });
+        game.coins.push({ x: startX + 220, y: baseY - 40, collected: false });
+        game.endlessNextX = startX + 440;
       }
     }
 
