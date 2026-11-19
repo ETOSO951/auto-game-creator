@@ -606,16 +606,27 @@
         baseDuration: 4.0,
         baseCooldown: 8.5
       },
-      phantom: {
-        id: 'phantom',
-        name: 'ファントムシフト (時間停止)',
-        icon: '✨',
-        desc: '一定時間周囲を完全に停止させ、罠をすり抜けて超高速ダッシュ！',
-        unlockCost: 160,
-        upgradeCost: 110,
+      rewind: {
+        id: 'rewind',
+        name: 'クロノスリワインド (時間巻き戻し)',
+        icon: '⏪',
+        desc: 'ミスした瞬間や落下直前の安全な位置へ2秒前の位置を巻き戻す！',
+        unlockCost: 140,
+        upgradeCost: 100,
         maxLevel: 5,
-        baseDuration: 3.0,
-        baseCooldown: 12.0
+        baseDuration: 2.0,
+        baseCooldown: 14.0
+      },
+      magnetburst: {
+        id: 'magnetburst',
+        name: 'ハイパーマグネットバースト',
+        icon: '🧲',
+        desc: '周囲の全コインとダッシュリングを強力に引き寄せ、1秒間無敵化！',
+        unlockCost: 180,
+        upgradeCost: 120,
+        maxLevel: 5,
+        baseDuration: 3.5,
+        baseCooldown: 11.0
       }
     };
 
@@ -1277,7 +1288,7 @@
       }, 1800);
     }
 
-    // Procedural Generator for Endless Mode (with weather & mini-boss/elite zones)
+    // Enhanced Procedural Generator for Endless Mode (with weather & dynamic hazards)
     function appendEndlessChunk() {
       const idx = game.endlessChunkIndex++;
       const startX = game.endlessNextX;
@@ -1290,21 +1301,20 @@
         return;
       }
 
-      // Every 10 chunks, trigger a Weather change or Elite Boss zone
-      if (idx % 10 === 0) {
+      if (idx % 8 === 0) {
         const weathers = ['clear', 'windy', 'dark', 'fog'];
         game.endlessWeather = weathers[Math.floor(Math.random() * weathers.length)];
         showHudToast(`🌤️ 天候変化: ${game.endlessWeather.toUpperCase()}！`, 'text-cyan-300 border-cyan-400');
       }
 
-      const difficulty = Math.min(1.0, idx / 25);
-      const pattern = idx % 14;
+      const difficulty = Math.min(1.0, idx / 20);
+      const pattern = idx % 16;
       const baseY = 240 + Math.sin(idx * 0.7) * 110;
 
       if (pattern === 1) {
         for (let i = 0; i < 3; i++) {
-          const px = startX + i * 160;
-          const py = baseY - i * 35;
+          const px = startX + i * 150;
+          const py = baseY - i * 32;
           game.platforms.push({
             x: px, y: py, w: 100, h: 24,
             type: i === 1 ? 'crumble' : 'solid',
@@ -1312,134 +1322,51 @@
           });
           game.coins.push({ x: px + 50, y: py - 42, collected: false });
         }
-        game.endlessNextX = startX + 520;
+        game.endlessNextX = startX + 500;
       } else if (pattern === 2) {
         const px = startX + 40;
         game.platforms.push({
           x: px, y: baseY, w: 120, h: 24,
-          type: 'moving', dx: 160, dy: 0, speed: 2.2 + difficulty * 1.6,
+          type: 'moving', dx: 160, dy: 0, speed: 2.5 + difficulty * 1.8,
           origX: px, origY: baseY
         });
         game.rings.push({ x: startX + 380, y: baseY - 60, vx: 14, vy: -4.5, cooldown: 0 });
         game.coins.push({ x: startX + 380, y: baseY - 60, collected: false });
-        game.coins.push({ x: startX + 460, y: baseY - 90, collected: false });
-        game.endlessNextX = startX + 580;
+        game.coins.push({ x: startX + 450, y: baseY - 90, collected: false });
+        game.endlessNextX = startX + 560;
       } else if (pattern === 3) {
         const px = startX;
-        game.platforms.push({
-          x: px, y: baseY + 30, w: 280, h: 28, type: 'ice', origX: px, origY: baseY + 30
-        });
-        game.hazards.push({
-          x: px + 120, y: baseY + 14, w: 48, h: 16, type: 'spike'
-        });
-        game.platforms.push({
-          x: px + 340, y: baseY + 40, w: 56, h: 18, type: 'bounce', power: -17.5, origX: px + 340, origY: baseY + 40
-        });
+        game.platforms.push({ x: px, y: baseY + 30, w: 280, h: 28, type: 'ice', origX: px, origY: baseY + 30 });
+        game.hazards.push({ x: px + 120, y: baseY + 14, w: 48, h: 16, type: 'spike' });
+        game.platforms.push({ x: px + 340, y: baseY + 40, w: 56, h: 18, type: 'bounce', power: -18.0, origX: px + 340, origY: baseY + 40 });
         game.coins.push({ x: px + 140, y: baseY - 35, collected: false });
-        game.coins.push({ x: px + 365, y: baseY - 65, collected: false });
-        game.endlessNextX = startX + 500;
+        game.endlessNextX = startX + 480;
       } else if (pattern === 4) {
         const px = startX;
-        game.platforms.push({
-          x: px, y: baseY, w: 280, h: 26,
-          type: 'conveyor', speed: (idx % 2 === 0 ? 3.6 : -3.4),
-          origX: px, origY: baseY
-        });
-        game.hazards.push({
-          x: px + 130, y: baseY - 130, w: 18, h: 130,
-          type: 'laser', period: Math.max(75, 120 - Math.floor(difficulty * 40)), offset: 0
-        });
+        game.platforms.push({ x: px, y: baseY, w: 280, h: 26, type: 'conveyor', speed: (idx % 2 === 0 ? 4.2 : -4.2), origX: px, origY: baseY });
+        game.hazards.push({ x: px + 130, y: baseY - 130, w: 18, h: 130, type: 'laser', period: 75, offset: 0 });
         game.coins.push({ x: px + 75, y: baseY - 40, collected: false });
-        game.coins.push({ x: px + 200, y: baseY - 40, collected: false });
         game.endlessNextX = startX + 380;
       } else if (pattern === 5) {
-        game.winds.push({
-          x: startX + 20, y: baseY - 150, w: 140, h: 320, forceY: -0.74
-        });
-        game.platforms.push({
-          x: startX + 220, y: baseY - 70, w: 180, h: 28, type: 'solid', origX: startX + 220, origY: baseY - 70
-        });
-        game.coins.push({ x: startX + 90, y: baseY - 20, collected: false });
+        game.winds.push({ x: startX + 20, y: baseY - 160, w: 140, h: 320, forceY: -0.8 });
+        game.platforms.push({ x: startX + 220, y: baseY - 70, w: 180, h: 28, type: 'solid', origX: startX + 220, origY: baseY - 70 });
         game.coins.push({ x: startX + 90, y: baseY - 90, collected: false });
-        game.coins.push({ x: startX + 310, y: baseY - 115, collected: false });
-        game.endlessNextX = startX + 480;
-      } else if (pattern === 6) {
-        game.platforms.push({
-          x: startX + 30, y: baseY - 120, w: 28, h: 240, type: 'solid', origX: startX + 30, origY: baseY - 120
-        });
-        game.platforms.push({
-          x: startX + 180, y: baseY - 160, w: 28, h: 240, type: 'solid', origX: startX + 180, origY: baseY - 160
-        });
-        game.coins.push({ x: startX + 105, y: baseY - 30, collected: false });
-        game.coins.push({ x: startX + 105, y: baseY - 120, collected: false });
-        game.endlessNextX = startX + 450;
-      } else if (pattern === 7) {
-        game.platforms.push({
-          x: startX, y: baseY + 20, w: 140, h: 26, type: 'solid', origX: startX, origY: baseY + 20
-        });
-        game.rings.push({ x: startX + 220, y: baseY - 40, vx: 14, vy: -4.0, cooldown: 0 });
-        game.rings.push({ x: startX + 380, y: baseY - 80, vx: 15, vy: -3.5, cooldown: 0 });
-        game.coins.push({ x: startX + 220, y: baseY - 40, collected: false });
-        game.coins.push({ x: startX + 380, y: baseY - 80, collected: false });
-        game.endlessNextX = startX + 520;
-      } else if (pattern === 8) {
-        for (let i = 0; i < 4; i++) {
-          const px = startX + i * 110;
-          game.platforms.push({
-            x: px, y: baseY + (i % 2 === 0 ? 0 : -20), w: 90, h: 22,
-            type: 'crumble', origX: px, origY: baseY, state: 'idle', timer: 0
-          });
-          game.coins.push({ x: px + 45, y: baseY - 45, collected: false });
-        }
-        game.endlessNextX = startX + 500;
-      } else if (pattern === 9) {
-        const px = startX + 30;
-        game.platforms.push({
-          x: px, y: baseY, w: 140, h: 26,
-          type: 'moving', dx: 0, dy: -120, speed: 2.8,
-          origX: px, origY: baseY
-        });
-        game.hazards.push({
-          x: px + 220, y: baseY - 140, w: 18, h: 140,
-          type: 'laser', period: 90, offset: 0
-        });
-        game.coins.push({ x: px + 70, y: baseY - 50, collected: false });
-        game.coins.push({ x: px + 220, y: baseY - 70, collected: false });
         game.endlessNextX = startX + 460;
-      } else if (pattern === 10) {
-        game.platforms.push({
-          x: startX, y: baseY + 20, w: 320, h: 28, type: 'ice', origX: startX, origY: baseY + 20
-        });
-        game.hazards.push({
-          x: startX + 130, y: baseY + 4, w: 60, h: 16, type: 'spike'
-        });
-        game.platforms.push({
-          x: startX + 380, y: baseY - 20, w: 56, h: 18, type: 'bounce', power: -18.0, origX: startX + 380, origY: baseY - 20
-        });
-        game.coins.push({ x: startX + 160, y: baseY - 40, collected: false });
-        game.coins.push({ x: startX + 400, y: baseY - 80, collected: false });
-        game.endlessNextX = startX + 510;
-      } else if (pattern === 11) {
-        // Warp Gate Zone in Endless
-        game.platforms.push({ x: startX, y: baseY, w: 200, h: 28, type: 'solid', origX: startX, origY: baseY });
-        game.warps.push({ x: startX + 250, y: baseY - 40, targetX: startX + 450, targetY: baseY - 80 });
-        game.platforms.push({ x: startX + 400, y: baseY - 60, w: 200, h: 28, type: 'solid', origX: startX + 400, origY: baseY - 60 });
-        game.coins.push({ x: startX + 100, y: baseY - 40, collected: false });
-        game.coins.push({ x: startX + 480, y: baseY - 100, collected: false });
-        game.endlessNextX = startX + 650;
-      } else if (pattern === 12) {
-        // Gravity Flip Zone in Endless
-        game.platforms.push({ x: startX, y: baseY, w: 250, h: 28, type: 'solid', origX: startX, origY: baseY });
-        game.platforms.push({ x: startX, y: baseY - 160, w: 250, h: 28, type: 'solid', origX: startX, origY: baseY - 160 });
-        game.gravityZones.push({ x: startX + 100, y: baseY - 130, w: 50, h: 130, gravityDir: -1 });
-        game.coins.push({ x: startX + 120, y: baseY - 80, collected: false });
-        game.endlessNextX = startX + 500;
+      } else if (pattern === 6) {
+        game.warps.push({ x: startX + 50, y: baseY - 40, targetX: startX + 350, targetY: baseY - 100 });
+        game.platforms.push({ x: startX + 300, y: baseY - 80, w: 200, h: 28, type: 'solid', origX: startX + 300, origY: baseY - 80 });
+        game.coins.push({ x: startX + 380, y: baseY - 130, collected: false });
+        game.endlessNextX = startX + 540;
+      } else if (pattern === 7) {
+        game.platforms.push({ x: startX, y: baseY, w: 220, h: 28, type: 'solid', origX: startX, origY: baseY });
+        game.platforms.push({ x: startX, y: baseY - 160, w: 220, h: 28, type: 'solid', origX: startX, origY: baseY - 160 });
+        game.gravityZones.push({ x: startX + 80, y: baseY - 130, w: 60, h: 130, gravityDir: -1 });
+        game.coins.push({ x: startX + 110, y: baseY - 80, collected: false });
+        game.endlessNextX = startX + 480;
       } else {
-        game.platforms.push({
-          x: startX, y: baseY, w: 340, h: 28, type: 'conveyor', speed: 5.0, origX: startX, origY: baseY
-        });
-        game.coins.push({ x: startX + 100, y: baseY - 40, collected: false });
-        game.endlessNextX = startX + 440;
+        game.platforms.push({ x: startX, y: baseY, w: 320, h: 28, type: 'conveyor', speed: 5.0, origX: startX, origY: baseY });
+        game.coins.push({ x: startX + 150, y: baseY - 40, collected: false });
+        game.endlessNextX = startX + 420;
       }
     }
 
@@ -1562,6 +1489,26 @@
         player.jumpsUsed = 0;
         showHudToast('🚀 スカイブースト発動！超加速＆跳躍', 'text-amber-200 border-amber-400');
         spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#facc15', 20, 5.5);
+      } else if (skillId === 'rewind') {
+        player.x = player.respawnX;
+        player.y = player.respawnY;
+        player.vx = 0;
+        player.vy = 0;
+        player.invulnTimer = 60;
+        showHudToast('⏪ クロノスリワインド！安全地点へ巻き戻し', 'text-fuchsia-300 border-fuchsia-400');
+        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#e879f9', 20, 5.0);
+      } else if (skillId === 'magnetburst') {
+        player.invulnTimer = 60;
+        for (let i = 0; i < game.coins.length; i++) {
+          const c = game.coins[i];
+          if (!c.collected && Math.hypot((player.x + player.w / 2) - c.x, (player.y + player.h / 2) - c.y) < 350) {
+            c.collected = true;
+            game.coinsCollectedRun++;
+            saveData.coins++;
+          }
+        }
+        showHudToast('🧲 ハイパーマグネット発動！全コイン吸引＆無敵', 'text-amber-300 border-amber-400');
+        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#fbbf24', 24, 6.0);
       }
     }
 
