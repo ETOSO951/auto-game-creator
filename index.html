@@ -641,7 +641,9 @@
       skills: {
         chrono: { unlocked: true, level: 1 },
         shield: { unlocked: false, level: 1 },
-        boost: { unlocked: false, level: 1 }
+        boost: { unlocked: false, level: 1 },
+        rewind: { unlocked: false, level: 1 },
+        magnetburst: { unlocked: false, level: 1 }
       },
       equippedSkill: 'chrono',
       dashColor: '#38bdf8',
@@ -2451,6 +2453,9 @@
       const skillContainer = document.getElementById('skillListContainer');
       skillContainer.innerHTML = '';
       Object.values(SKILL_DEFS).forEach(def => {
+        if (!saveData.skills[def.id]) {
+          saveData.skills[def.id] = { unlocked: def.unlockCost === 0, level: 1 };
+        }
         const st = saveData.skills[def.id];
         const isEquipped = saveData.equippedSkill === def.id;
         const isMax = st.level >= def.maxLevel;
