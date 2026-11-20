@@ -1185,9 +1185,72 @@
         () => { keys.jumpHeld = false; }
       );
       bindActionButton(btnDash, () => { keys.dashPressed = true; });
-      bindActionButton(btnSkill, () => { keys.skillPressed = true; });
+      
+      const btnSkill0 = document.getElementById('btnSkill0');
+      const btnSkill1 = document.getElementById('btnSkill1');
+      const btnSkill2 = document.getElementById('btnSkill2');
+      if (btnSkill0) bindActionButton(btnSkill0, () => triggerSkillSlot(0));
+      if (btnSkill1) bindActionButton(btnSkill1, () => triggerSkillSlot(1));
+      if (btnSkill2) bindActionButton(btnSkill2, () => triggerSkillSlot(2));
     }
     setupTouchControls();
+
+    function triggerSkillSlot(slotIndex) {
+      if (game.state !== 'playing') return;
+      const eqSkills = saveData.equippedSkills || ['chrono', 'shield', null];
+      const skillId = eqSkills[slotIndex];
+      if (!skillId) return;
+
+      const skillState = saveData.skills[skillId];
+      if (!skillState || !skillState.unlocked) return;
+
+      if (player.skillCooldownTimers[slotIndex] > 0 || player.skillActiveTimers[slotIndex] > 0) return;
+
+      const def = SKILL_DEFS[skillId];
+      const lv = skillState.level;
+      const durationFrames = Math.round((def.baseDuration + (lv - 1) * 1.2) * 60);
+      const cooldownFrames = Math.round((def.baseCooldown - (lv - 1) * 1.2) * 60);
+
+      sfx.skill();
+      player.skillActiveTimers[slotIndex] = durationFrames;
+      player.skillCooldownTimers[slotIndex] = cooldownFrames;
+
+      if (skillId === 'chrono') {
+        showHudToast('⏱️ クロノスロウ発動！ギミック35%減速中', 'text-purple-200 border-purple-400');
+        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#c084fc', 16, 4.5);
+      } else if (skillId === 'shield') {
+        player.shieldActive = true;
+        showHudToast('🛡️ イージスバリア展開！ダメージ1回無効', 'text-cyan-200 border-cyan-400');
+        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#38bdf8', 16, 4.5);
+      } else if (skillId === 'boost') {
+        player.vy = -13.5;
+        player.vx = player.facing * 12.5;
+        player.airDashAvailable = true;
+        player.jumpsUsed = 0;
+        showHudToast('🚀 スカイブースト発動！超加速＆跳躍', 'text-amber-200 border-amber-400');
+        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#facc15', 20, 5.5);
+      } else if (skillId === 'rewind') {
+        player.x = player.respawnX;
+        player.y = player.respawnY;
+        player.vx = 0;
+        player.vy = 0;
+        player.invulnTimer = 60;
+        showHudToast('⏪ クロノスリワインド！安全地点へ巻き戻し', 'text-fuchsia-300 border-fuchsia-400');
+        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#e879f9', 20, 5.0);
+      } else if (skillId === 'magnetburst') {
+        player.invulnTimer = 60;
+        for (let i = 0; i < game.coins.length; i++) {
+          const c = game.coins[i];
+          if (!c.collected && Math.hypot((player.x + player.w / 2) - c.x, (player.y + player.h / 2) - c.y) < 600) {
+            c.collected = true;
+            game.coinsCollectedRun++;
+            saveData.coins++;
+          }
+        }
+        showHudToast('🧲 ハイパーマグネット発動！全コイン吸引＆無敵', 'text-amber-300 border-amber-400');
+        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#fbbf24', 24, 6.0);
+      }
+    }
 
     /*************************************************************************
      * 5. GAME WORLD, PLAYER & PROCEDURAL ENDLESS GENERATOR
@@ -1203,7 +1266,7 @@
       shakeTimer: 0,
       shakeIntensity: 0,
       worldTick: 0,
-      theme: STAGES[0].theme,
+      theme: { bgTop: '#0284c7', bgBottom: '#e0f2fe', accent: '#38bdf8' },
       platforms: [],
       coins: [],
       rings: [],
@@ -1211,14 +1274,15 @@
       winds: [],
       warps: [],
       gravityZones: [],
+      items: [],
       checkpoints: [],
       goal: null,
       particles: [],
       afterimages: [],
       endlessNextX: 0,
       endlessChunkIndex: 0,
-      endlessWeather: 'clear', // 'clear' | 'windy' | 'dark' | 'fog' | 'gravity'
-      endlessWarningTimer: 0,
+      endlessWeather: 'clear',
+      feverTimer: 0,
       disasterWallX: -9999
     };
 
@@ -1402,7 +1466,10 @@
       if (mode === 'stage') {
         const stg = STAGES.find(s => s.id === stageId) || STAGES[0];
         game.theme = stg.theme;
-        const built = stg.build();
+        stg.targetS = 100.0;
+        stg.targetA = 130.0;
+        stg.targetB = 160.0;
+        const built = build10xStageCourse(stg);
         game.platforms = built.platforms.map(p => ({
           ...p,
           origX: p.x,
@@ -1416,9 +1483,10 @@
         game.winds = built.winds || [];
         game.warps = built.warps || [];
         game.gravityZones = built.gravityZones || [];
+        game.items = [];
         game.checkpoints = (built.checkpoints || []).map(cp => ({ ...cp, activated: false }));
         game.goal = built.goal;
-        document.getElementById('hudStageTitle').textContent = stg.name;
+        document.getElementById('hudStageTitle').textContent = `${stg.name} (10x Course)`;
       } else {
         game.theme = { bgTop: '#1e1b4b', bgBottom: '#311042', accent: '#e879f9' };
         game.endlessNextX = 0;
@@ -1457,56 +1525,83 @@
     /*************************************************************************
      * 6. PHYSICS, GIMMICKS, SKILLS & COLLISION UPDATE LOOP
      *************************************************************************/
-    function activatePlayerSkill() {
-      const skillId = saveData.equippedSkill;
-      const skillState = saveData.skills[skillId];
-      if (!skillState || !skillState.unlocked) return;
-      if (player.skillCooldownTimer > 0 || player.skillActiveTimer > 0) return;
+    function build10xStageCourse(stg) {
+      const platforms = [];
+      const coins = [];
+      const rings = [];
+      const hazards = [];
+      const winds = [];
+      const warps = [];
+      const gravityZones = [];
+      const checkpoints = [];
 
-      const def = SKILL_DEFS[skillId];
-      const lv = skillState.level;
-      const durationFrames = Math.round((def.baseDuration + (lv - 1) * 1.2) * 60);
-      const cooldownFrames = Math.round((def.baseCooldown - (lv - 1) * 1.2) * 60);
+      let curX = 0;
+      platforms.push({ x: 0, y: 400, w: 450, h: 40, type: 'solid' });
 
-      sfx.skill();
-      player.skillActiveTimer = durationFrames;
-      player.skillCooldownTimer = cooldownFrames;
+      // Build 10 consecutive challenging sectors (~25,000px length = 100~150s athletic run)
+      for (let sec = 1; sec <= 10; sec++) {
+        curX += 450;
+        checkpoints.push({ x: curX + 50, y: 320 });
 
-      if (skillId === 'chrono') {
-        showHudToast('⏱️ クロノスロウ発動！ギミック減速中', 'text-purple-200 border-purple-400');
-        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#c084fc', 16, 4.5);
-      } else if (skillId === 'shield') {
-        player.shieldActive = true;
-        showHudToast('🛡️ イージスバリア展開！ダメージ1回無効', 'text-cyan-200 border-cyan-400');
-        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#38bdf8', 16, 4.5);
-      } else if (skillId === 'boost') {
-        player.vy = -12.5;
-        player.vx = player.facing * 11.5;
-        player.airDashAvailable = true;
-        player.jumpsUsed = 0;
-        showHudToast('🚀 スカイブースト発動！超加速＆跳躍', 'text-amber-200 border-amber-400');
-        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#facc15', 20, 5.5);
-      } else if (skillId === 'rewind') {
-        player.x = player.respawnX;
-        player.y = player.respawnY;
-        player.vx = 0;
-        player.vy = 0;
-        player.invulnTimer = 60;
-        showHudToast('⏪ クロノスリワインド！安全地点へ巻き戻し', 'text-fuchsia-300 border-fuchsia-400');
-        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#e879f9', 20, 5.0);
-      } else if (skillId === 'magnetburst') {
-        player.invulnTimer = 60;
-        for (let i = 0; i < game.coins.length; i++) {
-          const c = game.coins[i];
-          if (!c.collected && Math.hypot((player.x + player.w / 2) - c.x, (player.y + player.h / 2) - c.y) < 350) {
-            c.collected = true;
-            game.coinsCollectedRun++;
-            saveData.coins++;
+        const secType = (stg.id + sec) % 6;
+        if (secType === 0) {
+          // Bouncy & Ring Sky Corridor
+          for (let i = 0; i < 5; i++) {
+            platforms.push({ x: curX + i * 420, y: 360 - (i % 2) * 80, w: 160, h: 28, type: 'solid' });
+            platforms.push({ x: curX + i * 420 + 200, y: 340, w: 48, h: 18, type: 'bounce', power: -17.5 });
+            rings.push({ x: curX + i * 420 + 320, y: 180, vx: 15.0, vy: -4.0 });
+            coins.push({ x: curX + i * 420 + 80, y: 280 });
           }
+          curX += 2100;
+        } else if (secType === 1) {
+          // Crumble & Laser Gauntlet
+          for (let i = 0; i < 6; i++) {
+            platforms.push({ x: curX + i * 340, y: 340, w: 110, h: 24, type: 'crumble' });
+            hazards.push({ x: curX + i * 340 + 150, y: 120, w: 18, h: 220, type: 'laser', period: 90, offset: i * 15 });
+            coins.push({ x: curX + i * 340 + 55, y: 280 });
+          }
+          curX += 2100;
+        } else if (secType === 2) {
+          // Ice & Conveyor Factory
+          for (let i = 0; i < 5; i++) {
+            platforms.push({ x: curX + i * 400, y: 360, w: 220, h: 28, type: 'ice' });
+            platforms.push({ x: curX + i * 400 + 240, y: 280, w: 140, h: 26, type: 'conveyor', speed: (i % 2 === 0 ? 4.2 : -4.2) });
+            hazards.push({ x: curX + i * 400 + 80, y: 344, w: 60, h: 16, type: 'spike' });
+            coins.push({ x: curX + i * 400 + 300, y: 230 });
+          }
+          curX += 2000;
+        } else if (secType === 3) {
+          // Wind & Gravity Flux
+          winds.push({ x: curX + 200, y: 60, w: 160, h: 380, forceY: -0.85 });
+          gravityZones.push({ x: curX + 1100, y: 40, w: 70, h: 360, gravityDir: -1 });
+          for (let i = 0; i < 5; i++) {
+            platforms.push({ x: curX + i * 440, y: 300 - (i % 3) * 60, w: 180, h: 28, type: 'moving', dx: 120, dy: 0, speed: 2.4 });
+            coins.push({ x: curX + i * 440 + 90, y: 200 });
+          }
+          curX += 2200;
+        } else if (secType === 4) {
+          // Warp Maze & Spike Pit
+          warps.push({ x: curX + 200, y: 300, targetX: curX + 750, targetY: 180 });
+          warps.push({ x: curX + 1200, y: 200, targetX: curX + 1700, targetY: 150 });
+          hazards.push({ x: curX + 300, y: 420, w: 380, h: 16, type: 'spike' });
+          platforms.push({ x: curX + 700, y: 240, w: 250, h: 30, type: 'solid' });
+          platforms.push({ x: curX + 1650, y: 200, w: 300, h: 30, type: 'solid' });
+          curX += 2000;
+        } else {
+          // Combined Megalith Section
+          for (let i = 0; i < 5; i++) {
+            platforms.push({ x: curX + i * 380, y: 320, w: 150, h: 26, type: 'solid' });
+            hazards.push({ x: curX + i * 380 + 170, y: 100, w: 18, h: 180, type: 'laser', period: 80, offset: i * 20 });
+            coins.push({ x: curX + i * 380 + 75, y: 260 });
+          }
+          curX += 1900;
         }
-        showHudToast('🧲 ハイパーマグネット発動！全コイン吸引＆無敵', 'text-amber-300 border-amber-400');
-        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#fbbf24', 24, 6.0);
       }
+
+      platforms.push({ x: curX + 100, y: 200, w: 500, h: 40, type: 'solid' });
+      const goal = { x: curX + 320, y: 120 };
+
+      return { platforms, coins, rings, hazards, winds, warps, gravityZones, checkpoints, goal };
     }
 
     function handleHazardHit(isBottomPit = false) {
@@ -1550,8 +1645,9 @@
       if (game.state !== 'playing') return;
 
       const stats = getPlayerStats();
-      const isChronoActive = saveData.equippedSkill === 'chrono' && player.skillActiveTimer > 0;
-      const isBoostActive = saveData.equippedSkill === 'boost' && player.skillActiveTimer > 0;
+      const eqSkills = saveData.equippedSkills || ['chrono', 'shield', null];
+      const isChronoActive = eqSkills.some((id, idx) => id === 'chrono' && player.skillActiveTimers[idx] > 0);
+      const isBoostActive = eqSkills.some((id, idx) => id === 'boost' && player.skillActiveTimers[idx] > 0);
       const worldSpeedFactor = isChronoActive ? 0.35 : 1.0;
 
       game.timeElapsed += 1 / 60;
@@ -1559,8 +1655,9 @@
 
       if (game.shakeTimer > 0) game.shakeTimer--;
       if (player.invulnTimer > 0) player.invulnTimer--;
+      if (game.feverTimer > 0) game.feverTimer--;
 
-      // 3 Skill Slot Timers
+      // 3 Skill Slot Timers Update
       for (let s = 0; s < 3; s++) {
         if (player.skillActiveTimers[s] > 0) {
           player.skillActiveTimers[s]--;
@@ -1852,7 +1949,27 @@
         }
       }
 
-      // 8. Coin Collection (with Magnet Upgrade)
+      // 8. Items & Coin Collection (with Magnet Upgrade & Fever Mode)
+      if (game.items) {
+        for (let i = 0; i < game.items.length; i++) {
+          const item = game.items[i];
+          if (item.collected) continue;
+          const dist = Math.hypot((player.x + player.w / 2) - item.x, (player.y + player.h / 2) - item.y);
+          if (dist < 32) {
+            item.collected = true;
+            sfx.upgrade();
+            if (item.type === 'fever') {
+              game.feverTimer = 300; // 5 sec Fever Mode!
+              player.invulnTimer = 300;
+              showHudToast('🌟 FEVER MODE! コイン大量＆無敵ブースト', 'text-amber-300 border-amber-400 animate-pulse');
+            } else {
+              player.shieldActive = true;
+              showHudToast('🧪 パワーポーション！イージスバリア獲得', 'text-emerald-300 border-emerald-400');
+            }
+          }
+        }
+      }
+
       for (let i = 0; i < game.coins.length; i++) {
         const c = game.coins[i];
         if (c.collected) continue;
@@ -1860,9 +1977,9 @@
         const cy = player.y + player.h / 2;
         const dist = Math.hypot(cx - c.x, cy - c.y);
 
-        if (dist < stats.magnetRadius) {
-          c.x += (cx - c.x) * 0.22;
-          c.y += (cy - c.y) * 0.22;
+        if (dist < stats.magnetRadius || game.feverTimer > 0) {
+          c.x += (cx - c.x) * 0.28;
+          c.y += (cy - c.y) * 0.28;
         }
         if (dist < 24) {
           c.collected = true;
@@ -2086,10 +2203,15 @@
         ctx.fill();
       }
 
-      // Dynamic Weather Rendering & Chrono Slow Tint
-      const isChronoActive = (saveData.equippedSkills || []).some((skId, idx) => skId === 'chrono' && player.skillActiveTimers[idx] > 0);
+      // Dynamic Weather, Chrono Tint & Fever Effect
+      const eqSkills = saveData.equippedSkills || ['chrono', 'shield', null];
+      const isChronoActive = eqSkills.some((skId, idx) => skId === 'chrono' && player.skillActiveTimers[idx] > 0);
       if (isChronoActive) {
         ctx.fillStyle = 'rgba(88, 28, 135, 0.22)';
+        ctx.fillRect(0, 0, viewW, viewH);
+      }
+      if (game.feverTimer > 0) {
+        ctx.fillStyle = `rgba(250, 204, 21, ${0.12 + Math.sin(game.worldTick * 0.2) * 0.08})`;
         ctx.fillRect(0, 0, viewW, viewH);
       }
 
@@ -2236,7 +2358,7 @@
         ctx.restore();
       }
 
-      // 4. Render Hazards (Spikes & Periodic Lasers)
+      // 4. Render Hazards with Pre-attack Laser Warnings
       for (let i = 0; i < game.hazards.length; i++) {
         const h = game.hazards[i];
         if (h.type === 'spike') {
@@ -2252,24 +2374,67 @@
             ctx.fill();
           }
         } else if (h.type === 'laser') {
-          // Emitter nodes
+          const cycle = (game.worldTick + (h.offset || 0)) % h.period;
+          const isWarning = cycle >= h.period * 0.42 && cycle < h.period * 0.55;
+
           ctx.fillStyle = '#475569';
           ctx.fillRect(h.x - 2, h.y, h.w + 4, 8);
           ctx.fillRect(h.x - 2, h.y + h.h - 8, h.w + 4, 8);
+
           if (h.active) {
             ctx.fillStyle = 'rgba(244, 63, 94, 0.35)';
             ctx.fillRect(h.x - 3, h.y + 8, h.w + 6, h.h - 16);
             ctx.fillStyle = '#fda4af';
             ctx.fillRect(h.x + 4, h.y + 8, h.w - 8, h.h - 16);
-          } else {
-            ctx.strokeStyle = 'rgba(244, 63, 94, 0.3)';
-            ctx.setLineDash([4, 4]);
+          } else if (isWarning) {
+            // High-visibility Pre-attack Warning Ray
+            ctx.strokeStyle = `rgba(244, 63, 94, ${0.5 + Math.sin(game.worldTick * 0.6) * 0.4})`;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([6, 6]);
             ctx.beginPath();
             ctx.moveTo(h.x + h.w / 2, h.y + 8);
             ctx.lineTo(h.x + h.w / 2, h.y + h.h - 8);
             ctx.stroke();
             ctx.setLineDash([]);
           }
+        }
+      }
+
+      // Render Items (Fever Star & Potions)
+      if (game.items) {
+        for (let i = 0; i < game.items.length; i++) {
+          const item = game.items[i];
+          if (item.collected) continue;
+          ctx.save();
+          ctx.translate(item.x, item.y + Math.sin(game.worldTick * 0.15) * 4);
+          ctx.font = '20px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(item.type === 'fever' ? '🌟' : '🧪', 0, 0);
+          ctx.restore();
+        }
+      }
+
+      // Render Endless Pursuing Disaster Wall
+      if (game.mode === 'endless' && game.disasterWallX > -9000) {
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.45)';
+        ctx.fillRect(game.disasterWallX - 40, -500, 40, 1500);
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(game.disasterWallX, -500);
+        ctx.lineTo(game.disasterWallX, 1000);
+        ctx.stroke();
+      }
+
+      // Screen Off-screen Hazard Warning Indicators
+      const camR = game.cameraX + viewW;
+      for (let i = 0; i < game.hazards.length; i++) {
+        const h = game.hazards[i];
+        if (h.x > camR && h.x < camR + 320 && Math.abs(h.y - player.y) < 250) {
+          ctx.fillStyle = '#f43f5e';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.fillText('⚠️ 危険接近', camR - 70, Math.max(40, Math.min(viewH - 40, h.y)));
         }
       }
 
