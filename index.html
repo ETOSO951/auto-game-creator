@@ -136,20 +136,32 @@
 
       <!-- PC Keyboard Hint (Hidden on small screens) -->
       <div class="hidden lg:flex flex-col items-center text-[11px] text-slate-300/80 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-700/50">
-        <span>💻 キーボード操作: [A/D または ◀/▶] 移動 ・ [Space/W/▲] ジャンプ(多段・壁キック) ・ [Shift/Z] ダッシュ ・ [X/E] スキル</span>
+        <span>💻 キーボード操作: [A/D] 移動 ・ [Space/W] ジャンプ ・ [Shift/Z] ダッシュ ・ [X/C/V] スキル1/2/3同時運用</span>
       </div>
 
       <!-- Right Action Buttons: Skill, Dash, Jump -->
       <div class="flex items-end gap-2.5 sm:gap-3.5 pointer-events-auto touch-none">
-        <!-- Active Skill Button -->
-        <div id="btnSkill" class="touch-btn relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center overflow-hidden border-purple-400/60 bg-purple-900/30">
-          <div id="skillCooldownFill" class="absolute bottom-0 left-0 right-0 bg-purple-950/80 transition-all duration-75 pointer-events-none" style="height: 0%;"></div>
-          <span id="btnSkillIcon" class="text-lg sm:text-xl z-10 pointer-events-none">⏱️</span>
-          <span id="btnSkillLabel" class="text-[9px] sm:text-[10px] font-extrabold text-purple-200 z-10 pointer-events-none">SKILL</span>
+        <!-- Multi-Active Skill Buttons (3 Slots for Synergy) -->
+        <div class="flex items-center gap-1.5">
+          <div id="btnSkill0" class="touch-btn relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex flex-col items-center justify-center overflow-hidden border-purple-400/60 bg-purple-900/30">
+            <div id="skillCooldownFill0" class="absolute bottom-0 left-0 right-0 bg-purple-950/85 transition-all duration-75 pointer-events-none" style="height: 0%;"></div>
+            <span id="btnSkillIcon0" class="text-base sm:text-lg z-10 pointer-events-none">⏱️</span>
+            <span id="btnSkillLabel0" class="text-[8px] font-extrabold text-purple-200 z-10 pointer-events-none">S-1</span>
+          </div>
+          <div id="btnSkill1" class="touch-btn relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex flex-col items-center justify-center overflow-hidden border-cyan-400/60 bg-cyan-900/30">
+            <div id="skillCooldownFill1" class="absolute bottom-0 left-0 right-0 bg-cyan-950/85 transition-all duration-75 pointer-events-none" style="height: 0%;"></div>
+            <span id="btnSkillIcon1" class="text-base sm:text-lg z-10 pointer-events-none">🛡️</span>
+            <span id="btnSkillLabel1" class="text-[8px] font-extrabold text-cyan-200 z-10 pointer-events-none">S-2</span>
+          </div>
+          <div id="btnSkill2" class="touch-btn relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex flex-col items-center justify-center overflow-hidden border-amber-400/60 bg-amber-900/30">
+            <div id="skillCooldownFill2" class="absolute bottom-0 left-0 right-0 bg-amber-950/85 transition-all duration-75 pointer-events-none" style="height: 0%;"></div>
+            <span id="btnSkillIcon2" class="text-base sm:text-lg z-10 pointer-events-none">🚀</span>
+            <span id="btnSkillLabel2" class="text-[8px] font-extrabold text-amber-200 z-10 pointer-events-none">S-3</span>
+          </div>
         </div>
 
         <!-- Air Dash Button -->
-        <div id="btnDash" class="touch-btn relative w-15 h-15 sm:w-18 sm:h-18 w-16 h-16 rounded-2xl flex flex-col items-center justify-center overflow-hidden border-cyan-400/60 bg-cyan-900/30">
+        <div id="btnDash" class="touch-btn relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center overflow-hidden border-cyan-400/60 bg-cyan-900/30">
           <div id="dashCooldownFill" class="absolute bottom-0 left-0 right-0 bg-slate-950/75 transition-all duration-75 pointer-events-none" style="height: 0%;"></div>
           <span class="text-lg sm:text-xl z-10 pointer-events-none">💨</span>
           <span class="text-[10px] font-extrabold text-cyan-200 z-10 pointer-events-none">DASH</span>
@@ -220,8 +232,8 @@
         <!-- TAB 1: STAGE SELECT (TIME ATTACK) -->
         <div id="tab-stages" class="tab-panel space-y-2.5">
           <div class="flex items-center justify-between text-xs text-slate-300 px-1">
-            <span>多彩なギミックを突破して最速Sランクを目指そう！</span>
-            <span id="equippedSkillBadgeStage" class="text-purple-300 font-bold">装備スキル: 時間減速</span>
+            <span>圧倒的10倍スケールのコースを攻略！3つのスキルシナジーで最速Sランクを目指せ！</span>
+            <span id="equippedSkillBadgeStage" class="text-purple-300 font-bold">装備中スキル3種</span>
           </div>
           <div id="stageListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             <!-- Populated by JS -->
@@ -640,12 +652,12 @@
       },
       skills: {
         chrono: { unlocked: true, level: 1 },
-        shield: { unlocked: false, level: 1 },
+        shield: { unlocked: true, level: 1 },
         boost: { unlocked: false, level: 1 },
         rewind: { unlocked: false, level: 1 },
         magnetburst: { unlocked: false, level: 1 }
       },
-      equippedSkill: 'chrono',
+      equippedSkills: ['chrono', 'shield', null], // Up to 3 active skills simultaneously
       dashColor: '#38bdf8',
       unlockedSkins: ['default'],
       equippedSkin: 'default',
@@ -1066,7 +1078,7 @@
       skillPressed: false
     };
 
-    // Keyboard Listeners
+    // Keyboard Listeners (Support 3 Skills on X, C, V)
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
       const code = e.code;
@@ -1079,9 +1091,10 @@
       if (code === 'ShiftLeft' || code === 'ShiftRight' || code === 'KeyZ') {
         keys.dashPressed = true;
       }
-      if (code === 'KeyX' || code === 'KeyE') {
-        keys.skillPressed = true;
-      }
+      if (code === 'KeyX' || code === 'KeyE') triggerSkillSlot(0);
+      if (code === 'KeyC' || code === 'KeyQ') triggerSkillSlot(1);
+      if (code === 'KeyV' || code === 'KeyF') triggerSkillSlot(2);
+
       if (code === 'KeyR' && game.state === 'playing') {
         startStageOrEndless(game.mode, game.currentStageId);
       }
@@ -1180,8 +1193,8 @@
      * 5. GAME WORLD, PLAYER & PROCEDURAL ENDLESS GENERATOR
      *************************************************************************/
     const game = {
-      state: 'menu', // 'menu' | 'playing' | 'paused' | 'result'
-      mode: 'stage', // 'stage' | 'endless'
+      state: 'menu',
+      mode: 'stage',
       currentStageId: 1,
       timeElapsed: 0,
       coinsCollectedRun: 0,
@@ -1204,9 +1217,9 @@
       afterimages: [],
       endlessNextX: 0,
       endlessChunkIndex: 0,
-      endlessWeather: 'clear', // 'clear' | 'windy' | 'dark' | 'fog'
-      endlessBossTimer: 0,
-      endlessBossActive: false
+      endlessWeather: 'clear', // 'clear' | 'windy' | 'dark' | 'fog' | 'gravity'
+      endlessWarningTimer: 0,
+      disasterWallX: -9999
     };
 
     const player = {
@@ -1222,7 +1235,7 @@
       coyoteTimer: 0,
       jumpsUsed: 0,
       maxJumps: 2,
-      wallSliding: 0, // -1 left wall, 1 right wall, 0 none
+      wallSliding: 0,
       dashTimer: 0,
       dashCooldown: 0,
       airDashAvailable: true,
@@ -1230,8 +1243,8 @@
       respawnY: 320,
       invulnTimer: 0,
       shieldActive: false,
-      skillActiveTimer: 0,
-      skillCooldownTimer: 0,
+      skillActiveTimers: [0, 0, 0],
+      skillCooldownTimers: [0, 0, 0],
       scaleX: 1,
       scaleY: 1,
       maxDistReached: 0
@@ -1290,85 +1303,57 @@
       }, 1800);
     }
 
-    // Enhanced Procedural Generator for Endless Mode (with weather & dynamic hazards)
+    // Multi-Weather & Dynamic Disaster Generators for Endless Mode
     function appendEndlessChunk() {
       const idx = game.endlessChunkIndex++;
       const startX = game.endlessNextX;
 
       if (idx === 0) {
-        game.platforms.push({
-          x: 0, y: 400, w: 420, h: 40, type: 'solid', origX: 0, origY: 400
-        });
-        game.endlessNextX = 480;
+        game.platforms.push({ x: 0, y: 400, w: 500, h: 40, type: 'solid', origX: 0, origY: 400 });
+        game.endlessNextX = 540;
+        game.disasterWallX = -1200;
         return;
       }
 
-      if (idx % 8 === 0) {
-        const weathers = ['clear', 'windy', 'dark', 'fog'];
+      // Weather & Surprise Events
+      if (idx % 6 === 0) {
+        const weathers = ['clear', 'windy', 'dark', 'fog', 'gravity'];
         game.endlessWeather = weathers[Math.floor(Math.random() * weathers.length)];
         showHudToast(`🌤️ 天候変化: ${game.endlessWeather.toUpperCase()}！`, 'text-cyan-300 border-cyan-400');
       }
 
-      const difficulty = Math.min(1.0, idx / 20);
-      const pattern = idx % 16;
-      const baseY = 240 + Math.sin(idx * 0.7) * 110;
+      // Dynamic Warning & Pursuing Disaster Wall
+      if (idx > 0 && idx % 15 === 0) {
+        game.disasterWallX = startX - 850;
+        showHudToast('⚠️ WARNING! 追跡迫撃壁が接近中！', 'text-rose-400 border-rose-500 animate-pulse');
+        sfx.hit();
+      }
 
-      if (pattern === 1) {
-        for (let i = 0; i < 3; i++) {
-          const px = startX + i * 150;
-          const py = baseY - i * 32;
-          game.platforms.push({
-            x: px, y: py, w: 100, h: 24,
-            type: i === 1 ? 'crumble' : 'solid',
-            origX: px, origY: py, state: 'idle', timer: 0
-          });
-          game.coins.push({ x: px + 50, y: py - 42, collected: false });
+      const pattern = idx % 24;
+      const baseY = 240 + Math.sin(idx * 0.8) * 120;
+
+      if (pattern % 4 === 0) {
+        for (let i = 0; i < 4; i++) {
+          const px = startX + i * 140;
+          game.platforms.push({ x: px, y: baseY - i * 25, w: 90, h: 22, type: i % 2 === 0 ? 'solid' : 'crumble', origX: px, origY: baseY - i * 25, state: 'idle', timer: 0 });
+          game.coins.push({ x: px + 40, y: baseY - i * 25 - 35, collected: false });
         }
-        game.endlessNextX = startX + 500;
-      } else if (pattern === 2) {
-        const px = startX + 40;
-        game.platforms.push({
-          x: px, y: baseY, w: 120, h: 24,
-          type: 'moving', dx: 160, dy: 0, speed: 2.5 + difficulty * 1.8,
-          origX: px, origY: baseY
-        });
-        game.rings.push({ x: startX + 380, y: baseY - 60, vx: 14, vy: -4.5, cooldown: 0 });
-        game.coins.push({ x: startX + 380, y: baseY - 60, collected: false });
-        game.coins.push({ x: startX + 450, y: baseY - 90, collected: false });
+        game.endlessNextX = startX + 600;
+      } else if (pattern % 4 === 1) {
+        game.platforms.push({ x: startX, y: baseY, w: 280, h: 26, type: 'conveyor', speed: 4.5, origX: startX, origY: baseY });
+        game.rings.push({ x: startX + 320, y: baseY - 60, vx: 15, vy: -4.5, cooldown: 0 });
+        game.coins.push({ x: startX + 140, y: baseY - 40, collected: false });
+        game.endlessNextX = startX + 520;
+      } else if (pattern % 4 === 2) {
+        game.warps.push({ x: startX + 40, y: baseY - 40, targetX: startX + 380, targetY: baseY - 120 });
+        game.platforms.push({ x: startX + 320, y: baseY - 100, w: 220, h: 28, type: 'solid', origX: startX + 320, origY: baseY - 100 });
+        game.coins.push({ x: startX + 400, y: baseY - 150, collected: false });
         game.endlessNextX = startX + 560;
-      } else if (pattern === 3) {
-        const px = startX;
-        game.platforms.push({ x: px, y: baseY + 30, w: 280, h: 28, type: 'ice', origX: px, origY: baseY + 30 });
-        game.hazards.push({ x: px + 120, y: baseY + 14, w: 48, h: 16, type: 'spike' });
-        game.platforms.push({ x: px + 340, y: baseY + 40, w: 56, h: 18, type: 'bounce', power: -18.0, origX: px + 340, origY: baseY + 40 });
-        game.coins.push({ x: px + 140, y: baseY - 35, collected: false });
-        game.endlessNextX = startX + 480;
-      } else if (pattern === 4) {
-        const px = startX;
-        game.platforms.push({ x: px, y: baseY, w: 280, h: 26, type: 'conveyor', speed: (idx % 2 === 0 ? 4.2 : -4.2), origX: px, origY: baseY });
-        game.hazards.push({ x: px + 130, y: baseY - 130, w: 18, h: 130, type: 'laser', period: 75, offset: 0 });
-        game.coins.push({ x: px + 75, y: baseY - 40, collected: false });
-        game.endlessNextX = startX + 380;
-      } else if (pattern === 5) {
-        game.winds.push({ x: startX + 20, y: baseY - 160, w: 140, h: 320, forceY: -0.8 });
-        game.platforms.push({ x: startX + 220, y: baseY - 70, w: 180, h: 28, type: 'solid', origX: startX + 220, origY: baseY - 70 });
-        game.coins.push({ x: startX + 90, y: baseY - 90, collected: false });
-        game.endlessNextX = startX + 460;
-      } else if (pattern === 6) {
-        game.warps.push({ x: startX + 50, y: baseY - 40, targetX: startX + 350, targetY: baseY - 100 });
-        game.platforms.push({ x: startX + 300, y: baseY - 80, w: 200, h: 28, type: 'solid', origX: startX + 300, origY: baseY - 80 });
-        game.coins.push({ x: startX + 380, y: baseY - 130, collected: false });
-        game.endlessNextX = startX + 540;
-      } else if (pattern === 7) {
-        game.platforms.push({ x: startX, y: baseY, w: 220, h: 28, type: 'solid', origX: startX, origY: baseY });
-        game.platforms.push({ x: startX, y: baseY - 160, w: 220, h: 28, type: 'solid', origX: startX, origY: baseY - 160 });
-        game.gravityZones.push({ x: startX + 80, y: baseY - 130, w: 60, h: 130, gravityDir: -1 });
-        game.coins.push({ x: startX + 110, y: baseY - 80, collected: false });
-        game.endlessNextX = startX + 480;
       } else {
-        game.platforms.push({ x: startX, y: baseY, w: 320, h: 28, type: 'conveyor', speed: 5.0, origX: startX, origY: baseY });
-        game.coins.push({ x: startX + 150, y: baseY - 40, collected: false });
-        game.endlessNextX = startX + 420;
+        game.winds.push({ x: startX + 40, y: baseY - 200, w: 140, h: 360, forceY: -0.82 });
+        game.platforms.push({ x: startX + 240, y: baseY - 120, w: 240, h: 28, type: 'moving', dx: 0, dy: -120, speed: 2.8, origX: startX + 240, origY: baseY - 120 });
+        game.coins.push({ x: startX + 300, y: baseY - 180, collected: false });
+        game.endlessNextX = startX + 540;
       }
     }
 
@@ -1443,10 +1428,20 @@
         document.getElementById('hudStageTitle').textContent = '♾️ 無限アスレチックモード';
       }
 
-      // Configure Skill Button HUD
-      const eqSkill = SKILL_DEFS[saveData.equippedSkill] || SKILL_DEFS.chrono;
-      document.getElementById('btnSkillIcon').textContent = eqSkill.icon;
-      document.getElementById('btnSkillLabel').textContent = eqSkill.id.toUpperCase();
+      // Configure 3 Skill Buttons HUD
+      const eqSkills = saveData.equippedSkills || ['chrono', null, null];
+      for (let s = 0; s < 3; s++) {
+        const skId = eqSkills[s];
+        const btnIcon = document.getElementById(`btnSkillIcon${s}`);
+        const btnLbl = document.getElementById(`btnSkillLabel${s}`);
+        if (skId && SKILL_DEFS[skId]) {
+          btnIcon.textContent = SKILL_DEFS[skId].icon;
+          btnLbl.textContent = `S-${s+1}`;
+        } else {
+          btnIcon.textContent = '🔒';
+          btnLbl.textContent = 'NONE';
+        }
+      }
 
       // Show HUD, Hide Modals
       document.getElementById('mainMenuModal').classList.add('hidden');
@@ -1565,20 +1560,21 @@
       if (game.shakeTimer > 0) game.shakeTimer--;
       if (player.invulnTimer > 0) player.invulnTimer--;
 
-      // Skill Timers
-      if (player.skillActiveTimer > 0) {
-        player.skillActiveTimer--;
-        if (player.skillActiveTimer === 0) {
-          player.shieldActive = false;
+      // 3 Skill Slot Timers
+      for (let s = 0; s < 3; s++) {
+        if (player.skillActiveTimers[s] > 0) {
+          player.skillActiveTimers[s]--;
+        } else if (player.skillCooldownTimers[s] > 0) {
+          player.skillCooldownTimers[s]--;
         }
-      } else if (player.skillCooldownTimer > 0) {
-        player.skillCooldownTimer--;
       }
 
-      // Check Skill Activation Input
-      if (keys.skillPressed) {
-        keys.skillPressed = false;
-        activatePlayerSkill();
+      // Endless Pursuing Disaster Wall logic
+      if (game.mode === 'endless' && game.disasterWallX > -9000) {
+        game.disasterWallX += 3.2;
+        if (player.x < game.disasterWallX + 30) {
+          handleHazardHit(true);
+        }
       }
 
       // 1. Update Platforms (Moving & Crumbling)
@@ -2048,19 +2044,20 @@
       const dashPct = player.dashCooldown > 0 ? (player.dashCooldown / stats.dashCooldownMax) * 100 : (player.airDashAvailable ? 0 : 100);
       document.getElementById('dashCooldownFill').style.height = `${dashPct}%`;
 
-      // Skill Cooldown UI & Status Pill
-      const skillDef = SKILL_DEFS[saveData.equippedSkill] || SKILL_DEFS.chrono;
-      const lv = saveData.skills[skillDef.id]?.level || 1;
-      const maxCd = (skillDef.baseCooldown - (lv - 1) * 1.2) * 60;
-      const skillPct = player.skillCooldownTimer > 0 ? (player.skillCooldownTimer / maxCd) * 100 : 0;
-      document.getElementById('skillCooldownFill').style.height = `${skillPct}%`;
-
-      const statusEl = document.getElementById('hudSkillStatus');
-      if (player.skillActiveTimer > 0 || player.shieldActive) {
-        statusEl.classList.remove('hidden');
-        statusEl.textContent = `${skillDef.icon} ${skillDef.name.split(' ')[0]} 発動中!`;
-      } else {
-        statusEl.classList.add('hidden');
+      // 3 Skill Slot Cooldown UI
+      const eqSkills = saveData.equippedSkills || ['chrono', null, null];
+      for (let s = 0; s < 3; s++) {
+        const skId = eqSkills[s];
+        const fillEl = document.getElementById(`skillCooldownFill${s}`);
+        if (skId && SKILL_DEFS[skId]) {
+          const def = SKILL_DEFS[skId];
+          const lv = saveData.skills[skId]?.level || 1;
+          const maxCd = (def.baseCooldown - (lv - 1) * 1.2) * 60;
+          const cdPct = player.skillCooldownTimers[s] > 0 ? (player.skillCooldownTimers[s] / maxCd) * 100 : 0;
+          fillEl.style.height = `${cdPct}%`;
+        } else {
+          fillEl.style.height = '100%';
+        }
       }
     }
 
@@ -2089,10 +2086,21 @@
         ctx.fill();
       }
 
-      // Chrono Slow Screen Tint
-      if (saveData.equippedSkill === 'chrono' && player.skillActiveTimer > 0) {
+      // Dynamic Weather Rendering & Chrono Slow Tint
+      const isChronoActive = (saveData.equippedSkills || []).some((skId, idx) => skId === 'chrono' && player.skillActiveTimers[idx] > 0);
+      if (isChronoActive) {
         ctx.fillStyle = 'rgba(88, 28, 135, 0.22)';
         ctx.fillRect(0, 0, viewW, viewH);
+      }
+
+      if (game.mode === 'endless') {
+        if (game.endlessWeather === 'dark') {
+          ctx.fillStyle = 'rgba(2, 6, 23, 0.65)';
+          ctx.fillRect(0, 0, viewW, viewH);
+        } else if (game.endlessWeather === 'fog') {
+          ctx.fillStyle = 'rgba(226, 232, 240, 0.18)';
+          ctx.fillRect(0, 0, viewW, viewH);
+        }
       }
 
       // Screen Shake Offset
@@ -2449,15 +2457,18 @@
         });
       });
 
-      // 2. Render Skills Cards
+      // 2. Render Skills Cards with 3 Equipment Slots Selector
       const skillContainer = document.getElementById('skillListContainer');
       skillContainer.innerHTML = '';
+      if (!saveData.equippedSkills) saveData.equippedSkills = ['chrono', 'shield', null];
+
       Object.values(SKILL_DEFS).forEach(def => {
         if (!saveData.skills[def.id]) {
           saveData.skills[def.id] = { unlocked: def.unlockCost === 0, level: 1 };
         }
         const st = saveData.skills[def.id];
-        const isEquipped = saveData.equippedSkill === def.id;
+        const slotIndex = saveData.equippedSkills.indexOf(def.id);
+        const isEquipped = slotIndex !== -1;
         const isMax = st.level >= def.maxLevel;
         const upgCost = def.upgradeCost * st.level;
 
@@ -2474,24 +2485,38 @@
             <div class="font-extrabold text-sm text-white mt-1">${def.name}</div>
             <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">${def.desc}</p>
           </div>
-          <div class="flex gap-1.5 pt-1">
+          <div class="flex flex-col gap-1.5 pt-1">
             ${!st.unlocked ? `
               <button data-skill-unlock="${def.id}" class="btn-game w-full py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs">
                 🔓 解放する (¥${def.unlockCost})
               </button>
             ` : `
-              <button data-skill-equip="${def.id}" class="btn-game flex-1 py-2 rounded-xl font-extrabold text-xs ${isEquipped ? 'bg-purple-500 text-slate-950' : 'bg-slate-800 text-slate-200 border border-slate-600'}">
-                ${isEquipped ? '✓ 装備中' : '装備する'}
-              </button>
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] text-slate-400 font-bold shrink-0">装備スロット:</span>
+                <button data-skill-slot="${def.id}" data-slot="0" class="btn-game flex-1 py-1 rounded-lg text-xs font-black ${slotIndex === 0 ? 'bg-purple-500 text-slate-950' : 'bg-slate-800 text-slate-300'}">S-1</button>
+                <button data-skill-slot="${def.id}" data-slot="1" class="btn-game flex-1 py-1 rounded-lg text-xs font-black ${slotIndex === 1 ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300'}">S-2</button>
+                <button data-skill-slot="${def.id}" data-slot="2" class="btn-game flex-1 py-1 rounded-lg text-xs font-black ${slotIndex === 2 ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'}">S-3</button>
+              </div>
               ${!isMax ? `
-                <button data-skill-upgrade="${def.id}" class="btn-game px-3 py-2 rounded-xl bg-sky-500/20 border border-sky-400/50 text-sky-200 font-extrabold text-xs">
+                <button data-skill-upgrade="${def.id}" class="btn-game w-full py-1.5 rounded-xl bg-sky-500/20 border border-sky-400/50 text-sky-200 font-extrabold text-xs">
                   強化 ¥${upgCost}
                 </button>
-              ` : `<span class="px-2 py-2 text-[11px] font-black text-amber-300">MAX</span>`}
+              ` : `<div class="text-center text-[11px] font-black text-amber-300">MAX</div>`}
             `}
           </div>
         `;
         skillContainer.appendChild(card);
+      });
+
+      document.querySelectorAll('[data-skill-slot]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-skill-slot');
+          const slot = parseInt(btn.getAttribute('data-slot'), 10);
+          saveData.equippedSkills[slot] = id;
+          sfx.coin();
+          saveGameData();
+          renderMenuUI();
+        });
       });
 
       // Skill Buttons Events
