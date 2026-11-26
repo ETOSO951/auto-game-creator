@@ -525,7 +525,7 @@
                 <canvas id="wideMapCanvas" width="300" height="300" class="block cursor-pointer"></canvas>
             </div>
             <div class="flex items-center justify-between gap-2">
-                <button onclick="promptAddMapBookmark()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-slate-950 font-extrabold py-2 rounded-xl text-xs">
+                <button onclick="addMapBookmark()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-slate-950 font-extrabold py-2 rounded-xl text-xs">
                     <i class="fas fa-map-pin mr-1"></i>現在地をピン登録
                 </button>
                 <button onclick="jumpToNearestOre()" class="flex-1 bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-extrabold py-2 rounded-xl text-xs">
@@ -1161,8 +1161,8 @@ const TECH_TIERS = [
     { tier: 11, title: '⑪ 反物質対消滅炉とオメガエネルギー (TIER 12 解放)', money: 95000000, rp: 350000, mats: { dyson_part: 20, antimatter_cell: 15, sci_gold: 30 }, unlocks: '反物質対消滅炉(+12,000kW) / 白オメガサイエンス製造' },
     { tier: 12, title: '⑫ 特異点工学とニュートロン装甲 (TIER 13 解放)', money: 100000000, rp: 400000, mats: { neutron_plate: 20, antimatter_cell: 20, sci_gold: 35 }, unlocks: '超次元高効率加工プロトコル' },
     { tier: 13, title: '⑬ オメガ銀河キューブ創成 (TIER 14 解放)', money: 105000000, rp: 450000, mats: { singularity_core: 10, dyson_part: 25, sci_white: 30 }, unlocks: 'オメガ銀河キューブ実証製造' },
-    { tier: 14, title: '⑭ 銀河創生オメガ技術 (TIER 15 解放)', money: 110000000, rp: 500000, mats: { omega_matrix: 10, sci_white: 60 }, unlocks: '最終超高度爆速機械群解発準備・ハイパー量子自動組立機 / オメガ超次元精錬炉 / 特異点創成プラント / オメガ銀河万能Hub / 銀河開拓マスター' },
-    { tier: 15, title: '⑮ 銀河神殿と爆速究極機械 (TIER 15 最終極限施設)', money: 500000000, rp: 1000000, mats: { omega_matrix: 30, sci_white: 200 }, unlocks: '銀河開拓マスター極限機能'}
+    { tier: 14, title: '⑭ 銀河創生オメガ技術 (TIER 15 解放)', money: 110000000, rp: 500000, mats: { omega_matrix: 10, sci_white: 60 }, unlocks: '最終超高度爆速機械群解発準備' },
+    { tier: 15, title: '⑮ 銀河神殿と爆速究極機械 (TIER 15 最終極限施設)', money: 500000000, rp: 1000000, mats: { omega_matrix: 30, sci_white: 200 }, unlocks: 'ハイパー量子自動組立機 / オメガ超次元精錬炉 / 特異点創成プラント / オメガ銀河万能Hub / 銀河開拓マスター'}
 ];
 
 // --- 7. 8-STEP KIND TUTORIAL (INCLUDES RP EARNING TUTORIAL!) ---
@@ -2147,7 +2147,6 @@ function gameLoop(timestamp) {
     try {
         updatePowerNetworks(dt);
         updateActiveSimulation(dt);
-        updateMaterialDeliveries(dt);
         updateEffects(dt);
         drawGame(timestamp);
     } catch (err) {
@@ -3816,36 +3815,39 @@ function renderInvestModal() {
     html += `
         <div class="pt-2 border-t border-slate-800 space-y-2">
             <div class="text-[11px] font-extrabold text-cyan-300 flex items-center gap-1">
-                <i class="fas fa-satellite"></i> 特別プロジェクト & 新システム：ランダム物資コンテナ買い付け
+                <i class="fas fa-satellite"></i> 特別プロジェクト & 緊急資源調達市場
             </div>
 
             <div class="grid grid-cols-2 gap-2">
-                <button onclick="runSatelliteScan()" class="bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/50 p-2.5 rounded-2xl text-left active:scale-95 col-span-2">
+                <button onclick="buyRpWithMoney()" class="bg-indigo-950/90 hover:bg-indigo-900 border border-indigo-500/50 p-2.5 rounded-2xl text-left active:scale-95">
+                    <div class="font-extrabold text-pink-300 text-xs"><i class="fas fa-flask mr-1"></i>外部研究データ購入</div>
+                    <div class="text-[10px] text-slate-300 mt-0.5">資金 $${rpBuyCost.toLocaleString()} で <b>+${rpBuyGain.toLocaleString()} RP</b> を即時獲得</div>
+                </button>
+                <button onclick="runSatelliteScan()" class="bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/50 p-2.5 rounded-2xl text-left active:scale-95">
                     <div class="font-extrabold text-cyan-300 text-xs"><i class="fas fa-satellite-dish mr-1"></i>資源探査衛星スキャン</div>
                     <div class="text-[10px] text-slate-300 mt-0.5">資金 $${scanCost.toLocaleString()} で未発見の希少鉱床を発見＆移動</div>
                 </button>
             </div>
 
-            <div class="bg-slate-800/90 border border-amber-500/40 rounded-2xl p-3 space-y-2">
-                <div class="text-xs font-extrabold text-amber-300 flex items-center justify-between">
-                    <span><i class="fas fa-box-open mr-1"></i>ランダム物資買い付けシステム</span>
-                    <span class="text-[9px] bg-amber-500/20 text-amber-200 px-1.5 py-0.5 rounded">到着5分後(投資短縮適用)</span>
-                </div>
-                <p class="text-[10px] text-slate-300 leading-snug">
-                    資金を投資して、ランダムな高価値素材の詰め合わせコンテナを買い付けます。到着には現実時間で5分（永久アップグレード投資「到着時間短縮」で短縮可能）かかります！
-                </p>
-                <div class="flex items-center gap-2">
-                    <input type="number" id="random-buy-qty" value="1" min="1" max="50" class="w-16 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1 text-xs font-bold text-amber-300 text-center">
-                    <button onclick="orderRandomMaterialCrate()" class="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-95 text-slate-950 font-extrabold py-2 px-3 rounded-xl text-xs shadow">
-                        ランダムコンテナ発注 ($<span id="random-buy-cost">25,000</span>×個数)
-                    </button>
-                </div>
-            </div>
-
-            <div class="text-[10px] text-slate-400 mt-2">▼ 到着待ちの買い付け便リスト (<span id="delivery-count">0</span>件)</div>
-            <div id="delivery-list" class="space-y-1.5 max-h-36 overflow-y-auto"></div>
-        </div>
+            <div class="text-[10px] text-slate-400">▼ 発見済み素材の緊急買い付け（×10個パックをHUB倉庫へ即時納品）</div>
+            <div class="grid grid-cols-2 gap-1.5">
     `;
+
+    for (const item of Object.values(BASE_ITEMS)) {
+        if (!isItemDiscovered(item.id) || item.id.startsWith('sci_')) continue;
+        const packCost = item.price * 10 * 30; // 10x price increase as requested!
+        html += `
+            <button onclick="buyMaterialPack('${item.id}')" class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 rounded-xl p-2 flex items-center justify-between active:scale-95">
+                <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${item.color}"></span>
+                    <span class="text-[10px] font-bold text-white truncate">${item.name}×10</span>
+                </div>
+                <span class="text-[10px] font-extrabold text-amber-300 shrink-0">$${packCost.toLocaleString()}</span>
+            </button>
+        `;
+    }
+
+    html += `</div></div>`;
     body.innerHTML = html;
 }
 
@@ -3909,91 +3911,20 @@ function runSatelliteScan() {
     }
 }
 
-let materialDeliveries = [];
-
-function orderRandomMaterialCrate() {
-    const qtyInput = document.getElementById('random-buy-qty');
-    const qty = Math.max(1, parseInt(qtyInput ? qtyInput.value : '1') || 1);
-    const unitCost = 25000;
-    const totalCost = unitCost * qty;
-
-    if (gameState.money < totalCost) {
-        showToast(`資金が足りません！（必要: $${totalCost.toLocaleString()}）`, 'rose');
+function buyMaterialPack(itemId) {
+    const item = BASE_ITEMS[itemId];
+    if (!item) return;
+    const cost = item.price * 10 * 30;
+    if (gameState.money < cost) {
+        showToast(`資金が足りません！（必要: $${cost.toLocaleString()}）`, 'rose');
         return;
     }
-
-    gameState.money -= totalCost;
-    
-    // 永久アップグレードに到着時間短縮を実装 (1Lvにつき15秒短縮、最大4分半短縮など)
-    const speedLv = (gameState.upgrades && gameState.upgrades.belt_speed) || 0;
-    const baseSeconds = 300; // 5分
-    const reducedSeconds = Math.max(30, baseSeconds - speedLv * 15);
-
-    materialDeliveries.push({
-        qty: qty,
-        remainingTime: reducedSeconds,
-        totalTime: reducedSeconds
-    });
-
+    gameState.money -= cost;
+    gameState.inventory[itemId] = (gameState.inventory[itemId] || 0) + 10;
     SoundFX.play('coin');
-    showToast(`🚢 ランダム物資コンテナ×${qty}個を発注しました！現実時間約${Math.ceil(reducedSeconds/60)}分後に到着します`, 'amber');
+    showToast(`📦 「${item.name}」×10個をHUB共有倉庫へ緊急調達しました！`, 'amber');
     renderInvestModal();
     updateHUD();
-    saveGameData(true);
-}
-
-function updateMaterialDeliveries(dt) {
-    if (!Array.isArray(materialDeliveries) || materialDeliveries.length === 0) return;
-    let updated = false;
-    for (let i = materialDeliveries.length - 1; i >= 0; i--) {
-        materialDeliveries[i].remainingTime -= dt;
-        if (materialDeliveries[i].remainingTime <= 0) {
-            const delivery = materialDeliveries.splice(i, 1)[0];
-            // ランダムに高価値素材を抽選して付与
-            const discoveredIds = Object.keys(BASE_ITEMS).filter(id => isItemDiscovered(id) && !id.startsWith('sci_'));
-            if (discoveredIds.length > 0) {
-                const rewardedItems = [];
-                for (let q = 0; q < delivery.qty * 5; q++) {
-                    const randId = discoveredIds[Math.floor(Math.random() * discoveredIds.length)];
-                    gameState.inventory[randId] = (gameState.inventory[randId] || 0) + 5;
-                    rewardedItems.push(randId);
-                }
-                SoundFX.play('research');
-                showToast(`🎉 買い付け便が到着しました！HUB共有倉庫にランダム物資が納品されました！`, 'emerald');
-            }
-            updated = true;
-        }
-    }
-    if (document.getElementById('investModal') && !document.getElementById('investModal').classList.contains('hidden')) {
-        renderDeliveryListUI();
-    }
-}
-
-function renderDeliveryListUI() {
-    const listEl = document.getElementById('delivery-list');
-    const countEl = document.getElementById('delivery-count');
-    if (!listEl || !countEl) return;
-    countEl.textContent = materialDeliveries.length;
-    if (materialDeliveries.length === 0) {
-        listEl.innerHTML = `<div class="text-[10px] text-slate-500 text-center py-2">現在到着待ちの買い付け便はありません</div>`;
-        return;
-    }
-    listEl.innerHTML = materialDeliveries.map((d, idx) => {
-        const mins = Math.floor(d.remainingTime / 60);
-        const secs = Math.floor(d.remainingTime % 60);
-        const pct = Math.max(0, Math.min(100, ((d.totalTime - d.remainingTime) / d.totalTime) * 100));
-        return `
-            <div class="bg-slate-900 border border-slate-700 rounded-xl p-2 text-[10px] flex items-center justify-between">
-                <div>
-                    <div class="font-extrabold text-amber-300">物資コンテナ便 #${idx + 1} (×${d.qty}セット)</div>
-                    <div class="text-slate-400">到着まで: <b>${mins}分${secs < 10 ? '0' : ''}${secs}秒</b></div>
-                </div>
-                <div class="w-20 bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-700">
-                    <div class="bg-amber-400 h-full transition-all" style="width:${pct}%"></div>
-                </div>
-            </div>
-        `;
-    }).join('');
 }
 
 // --- 17. UI CONTROLLERS & MODALS ---
