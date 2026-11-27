@@ -2291,7 +2291,7 @@ function canAcceptItem(tx, ty, itemType) {
     const target = getBuilding(tx, ty);
     if (!target) return false;
 
-    if (['hub', 'storage_hub', 'trade_hub', 'omni_hub', 'teleporter_in'].includes(target.type)) return true;
+    if (['hub', 'storage_hub', 'trade_hub', 'omni_hub', 'omega_subhub', 'teleporter_in'].includes(target.type)) return true;
 
     if (['belt', 'fast_belt', 'express_belt', 'maglev_belt', 'splitter', 'filter_sorter', 'tunnel'].includes(target.type)) {
         return target.item === null;
@@ -2345,7 +2345,7 @@ function canAcceptItem(tx, ty, itemType) {
         return (target.inputBuffer[itemType] || 0) < 3;
     }
 
-    if (['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge', 'refinery', 'chem_plant', 'assembler', 'cnc_fab', 'semicon_fab', 'quantum_collider'].includes(target.type)) {
+    if (['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge', 'refinery', 'chem_plant', 'assembler', 'cnc_fab', 'semicon_fab', 'quantum_collider', 'hyper_assembler', 'omega_forge', 'singularity_forge'].includes(target.type)) {
         const rec = RECIPES[target.recipe];
         if (!rec) return false;
         if (rec.inputs[itemType]) {
@@ -2380,14 +2380,12 @@ function handleHubDelivery(tx, ty, itemType, hubMode) {
     } else if (hubMode === 'omni_hub') {
         shouldSell = !!gameState.autoSell[baseId];
         hubPriceBonus = 1.50;
+    } else if (hubMode === 'omega_subhub') {
+        shouldSell = !!gameState.autoSell[baseId];
+        hubPriceBonus = 2.0;
     } else {
         shouldSell = !!gameState.autoSell[baseId];
         hubPriceBonus = 1.0;
-    }
-
-    if (hubMode === 'omega_subhub') {
-        shouldSell = !!gameState.autoSell[baseId];
-        hubPriceBonus = 2.0;
     }
 
     if (shouldSell) {
@@ -2408,7 +2406,7 @@ function pushItemToTile(tx, ty, itemType) {
 
     discoverItem(itemType);
 
-    if (['hub', 'storage_hub', 'trade_hub', 'omni_hub', 'teleporter_in'].includes(target.type)) {
+    if (['hub', 'storage_hub', 'trade_hub', 'omni_hub', 'omega_subhub', 'teleporter_in'].includes(target.type)) {
         handleHubDelivery(tx, ty, itemType, target.type);
         return true;
     }
@@ -3751,7 +3749,7 @@ function renderCraftModal() {
                     </div>
                 ` : `
                     <button onclick="closeModal('craftModal'); openModal('techModal');" class="text-[10px] font-extrabold text-indigo-300 bg-indigo-950 border border-indigo-500/50 px-2.5 py-1 rounded-xl shrink-0">
-                        要 TIER ${b.tier} 研究
+                        要 TIER ${Math.min(15, b.tier)} 研究
                     </button>
                 `}
             </div>
@@ -4130,7 +4128,7 @@ function renderToolbar() {
             </div>
             <span class="text-[9px] font-extrabold tracking-tighter leading-none mt-0.5 truncate w-14 text-center">${dispName}</span>
             <span class="text-[9px] leading-none">${subTag}</span>
-            ${!unlocked ? `<span class="absolute top-0.5 right-0.5 text-[8px] bg-slate-950 text-amber-400 px-1 rounded">T${b.tier}</span>` : ''}
+            ${!unlocked ? `<span class="absolute top-0.5 right-0.5 text-[8px] bg-slate-950 text-amber-400 px-1 rounded">T${Math.min(15, b.tier)}</span>` : ''}
         `;
         bar.appendChild(btn);
     }
@@ -5051,6 +5049,10 @@ function applyLoadedSaveObject(data) {
         if (!gameState.inventory) gameState.inventory = {};
         if (!gameState.autoSell) gameState.autoSell = {};
         if (!gameState.craftedMachines) gameState.craftedMachines = {};
+        if (!Array.isArray(gameState.shipments)) gameState.shipments = [];
+        if (typeof gameState.randomEnhanceRolls !== 'number' || !Number.isFinite(gameState.randomEnhanceRolls)) {
+            gameState.randomEnhanceRolls = 0;
+        }
 
         // アップグレード値の徹底サニタイズ（NaN・非有限数防止）
         if (!gameState.upgrades) {
