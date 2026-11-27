@@ -505,6 +505,9 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
+            <div class="p-2 bg-slate-800/80 border-b border-slate-700">
+                <input type="text" id="tech-search-input" oninput="renderTechModal()" placeholder="研究名や解放内容で検索..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none focus:border-indigo-400">
+            </div>
             <div id="tech-list" class="p-3 overflow-y-auto flex-1 flex flex-col gap-2.5"></div>
         </div>
     </div>
@@ -943,7 +946,7 @@ const BUILDINGS = {
         desc: '【TIER 8 超大型建設】自動売却ON時は+50%高値換金、OFF時は倉庫保存！さらに+180kW発電＆送電網を展開！'
     },
     omega_subhub: {
-        id: 'omega_subhub', name: 'オメガ銀河万能Hub(+100%・無限発電)', cat: 'hubs', cost: 0, craftMats: { omega_matrix: 10, singularity_core: 5, superconductor: 20 }, power: 50000, poleRange: 40, maxCap: 999999, lossRate: 0, icon: 'fa-crown', color: '#facc15', tier: 16,
+        id: 'omega_subhub', name: 'オメガ銀河万能Hub(+100%・無限発電)', cat: 'hubs', cost: 0, craftMats: { omega_matrix: 10, singularity_core: 5, superconductor: 20 }, power: 50000, poleRange: 40, maxCap: 999999, lossRate: 0, icon: 'fa-crown', color: '#facc15', tier: 15,
         desc: '【TIER 15 最終施設】搬入素材を+100%倍額換金または倉庫直結保存！さらに+50,000kW爆速発電＆範囲40マスの銀河送電ドーム！'
     },
 
@@ -1095,15 +1098,15 @@ const BUILDINGS = {
         desc: '【TIER 9 製作】特異点コア・オメガ銀河キューブ・白サイエンスを合成 (-500kW)'
     },
     hyper_assembler: {
-        id: 'hyper_assembler', name: 'ハイパー量子自動組立機', cat: 'production', cost: 0, craftMats: { quantum_chip: 4, titanium_alloy: 6, ai_core: 2 }, power: -450, icon: 'fa-cubes-stacked', color: '#38bdf8', tier: 16,
+        id: 'hyper_assembler', name: 'ハイパー量子自動組立機', cat: 'production', cost: 0, craftMats: { quantum_chip: 4, titanium_alloy: 6, ai_core: 2 }, power: -450, icon: 'fa-cubes-stacked', color: '#38bdf8', tier: 15,
         desc: '【TIER 15 最終機械】自動組立機の3.5倍の超高速で精密部品やサイエンスを無駄なく爆速加工！ (-450kW)'
     },
     omega_forge: {
-        id: 'omega_forge', name: 'オメガ超次元精錬炉', cat: 'production', cost: 0, craftMats: { singularity_core: 2, iridium_alloy: 6, superconductor: 6 }, power: -800, icon: 'fa-volcano', color: '#facc15', tier: 16,
+        id: 'omega_forge', name: 'オメガ超次元精錬炉', cat: 'production', cost: 0, craftMats: { singularity_core: 2, iridium_alloy: 6, superconductor: 6 }, power: -800, icon: 'fa-volcano', color: '#facc15', tier: 15,
         desc: '【TIER 15 最終機械】全精錬レシピを4.0倍の極限スピードで一気に処理する全自動超次元精錬炉！ (-800kW)'
     },
     singularity_forge: {
-        id: 'singularity_forge', name: '特異点創成プラント', cat: 'production', cost: 0, craftMats: { omega_matrix: 5, singularity_core: 8, quantum_chip: 15 }, power: -2500, icon: 'fa-meteor', color: '#c084fc', tier: 16,
+        id: 'singularity_forge', name: '特異点創成プラント', cat: 'production', cost: 0, craftMats: { omega_matrix: 5, singularity_core: 8, quantum_chip: 15 }, power: -2500, icon: 'fa-meteor', color: '#c084fc', tier: 15,
         desc: '【TIER 15 最終機械】銀河キューブや白サイエンスを0.5〜0.8秒で極限製造する特異点創成機！ (-2,500kW)'
     },
     lab: {
@@ -3864,7 +3867,7 @@ function renderInvestModal() {
 
     for (const item of Object.values(BASE_ITEMS)) {
         if (!isItemDiscovered(item.id) || item.id.startsWith('sci_')) continue;
-        const unitPrice = item.price * 5 * 10; // 値段5倍
+        const unitPrice = item.price * 5; // 値段5倍
         html += `
             <div class="bg-slate-800/90 border border-slate-700 rounded-xl p-2 flex items-center justify-between gap-2">
                 <div class="flex items-center gap-1.5 min-w-0">
@@ -3903,7 +3906,7 @@ function orderMaterialShipment(itemId) {
     if (!item) return;
     const inputEl = document.getElementById(`buy-qty-${itemId}`);
     const qty = Math.max(1, parseInt(inputEl ? inputEl.value : 10) || 10);
-    const unitPrice = item.price * 5 * 10;
+    const unitPrice = item.price * 5;
     const totalCost = unitPrice * qty;
 
     if (gameState.money < totalCost) {
@@ -4790,11 +4793,13 @@ function unlockNextTier() {
     gameState.rp -= t.rp;
     gameState.tier++;
     for (const b of Object.values(BUILDINGS)) {
-        // 【修正】研究15クリア(tierが16になる、またはtier 15完了時)で正しく解放されるよう修正
         if (b.tier <= gameState.tier) gameState.discoveredBuildings[b.id] = true;
     }
     SoundFX.play('research');
-    showToast(`🚀 TIER ${gameState.tier} 解放！【施設製作】で追加Hubや新機械が作れるようになりました！`, 'amber');
+    const nextMsg = gameState.tier > 15
+        ? '👑 全15段階の研究をすべて制覇！爆速究極機械とオメガ銀河万能Hubが解放されました！'
+        : `🚀 TIER ${gameState.tier} 解放！【施設製作】で追加Hubや新機械が作れるようになりました！`;
+    showToast(nextMsg, 'amber');
     renderToolbar();
     updateContextPanel();
     renderTechModal();
