@@ -410,11 +410,7 @@
             </div>
 
             <div class="p-2.5 bg-slate-800/90 border-b border-slate-700 text-[10px] text-slate-200 flex items-center justify-between gap-2">
-                <span>※未解放の施設は「？？？」表記になります。研究でTIERを上げよう！</span>
-                <div class="flex gap-1.5 shrink-0">
-                    <button onclick="closeModal('craftModal'); openModal('techModal');" class="text-indigo-300 underline font-bold">研究へ</button>
-                    <button onclick="closeModal('craftModal'); openModal('hubModal');" class="text-rose-300 underline font-bold">HUBへ</button>
-                </div>
+                <input type="text" id="craft-search-input" oninput="onCraftSearchInput(this.value)" placeholder="🔍 施設名でリアルタイム検索..." class="w-full bg-slate-950 border border-slate-600 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-400">
             </div>
 
             <div id="craft-machine-list" class="p-3 overflow-y-auto flex-1 flex flex-col gap-2.5"></div>
@@ -438,6 +434,7 @@
             </div>
 
             <div class="p-2.5 bg-slate-800/80 border-b border-slate-700 flex flex-col gap-1.5">
+                <input type="text" id="hub-search-input" oninput="onHubSearchInput(this.value)" placeholder="🔍 倉庫・図鑑素材を名前で検索..." class="w-full bg-slate-950 border border-slate-600 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none focus:border-rose-400 mb-1">
                 <div class="flex items-center justify-between gap-2">
                     <button onclick="sellAllStock()" class="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 active:scale-95 text-slate-950 font-extrabold py-2 px-3 rounded-xl text-xs shadow flex items-center justify-center gap-1.5">
                         <i class="fas fa-coins"></i> 全在庫を一括売却 (+$<span id="modal-total-sell-val">0</span>)
@@ -445,9 +442,6 @@
                     <button onclick="toggleAllAutoSell()" class="bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-200 font-bold py-2 px-2.5 rounded-xl text-[10px] border border-slate-500/50 shrink-0">
                         一括保管/売却切替
                     </button>
-                </div>
-                <div class="text-[10px] text-cyan-300 bg-slate-900/90 px-2.5 py-1.5 rounded-xl border border-cyan-500/30 flex items-center justify-between">
-                    <span><i class="fas fa-dolly mr-1"></i><b>特定素材の引き出し:</b> 各素材の「引出指定」を押すと、設置した「HUB引出ポート」からその素材をコンベアへ搬出します！</span>
                 </div>
             </div>
 
@@ -864,12 +858,12 @@ const RECIPES = {
     col_omega:      { id: 'col_omega',      name: 'オメガ銀河キューブ',machine: 'quantum_collider', inputs: { singularity_core: 1, quantum_chip: 2, fusion_cell: 2 }, output: 'omega_matrix', time: 4.5, tier: 10 },
     col_sciwhite:   { id: 'col_sciwhite',   name: '白オメガサイエンス',machine: 'quantum_collider', inputs: { dyson_part: 1, antimatter_cell: 1 }, output: 'sci_white', time: 3.2, tier: 10 },
 
-    // Tier 15 Final High-Efficiency Hyper/Omega Machines
-    hyper_gear:     { id: 'hyper_gear',     name: 'ハイパー超高速歯車', machine: 'hyper_assembler', inputs: { iron_plate: 2 }, output: 'gear', time: 0.15, tier: 15 },
-    hyper_circuit:  { id: 'hyper_circuit',  name: 'ハイパー超高速電子基板', machine: 'hyper_assembler', inputs: { iron_plate: 1, wire: 2 }, output: 'circuit', time: 0.2, tier: 15 },
-    hyper_scipink:  { id: 'hyper_scipink',  name: 'ハイパー統合白オメガサイエンス', machine: 'hyper_assembler', inputs: { sci_gold: 1, quantum_chip: 1 }, output: 'sci_white', time: 0.6, tier: 15 },
-    forge_omega:    { id: 'forge_omega',    name: '特異点瞬時キューブ精錬', machine: 'singularity_forge', inputs: { singularity_core: 1, quantum_chip: 1 }, output: 'omega_matrix', time: 0.4, tier: 15 },
-    forge_sciwhite: { id: 'forge_sciwhite', name: '特異点極限白サイエンス', machine: 'singularity_forge', inputs: { dyson_part: 1 }, output: 'sci_white', time: 0.2, tier: 15 }
+    // Tier 15 Final High-Efficiency Hyper/Omega Machines (Unlocked at Tier 16 after Research 15)
+    hyper_gear:     { id: 'hyper_gear',     name: 'ハイパー超高速歯車', machine: 'hyper_assembler', inputs: { iron_plate: 2 }, output: 'gear', time: 0.15, tier: 16 },
+    hyper_circuit:  { id: 'hyper_circuit',  name: 'ハイパー超高速電子基板', machine: 'hyper_assembler', inputs: { iron_plate: 1, wire: 2 }, output: 'circuit', time: 0.2, tier: 16 },
+    hyper_scipink:  { id: 'hyper_scipink',  name: 'ハイパー統合白オメガサイエンス', machine: 'hyper_assembler', inputs: { sci_gold: 1, quantum_chip: 1 }, output: 'sci_white', time: 0.6, tier: 16 },
+    forge_omega:    { id: 'forge_omega',    name: 'オメガ瞬時キューブ精錬', machine: 'omega_forge', inputs: { singularity_core: 1, quantum_chip: 1 }, output: 'omega_matrix', time: 0.4, tier: 16 },
+    forge_sciwhite: { id: 'forge_sciwhite', name: '特異点極限白サイエンス', machine: 'singularity_forge', inputs: { dyson_part: 1 }, output: 'sci_white', time: 0.2, tier: 16 }
 };
 
 // --- 4. ALL 46 BUILDINGS (REBALANCED POWER OUTPUTS!) ---
@@ -943,8 +937,8 @@ const BUILDINGS = {
         desc: '【TIER 8 超大型建設】自動売却ON時は+50%高値換金、OFF時は倉庫保存！さらに+180kW発電＆送電網を展開！'
     },
     omega_subhub: {
-        id: 'omega_subhub', name: 'オメガ銀河万能Hub(+100%・無限発電)', cat: 'hubs', cost: 0, craftMats: { omega_matrix: 10, singularity_core: 5, superconductor: 20 }, power: 50000, poleRange: 40, maxCap: 999999, lossRate: 0, icon: 'fa-crown', color: '#facc15', tier: 15,
-        desc: '【TIER 15 最終施設】搬入素材を+100%倍額換金または倉庫直結保存！さらに+50,000kW爆速発電＆範囲40マスの銀河送電ドーム！'
+        id: 'omega_subhub', name: 'オメガ銀河万能Hub(+100%・無限発電)', cat: 'hubs', cost: 0, craftMats: { omega_matrix: 10, singularity_core: 5, superconductor: 20 }, power: 50000, poleRange: 40, maxCap: 999999, lossRate: 0, icon: 'fa-crown', color: '#facc15', tier: 16,
+        desc: '【TIER 15 研究完了時解放】搬入素材を+100%倍額換金または倉庫直結保存！さらに+50,000kW爆速発電＆範囲40マスの銀河送電ドーム！'
     },
 
     // 3. Mining, Extraction & Compression (10)
@@ -1095,16 +1089,16 @@ const BUILDINGS = {
         desc: '【TIER 9 製作】特異点コア・オメガ銀河キューブ・白サイエンスを合成 (-500kW)'
     },
     hyper_assembler: {
-        id: 'hyper_assembler', name: 'ハイパー量子自動組立機', cat: 'production', cost: 0, craftMats: { quantum_chip: 4, titanium_alloy: 6, ai_core: 2 }, power: -450, icon: 'fa-cubes-stacked', color: '#38bdf8', tier: 15,
-        desc: '【TIER 15 最終機械】自動組立機の3.5倍の超高速で精密部品やサイエンスを無駄なく爆速加工！ (-450kW)'
+        id: 'hyper_assembler', name: 'ハイパー量子自動組立機', cat: 'production', cost: 0, craftMats: { quantum_chip: 4, titanium_alloy: 6, ai_core: 2 }, power: -450, icon: 'fa-cubes-stacked', color: '#38bdf8', tier: 16,
+        desc: '【TIER 15 研究完了時解放】自動組立機の3.5倍の超高速で精密部品やサイエンスを無駄なく爆速加工！ (-450kW)'
     },
     omega_forge: {
-        id: 'omega_forge', name: 'オメガ超次元精錬炉', cat: 'production', cost: 0, craftMats: { singularity_core: 2, iridium_alloy: 6, superconductor: 6 }, power: -800, icon: 'fa-volcano', color: '#facc15', tier: 15,
-        desc: '【TIER 15 最終機械】全精錬レシピを4.0倍の極限スピードで一気に処理する全自動超次元精錬炉！ (-800kW)'
+        id: 'omega_forge', name: 'オメガ超次元精錬炉', cat: 'production', cost: 0, craftMats: { singularity_core: 2, iridium_alloy: 6, superconductor: 6 }, power: -800, icon: 'fa-volcano', color: '#facc15', tier: 16,
+        desc: '【TIER 15 研究完了時解放】全精錬レシピを4.0倍の極限スピードで一気に処理する全自動超次元精錬炉！ (-800kW)'
     },
     singularity_forge: {
-        id: 'singularity_forge', name: '特異点創成プラント', cat: 'production', cost: 0, craftMats: { omega_matrix: 5, singularity_core: 8, quantum_chip: 15 }, power: -2500, icon: 'fa-meteor', color: '#c084fc', tier: 15,
-        desc: '【TIER 15 最終機械】銀河キューブや白サイエンスを0.5〜0.8秒で極限製造する特異点創成機！ (-2,500kW)'
+        id: 'singularity_forge', name: '特異点創成プラント', cat: 'production', cost: 0, craftMats: { omega_matrix: 5, singularity_core: 8, quantum_chip: 15 }, power: -2500, icon: 'fa-meteor', color: '#c084fc', tier: 16,
+        desc: '【TIER 15 研究完了時解放】銀河キューブや白サイエンスを0.5〜0.8秒で極限製造する特異点創成機！ (-2,500kW)'
     },
     lab: {
         id: 'lab', name: '量子研究所(ラボ)', cat: 'production', cost: 140, power: -45, icon: 'fa-microscope', color: '#ec4899', tier: 1,
@@ -1143,6 +1137,11 @@ const CAPITAL_UPGRADES = {
         id: 'lab_efficiency', name: '量子ラボ解析ブースト', icon: 'fa-flask', color: '#ec4899',
         baseCost: 8000, costMult: 2, maxLv: 25, bonusPerLv: 0.25,
         desc: 'ラボでのサイエンスパック解析速度と獲得RPが1レベルごとに +25% 上昇！'
+    },
+    delivery_speed: {
+        id: 'delivery_speed', name: '素材買い付け到着時間短縮', icon: 'fa-truck-fast', color: '#38bdf8',
+        baseCost: 10000, costMult: 1.8, maxLv: 20, bonusPerLv: 0.20,
+        desc: '買い付け素材の配送ドローン速度が強化され、到着待ち時間が1レベルごとに -20% 短縮！'
     }
 };
 
@@ -1161,8 +1160,8 @@ const TECH_TIERS = [
     { tier: 11, title: '⑪ 反物質対消滅炉とオメガエネルギー (TIER 12 解放)', money: 95000000, rp: 350000, mats: { dyson_part: 20, antimatter_cell: 15, sci_gold: 30 }, unlocks: '反物質対消滅炉(+12,000kW) / 白オメガサイエンス製造' },
     { tier: 12, title: '⑫ 特異点工学とニュートロン装甲 (TIER 13 解放)', money: 100000000, rp: 400000, mats: { neutron_plate: 20, antimatter_cell: 20, sci_gold: 35 }, unlocks: '超次元高効率加工プロトコル' },
     { tier: 13, title: '⑬ オメガ銀河キューブ創成 (TIER 14 解放)', money: 105000000, rp: 450000, mats: { singularity_core: 10, dyson_part: 25, sci_white: 30 }, unlocks: 'オメガ銀河キューブ実証製造' },
-    { tier: 14, title: '⑭ 銀河創生オメガ技術 (TIER 15 解放)', money: 110000000, rp: 500000, mats: { omega_matrix: 10, sci_white: 60 }, unlocks: '最終超高度爆速機械群解発準備' },
-    { tier: 15, title: '⑮ 銀河神殿と爆速究極機械 (TIER 15 最終極限施設)', money: 500000000, rp: 1000000, mats: { omega_matrix: 30, sci_white: 200 }, unlocks: 'ハイパー量子自動組立機 / オメガ超次元精錬炉 / 特異点創成プラント / オメガ銀河万能Hub / 銀河開拓マスター'}
+    { tier: 14, title: '⑭ 銀河創生オメガ技術 (研究15解放準備)', money: 110000000, rp: 500000, mats: { omega_matrix: 10, sci_white: 60 }, unlocks: '最終超高度爆速機械群の研究解放準備' },
+    { tier: 15, title: '⑮ 銀河神殿と爆速究極機械 (完了時に研究15完了施設が解放)', money: 500000000, rp: 1000000, mats: { omega_matrix: 30, sci_white: 200 }, unlocks: '【研究15完了時解放】ハイパー量子自動組立機 / オメガ超次元精錬炉 / 特異点創成プラント / オメガ銀河万能Hub / 銀河開拓マスター'}
 ];
 
 // --- 7. 8-STEP KIND TUTORIAL (INCLUDES RP EARNING TUTORIAL!) ---
@@ -1283,8 +1282,13 @@ let gameState = {
         belt_speed: 0,
         power_output: 0,
         market_value: 0,
-        lab_efficiency: 0
+        lab_efficiency: 0,
+        delivery_speed: 0
     },
+    randomBuffs: {
+        speedMult: 1.0
+    },
+    deliveries: [],
     bookmarks: [
         { name: '中央HUB拠点', x: 1000, y: 1000 }
     ],
@@ -1303,9 +1307,16 @@ let gameState = {
         assembler: 'craft_gear',
         cnc_fab: 'cnc_frame',
         semicon_fab: 'semi_proc',
-        quantum_collider: 'col_singularity'
+        quantum_collider: 'col_singularity',
+        hyper_assembler: 'hyper_gear',
+        omega_forge: 'forge_omega',
+        singularity_forge: 'forge_sciwhite'
     },
     selectedFilter: 'iron_plate',
+    recipeSearch: '',
+    filterSearch: '',
+    craftSearch: '',
+    hubSearch: '',
     controlMode: 'normal',
     inspectedTile: null,
     tutorialActive: true,
@@ -1644,8 +1655,11 @@ function resetStateToFresh(tutEnabled) {
         belt_speed: 0,
         power_output: 0,
         market_value: 0,
-        lab_efficiency: 0
+        lab_efficiency: 0,
+        delivery_speed: 0
     };
+    gameState.deliveries = [];
+    gameState.randomBuffs = { speedMult: 1.0 };
     gameState.bookmarks = [{ name: '中央HUB拠点', x: 1000, y: 1000 }];
 
     for (const id of Object.keys(ITEMS)) {
@@ -1970,7 +1984,7 @@ function updatePowerNetworks(dt) {
 
                 demand += Math.ceil(baseKw * factor);
             } else if (def.power > 0) {
-                if (b.type === 'wind_turbine' || b.type === 'large_wind' || b.type === 'omni_hub') {
+                if (b.type === 'wind_turbine' || b.type === 'large_wind' || b.type === 'omni_hub' || b.type === 'omega_subhub') {
                     rawSupply += Math.round(def.power * pwrMult);
                 } else if (b.type === 'solar' || b.type === 'adv_solar') {
                     rawSupply += Math.round(def.power * solarMult * pwrMult);
@@ -2145,6 +2159,7 @@ function gameLoop(timestamp) {
     }
 
     try {
+        updateDeliveries(dt);
         updatePowerNetworks(dt);
         updateActiveSimulation(dt);
         updateEffects(dt);
@@ -2170,6 +2185,28 @@ function gameLoop(timestamp) {
     }
 
     requestAnimationFrame(gameLoop);
+}
+
+function updateDeliveries(dt) {
+    if (!gameState.deliveries || gameState.deliveries.length === 0) return;
+    let finishedAny = false;
+    for (let i = gameState.deliveries.length - 1; i >= 0; i--) {
+        const d = gameState.deliveries[i];
+        d.remainingSeconds -= dt;
+        if (d.remainingSeconds <= 0) {
+            gameState.inventory[d.itemId] = (gameState.inventory[d.itemId] || 0) + d.qty;
+            showToast(`📦 購入素材「${ITEMS[d.itemId]?.name || d.itemId}」×${d.qty} が拠点倉庫に到着しました！`, 'emerald');
+            SoundFX.play('coin');
+            gameState.deliveries.splice(i, 1);
+            finishedAny = true;
+        }
+    }
+    if (finishedAny) {
+        updateHUD();
+        if (!document.getElementById('investModal').classList.contains('hidden')) {
+            renderInvestModal();
+        }
+    }
 }
 
 function updateActiveSimulation(dt) {
@@ -3345,9 +3382,15 @@ function renderBookmarkList() {
 function addMapBookmark() {
     const cx = Math.floor((window.innerWidth / 2 - camera.x) / (TILE_PX * camera.zoom));
     const cy = Math.floor((window.innerHeight / 2 - camera.y) / (TILE_PX * camera.zoom));
-    gameState.bookmarks.push({ name: `拠点#${gameState.bookmarks.length}`, x: cx, y: cy });
+    const defaultName = `ピン #${gameState.bookmarks.length + 1} (${cx},${cy})`;
+    const inputName = prompt('ピンの名前を入力してください:', defaultName);
+    if (inputName === null) return;
+    const finalName = inputName.trim() || defaultName;
+
+    gameState.bookmarks.push({ name: finalName, x: cx, y: cy });
     renderBookmarkList();
-    showToast(`現在地 (${cx}, ${cy}) を拠点ピンに登録しました！`, 'sky');
+    showToast(`ピン「${finalName}」 (${cx}, ${cy}) を登録しました！`, 'sky');
+    saveGameData(true);
 }
 
 function jumpToCoord(gx, gy) {
@@ -3661,11 +3704,19 @@ function removeBuildingAt(x, y) {
 
 // --- 15. MACHINE & SUB-HUB CRAFTING WORKSHOP (WITH "???" MASKING) ---
 
+function onCraftSearchInput(val) {
+    gameState.craftSearch = val || '';
+    renderCraftModal();
+}
+
 function renderCraftModal() {
     const list = document.getElementById('craft-machine-list');
     list.innerHTML = '';
 
-    const craftables = Object.values(BUILDINGS).filter(b => b.craftMats);
+    const query = (gameState.craftSearch || '').trim().toLowerCase();
+    const craftables = Object.values(BUILDINGS).filter(b => b.craftMats && (
+        !query || b.name.toLowerCase().includes(query) || (isBuildingDiscovered(b.id) && b.name.toLowerCase().includes(query))
+    ));
 
     for (const b of craftables) {
         const unlocked = gameState.tier >= b.tier;
@@ -3764,7 +3815,7 @@ function craftMachine(machineId, count) {
     saveGameData(true);
 }
 
-// --- 16. CAPITAL INVESTMENT & MARKET MODAL (ALL 10X PRICES!) ---
+// --- 16. CAPITAL INVESTMENT & RANDOM ALCHEMY ENHANCEMENT & MATERIAL ORDER MARKET ---
 
 function renderInvestModal() {
     document.getElementById('invest-money-display').textContent = `$${gameState.money.toLocaleString()}`;
@@ -3793,7 +3844,7 @@ function renderInvestModal() {
                     <div class="min-w-0">
                         <div class="text-xs font-extrabold text-white truncate">${upg.name} <span class="text-emerald-400">Lv.${lv}/${upg.maxLv}</span></div>
                         <div class="text-[10px] text-slate-400 leading-snug">${upg.desc}</div>
-                        <div class="text-[10px] text-amber-300 font-bold mt-0.5">現在ボーナス: +${curBonus}%</div>
+                        <div class="text-[10px] text-amber-300 font-bold mt-0.5">現在効果: ${upg.id === 'delivery_speed' ? `-${curBonus}%短縮` : `+${curBonus}%`}</div>
                     </div>
                 </div>
                 <button onclick="buyCapitalUpgrade('${upg.id}')" class="shrink-0 px-3 py-2 rounded-xl text-[10px] font-extrabold ${
@@ -3808,47 +3859,159 @@ function renderInvestModal() {
 
     html += `</div>`;
 
-    // Satellite Scanner & RP Grant & Emergency Material Market (All 10x Prices!)
-    const scanCost = 6000;
-    const rpBuyCost = 15000;
-    const rpBuyGain = 1000;
+    // 1. RANDOM ENHANCEMENT SYSTEM (NEW GACHA ALCHEMY)
+    const gachaCost = 30000;
     html += `
         <div class="pt-2 border-t border-slate-800 space-y-2">
-            <div class="text-[11px] font-extrabold text-cyan-300 flex items-center gap-1">
-                <i class="fas fa-satellite"></i> 特別プロジェクト & 緊急資源調達市場
+            <div class="text-[11px] font-extrabold text-purple-300 flex items-center gap-1">
+                <i class="fas fa-dice"></i> 闇市場の量子ガチャ錬金（ランダム新強化システム）
             </div>
-
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="buyRpWithMoney()" class="bg-indigo-950/90 hover:bg-indigo-900 border border-indigo-500/50 p-2.5 rounded-2xl text-left active:scale-95">
-                    <div class="font-extrabold text-pink-300 text-xs"><i class="fas fa-flask mr-1"></i>外部研究データ購入</div>
-                    <div class="text-[10px] text-slate-300 mt-0.5">資金 $${rpBuyCost.toLocaleString()} で <b>+${rpBuyGain.toLocaleString()} RP</b> を即時獲得</div>
-                </button>
-                <button onclick="runSatelliteScan()" class="bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/50 p-2.5 rounded-2xl text-left active:scale-95">
-                    <div class="font-extrabold text-cyan-300 text-xs"><i class="fas fa-satellite-dish mr-1"></i>資源探査衛星スキャン</div>
-                    <div class="text-[10px] text-slate-300 mt-0.5">資金 $${scanCost.toLocaleString()} で未発見の希少鉱床を発見＆移動</div>
+            <div class="bg-purple-950/40 border border-purple-500/50 rounded-2xl p-2.5 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    <div class="text-xs font-extrabold text-purple-200"><i class="fas fa-wand-magic-sparkles mr-1 text-purple-400"></i>量子錬金モジュール実験</div>
+                    <div class="text-[10px] text-slate-300 mt-0.5">大金($30,000)を投じ、ランダムで【大量RP】【資金マルチプライヤー】【希少素材50個】【超オーバークロックバフ】を獲得！</div>
+                </div>
+                <button onclick="playRandomAlchemyGacha()" class="shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-extrabold text-[10px] px-3 py-2 rounded-xl shadow active:scale-95">
+                    ガチャ実行 ($${gachaCost.toLocaleString()})
                 </button>
             </div>
 
-            <div class="text-[10px] text-slate-400">▼ 発見済み素材の緊急買い付け（×10個パックをHUB倉庫へ即時納品）</div>
-            <div class="grid grid-cols-2 gap-1.5">
+            <div class="grid grid-cols-1 gap-2">
+                <button onclick="runSatelliteScan()" class="bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/50 p-2.5 rounded-2xl text-left active:scale-95 flex items-center justify-between">
+                    <div>
+                        <div class="font-extrabold text-cyan-300 text-xs"><i class="fas fa-satellite-dish mr-1"></i>資源探査衛星スキャン</div>
+                        <div class="text-[10px] text-slate-300 mt-0.5">未発見の希少鉱床を発見＆座標へ瞬時ピン登録</div>
+                    </div>
+                    <span class="text-xs font-extrabold text-amber-300 shrink-0">$6,000</span>
+                </button>
+            </div>
+
+            <!-- Delivery Waiting List Display -->
+            ${gameState.deliveries && gameState.deliveries.length > 0 ? `
+                <div class="bg-slate-950 p-2.5 rounded-2xl border border-sky-500/40 space-y-1.5">
+                    <div class="text-[10px] font-extrabold text-sky-300 flex items-center justify-between">
+                        <span><i class="fas fa-truck-ramp-box mr-1"></i>素材配送便の到着待ちリスト (${gameState.deliveries.length}件)</span>
+                        <span class="text-slate-400">ドローン高速化で短縮可</span>
+                    </div>
+                    <div class="space-y-1 max-h-24 overflow-y-auto no-scrollbar">
+                        ${gameState.deliveries.map(d => {
+                            const it = ITEMS[d.itemId];
+                            const sec = Math.ceil(d.remainingSeconds);
+                            const min = Math.floor(sec / 60);
+                            const remSec = sec % 60;
+                            const timeStr = min > 0 ? `${min}分${remSec}秒` : `${remSec}秒`;
+                            return `
+                                <div class="bg-slate-900 px-2 py-1 rounded-xl text-[9px] flex items-center justify-between border border-slate-800">
+                                    <span class="text-white font-bold"><span class="w-2 h-2 rounded-full inline-block mr-1" style="background:${it?.color}"></span>${it?.name || d.itemId} × ${d.qty}個</span>
+                                    <span class="text-amber-300 font-extrabold"><i class="fas fa-clock mr-0.5"></i>到着まで ${timeStr}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            <div class="text-[10px] text-slate-400 font-bold flex items-center justify-between pt-1">
+                <span>▼ 発見済み素材の買い付け（値段5倍調整・任意数量指定・現実時間5分後に指定数到着）</span>
+            </div>
+            <div class="grid grid-cols-1 gap-1.5">
     `;
+
+    const delivLv = gameState.upgrades?.delivery_speed || 0;
+    const baseTimeSec = Math.round(300 * Math.max(0.15, 1.0 - delivLv * 0.20));
 
     for (const item of Object.values(BASE_ITEMS)) {
         if (!isItemDiscovered(item.id) || item.id.startsWith('sci_')) continue;
-        const packCost = item.price * 10 * 30; // 10x price increase as requested!
+        const unitPrice = item.price * 150; // Price adjusted to 5x of previous cost
         html += `
-            <button onclick="buyMaterialPack('${item.id}')" class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 rounded-xl p-2 flex items-center justify-between active:scale-95">
+            <div class="bg-slate-800/90 border border-slate-700 rounded-xl p-2 flex items-center justify-between gap-2">
                 <div class="flex items-center gap-1.5 min-w-0">
-                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${item.color}"></span>
-                    <span class="text-[10px] font-bold text-white truncate">${item.name}×10</span>
+                    <span class="w-3 h-3 rounded-full shrink-0" style="background:${item.color}; border:1px solid ${item.border}"></span>
+                    <div class="min-w-0">
+                        <div class="text-[10px] font-bold text-white truncate">${item.name}</div>
+                        <div class="text-[9px] text-amber-300 font-bold">単価: $${unitPrice.toLocaleString()} / 到着: ${Math.round(baseTimeSec/60)}分</div>
+                    </div>
                 </div>
-                <span class="text-[10px] font-extrabold text-amber-300 shrink-0">$${packCost.toLocaleString()}</span>
-            </button>
+                <div class="flex items-center gap-1 shrink-0">
+                    <input type="number" id="order-qty-${item.id}" value="10" min="1" max="1000" class="w-14 bg-slate-950 border border-slate-600 rounded-lg text-center text-xs font-bold text-cyan-300 py-1 focus:outline-none">
+                    <button onclick="orderMaterialPurchase('${item.id}')" class="bg-amber-600 hover:bg-amber-500 active:scale-90 text-slate-950 font-extrabold text-[10px] px-2.5 py-1 rounded-xl shadow">
+                        発注
+                    </button>
+                </div>
+            </div>
         `;
     }
 
     html += `</div></div>`;
     body.innerHTML = html;
+}
+
+function playRandomAlchemyGacha() {
+    const cost = 30000;
+    if (gameState.money < cost) {
+        showToast(`資金が足りません！（必要: $${cost.toLocaleString()}）`, 'rose');
+        return;
+    }
+    gameState.money -= cost;
+    SoundFX.play('research');
+
+    const rand = Math.random();
+    if (rand < 0.35) {
+        const rpGain = Math.floor(Math.random() * 20000) + 5000;
+        gameState.rp += rpGain;
+        showToast(`🎉 【大当り】量子情報データ生成！ +${rpGain.toLocaleString()} RP 獲得！`, 'emerald');
+    } else if (rand < 0.65) {
+        const cashback = Math.floor(cost * (1.2 + Math.random() * 2.5));
+        gameState.money += cashback;
+        showToast(`💰 【投資成功】暗号資産高騰！ $${cashback.toLocaleString()} キャッシュバック！`, 'amber');
+    } else if (rand < 0.85) {
+        const rarePool = Object.values(BASE_ITEMS).filter(it => isItemDiscovered(it.id) && !it.id.startsWith('sci_'));
+        const item = rarePool[Math.floor(Math.random() * rarePool.length)] || BASE_ITEMS.iron_plate;
+        const qty = 50;
+        gameState.inventory[item.id] = (gameState.inventory[item.id] || 0) + qty;
+        showToast(`📦 【転送成功】「${item.name}」×${qty}個がHUB倉庫に直接ワープ！`, 'cyan');
+    } else {
+        if (!gameState.randomBuffs) gameState.randomBuffs = {};
+        gameState.randomBuffs.speedMult = (gameState.randomBuffs.speedMult || 1.0) + 0.15;
+        showToast(`⚡ 【超大当り】全プラントにオーバークロックバフ発動！(速度+15%永続加算)`, 'sky');
+    }
+
+    renderInvestModal();
+    updateHUD();
+    saveGameData(true);
+}
+
+function orderMaterialPurchase(itemId) {
+    const item = BASE_ITEMS[itemId];
+    if (!item) return;
+
+    const qtyInput = document.getElementById(`order-qty-${itemId}`);
+    const qty = Math.max(1, Math.min(1000, parseInt(qtyInput?.value || '10', 10)));
+    const unitPrice = item.price * 150;
+    const totalCost = unitPrice * qty;
+
+    if (gameState.money < totalCost) {
+        showToast(`資金が足りません！（${qty}個の発注に $${totalCost.toLocaleString()} 必要）`, 'rose');
+        return;
+    }
+
+    gameState.money -= totalCost;
+    const delivLv = gameState.upgrades?.delivery_speed || 0;
+    const baseTimeSec = 300 * Math.max(0.15, 1.0 - delivLv * 0.20); // 5 minutes base
+
+    if (!gameState.deliveries) gameState.deliveries = [];
+    gameState.deliveries.push({
+        itemId,
+        qty,
+        remainingSeconds: baseTimeSec,
+        totalSeconds: baseTimeSec
+    });
+
+    SoundFX.play('coin');
+    showToast(`🚛 「${item.name}」×${qty}個を発注しました！(約${Math.ceil(baseTimeSec/60)}分後に到着)`, 'cyan');
+    renderInvestModal();
+    updateHUD();
+    saveGameData(true);
 }
 
 function buyCapitalUpgrade(upgId) {
@@ -3871,21 +4034,6 @@ function buyCapitalUpgrade(upgId) {
     renderInvestModal();
     updateHUD();
     saveGameData(true);
-}
-
-function buyRpWithMoney() {
-    const cost = 15000;
-    const gain = 1000;
-    if (gameState.money < cost) {
-        showToast(`資金が足りません！（必要: $${cost.toLocaleString()}）`, 'rose');
-        return;
-    }
-    gameState.money -= cost;
-    gameState.rp += gain;
-    SoundFX.play('research');
-    showToast(`🧪 研究データ購入完了！ +${gain.toLocaleString()} RP`, 'sky');
-    renderInvestModal();
-    updateHUD();
 }
 
 function runSatelliteScan() {
@@ -4128,11 +4276,18 @@ function updateContextPanel() {
         }
     }
 
-    if (['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge', 'refinery', 'chem_plant', 'assembler', 'cnc_fab', 'semicon_fab', 'quantum_collider', 'hyper_assembler', 'omega_forge'].includes(def.id)) {
+    if (['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge', 'refinery', 'chem_plant', 'assembler', 'cnc_fab', 'semicon_fab', 'quantum_collider', 'hyper_assembler', 'omega_forge', 'singularity_forge'].includes(def.id)) {
         recContainer.classList.remove('hidden');
         recList.innerHTML = '';
         const activeRecId = targetB ? targetB.recipe : gameState.selectedRecipe[def.id];
-        const machineRecipes = Object.values(RECIPES).filter(r => r.machine === def.id || (def.id === 'omega_forge' && ['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge'].includes(r.machine)));
+        const recQuery = (gameState.recipeSearch || '').trim().toLowerCase();
+
+        const machineRecipes = Object.values(RECIPES).filter(r => {
+            const isMatchMachine = r.machine === def.id || (def.id === 'omega_forge' && ['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge', 'omega_forge'].includes(r.machine));
+            if (!isMatchMachine) return false;
+            if (!recQuery) return true;
+            return r.name.toLowerCase().includes(recQuery) || (ITEMS[r.output] && ITEMS[r.output].name.toLowerCase().includes(recQuery));
+        });
 
         for (const rec of machineRecipes) {
             const unlocked = gameState.tier >= rec.tier;
@@ -4177,12 +4332,14 @@ function updateContextPanel() {
     if (['filter_sorter', 'hub_extractor', 'quantum_extractor'].includes(def.id)) {
         fltContainer.classList.remove('hidden');
         fltLabel.textContent = def.id === 'filter_sorter'
-            ? '正面へ通すアイテム (他は左右へ):'
-            : 'HUB共有倉庫から引き出す特定素材を選択:';
+            ? '正面へ通すアイテム:'
+            : '引出特定素材を選択:';
         fltList.innerHTML = '';
         const activeFlt = targetB ? targetB.filterItem : gameState.selectedFilter;
+        const fltQuery = (gameState.filterSearch || '').trim().toLowerCase();
 
         for (const it of Object.values(BASE_ITEMS)) {
+            if (fltQuery && !it.name.toLowerCase().includes(fltQuery)) continue;
             const unlocked = isItemDiscovered(it.id) || (gameState.inventory[it.id] || 0) > 0;
             if (!unlocked && it.tier > gameState.tier) continue;
             const isSel = activeFlt === it.id;
@@ -4415,13 +4572,20 @@ function selectItemForWithdrawalFromHub(itemId) {
     showToast(`📤 引出素材を「${ITEMS[itemId].name}」に設定しました！HUBの隣に「HUB素材引出ポート」を置くと搬出されます`, 'cyan');
 }
 
+function onHubSearchInput(val) {
+    gameState.hubSearch = val || '';
+    renderHubModal();
+}
+
 function renderHubModal() {
     const list = document.getElementById('hub-item-list');
     list.innerHTML = '';
     let totalSellValue = 0;
     const marketMult = getUpgradeMult('market_value');
+    const query = (gameState.hubSearch || '').trim().toLowerCase();
 
     for (const item of Object.values(BASE_ITEMS)) {
+        if (query && !item.name.toLowerCase().includes(query)) continue;
         const stock = gameState.inventory[item.id] || 0;
         const known = isItemDiscovered(item.id) || stock > 0;
         const isAuto = !!gameState.autoSell[item.id];
