@@ -943,7 +943,7 @@ const BUILDINGS = {
         desc: '【TIER 8 超大型建設】自動売却ON時は+50%高値換金、OFF時は倉庫保存！さらに+180kW発電＆送電網を展開！'
     },
     omega_subhub: {
-        id: 'omega_subhub', name: 'オメガ銀河万能Hub(+100%・無限発電)', cat: 'hubs', cost: 0, craftMats: { omega_matrix: 10, singularity_core: 5, superconductor: 20 }, power: 50000, poleRange: 40, maxCap: 999999, lossRate: 0, icon: 'fa-crown', color: '#facc15', tier: 15,
+        id: 'omega_subhub', name: 'オメガ銀河万能Hub(+100%・無限発電)', cat: 'hubs', cost: 0, craftMats: { omega_matrix: 10, singularity_core: 5, superconductor: 20 }, power: 50000, poleRange: 40, maxCap: 999999, lossRate: 0, icon: 'fa-crown', color: '#facc15', tier: 16,
         desc: '【TIER 15 最終施設】搬入素材を+100%倍額換金または倉庫直結保存！さらに+50,000kW爆速発電＆範囲40マスの銀河送電ドーム！'
     },
 
@@ -1095,15 +1095,15 @@ const BUILDINGS = {
         desc: '【TIER 9 製作】特異点コア・オメガ銀河キューブ・白サイエンスを合成 (-500kW)'
     },
     hyper_assembler: {
-        id: 'hyper_assembler', name: 'ハイパー量子自動組立機', cat: 'production', cost: 0, craftMats: { quantum_chip: 4, titanium_alloy: 6, ai_core: 2 }, power: -450, icon: 'fa-cubes-stacked', color: '#38bdf8', tier: 15,
+        id: 'hyper_assembler', name: 'ハイパー量子自動組立機', cat: 'production', cost: 0, craftMats: { quantum_chip: 4, titanium_alloy: 6, ai_core: 2 }, power: -450, icon: 'fa-cubes-stacked', color: '#38bdf8', tier: 16,
         desc: '【TIER 15 最終機械】自動組立機の3.5倍の超高速で精密部品やサイエンスを無駄なく爆速加工！ (-450kW)'
     },
     omega_forge: {
-        id: 'omega_forge', name: 'オメガ超次元精錬炉', cat: 'production', cost: 0, craftMats: { singularity_core: 2, iridium_alloy: 6, superconductor: 6 }, power: -800, icon: 'fa-volcano', color: '#facc15', tier: 15,
+        id: 'omega_forge', name: 'オメガ超次元精錬炉', cat: 'production', cost: 0, craftMats: { singularity_core: 2, iridium_alloy: 6, superconductor: 6 }, power: -800, icon: 'fa-volcano', color: '#facc15', tier: 16,
         desc: '【TIER 15 最終機械】全精錬レシピを4.0倍の極限スピードで一気に処理する全自動超次元精錬炉！ (-800kW)'
     },
     singularity_forge: {
-        id: 'singularity_forge', name: '特異点創成プラント', cat: 'production', cost: 0, craftMats: { omega_matrix: 5, singularity_core: 8, quantum_chip: 15 }, power: -2500, icon: 'fa-meteor', color: '#c084fc', tier: 15,
+        id: 'singularity_forge', name: '特異点創成プラント', cat: 'production', cost: 0, craftMats: { omega_matrix: 5, singularity_core: 8, quantum_chip: 15 }, power: -2500, icon: 'fa-meteor', color: '#c084fc', tier: 16,
         desc: '【TIER 15 最終機械】銀河キューブや白サイエンスを0.5〜0.8秒で極限製造する特異点創成機！ (-2,500kW)'
     },
     lab: {
@@ -1143,6 +1143,11 @@ const CAPITAL_UPGRADES = {
         id: 'lab_efficiency', name: '量子ラボ解析ブースト', icon: 'fa-flask', color: '#ec4899',
         baseCost: 8000, costMult: 2, maxLv: 25, bonusPerLv: 0.25,
         desc: 'ラボでのサイエンスパック解析速度と獲得RPが1レベルごとに +25% 上昇！'
+    },
+    delivery_speed: {
+        id: 'delivery_speed', name: '宇宙輸送船ワープエンジン強化', icon: 'fa-truck-fast', color: '#38bdf8',
+        baseCost: 10000, costMult: 2, maxLv: 20, bonusPerLv: 12,
+        desc: '素材の買い付け発注の到着時間が1レベルごとに 12秒 短縮！（最短30秒）'
     }
 };
 
@@ -4255,7 +4260,15 @@ function updateContextPanel() {
 
         const activeRecId = targetB ? targetB.recipe : gameState.selectedRecipe[def.id];
         const machineRecipes = Object.values(RECIPES).filter(r => {
-            if (r.machine !== def.id && !(def.id === 'omega_forge' && ['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge'].includes(r.machine))) return false;
+            let matchMachine = (r.machine === def.id);
+            if (def.id === 'hyper_assembler') {
+                matchMachine = matchMachine || ['assembler', 'cnc_fab', 'semicon_fab', 'hyper_assembler'].includes(r.machine);
+            } else if (def.id === 'omega_forge') {
+                matchMachine = matchMachine || ['furnace', 'blast_furnace', 'arc_furnace', 'plasma_forge', 'omega_forge', 'singularity_forge'].includes(r.machine);
+            } else if (def.id === 'singularity_forge') {
+                matchMachine = matchMachine || ['singularity_forge', 'quantum_collider', 'plasma_forge', 'omega_forge'].includes(r.machine);
+            }
+            if (!matchMachine) return false;
             if (!sQuery) return true;
             return r.name.toLowerCase().includes(sQuery) || (ITEMS[r.output] && ITEMS[r.output].name.toLowerCase().includes(sQuery));
         });
