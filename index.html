@@ -1377,10 +1377,15 @@ function getItemDisplayName(itemId) {
     return '？？？';
 }
 
+function isTierUnlocked(reqTier) {
+    if (!reqTier) return true;
+    return reqTier >= 15 ? gameState.tier >= 16 : gameState.tier >= reqTier;
+}
+
 function isBuildingDiscovered(bId) {
     const b = BUILDINGS[bId];
     if (!b) return false;
-    if (b.tier <= gameState.tier) return true;
+    if (isTierUnlocked(b.tier)) return true;
     if (gameState.discoveredBuildings && gameState.discoveredBuildings[bId]) return true;
     if ((gameState.craftedMachines && gameState.craftedMachines[bId] > 0)) return true;
     return false;
@@ -2593,7 +2598,12 @@ function updateCrafter(x, y, b, dt) {
         }
     }
 
-    b.progress += dt / rec.time;
+    let machineSpeed = 1.0;
+    if (b.type === 'hyper_assembler') machineSpeed = 3.5;
+    else if (b.type === 'omega_forge') machineSpeed = 4.0;
+    else if (b.type === 'singularity_forge') machineSpeed = 5.0;
+
+    b.progress += (dt * machineSpeed) / rec.time;
     if (b.progress >= 1) {
         b.progress = 0;
         for (const [k, req] of Object.entries(rec.inputs)) {
@@ -3696,7 +3706,7 @@ function renderCraftModal() {
     const craftables = Object.values(BUILDINGS).filter(b => b.craftMats);
 
     for (const b of craftables) {
-        const unlocked = gameState.tier >= b.tier;
+        const unlocked = isTierUnlocked(b.tier);
         const owned = gameState.craftedMachines[b.id] || 0;
         const known = isBuildingDiscovered(b.id);
 
@@ -3752,7 +3762,7 @@ function renderCraftModal() {
                     </div>
                 ` : `
                     <button onclick="closeModal('craftModal'); openModal('techModal');" class="text-[10px] font-extrabold text-indigo-300 bg-indigo-950 border border-indigo-500/50 px-2.5 py-1 rounded-xl shrink-0">
-                        要 TIER ${Math.min(15, b.tier)} 研究
+                        要 TIER ${b.tier} 研究
                     </button>
                 `}
             </div>
@@ -3767,7 +3777,7 @@ function renderCraftModal() {
 
 function craftMachine(machineId, count) {
     const def = BUILDINGS[machineId];
-    if (!def || !def.craftMats || gameState.tier < def.tier) return;
+    if (!def || !def.craftMats || !isTierUnlocked(def.tier)) return;
 
     for (const [matId, req] of Object.entries(def.craftMats)) {
         if ((gameState.inventory[matId] || 0) < req * count) {
@@ -4098,7 +4108,7 @@ function renderToolbar() {
         : Object.values(BUILDINGS).filter(b => b.cat === gameState.activeCat);
 
     for (const b of list) {
-        const unlocked = gameState.tier >= b.tier;
+        const unlocked = isTierUnlocked(b.tier);
         const known = isBuildingDiscovered(b.id);
         const isActive = gameState.selectedTool === b.id && gameState.controlMode !== 'delete';
         const owned = b.craftMats ? (gameState.craftedMachines[b.id] || 0) : null;
@@ -4131,7 +4141,7 @@ function renderToolbar() {
             </div>
             <span class="text-[9px] font-extrabold tracking-tighter leading-none mt-0.5 truncate w-14 text-center">${dispName}</span>
             <span class="text-[9px] leading-none">${subTag}</span>
-            ${!unlocked ? `<span class="absolute top-0.5 right-0.5 text-[8px] bg-slate-950 text-amber-400 px-1 rounded">T${Math.min(15, b.tier)}</span>` : ''}
+            ${!unlocked ? `<span class="absolute top-0.5 right-0.5 text-[8px] bg-slate-950 text-amber-400 px-1 rounded">T${b.tier}</span>` : ''}
         `;
         bar.appendChild(btn);
     }
@@ -4275,7 +4285,7 @@ function updateContextPanel() {
         });
 
         for (const rec of machineRecipes) {
-            const unlocked = gameState.tier >= rec.tier;
+            const unlocked = isTierUnlocked(rec.tier);
             const isSel = activeRecId === rec.id;
             const outItem = ITEMS[rec.output];
             const recName = unlocked ? rec.name : '？？？ (未解放レシピ)';
@@ -4793,7 +4803,7 @@ function unlockNextTier() {
     gameState.rp -= t.rp;
     gameState.tier++;
     for (const b of Object.values(BUILDINGS)) {
-        if (b.tier <= gameState.tier) gameState.discoveredBuildings[b.id] = true;
+        if (isTierUnlocked(b.tier)) gameState.discoveredBuildings[b.id] = true;
     }
     SoundFX.play('research');
     const nextMsg = gameState.tier > 15
