@@ -3848,16 +3848,17 @@ function renderInvestModal() {
 
     // 新ランダム強化システム & 資源探査衛星スキャン
     const scanCost = 6000;
-    const gambleCost = 10000;
+    const rolls = gameState.randomEnhanceRolls || 0;
+    const gambleCost = Math.round(10000 * Math.pow(1.05, rolls));
     html += `
         <div class="pt-2 border-t border-slate-800 space-y-2">
             <div class="text-[11px] font-extrabold text-purple-300 flex items-center gap-1">
-                <i class="fas fa-dice"></i> ランダム量子オーバークロック強化
+                <i class="fas fa-dice"></i> ランダム量子オーバークロック強化 (毎回費用+5%)
             </div>
             <div class="bg-purple-950/40 border border-purple-500/40 p-2.5 rounded-2xl flex items-center justify-between gap-2">
                 <div>
                     <div class="text-xs font-extrabold text-purple-200">量子エネルギーガチャ (<b class="text-amber-300">$${gambleCost.toLocaleString()}</b>)</div>
-                    <div class="text-[10px] text-slate-300 mt-0.5">ランダムで爆発的ボーナスや資金、素材が即座に手に入るハイリスクハイリターン強化！(総試行: ${gameState.randomEnhanceRolls || 0}回)</div>
+                    <div class="text-[10px] text-slate-300 mt-0.5">引くたびに値段が5%上昇！大当たり・はずれ効果が強力な量子ガチャ！(総試行: ${rolls}回)</div>
                 </div>
                 <button onclick="rollRandomEnhancement()" class="bg-purple-600 hover:bg-purple-500 active:scale-90 text-white px-3 py-2 rounded-xl text-[10px] font-extrabold shrink-0 shadow">
                     量子ガチャ実行
@@ -4815,6 +4816,17 @@ function unlockNextTier() {
     renderTechModal();
     updateHUD();
     saveGameData(true);
+}
+
+function openCraftModalForInspected() {
+    let machineId = null;
+    if (gameState.inspectedTile) {
+        const b = getBuilding(gameState.inspectedTile.x, gameState.inspectedTile.y);
+        if (b) machineId = b.id || b.type;
+    }
+    const modal = document.getElementById('craftModal');
+    renderCraftModal(machineId);
+    modal.classList.remove('hidden');
 }
 
 function openModal(id) {
